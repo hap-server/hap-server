@@ -3,6 +3,7 @@
         <component v-if="component" :is="component" :connection="connection" :service="service" />
 
         <div v-else class="service unsupported-service">
+            <h5>{{ service.accessory.name }}</h5>
             <h5>{{ service.name }}</h5>
             <p>Unsupported</p>
         </div>

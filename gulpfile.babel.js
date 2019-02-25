@@ -5,6 +5,7 @@ import webpack from 'webpack-stream';
 
 import VueLoaderPlugin from 'vue-loader/lib/plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
+import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 
 const webpack_config = {
     mode: 'development',
@@ -14,12 +15,33 @@ const webpack_config = {
                 test: /\.vue$/,
                 loader: 'vue-loader',
             },
+            {
+                test: /\.(s?c|sa)ss$/,
+                use: [
+                    {
+                        loader: MiniCssExtractPlugin.loader,
+                        options: {
+                            // you can specify a publicPath here
+                            // by default it use publicPath in webpackOptions.output
+                            publicPath: '../',
+                        },
+                    },
+                    'css-loader',
+                    'sass-loader',
+                ],
+            },
         ],
     },
     plugins: [
         new VueLoaderPlugin(),
         new HtmlWebpackPlugin({
             template: 'src/public/index.html',
+        }),
+        new MiniCssExtractPlugin({
+            // Options similar to the same options in webpackOptions.output
+            // both options are optional
+            filename: '[name].css',
+            chunkFilename: '[id].css',
         }),
     ],
 };
@@ -40,7 +62,8 @@ gulp.task('build-backend', gulp.parallel(function () {
 
 gulp.task('build-frontend', function () {
     return pump([
-        gulp.src('src/index.js'),
+        gulp.src('src/public/index.js'),
+        gulp.src('src/public/scss/index.scss'),
         webpack(webpack_config),
         gulp.dest('dist/public'),
     ]);
@@ -55,6 +78,7 @@ gulp.task('watch-backend', gulp.series('build-backend', function () {
 gulp.task('watch-frontend', function () {
     return pump([
         gulp.src('src/public/index.js'),
+        gulp.src('src/public/scss/index.scss'),
         webpack(Object.assign({watch: true}, webpack_config)),
         gulp.dest('dist/public'),
     ]);

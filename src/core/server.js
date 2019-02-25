@@ -9,7 +9,9 @@ import WebSocket from 'ws';
 import Connection from './connection';
 
 export default class Server {
-    constructor(storage) {
+    constructor(homebridge, log, storage) {
+        this.homebridge = homebridge;
+        this.log = log;
         this.storage = storage;
 
         this.app = express();

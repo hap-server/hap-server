@@ -1,0 +1,29 @@
+.section {
+    margin: 1rem;
+    min-height: 12em;
+}
+
+.service-container {
+    @extend .section;
+
+    margin: 1rem 0 0 1rem;
+}
+
+.service-container-header {
+    margin: 0 1rem 0 0;
+    font-size: 0.8rem;
+
+    color: $gray-400;
+}
+
+.service-container-header h4 {
+    margin: 0;
+    font-size: 1em;
+}
+
+.service-container-contents {
+    .service-wrapper {
+        display: inline-block;
+        margin-left: 0;
+    }
+}

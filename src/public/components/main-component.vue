@@ -1,15 +1,30 @@
 <template>
-    <div>
-        <h1>Yay, it works!</h1>
-        <button @click="ping">Ping</button>
+    <div class="root" :class="{scrolled}">
+        <div class="header">
+            <div class="left">
+                <div class="badge badge-pill badge-dark" @click="openHomeSettings">Settings</div>
+            </div>
+            <h1>{{ title }}</h1>
+            <div class="right">
+            </div>
+        </div>
 
-        <h3>Fake accessories</h3>
-        <service :connection="connection" :service="{name: 'Test 1', type: '00000049-0000-1000-8000-0026BB765291'}" />
+        <div class="main">
+            <h1>{{ title }}</h1>
 
-        <h3>Accessories</h3>
-        <div v-for="accessory in accessories">
-            <h4>{{ accessory.name }}</h4>
-            <service v-for="service in accessory.services" :connection="connection" :service="service" :key="service.uuid" />
+            <div class="section">
+                <button @click="ping">Ping</button>
+            </div>
+
+            <h3>Fake accessories</h3>
+            <div class="section mx-0">
+                <service :connection="connection" :service="{name: 'Test 1', type: '00000049-0000-1000-8000-0026BB765291'}" />
+            </div>
+
+            <h3>Accessories</h3>
+            <service-container v-for="accessory in Object.values(accessories)" :key="accessory.uuid" :title="accessory.name">
+                <service v-for="service in accessory.services" :key="service.uuid" :connection="connection" :service="service" />
+            </service-container>
         </div>
     </div>
 </template>
@@ -19,6 +34,7 @@
     import Accessory from '../accessory';
 
     import Service from './service.vue';
+    import ServiceContainer from './service-container.vue';
 
     export default {
         data() {
@@ -29,12 +45,23 @@
                 accessories: {},
                 refresh_accessories_timeout: null,
                 loading_accessories: false,
+
+                title: 'Home',
+                scrolled: false,
             };
         },
         components: {
             Service,
+            ServiceContainer,
         },
         async created() {
+            window.vroot = this;
+            window.accessories = this.accessories;
+
+            window.addEventListener('scroll', this.onscroll);
+            window.addEventListener('touchmove', this.onscroll);
+            document.body.scrollTo(0, 0);
+
             this.$on('updated-accessories', (added, removed) => console.log('Updated accessories', added, removed));
 
             await this.connect();
@@ -47,7 +74,7 @@
 
                 const accessory = new Accessory(this.connection, accessory_uuid, accessory_details, accessory_data);
 
-                this.accessories[accessory.uuid] = accessory;
+                this.$set(this.accessories, accessory.uuid, accessory);
                 this.$emit('new-accessory', accessory);
                 this.$emit('new-accessories', [accessory]);
                 this.$emit('updated-accessories', [accessory], []);
@@ -56,7 +83,7 @@
             this.connection.on('remove-accessory', accessory_uuid => {
                 const accessory = this.accessories.map(uuid => this.accessories[uuid]);
 
-                delete this.accessories[accessory.uuid];
+                this.$delete(this.accessories, accessory.uuid);
                 this.$emit('removed-accessory', accessory);
                 this.$emit('removed-accessories', [accessory]);
                 this.$emit('updated-accessories', [], [accessory]);
@@ -124,20 +151,20 @@
                         new Accessory(this.connection, uuid, new_accessory_details[index], new_accessory_data[index]));
 
                     for (let accessory of added_accessories) {
-                        this.accessories[accessory.uuid] = accessory;
+                        this.$set(this.accessories, accessory.uuid, accessory);
                         if (!dont_emit_events) this.$emit('new-accessory', accessory);
                     }
 
-                    if (!dont_emit_events) this.$emit('new-accessories', added_accessories);
+                    if (added_accessories.length && !dont_emit_events) this.$emit('new-accessories', added_accessories);
 
                     const removed_accessory_objects = removed_accessories.map(uuid => this.accessories[uuid]);
 
                     for (let accessory of removed_accessory_objects) {
-                        delete this.accessories[accessory.uuid];
+                        this.$delete(this.accessories, accessory.uuid);
                         if (!dont_emit_events) this.$emit('removed-accessory', accessory);
                     }
 
-                    if (!dont_emit_events) this.$emit('removed-accessories', removed_accessory_objects);
+                    if (removed_accessories.length && !dont_emit_events) this.$emit('removed-accessories', removed_accessory_objects);
 
                     if (added_accessories.length || removed_accessories.length) {
                         this.$emit('updated-accessories', added_accessories, removed_accessory_objects);
@@ -145,6 +172,9 @@
                 } finally {
                     this.loading_accessories = false;
                 }
+            },
+            onscroll() {
+                this.scrolled = document.body.scrollTop > 60;
             },
             findServices(callback) {
                 const services = [];
@@ -154,6 +184,14 @@
                 }
 
                 return services;
+            },
+            openHomeSettings() {
+                console.log('Opening home settings...');
+            }
+        },
+        watch: {
+            title(title) {
+                document.title = title;
             }
         }
     };

@@ -14,15 +14,15 @@ export default class Connection {
         this.ws = ws;
         this.id = id++;
 
-        console.log('WebSocket connection', this.id, this.ws);
+        this.server.log.debug('WebSocket connection', this.id, this.ws);
 
         ws.on('message', message => {
-            console.log('Received', this.id, message);
+            this.server.log.debug('Received', this.id, message);
 
             const match = message.match(/^\*([0-9]+)\:(.*)$/);
 
             if (!match) {
-                console.error('Invalid message');
+                this.server.log.error('Received invalid message from client', this.id);
                 return;
             }
 
@@ -44,7 +44,7 @@ export default class Connection {
     }
 
     handleMessage(messageid, data) {
-        console.log('Received message', data, 'from', this.id, 'with messageid', messageid);
+        this.server.log.debug('Received message', data, 'from', this.id, 'with messageid', messageid);
 
         if (data === 'ping') {
             this.respond(messageid, 'pong');
@@ -65,9 +65,17 @@ export default class Connection {
      * Gets the UUID of every accessory.
      */
     listAccessories() {
-        return [
-            'accessory-uuid',
-        ];
+        const uuids = [];
+
+        for (let bridge of [this.server.homebridge._bridge]) {
+            uuids.push(bridge.UUID);
+
+            for (let accessory of bridge.bridgedAccessories) {
+                uuids.push(accessory.UUID);
+            }
+        }
+
+        return uuids;
     }
 
     async handleGetAccessoriesMessage(messageid, data) {
@@ -83,6 +91,14 @@ export default class Connection {
     }
 
     getAccessory(id) {
+        for (let bridge of [this.server.homebridge._bridge]) {
+            if (bridge.UUID === id) return bridge.toHAP()[0];
+
+            for (let accessory of bridge.bridgedAccessories) {
+                if (accessory.UUID === id) return accessory.toHAP()[0];
+            }
+        }
+
         //
         return {
             name: 'Test 2',
@@ -118,7 +134,7 @@ export default class Connection {
 
     getAccessoryData(id) {
         //
-        console.log('Getting data for accessory', id);
+        this.server.log.debug('Getting data for accessory', id);
 
         return this.server.storage.getItem('AccessoryData.' + id);
     }
@@ -137,7 +153,7 @@ export default class Connection {
 
     setAccessoryData(id, data) {
         //
-        console.log('Setting data for accessory', id, data);
+        this.server.log.debug('Setting data for accessory', id, data);
 
         return this.server.storage.setItem('AccessoryData.' + id, data);
     }
