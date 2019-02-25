@@ -59,10 +59,10 @@ export default class Accessory extends EventEmitter {
 
         for (let service_uuid of Object.keys(this.services)) {
             const service_type = service_uuid.indexOf('.') !== -1 ? service_uuid.substr(0, service_uuid.indexOf('.')) : service_uuid;
-            const service_subtype = service_uuid.indexOf('.') !== -1 ? service_uuid.substr(service_uuid.indexOf('.')) : undefined;
+            const service_subtype = service_uuid.indexOf('.') !== -1 ? service_uuid.substr(service_uuid.indexOf('.') + 1) : undefined;
 
             // Service still exists
-            if (details.services.find(s => s.type === service_type && s.subtype === service_subtype)) continue;
+            if (details.services.find(s => s.type === service_type && (!s.subtype && !service_subtype) || s.subtype === service_subtype)) continue;
 
             removed_service_ids.push(service_uuid);
         }

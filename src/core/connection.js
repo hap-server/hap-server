@@ -111,10 +111,19 @@ export default class Connection {
 
     getAccessory(id) {
         for (let bridge of [this.server.homebridge._bridge]) {
-            if (bridge.UUID === id) return bridge.toHAP()[0];
+            for (let accessory of [bridge, ...bridge.bridgedAccessories]) {
+                if (accessory.UUID !== id) continue;
 
-            for (let accessory of bridge.bridgedAccessories) {
-                if (accessory.UUID === id) return accessory.toHAP()[0];
+                const hap = accessory.toHAP()[0];
+
+                // Add service subtypes
+                for (let service of accessory.services) {
+                    const service_hap = hap.services.find(s => s.iid === service.iid);
+
+                    service_hap.subtype = service.subtype;
+                }
+
+                return hap;
             }
         }
 
@@ -137,17 +146,19 @@ export default class Connection {
 
     getCharacteristic(accessory_uuid, service_uuid, characteristic_uuid) {
         const service_type = service_uuid.indexOf('.') !== -1 ? service_uuid.substr(0, service_uuid.indexOf('.')) : service_uuid;
-        const service_subtype = service_uuid.indexOf('.') !== -1 ? service_uuid.substr(service_uuid.indexOf('.')) : undefined;
+        const service_subtype = service_uuid.indexOf('.') !== -1 ? service_uuid.substr(service_uuid.indexOf('.') + 1) : undefined;
 
         for (let bridge of [this.server.homebridge._bridge]) {
             for (let accessory of [bridge, ...bridge.bridgedAccessories]) {
-                const service = accessory.services.find(service => service.UUID === service_type && service.subtype === service_subtype);
+                if (accessory.UUID !== accessory_uuid) continue;
+
+                const service = accessory.services.find(service => service.UUID === service_type && ((!service.subtype && !service_subtype) || service.subtype === service_subtype));
                 if (!service) return;
 
                 const characteristic = service.characteristics.find(characteristic => characteristic.UUID === characteristic_uuid);
                 if (!characteristic) return;
 
-                return characteristic.toHAP()[0];
+                return characteristic.toHAP();
             }
         }
     }
@@ -167,17 +178,18 @@ export default class Connection {
         this.server.log.info('Setting characteristic', accessory_uuid, service_uuid, characteristic_uuid, 'to', value);
 
         const service_type = service_uuid.indexOf('.') !== -1 ? service_uuid.substr(0, service_uuid.indexOf('.')) : service_uuid;
-        const service_subtype = service_uuid.indexOf('.') !== -1 ? service_uuid.substr(service_uuid.indexOf('.')) : undefined;
+        const service_subtype = service_uuid.indexOf('.') !== -1 ? service_uuid.substr(service_uuid.indexOf('.') + 1) : undefined;
 
         for (let bridge of [this.server.homebridge._bridge]) {
             for (let accessory of [bridge, ...bridge.bridgedAccessories]) {
-                const service = accessory.services.find(service => service.UUID === service_type && service.subtype === service_subtype);
+                if (accessory.UUID !== accessory_uuid) continue;
+
+                const service = accessory.services.find(service => service.UUID === service_type && ((!service.subtype && !service_subtype) || service.subtype === service_subtype));
                 if (!service) return;
 
-                const characteristic = service.characteristics.find(characteristic => characteristic.UUID == characteristic_uuid);
+                const characteristic = service.characteristics.find(characteristic => characteristic.UUID === characteristic_uuid);
                 if (!characteristic) return;
 
-                this.server.log.info('Characteristic', characteristic);
 
                 return characteristic.setValue(value);
                 // return characteristic.emit('set', value);
