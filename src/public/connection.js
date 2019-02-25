@@ -6,6 +6,8 @@ const broadcast_message_methods = {
     'update-accessory-details': 'handleUpdateAccessoryDetailsMessage',
     'update-accessory-data': 'handleUpdateAccessoryDataMessage',
     'update-home-settings': 'handleUpdateHomeSettingsMessage',
+    'stdout': 'handleStdout',
+    'stderr': 'handleStderr',
 };
 
 export default class Connection extends EventEmitter {
@@ -136,6 +138,18 @@ export default class Connection extends EventEmitter {
         });
     }
 
+    enableProxyStdout() {
+        return this.send({
+            type: 'enable-proxy-stdout',
+        });
+    }
+
+    disableProxyStdout() {
+        return this.send({
+            type: 'disable-proxy-stdout',
+        });
+    }
+
     handleBroadcastMessage(data) {
         console.log('Received broadcast message', data);
 
@@ -163,5 +177,13 @@ export default class Connection extends EventEmitter {
 
     handleUpdateHomeSettingsMessage(data) {
         this.emit('update-home-settings', data.data);
+    }
+
+    handleStdout(data) {
+        this.emit('stdout', data.data);
+    }
+
+    handleStderr(data) {
+        this.emit('stderr', data.data);
     }
 }

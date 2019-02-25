@@ -3,12 +3,17 @@
         <div class="settings-overlay"></div>
 
         <div class="settings-window-wrapper">
-            <div class="settings-window">
+            <div class="settings-window" style="max-width: 626px;">
                 <div class="settings-container">
+                    <div class="form-group">
+                        <label class="form-label-sm">Output</label>
+                        <terminal :terminal="terminal" />
+                    </div>
+
                     <div class="form-group row">
                         <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-name'">Name</label>
                         <div class="col-sm-9">
-                            <input type="text" class="form-control form-control-sm" :id="_id + '-name'" v-model="name" placeholder="Home" :disabled="loading || saving" />
+                            <input type="text" class="form-control form-control-sm" :id="_uid + '-name'" v-model="name" placeholder="Home" :disabled="loading || saving" />
                         </div>
                     </div>
 
@@ -26,6 +31,10 @@
 </template>
 
 <script>
+    import {Terminal} from 'xterm';
+
+    import TerminalComponent from './terminal.vue';
+
     export default {
         props: ['connection'],
         data() {
@@ -33,11 +42,35 @@
                 loading: false,
                 saving: false,
 
+                terminal: null,
+
                 name: null,
             };
         },
-        created() {
-            this.reload();
+        components: {
+            Terminal: TerminalComponent,
+        },
+        async created() {
+            this.terminal = new Terminal({
+                disableStdin: true,
+                fontSize: 12,
+                convertEol: true,
+                columns: 20,
+            });
+            this.terminal.write('Hello from \x1B[1;3;31mxterm.js\x1B[0m $ ');
+
+            await this.connection.enableProxyStdout();
+            this.terminal.write('\nStarted stdout proxy...\n');
+
+            this.connection.on('stdout', this.stdout);
+            this.connection.on('stderr', this.stderr);
+
+            await this.reload();
+        },
+        async destroy() {
+            this.connection.removeListener('stdout', this.stdout);
+            this.connection.removeListener('stderr', this.stderr);
+            await this.connection.disableProxyStdout();
         },
         methods: {
             async reload() {
@@ -68,6 +101,14 @@
                 } finally {
                     this.saving = false;
                 }
+            },
+            stdout(data) {
+                console.log('stdout', data);
+                this.terminal.write(data);
+            },
+            stderr(data) {
+                console.error('stderr', data);
+                this.terminal.write(data);
             }
         }
     };

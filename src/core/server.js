@@ -22,6 +22,28 @@ export default class Server {
 
         this.handle = this.handle.bind(this);
         this.upgrade = this.upgrade.bind(this);
+
+        const console_log = console.log;
+        const console_error = console.error;
+
+        console.log = (data, ...args) => {
+            for (let ws of this.wss.clients) {
+                const connection = Connection.getConnectionForWebSocket(ws);
+                if (connection && connection.enable_proxy_stdout)
+                    ws.send('**:' + JSON.stringify({type: 'stdout', data}));
+            }
+
+            console_log(data, ...args);
+        };
+        console.error = (data, ...args) => {
+            for (let ws of this.wss.clients) {
+                const connection = Connection.getConnectionForWebSocket(ws);
+                if (connection && connection.enable_proxy_stdout)
+                    ws.send('**:' + JSON.stringify({type: 'stderr', data}));
+            }
+
+            console_error(data, ...args);
+        };
     }
 
     createServer(options) {

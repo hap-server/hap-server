@@ -123,7 +123,10 @@ export default class Accessory extends EventEmitter {
 
     get default_name() {
         const accessory_information = this.getService('0000003E-0000-1000-8000-0026BB765291');
+        if (!accessory_information) return;
+
         const name = accessory_information.getCharacteristic('00000023-0000-1000-8000-0026BB765291');
+        if (!name) return;
 
         return name.value;
     }

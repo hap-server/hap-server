@@ -8,15 +8,22 @@ const message_methods = {
     'set-accessories-data': 'handleSetAccessoriesDataMessage',
     'get-home-settings': 'handleGetHomeSettingsMessage',
     'set-home-settings': 'handleSetHomeSettingsMessage',
+    'enable-proxy-stdout': 'handleEnableProxyStdoutMessage',
+    'disable-proxy-stdout': 'handleDisableProxyStdoutMessage',
 };
+
+const ws_map = new WeakMap();
 
 export default class Connection {
     constructor(server, ws) {
         this.server = server;
         this.ws = ws;
         this.id = id++;
+        this.enable_proxy_stdout = false;
 
         this.server.log.debug('WebSocket connection', this.id, this.ws);
+
+        ws_map.set(this.ws, this);
 
         ws.on('message', message => {
             this.server.log.debug('Received', this.id, message);
@@ -40,6 +47,10 @@ export default class Connection {
         });
 
         ws.send('ping');
+    }
+
+    static getConnectionForWebSocket(ws) {
+        return ws_map.get(ws);
     }
 
     sendBroadcast(data) {
@@ -255,5 +266,21 @@ export default class Connection {
             type: 'update-home-settings',
             data,
         }, this.ws);
+    }
+
+    handleEnableProxyStdoutMessage(messageid) {
+        this.server.log.info('Enabling stdout proxy for', this.id);
+        this.enable_proxy_stdout = true;
+
+        setTimeout(() => this.server.log.info('Should work'), 1000);
+
+        this.respond(messageid);
+    }
+
+    handleDisableProxyStdoutMessage(messageid) {
+        this.server.log.info('Disabling stdout proxy for', this.id);
+        this.enable_proxy_stdout = false;
+
+        this.respond(messageid);
     }
 }
