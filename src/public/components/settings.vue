@@ -1,38 +1,31 @@
 <template>
-    <div class="settings-wrapper">
-        <div class="settings-overlay"></div>
+    <panel ref="panel" class="home-settings" @close="$emit('close')">
+        <div class="form-group">
+            <label class="form-label-sm">Output</label>
+            <terminal :terminal="terminal" />
+        </div>
 
-        <div class="settings-window-wrapper">
-            <div class="settings-window" style="max-width: 626px;">
-                <div class="settings-container">
-                    <div class="form-group">
-                        <label class="form-label-sm">Output</label>
-                        <terminal :terminal="terminal" />
-                    </div>
-
-                    <div class="form-group row">
-                        <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-name'">Name</label>
-                        <div class="col-sm-9">
-                            <input type="text" class="form-control form-control-sm" :id="_uid + '-name'" v-model="name" placeholder="Home" :disabled="loading || saving" />
-                        </div>
-                    </div>
-
-                    <div class="d-flex">
-                        <div v-if="loading">Loading</div>
-                        <div v-else-if="saving">Saving</div>
-                        <div class="flex-fill"></div>
-                        <button class="btn btn-default btn-sm" type="button" @click="$emit('close')" :disabled="saving">Cancel</button>
-                        <button class="btn btn-primary btn-sm" type="button" @click="save(true)" :disabled="loading || saving">Save</button>
-                    </div>
-                </div>
+        <div class="form-group row">
+            <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-name'">Name</label>
+            <div class="col-sm-9">
+                <input type="text" class="form-control form-control-sm" :id="_uid + '-name'" v-model="name" placeholder="Home" :disabled="loading || saving" />
             </div>
         </div>
-    </div>
+
+        <div class="d-flex">
+            <div v-if="loading">Loading</div>
+            <div v-else-if="saving">Saving</div>
+            <div class="flex-fill"></div>
+            <button class="btn btn-default btn-sm" type="button" @click="() => $refs.panel.close()" :disabled="saving">Cancel</button>
+            <button class="btn btn-primary btn-sm" type="button" @click="save(true)" :disabled="loading || saving">Save</button>
+        </div>
+    </panel>
 </template>
 
 <script>
     import {Terminal} from 'xterm';
 
+    import Panel from './panel.vue';
     import TerminalComponent from './terminal.vue';
 
     export default {
@@ -48,6 +41,7 @@
             };
         },
         components: {
+            Panel,
             Terminal: TerminalComponent,
         },
         async created() {
@@ -57,7 +51,12 @@
                 convertEol: true,
                 columns: 20,
             });
+            // this.terminal.open(this.$refs.terminal);
             this.terminal.write('Hello from \x1B[1;3;31mxterm.js\x1B[0m $ ');
+
+            // window.terminal = this.terminal;
+            // this.terminal.element.parentElement.removeChild(this.terminal.element);
+            // this.$refs.terminal.appendChild(this.terminal.element);
 
             await this.connection.enableProxyStdout();
             this.terminal.write('\nStarted stdout proxy...\n');

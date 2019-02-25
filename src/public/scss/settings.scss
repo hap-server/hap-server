@@ -22,14 +22,47 @@
 .settings-window {
     width: 80%;
     max-width: 500px;
-    margin: 0 auto auto;
-    max-height: 80%;
+    margin-left: auto;
+    margin-right: auto;
+    max-height: 90%;
     background-color: $light;
     border: darken($light, 20%) 1px solid;
     border-top-width: 0;
     overflow-y: auto;
+
+    &.v-enter-active {
+        animation: panel-in 0.5s ease-in;
+    }
+
+    &.v-leave-active {
+        animation: panel-out 0.5s ease-out;
+    }
+
+    .home-settings & {
+        max-width: 626px;
+    }
 }
 
 .settings-container {
     padding: 2rem;
+}
+
+@keyframes panel-in {
+    0% {
+        margin-top: -90%;
+    }
+
+    100% {
+        margin-top: 0;
+    }
+}
+
+@keyframes panel-out {
+    0% {
+        margin-top: 0;
+    }
+
+    100% {
+        margin-top: -90%;
+    }
 }
