@@ -2,30 +2,34 @@
     <div class="root" :class="{scrolled}">
         <div class="header">
             <div class="left">
-                <div class="badge badge-pill badge-dark" @click="openHomeSettings">Settings</div>
+                <div class="badge badge-pill badge-dark" @click="show_settings = true">Settings</div>
             </div>
-            <h1>{{ title }}</h1>
+            <h1>{{ name || 'Home' }}</h1>
             <div class="right">
             </div>
         </div>
 
         <div class="main">
-            <h1>{{ title }}</h1>
+            <h1>{{ name || 'Home' }}</h1>
 
             <div class="section">
                 <button @click="ping">Ping</button>
             </div>
 
-            <h3>Fake accessories</h3>
+            <!-- <h3>Fake accessories</h3>
             <div class="section mx-0">
                 <service :connection="connection" :service="{name: 'Test 1', type: '00000049-0000-1000-8000-0026BB765291'}" />
-            </div>
+            </div> -->
 
-            <h3>Accessories</h3>
+            <!-- <h3>Accessories</h3> -->
             <service-container v-for="accessory in Object.values(accessories)" :key="accessory.uuid" :title="accessory.name">
-                <service v-for="service in accessory.services" :key="service.uuid" :connection="connection" :service="service" />
+                <service v-for="service in accessory.services" :key="service.uuid" :connection="connection" :service="service" @show-settings="show_accessory_settings = service.accessory" />
             </service-container>
         </div>
+
+        <settings v-if="show_settings" :connection="connection" @updated-settings="reload" @close="show_settings = false" />
+        <accessory-settings v-if="show_accessory_settings" :connection="connection" :accessory="show_accessory_settings" />
+        <!-- <service-settings v-if="show_service_settings" :connection="connection" :service="show_service_settings" /> -->
     </div>
 </template>
 
@@ -36,27 +40,42 @@
     import Service from './service.vue';
     import ServiceContainer from './service-container.vue';
 
+    import Settings from './settings.vue';
+    import AccessorySettings from './accessory-settings.vue';
+
     export default {
         data() {
             return {
                 connection: null,
                 connecting: false,
+                loading: false,
+
+                name: null,
+
+                show_settings: false,
+                show_accessory_settings: null,
+                // show_service_settings: null,
 
                 accessories: {},
                 refresh_accessories_timeout: null,
                 loading_accessories: false,
 
-                title: 'Home',
+                // title: 'Home',
                 scrolled: false,
             };
         },
         components: {
             Service,
             ServiceContainer,
+
+            Settings,
+            AccessorySettings,
         },
         async created() {
             window.vroot = this;
             window.accessories = this.accessories;
+
+            window.getAccessories = () => Object.values(this.accessories);
 
             window.addEventListener('scroll', this.onscroll);
             window.addEventListener('touchmove', this.onscroll);
@@ -65,6 +84,10 @@
             this.$on('updated-accessories', (added, removed) => console.log('Updated accessories', added, removed));
 
             await this.connect();
+
+            this.connection.on('update-home-settings', data => {
+                this.name = data.name;
+            });
 
             this.connection.on('add-accessory', async accessory_uuid => {
                 const [accessory_details, accessory_data] = await Promise.all([
@@ -89,7 +112,10 @@
                 this.$emit('updated-accessories', [], [accessory]);
             });
 
-            await this.refreshAccessories(true);
+            await Promise.all([
+                this.reload(),
+                this.refreshAccessories(true),
+            ]);
 
             const refresh_accessories_function = async () => {
                 await this.refreshAccessories();
@@ -115,6 +141,18 @@
                 console.log('Sending ping request');
                 const response = await this.connection.send('ping');
                 console.log('Ping response', response);
+            },
+            async reload() {
+                if (this.loading) throw new Error('Already loading');
+                this.loading = true;
+
+                try {
+                    const data = await this.connection.getHomeSettings();
+
+                    this.name = data.name || 'Home';
+                } finally {
+                    this.loading = false;
+                }
             },
             async refreshAccessories(dont_emit_events) {
                 if (this.loading_accessories) throw new Error('Already trying to connect');
@@ -184,14 +222,26 @@
                 }
 
                 return services;
+            }
+        },
+        computed: {
+            title() {
+                if (this.show_service_settings) return this.show_service_settings.name + ' Settings';
+                if (this.show_accessory_settings) return this.show_accessory_settings.name + ' Settings';
+                if (this.show_settings) return 'Settings';
+
+                return this.name || 'Home';
             },
-            openHomeSettings() {
-                console.log('Opening home settings...');
+            settings_open() {
+                return this.show_service_settings || this.show_accessory_settings || this.show_settings;
             }
         },
         watch: {
             title(title) {
                 document.title = title;
+            },
+            settings_open() {
+                document.body.style.overflow = this.settings_open ? 'hidden' : 'auto';
             }
         }
     };

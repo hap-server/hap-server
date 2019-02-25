@@ -6,6 +6,8 @@ const message_methods = {
     'get-characteristics': 'handleGetCharacteristicsMessage',
     'get-accessories-data': 'handleGetAccessoriesDataMessage',
     'set-accessories-data': 'handleSetAccessoriesDataMessage',
+    'get-home-settings': 'handleGetHomeSettingsMessage',
+    'set-home-settings': 'handleSetHomeSettingsMessage',
 };
 
 export default class Connection {
@@ -19,6 +21,11 @@ export default class Connection {
         ws.on('message', message => {
             this.server.log.debug('Received', this.id, message);
 
+            if (message === 'pong') {
+                this.server.log.info('Received ping response');
+                return;
+            }
+
             const match = message.match(/^\*([0-9]+)\:(.*)$/);
 
             if (!match) {
@@ -27,7 +34,7 @@ export default class Connection {
             }
 
             const messageid = parseInt(match[1]);
-            const data = JSON.parse(match[2]);
+            const data = match[2] !== 'undefined' ? JSON.parse(match[2]) : undefined;
 
             this.handleMessage(messageid, data);
         });
@@ -113,11 +120,66 @@ export default class Connection {
      * Gets the value of a characteristic.
      */
     getCharacteristics(...ids) {
-        return Promise.all(ids.map(ids => this.getCharacteristic(ids)));
+        return Promise.all(ids.map(ids => this.getCharacteristic(...ids)));
     }
 
-    getCharacteristic(ids) {
-        //
+    getCharacteristic(accessory_uuid, service_id, characteristic_id) {
+        for (let bridge of [this.server.homebridge._bridge]) {
+            if (bridge.UUID === accessory_uuid) {
+                const service = bridge.services.find(service => service.iid === service_id);
+                if (!service) return;
+
+                const characteristic = service.characteristic.find(characteristic => characteristic.iid === characteristic_id);
+                if (!characteristic) return;
+
+                return characteristic.toHAP()[0];
+            }
+
+            for (let accessory of bridge.bridgedAccessories) {
+                const service = accessory.services.find(service => service.iid === service_id);
+                if (!service) return;
+
+                const characteristic = service.characteristic.find(characteristic => characteristic.iid === characteristic_id);
+                if (!characteristic) return;
+
+                return characteristic.toHAP()[0];
+            }
+        }
+    }
+
+    async handleSetCharacteristicsMessage(messageid, data) {
+        this.respond(messageid, await this.setCharacteristics(...data.ids_data));
+    }
+
+    /**
+     * Gets the value of a characteristic.
+     */
+    setCharacteristics(...ids) {
+        return Promise.all(ids.map(ids => this.getCharacteristic(...ids)));
+    }
+
+    setCharacteristic(accessory_uuid, service_id, characteristic_id, value) {
+        for (let bridge of [this.server.homebridge._bridge]) {
+            if (bridge.UUID === accessory_uuid) {
+                const service = bridge.services.find(service => service.iid === service_id);
+                if (!service) return;
+
+                const characteristic = service.characteristic.find(characteristic => characteristic.iid === characteristic_id);
+                if (!characteristic) return;
+
+                return characteristic.setValue(value);
+            }
+
+            for (let accessory of bridge.bridgedAccessories) {
+                const service = accessory.services.find(service => service.iid === service_id);
+                if (!service) return;
+
+                const characteristic = service.characteristic.find(characteristic => characteristic.iid === characteristic_id);
+                if (!characteristic) return;
+
+                return characteristic.setValue(value);
+            }
+        }
     }
 
     async handleGetAccessoriesDataMessage(messageid, data) {
@@ -132,11 +194,11 @@ export default class Connection {
         return Promise.all(id.map(id => this.getAccessoryData(id)));
     }
 
-    getAccessoryData(id) {
+    async getAccessoryData(id) {
         //
         this.server.log.debug('Getting data for accessory', id);
 
-        return this.server.storage.getItem('AccessoryData.' + id);
+        return await this.server.storage.getItem('AccessoryData.' + id) || {};
     }
 
     async handleSetAccessoriesDataMessage(messageid, data) {
@@ -151,10 +213,47 @@ export default class Connection {
         return Promise.all(id_data.map(([id, data]) => this.setAccessoryData(id, data)));
     }
 
-    setAccessoryData(id, data) {
+    async setAccessoryData(uuid, data) {
         //
-        this.server.log.debug('Setting data for accessory', id, data);
+        this.server.log.debug('Setting data for accessory', uuid, data);
 
-        return this.server.storage.setItem('AccessoryData.' + id, data);
+        await this.server.storage.setItem('AccessoryData.' + uuid, data);
+
+        this.server.sendBroadcast({
+            type: 'update-accessory-data',
+            uuid,
+            data,
+        }, this.ws);
+    }
+
+    async handleGetHomeSettingsMessage(messageid, data) {
+        this.respond(messageid, await this.getHomeSettings());
+    }
+
+    /**
+     * Gets global settings.
+     */
+    async getHomeSettings() {
+        this.server.log.debug('Getting global settings');
+
+        return await this.server.storage.getItem('Home') || {};
+    }
+
+    async handleSetHomeSettingsMessage(messageid, data) {
+        this.respond(messageid, await this.setHomeSettings(data.data));
+    }
+
+    /**
+     * Sets global settings.
+     */
+    async setHomeSettings(data) {
+        this.server.log.debug('Setting global settings', data);
+
+        await this.server.storage.setItem('Home', data);
+
+        this.server.sendBroadcast({
+            type: 'update-home-settings',
+            data,
+        }, this.ws);
     }
 }

@@ -5,6 +5,7 @@ const broadcast_message_methods = {
     'remove-accessory': 'handleRemoveAccessoryMessage',
     'update-accessory-details': 'handleUpdateAccessoryDetailsMessage',
     'update-accessory-data': 'handleUpdateAccessoryDataMessage',
+    'update-home-settings': 'handleUpdateHomeSettingsMessage',
 };
 
 export default class Connection extends EventEmitter {
@@ -30,7 +31,7 @@ export default class Connection extends EventEmitter {
 
             if (match) {
                 const messageid = parseInt(match[1]);
-                const data = JSON.parse(match[2]);
+                const data = match[2] !== 'undefined' ? JSON.parse(match[2]) : undefined;
 
                 if (!this.callbacks.has(messageid)) {
                     console.error('Unknown messageid');
@@ -47,7 +48,7 @@ export default class Connection extends EventEmitter {
             const match_broadcast = message.data.match(/^\*\*\:(.*)$/);
 
             if (match_broadcast) {
-                const data = JSON.parse(match_broadcast[1]);
+                const data = match_broadcast[1] !== 'undefined' ? JSON.parse(match_broadcast[1]) : undefined;
 
                 this.emit('received-broadcast', data);
 
@@ -122,6 +123,19 @@ export default class Connection extends EventEmitter {
         return this.setAccessoriesData([id, data]);
     }
 
+    getHomeSettings() {
+        return this.send({
+            type: 'get-home-settings',
+        });
+    }
+
+    setHomeSettings(data) {
+        return this.send({
+            type: 'set-home-settings',
+            data,
+        });
+    }
+
     handleBroadcastMessage(data) {
         console.log('Received broadcast message', data);
 
@@ -145,5 +159,9 @@ export default class Connection extends EventEmitter {
 
     handleUpdateAccessoryDataMessage(data) {
         this.emit('update-accessory-data', data.uuid, data.data);
+    }
+
+    handleUpdateHomeSettingsMessage(data) {
+        this.emit('update-home-settings', data.data);
     }
 }

@@ -82,7 +82,7 @@ export default class Server {
 
         for (let ws of this.wss.clients) {
             if (ws.readyState !== WebSocket.OPEN) continue;
-            if (except && except.includes(ws)) continue;
+            if (except && except === ws || except instanceof Array && except.includes(ws)) continue;
 
             ws.send(message);
         }

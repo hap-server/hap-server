@@ -2,7 +2,7 @@ import EventEmitter from 'events';
 
 import Vue from 'vue';
 
-import Characteristic from './characteristic';
+import Characteristic, {type_uuids as characteristic_type_uuids} from './characteristic';
 
 export default class Service extends EventEmitter {
     /**
@@ -138,4 +138,43 @@ export default class Service extends EventEmitter {
     getCharacteristic(type) {
         return this.findCharacteristic(characteristic => characteristic.type === type);
     }
+
+    getCharacteristicValue(type) {
+        const characteristic = this.getCharacteristic(type);
+
+        if (characteristic) return characteristic.value;
+    }
+
+    getCharacteristicByName(name) {
+        return this.getCharacteristic(characteristic_type_uuids[name]);
+    }
+
+    getCharacteristicValueByName(name) {
+        return this.getCharacteristicValue(characteristic_type_uuids[name]);
+    }
+
+    static get types() {
+        return type_uuids;
+    }
 }
+
+export const types = {};
+export const type_uuids = {};
+export const type_names = {};
+
+import {Service as HAPService} from 'hap-nodejs/lib/Service';
+import 'hap-nodejs/lib/gen/HomeKitTypes';
+
+for (let key of Object.keys(HAPService)) {
+    if (HAPService[key].prototype instanceof HAPService) {
+        types[key] = HAPService[key];
+        type_uuids[key] = HAPService[key].UUID;
+        type_names[HAPService[key].UUID] = key;
+    }
+}
+
+for (let key in type_uuids) {
+    Service[key] = type_uuids[key];
+}
+
+window.Service = Service;
