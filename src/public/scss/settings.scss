@@ -11,8 +11,12 @@
     position: fixed;
 }
 
-.settings-window {
+.settings-window-wrapper {
     position: absolute;
+    width: 100%;
+}
+
+.settings-window {
     width: 80%;
     max-width: 500px;
     margin: 0 auto auto;

@@ -28,7 +28,7 @@
         </div>
 
         <settings v-if="show_settings" :connection="connection" @updated-settings="reload" @close="show_settings = false" />
-        <accessory-settings v-if="show_accessory_settings" :connection="connection" :accessory="show_accessory_settings" />
+        <accessory-settings v-if="show_accessory_settings" :connection="connection" :accessory="show_accessory_settings" @close="show_accessory_settings = null" />
         <!-- <service-settings v-if="show_service_settings" :connection="connection" :service="show_service_settings" /> -->
     </div>
 </template>
@@ -104,12 +104,24 @@
             });
 
             this.connection.on('remove-accessory', accessory_uuid => {
-                const accessory = this.accessories.map(uuid => this.accessories[uuid]);
+                const accessory = this.accessories[uuid];
 
                 this.$delete(this.accessories, accessory.uuid);
                 this.$emit('removed-accessory', accessory);
                 this.$emit('removed-accessories', [accessory]);
                 this.$emit('updated-accessories', [], [accessory]);
+            });
+
+            this.connection.on('update-accessory-details', (uuid, details) => {
+                const accessory = this.accessories[uuid];
+
+                accessory._setDetails(details);
+            });
+
+            this.connection.on('update-accessory-data', (uuid, data) => {
+                const accessory = this.accessories[uuid];
+
+                accessory._setData(data);
             });
 
             await Promise.all([

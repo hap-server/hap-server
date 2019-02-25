@@ -2,15 +2,24 @@
     <div class="settings-wrapper">
         <div class="settings-overlay"></div>
 
-        <div class="settings-window">
-            <div class="settings-container">
-                <p v-if="loading">Loading</p>
-                <p v-if="saving">Saving</p>
+        <div class="settings-window-wrapper">
+            <div class="settings-window">
+                <div class="settings-container">
+                    <div class="form-group row">
+                        <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-name'">Name</label>
+                        <div class="col-sm-9">
+                            <input type="text" class="form-control form-control-sm" :id="_id + '-name'" v-model="name" placeholder="Home" :disabled="loading || saving" />
+                        </div>
+                    </div>
 
-                <input type="text" v-model="name" placeholder="Home" :disabled="loading || saving" />
-
-                <button type="button" @click="$emit('close')">Cancel</button>
-                <button type="button" @click="save" :disabled="loading || saving">Save</button>
+                    <div class="d-flex">
+                        <div v-if="loading">Loading</div>
+                        <div v-else-if="saving">Saving</div>
+                        <div class="flex-fill"></div>
+                        <button class="btn btn-default btn-sm" type="button" @click="$emit('close')" :disabled="saving">Cancel</button>
+                        <button class="btn btn-primary btn-sm" type="button" @click="save(true)" :disabled="loading || saving">Save</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -43,7 +52,7 @@
                     this.loading = false;
                 }
             },
-            async save() {
+            async save(close) {
                 if (this.saving) throw new Error('Already saving');
                 this.saving = true;
 
@@ -54,6 +63,8 @@
 
                     await this.connection.setHomeSettings(data);
                     this.$emit('updated-settings', data);
+
+                    if (close) this.$emit('close');
                 } finally {
                     this.saving = false;
                 }
