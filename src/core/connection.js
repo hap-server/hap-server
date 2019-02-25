@@ -4,6 +4,7 @@ const message_methods = {
     'list-accessories': 'handleListAccessoriesMessage',
     'get-accessories': 'handleGetAccessoriesMessage',
     'get-characteristics': 'handleGetCharacteristicsMessage',
+    'set-characteristics': 'handleSetCharacteristicsMessage',
     'get-accessories-data': 'handleGetAccessoriesDataMessage',
     'set-accessories-data': 'handleSetAccessoriesDataMessage',
     'get-home-settings': 'handleGetHomeSettingsMessage',
@@ -134,23 +135,16 @@ export default class Connection {
         return Promise.all(ids.map(ids => this.getCharacteristic(...ids)));
     }
 
-    getCharacteristic(accessory_uuid, service_id, characteristic_id) {
+    getCharacteristic(accessory_uuid, service_uuid, characteristic_uuid) {
+        const service_type = service_uuid.indexOf('.') !== -1 ? service_uuid.substr(0, service_uuid.indexOf('.')) : service_uuid;
+        const service_subtype = service_uuid.indexOf('.') !== -1 ? service_uuid.substr(service_uuid.indexOf('.')) : undefined;
+
         for (let bridge of [this.server.homebridge._bridge]) {
-            if (bridge.UUID === accessory_uuid) {
-                const service = bridge.services.find(service => service.iid === service_id);
+            for (let accessory of [bridge, ...bridge.bridgedAccessories]) {
+                const service = accessory.services.find(service => service.UUID === service_type && service.subtype === service_subtype);
                 if (!service) return;
 
-                const characteristic = service.characteristic.find(characteristic => characteristic.iid === characteristic_id);
-                if (!characteristic) return;
-
-                return characteristic.toHAP()[0];
-            }
-
-            for (let accessory of bridge.bridgedAccessories) {
-                const service = accessory.services.find(service => service.iid === service_id);
-                if (!service) return;
-
-                const characteristic = service.characteristic.find(characteristic => characteristic.iid === characteristic_id);
+                const characteristic = service.characteristics.find(characteristic => characteristic.UUID === characteristic_uuid);
                 if (!characteristic) return;
 
                 return characteristic.toHAP()[0];
@@ -163,32 +157,30 @@ export default class Connection {
     }
 
     /**
-     * Gets the value of a characteristic.
+     * Sets the value of a characteristic.
      */
     setCharacteristics(...ids) {
-        return Promise.all(ids.map(ids => this.getCharacteristic(...ids)));
+        return Promise.all(ids.map(ids => this.setCharacteristic(...ids)));
     }
 
-    setCharacteristic(accessory_uuid, service_id, characteristic_id, value) {
+    setCharacteristic(accessory_uuid, service_uuid, characteristic_uuid, value) {
+        this.server.log.info('Setting characteristic', accessory_uuid, service_uuid, characteristic_uuid, 'to', value);
+
+        const service_type = service_uuid.indexOf('.') !== -1 ? service_uuid.substr(0, service_uuid.indexOf('.')) : service_uuid;
+        const service_subtype = service_uuid.indexOf('.') !== -1 ? service_uuid.substr(service_uuid.indexOf('.')) : undefined;
+
         for (let bridge of [this.server.homebridge._bridge]) {
-            if (bridge.UUID === accessory_uuid) {
-                const service = bridge.services.find(service => service.iid === service_id);
+            for (let accessory of [bridge, ...bridge.bridgedAccessories]) {
+                const service = accessory.services.find(service => service.UUID === service_type && service.subtype === service_subtype);
                 if (!service) return;
 
-                const characteristic = service.characteristic.find(characteristic => characteristic.iid === characteristic_id);
+                const characteristic = service.characteristics.find(characteristic => characteristic.UUID == characteristic_uuid);
                 if (!characteristic) return;
 
-                return characteristic.setValue(value);
-            }
-
-            for (let accessory of bridge.bridgedAccessories) {
-                const service = accessory.services.find(service => service.iid === service_id);
-                if (!service) return;
-
-                const characteristic = service.characteristic.find(characteristic => characteristic.iid === characteristic_id);
-                if (!characteristic) return;
+                this.server.log.info('Characteristic', characteristic);
 
                 return characteristic.setValue(value);
+                // return characteristic.emit('set', value);
             }
         }
     }

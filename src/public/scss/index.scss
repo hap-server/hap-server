@@ -27,11 +27,12 @@ body {
     width: 100%;
     transition: background-color 0.6s ease, border-color 0.6s ease;
     border-bottom: rgba(0, 0, 0, 0) 1px solid;
+    z-index: 1;
 
     .scrolled & {
         background-color: rgba(0, 0, 0, 0.6);
         border-color: rgba(0, 0, 0, 0.6);
-        -webkit-backdrop-filter: blur(2px);
+        -webkit-backdrop-filter: blur(20px);
     }
 
     .left, .right {
@@ -61,6 +62,10 @@ body {
 .main {
     h1, h2, h3 {
         margin: 1rem;
+    }
+
+    h1, h2, h3,
+    .btn-default {
         color: $light;
     }
 }

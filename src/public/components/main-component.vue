@@ -13,7 +13,7 @@
             <h1>{{ name || 'Home' }}</h1>
 
             <div class="section">
-                <button @click="ping">Ping</button>
+                <button class="btn btn-default btn-sm" @click="ping">Ping</button>
             </div>
 
             <!-- <h3>Fake accessories</h3>
@@ -112,7 +112,7 @@
                 this.$emit('updated-accessories', [], [accessory]);
             });
 
-            this.connection.on('update-accessory-details', (uuid, details) => {
+            this.connection.on('update-accessory', (uuid, details) => {
                 const accessory = this.accessories[uuid];
 
                 accessory._setDetails(details);
@@ -122,6 +122,14 @@
                 const accessory = this.accessories[uuid];
 
                 accessory._setData(data);
+            });
+
+            this.connection.on('update-characteristic', (accessory_uuid, service_uuid, characteristic_uuid, details) => {
+                const accessory = this.accessories[accessory_uuid];
+                const service = accessory.findService(service => service.uuid === service_uuid);
+                const characteristic = service.findCharacteristic(c => c.uuid === characteristic_uuid);
+
+                characteristic._setDetails(details);
             });
 
             await Promise.all([

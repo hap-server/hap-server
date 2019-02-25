@@ -3,7 +3,8 @@ import EventEmitter from 'events';
 const broadcast_message_methods = {
     'add-accessory': 'handleAddAccessoryMessage',
     'remove-accessory': 'handleRemoveAccessoryMessage',
-    'update-accessory-details': 'handleUpdateAccessoryDetailsMessage',
+    'update-accessory': 'handleUpdateAccessoryDetailsMessage',
+    'update-characteristic': 'handleUpdateCharacteristicMessage',
     'update-accessory-data': 'handleUpdateAccessoryDataMessage',
     'update-home-settings': 'handleUpdateHomeSettingsMessage',
     'stdout': 'handleStdout',
@@ -107,6 +108,17 @@ export default class Connection extends EventEmitter {
         });
     }
 
+    setCharacteristics(...ids_data) {
+        return this.send({
+            type: 'set-characteristics',
+            ids_data,
+        });
+    }
+
+    setCharacteristic(accessory_uuid, service_id, characteristic_id, value) {
+        return this.setCharacteristics([accessory_uuid, service_id, characteristic_id, value]);
+    }
+
     getAccessoriesData(...id) {
         return this.send({
             type: 'get-accessories-data',
@@ -167,8 +179,12 @@ export default class Connection extends EventEmitter {
         this.emit('remove-accessories', data.ids);
     }
 
-    handleUpdateAccessoryDetailsMessage(data) {
-        this.emit('update-accessory-details', data.uuid, data.details);
+    handleUpdateAccessoryMessage(data) {
+        this.emit('update-accessory', data.uuid, data.details);
+    }
+
+    handleUpdateCharacteristicMessage(data) {
+        this.emit('update-characteristic', data.accessory_uuid, data.service_id, data.characteristic_id, data.details);
     }
 
     handleUpdateAccessoryDataMessage(data) {

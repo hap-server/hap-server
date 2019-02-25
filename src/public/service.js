@@ -38,10 +38,10 @@ export default class Service extends EventEmitter {
 
     _updateCharacteristicsFrom(details) {
         const added_characteristic_details = [];
-        const removed_characteristic_ids = [];
+        const removed_characteristic_uuids = [];
 
         for (let characteristic_details of details.characteristics) {
-            const characteristic = this.characteristics[characteristic_details.iid];
+            const characteristic = this.characteristics[characteristic_details.type];
 
             // Characteristic doesn't already exist
             if (!characteristic) {
@@ -52,15 +52,15 @@ export default class Service extends EventEmitter {
             characteristic._setDetails(characteristic_details);
         }
 
-        for (let characteristic_id of Object.keys(this.characteristics)) {
+        for (let characteristic_uuid of Object.keys(this.characteristics)) {
             // Characteristic still exists
-            if (details.characteristic.find(s => s.iid === characteristic_id)) continue;
+            if (details.characteristic.find(c => c.type === characteristic_uuid)) continue;
 
-            removed_characteristic_ids.push(characteristic_id);
+            removed_characteristic_uuids.push(characteristic_uuid);
         }
 
-        const added_characteristics = added_characteristic_details.map(sd =>
-            new Characteristic(this, sd.iid, sd));
+        const added_characteristics = added_characteristic_details.map(cd =>
+            new Characteristic(this, cd.type, cd));
 
         for (let characteristic of added_characteristics) {
             // Use Vue.set so Vue updates properly
@@ -70,7 +70,7 @@ export default class Service extends EventEmitter {
 
         if (added_characteristics.length) this.emit('new-characteristics', added_characteristics);
 
-        const removed_characteristics = removed_characteristic_ids.map(id => this.characteristics[id]);
+        const removed_characteristics = removed_characteristic_uuids.map(uuid => this.characteristics[uuid]);
 
         for (let characteristic of removed_characteristics) {
             // Use Vue.delete so Vue updates properly
@@ -153,6 +153,30 @@ export default class Service extends EventEmitter {
         return this.getCharacteristicValue(characteristic_type_uuids[name]);
     }
 
+    setCharacteristic(type, value) {
+        const characteristic = this.getCharacteristic(type);
+
+        return characteristic.setValue(value);
+    }
+
+    setCharacteristicByName(name, value) {
+        return this.setCharacteristic(characteristic_type_uuids[name], value);
+    }
+
+    setCharacteristics(values) {
+        return this.accessory.connection.setCharacteristics(...Object.keys(values).map(uuid =>
+            ([this.accessory.uuid, this.uuid, uuid, values[uuid]])));
+    }
+
+    setCharacteristicsByNames(values) {
+        return this.accessory.connection.setCharacteristics(...Object.keys(values).map(name =>
+            ([this.accessory.uuid, this.uuid, characteristic_type_uuids[name], values[name]])));
+    }
+
+    get is_system_service() {
+        return system_types.includes(this.type);
+    }
+
     static get types() {
         return type_uuids;
     }
@@ -177,4 +201,8 @@ for (let key in type_uuids) {
     Service[key] = type_uuids[key];
 }
 
-window.Service = Service;
+export const system_types = [
+    Service.AccessoryInformation,
+    Service.InputSource, // Input Source services are used by the Television service
+    '49FB9D4D-0FEA-4BF1-8FA6-E7B18AB86DCE', // Bridge Setup (https://github.com/nfarina/homebridge/blob/0d77bb93d33a7b6e158efe4b4d546636d976d5c7/lib/bridgeSetupManager.js)
+];

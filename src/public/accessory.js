@@ -45,7 +45,8 @@ export default class Accessory extends EventEmitter {
         const removed_service_ids = [];
 
         for (let service_details of details.services) {
-            const service = this.services[service_details.iid];
+            const uuid = service_details.type + (service_details.subtype ? '.' + service_details.subtype : '');
+            const service = this.services[uuid];
 
             // Service doesn't already exist
             if (!service) {
@@ -56,16 +57,20 @@ export default class Accessory extends EventEmitter {
             service._setDetails(service_details);
         }
 
-        for (let service_id of Object.keys(this.services)) {
-            // Service still exists
-            if (details.services.find(s => s.iid === service_id)) continue;
+        for (let service_uuid of Object.keys(this.services)) {
+            const service_type = service_uuid.indexOf('.') !== -1 ? service_uuid.substr(0, service_uuid.indexOf('.')) : service_uuid;
+            const service_subtype = service_uuid.indexOf('.') !== -1 ? service_uuid.substr(service_uuid.indexOf('.')) : undefined;
 
-            removed_service_ids.push(service_id);
+            // Service still exists
+            if (details.services.find(s => s.type === service_type && s.subtype === service_subtype)) continue;
+
+            removed_service_ids.push(service_uuid);
         }
 
-        // Should the service iid be used as a permanent identifier for this service?
-        const added_services = added_service_details.map(sd =>
-            new Service(this, sd.iid, sd, this.data['Service.' + sd.iid]));
+        const added_services = added_service_details.map(service_details => {
+            const uuid = service_details.type + (service_details.subtype ? '.' + service_details.subtype : '');
+            return new Service(this, uuid, service_details, this.data['Service.' + uuid]);
+        });
 
         for (let service of added_services) {
             // Use Vue.set so Vue updates properly
@@ -75,7 +80,7 @@ export default class Accessory extends EventEmitter {
 
         if (added_services.length) this.emit('new-services', added_services);
 
-        const removed_services = removed_service_ids.map(id => this.services[id]);
+        const removed_services = removed_service_ids.map(uuid => this.services[uuid]);
 
         for (let service of removed_services) {
             // Use Vue.delete so Vue updates properly
@@ -96,8 +101,8 @@ export default class Accessory extends EventEmitter {
         this._data = Object.freeze(data);
 
         for (let key of Object.keys(data).filter(key => key.startsWith('Service.'))) {
-            const service_id = key.substr(8);
-            const service = this.services[service_id];
+            const service_uuid = key.substr(8);
+            const service = this.services[service_uuid];
 
             if (!service) continue;
 
@@ -122,13 +127,7 @@ export default class Accessory extends EventEmitter {
     }
 
     get default_name() {
-        const accessory_information = this.getService('0000003E-0000-1000-8000-0026BB765291');
-        if (!accessory_information) return;
-
-        const name = accessory_information.getCharacteristic('00000023-0000-1000-8000-0026BB765291');
-        if (!name) return;
-
-        return name.value;
+        return this.getCharacteristicValue('0000003E-0000-1000-8000-0026BB765291', '00000023-0000-1000-8000-0026BB765291');
     }
 
     findService(callback) {
@@ -147,7 +146,25 @@ export default class Accessory extends EventEmitter {
         return services;
     }
 
-    getService(type) {
-        return this.findService(service => service.type === type);
+    getService(uuid) {
+        return this.services[uuid];
+    }
+
+    get accessory_information() {
+        return this.getService('0000003E-0000-1000-8000-0026BB765291');
+    }
+
+    getCharacteristic(service_uuid, characteristic_uuid) {
+        if (!this.services[service_uuid]) return;
+        if (!this.services[service_uuid].characteristics[characteristic_uuid]) return;
+
+        return this.services[service_uuid].characteristics[characteristic_uuid];
+    }
+
+    getCharacteristicValue(service_uuid, characteristic_uuid) {
+        const characteristic = this.getCharacteristic(service_uuid, characteristic_uuid);
+        if (!characteristic) return;
+
+        return characteristic.value;
     }
 }
