@@ -23,6 +23,30 @@ export default class Server {
         this.handle = this.handle.bind(this);
         this.upgrade = this.upgrade.bind(this);
 
+        this.handleCharacteristicUpdate = this.handleCharacteristicUpdate.bind(this);
+
+        this.homebridge._bridge.on('service-characteristic-change', event => {
+            // this.log.info('Updating characteristic', event);
+            this.handleCharacteristicUpdate(event.accessory || this.homebridge._bridge, event.service, event.characteristic, event.newValue, event.oldValue, event.context);
+        });
+
+        for (let accessory of this.homebridge._bridge.bridgedAccessories) {
+            accessory.on('service-characteristic-change', event => {
+                // this.log.info('Updating characteristic', accessory, event);
+                this.handleCharacteristicUpdate(event.accessory || accessory, event.service, event.characteristic, event.newValue, event.oldValue, event.context);
+            });
+        }
+
+        const addBridgedAccessory = this.homebridge._bridge.addBridgedAccessory;
+        this.homebridge._bridge.addBridgedAccessory = (accessory, defer_update, ...args) => {
+            accessory.on('service-characteristic-change', event => {
+                // this.log.info('Updating characteristic', accessory, event);
+                this.handleCharacteristicUpdate(event.accessory || accessory, event.service, event.characteristic, event.newValue, event.oldValue, event.context);
+            });
+
+            return addBridgedAccessory.call(this.homebridge._bridge, accessory, defer_update, ...args);
+        };
+
         const console_log = console.log;
         const console_error = console.error;
 
@@ -30,7 +54,7 @@ export default class Server {
             for (let ws of this.wss.clients) {
                 const connection = Connection.getConnectionForWebSocket(ws);
                 if (connection && connection.enable_proxy_stdout)
-                    ws.send('**:' + JSON.stringify({type: 'stdout', data}));
+                    ws.send('**:' + JSON.stringify({type: 'stdout', data: data + '\n'}));
             }
 
             console_log(data, ...args);
@@ -39,7 +63,7 @@ export default class Server {
             for (let ws of this.wss.clients) {
                 const connection = Connection.getConnectionForWebSocket(ws);
                 if (connection && connection.enable_proxy_stdout)
-                    ws.send('**:' + JSON.stringify({type: 'stderr', data}));
+                    ws.send('**:' + JSON.stringify({type: 'stderr', data: data + '\n'}));
             }
 
             console_error(data, ...args);
@@ -108,5 +132,15 @@ export default class Server {
 
             ws.send(message);
         }
+    }
+
+    handleCharacteristicUpdate(accessory, service, characteristic, value, old_value, context) {
+        this.sendBroadcast({
+            type: 'update-characteristic',
+            accessory_uuid: accessory.UUID,
+            service_id: service.UUID + (service.subtype ? '.' + service.subtype : ''),
+            characteristic_id: characteristic.UUID,
+            details: characteristic.toHAP(),
+        });
     }
 }

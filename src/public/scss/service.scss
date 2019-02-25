@@ -1,8 +1,10 @@
 .service-wrapper {
-    width: 6.4rem;
-    height: 6.4rem;
+    width: 6.8rem;
+    height: 6.8rem;
 
     margin: 1rem;
+
+    vertical-align: top;
 }
 
 .service {
@@ -23,6 +25,22 @@
 
     h5, p {
         margin: 0;
+
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    &.unsupported-service,
+    &.unavailable-accessory {
+        .status {
+            color: $red;
+            font-weight: 600;
+        }
+    }
+
+    &.clickable {
+        cursor: pointer;
     }
 
     &.active {
