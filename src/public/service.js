@@ -40,7 +40,7 @@ export default class Service extends EventEmitter {
         const added_characteristic_details = [];
         const removed_characteristic_uuids = [];
 
-        for (let characteristic_details of details.characteristics) {
+        for (const characteristic_details of details.characteristics) {
             const characteristic = this.characteristics[characteristic_details.type];
 
             // Characteristic doesn't already exist
@@ -52,7 +52,7 @@ export default class Service extends EventEmitter {
             characteristic._setDetails(characteristic_details);
         }
 
-        for (let characteristic_uuid of Object.keys(this.characteristics)) {
+        for (const characteristic_uuid of Object.keys(this.characteristics)) {
             // Characteristic still exists
             if (details.characteristic.find(c => c.type === characteristic_uuid)) continue;
 
@@ -62,7 +62,7 @@ export default class Service extends EventEmitter {
         const added_characteristics = added_characteristic_details.map(cd =>
             new Characteristic(this, cd.type, cd));
 
-        for (let characteristic of added_characteristics) {
+        for (const characteristic of added_characteristics) {
             // Use Vue.set so Vue updates properly
             Vue.set(this.characteristics, characteristic.uuid, characteristic);
             this.emit('new-characteristic', characteristic);
@@ -72,7 +72,7 @@ export default class Service extends EventEmitter {
 
         const removed_characteristics = removed_characteristic_uuids.map(uuid => this.characteristics[uuid]);
 
-        for (let characteristic of removed_characteristics) {
+        for (const characteristic of removed_characteristics) {
             // Use Vue.delete so Vue updates properly
             Vue.delete(this.characteristics, characteristic.uuid);
             this.emit('removed-characteristic', characteristic);
@@ -80,7 +80,9 @@ export default class Service extends EventEmitter {
 
         if (removed_characteristics.length) this.emit('removed-characteristics', removed_characteristics);
 
-        if (added_characteristics.length || removed_characteristics.length) this.emit('updated-characteristics', added_characteristics, removed_characteristics);
+        if (added_characteristics.length || removed_characteristics.length) {
+            this.emit('updated-characteristics', added_characteristics, removed_characteristics);
+        }
     }
 
     get data() {
@@ -118,7 +120,7 @@ export default class Service extends EventEmitter {
     }
 
     findCharacteristic(callback) {
-        for (let characteristic of Object.values(this.characteristics)) {
+        for (const characteristic of this.characteristics) {
             if (callback.call(this, characteristic)) return characteristic;
         }
     }
@@ -126,11 +128,11 @@ export default class Service extends EventEmitter {
     findCharacteristics(callback) {
         const characteristics = [];
 
-        for (let characteristic of Object.values(this.characteristics)) {
+        for (const characteristic of this.characteristics) {
             if (callback.call(this, characteristic)) characteristics.push(characteristic);
         }
 
-        return services;
+        return characteristics;
     }
 
     getCharacteristic(type) {
@@ -191,7 +193,7 @@ export const type_names = {};
 import {Service as HAPService} from 'hap-nodejs/lib/Service';
 import 'hap-nodejs/lib/gen/HomeKitTypes';
 
-for (let key of Object.keys(HAPService)) {
+for (const key of Object.keys(HAPService)) {
     if (HAPService[key].prototype instanceof HAPService) {
         types[key] = HAPService[key];
         type_uuids[key] = HAPService[key].UUID;
@@ -199,12 +201,15 @@ for (let key of Object.keys(HAPService)) {
     }
 }
 
-for (let key in type_uuids) {
+for (const key of Object.keys(type_uuids)) {
     Service[key] = type_uuids[key];
 }
 
 export const system_types = [
     Service.AccessoryInformation,
     Service.InputSource, // Input Source services are used by the Television service
-    '49FB9D4D-0FEA-4BF1-8FA6-E7B18AB86DCE', // Bridge Setup (https://github.com/nfarina/homebridge/blob/0d77bb93d33a7b6e158efe4b4d546636d976d5c7/lib/bridgeSetupManager.js)
+
+    // Bridge Setup
+    // https://github.com/nfarina/homebridge/blob/0d77bb93d33a7b6e158efe4b4d546636d976d5c7/lib/bridgeSetupManager.js
+    '49FB9D4D-0FEA-4BF1-8FA6-E7B18AB86DCE',
 ];

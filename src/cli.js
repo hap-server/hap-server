@@ -153,5 +153,5 @@ yargs.command('version', 'Show version number', yargs => {}, async argv => {
 
 yargs.scriptName('homebridge-web-ui').help().version(false);
 
-// eslint-disable-next-line no-unused-args
+// eslint-disable-next-line no-unused-vars
 const _argv = yargs.argv;

@@ -44,7 +44,7 @@ export default class Accessory extends EventEmitter {
         const added_service_details = [];
         const removed_service_ids = [];
 
-        for (let service_details of details.services || []) {
+        for (const service_details of details.services || []) {
             const uuid = service_details.type + (service_details.subtype ? '.' + service_details.subtype : '');
             const service = this.services[uuid];
 
@@ -57,12 +57,15 @@ export default class Accessory extends EventEmitter {
             service._setDetails(service_details);
         }
 
-        for (let service_uuid of Object.keys(this.services)) {
-            const service_type = service_uuid.indexOf('.') !== -1 ? service_uuid.substr(0, service_uuid.indexOf('.')) : service_uuid;
-            const service_subtype = service_uuid.indexOf('.') !== -1 ? service_uuid.substr(service_uuid.indexOf('.') + 1) : undefined;
+        for (const service_uuid of Object.keys(this.services)) {
+            const service_type = service_uuid.indexOf('.') !== -1 ?
+                service_uuid.substr(0, service_uuid.indexOf('.')) : service_uuid;
+            const service_subtype = service_uuid.indexOf('.') !== -1 ?
+                service_uuid.substr(service_uuid.indexOf('.') + 1) : undefined;
 
             // Service still exists
-            if (details.services.find(s => s.type === service_type && (!s.subtype && !service_subtype) || s.subtype === service_subtype)) continue;
+            if (details.services.find(s => s.type === service_type
+                && (!s.subtype && !service_subtype) || s.subtype === service_subtype)) continue;
 
             removed_service_ids.push(service_uuid);
         }
@@ -72,7 +75,7 @@ export default class Accessory extends EventEmitter {
             return new Service(this, uuid, service_details, this.data['Service.' + uuid]);
         });
 
-        for (let service of added_services) {
+        for (const service of added_services) {
             // Use Vue.set so Vue updates properly
             Vue.set(this.services, service.uuid, service);
             this.emit('new-service', service);
@@ -82,7 +85,7 @@ export default class Accessory extends EventEmitter {
 
         const removed_services = removed_service_ids.map(uuid => this.services[uuid]);
 
-        for (let service of removed_services) {
+        for (const service of removed_services) {
             // Use Vue.delete so Vue updates properly
             Vue.delete(this.services, service.uuid);
             this.emit('removed-service', service);
@@ -90,7 +93,9 @@ export default class Accessory extends EventEmitter {
 
         if (removed_services.length) this.emit('removed-services', removed_services);
 
-        if (added_services.length || removed_services.length) this.emit('updated-services', added_services, removed_services);
+        if (added_services.length || removed_services.length) {
+            this.emit('updated-services', added_services, removed_services);
+        }
     }
 
     get data() {
@@ -100,7 +105,7 @@ export default class Accessory extends EventEmitter {
     _setData(data, here) {
         this._data = Object.freeze(data);
 
-        for (let key of Object.keys(data).filter(key => key.startsWith('Service.'))) {
+        for (const key of Object.keys(data).filter(key => key.startsWith('Service.'))) {
             const service_uuid = key.substr(8);
             const service = this.services[service_uuid];
 
@@ -127,11 +132,12 @@ export default class Accessory extends EventEmitter {
     }
 
     get default_name() {
-        return this.getCharacteristicValue('0000003E-0000-1000-8000-0026BB765291', '00000023-0000-1000-8000-0026BB765291');
+        return this.getCharacteristicValue(
+            '0000003E-0000-1000-8000-0026BB765291', '00000023-0000-1000-8000-0026BB765291');
     }
 
     findService(callback) {
-        for (let service of Object.values(this.services)) {
+        for (const service of Object.values(this.services)) {
             if (callback.call(this, service)) return service;
         }
     }
@@ -139,7 +145,7 @@ export default class Accessory extends EventEmitter {
     findServices(callback) {
         const services = [];
 
-        for (let service of Object.values(this.services)) {
+        for (const service of Object.values(this.services)) {
             if (callback.call(this, service)) services.push(service);
         }
 

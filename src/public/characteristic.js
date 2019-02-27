@@ -25,9 +25,8 @@ export default class Characteristic extends EventEmitter {
 
         this._details = Object.freeze(details);
 
-        // if (this.value !== old_value) {
-            this.emit('value-updated', this.value, old_value);
-        // }
+        // Don't check if the value has actually changed so event only characteristics update properly
+        this.emit('value-updated', this.value, old_value);
 
         this.emit('details-updated');
         this.emit('updated');
@@ -54,13 +53,15 @@ export default class Characteristic extends EventEmitter {
     }
 
     async updateValue() {
-        const details = await this.service.accessory.connection.getCharacteristic(this.service.accessory.uuid, this.service.uuid, this.uuid);
+        const details = await this.service.accessory.connection.getCharacteristic(
+            this.service.accessory.uuid, this.service.uuid, this.uuid);
 
         this._setDetails(details);
     }
 
     setValue(value) {
-        return this.service.accessory.connection.setCharacteristic(this.service.accessory.uuid, this.service.uuid, this.uuid, value);
+        return this.service.accessory.connection.setCharacteristic(
+            this.service.accessory.uuid, this.service.uuid, this.uuid, value);
     }
 
     static get types() {
@@ -75,7 +76,7 @@ export const type_names = {};
 import {Characteristic as HAPCharacteristic} from 'hap-nodejs/lib/Characteristic';
 import 'hap-nodejs/lib/gen/HomeKitTypes';
 
-for (let key of Object.keys(HAPCharacteristic)) {
+for (const key of Object.keys(HAPCharacteristic)) {
     if (HAPCharacteristic[key].prototype instanceof HAPCharacteristic) {
         types[key] = HAPCharacteristic[key];
         type_uuids[key] = HAPCharacteristic[key].UUID;
@@ -83,6 +84,6 @@ for (let key of Object.keys(HAPCharacteristic)) {
     }
 }
 
-for (let key in type_uuids) {
+for (const key of Object.keys(type_uuids)) {
     Characteristic[key] = type_uuids[key];
 }
