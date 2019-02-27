@@ -1,0 +1,12 @@
+{
+    "name": "virtual-switches",
+    "private": true,
+    "keywords": [
+        "homebridge-web-ui-plugin"
+    ],
+    "main": "index.js",
+    "engines": {
+        "homebridge-web-ui": "^0.1.0",
+        "node": "^8.0.0"
+    }
+}

@@ -7,10 +7,10 @@ import yargs from 'yargs';
 
 import {Plugin as HomebridgePluginManager} from 'homebridge/lib/plugin';
 import {User as HomebridgeUser} from 'homebridge/lib/user';
-import HomebridgeLogger, {_system as homebridge_logger} from 'homebridge/lib/logger';
+import HomebridgeLogger from 'homebridge/lib/logger';
 import hap from 'hap-nodejs';
 
-import {Server} from '.';
+import {Server, PluginManager} from '.';
 import Logger, {forceColour as forceColourLogs} from './core/logger';
 
 const log = new Logger();
@@ -97,14 +97,14 @@ yargs.command('$0', 'Run the HAP and web server [config]', yargs => {
     const unauthenticated_access = argv['allow-unauthenticated'];
 
     for (const plugin_path of argv['plugin-path'] || []) {
-        HomebridgePluginManager.addPluginPath(path.resolve(process.cwd(), plugin_path));
+        PluginManager.addPluginPath(path.resolve(process.cwd(), plugin_path));
     }
 
     if (typeof config['plugin-path'] === 'string') {
-        HomebridgePluginManager.addPluginPath(path.resolve(path.dirname(config_path), config['plugin-path']));
+        PluginManager.addPluginPath(path.resolve(path.dirname(config_path), config['plugin-path']));
     } else if (config['plugin-path'] instanceof Array) {
         for (const plugin_path of config['plugin-path']) {
-            HomebridgePluginManager.addPluginPath(path.resolve(path.dirname(config_path), plugin_path));
+            PluginManager.addPluginPath(path.resolve(path.dirname(config_path), plugin_path));
         }
     }
 
@@ -114,8 +114,7 @@ yargs.command('$0', 'Run the HAP and web server [config]', yargs => {
     log.debug('Accessory cache path:', HomebridgeUser.cachedAccessoryPath());
     log.debug('Plugin paths:', HomebridgePluginManager.paths);
     log.debug('UI storage path:', path.resolve(data_path, 'ui-storage'));
-
-    homebridge_logger.prefix = 'Homebridge';
+    log.debug('Plugin storage path:', path.resolve(data_path, 'plugin-storage'));
 
     // Initialize HAP-NodeJS with a custom persist directory
     hap.init(HomebridgeUser.persistPath());
@@ -126,12 +125,17 @@ yargs.command('$0', 'Run the HAP and web server [config]', yargs => {
         config,
     });
 
+    PluginManager.storage_path = path.resolve(data_path, 'plugin-storage');
+    await PluginManager.loadPlugins();
+
     const http_server = server.createServer();
     http_server.listen(8080);
 
     for (const bridge of server.bridges) {
         bridge.unauthenticated_access = unauthenticated_access;
     }
+
+    await server.loadAccessoriesFromConfig();
 
     server.publish();
 

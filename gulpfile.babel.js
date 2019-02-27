@@ -69,7 +69,20 @@ gulp.task('build-frontend', function () {
     ]);
 });
 
-gulp.task('build', gulp.parallel('build-backend', 'build-frontend'));
+gulp.task('build-example-plugins', gulp.parallel(function () {
+    return pump([
+        gulp.src('example-plugins/**/*.js'),
+        babel(),
+        gulp.dest('dist/example-plugins'),
+    ]);
+}, function () {
+    return pump([
+        gulp.src('example-plugins/**/*.json'),
+        gulp.dest('dist/example-plugins'),
+    ]);
+}));
+
+gulp.task('build', gulp.parallel('build-backend', 'build-frontend', 'build-example-plugins'));
 
 gulp.task('watch-backend', gulp.series('build-backend', function () {
     return gulp.watch(['src/*.js', 'src/**/*.js'], gulp.series('build-backend'));
@@ -84,4 +97,8 @@ gulp.task('watch-frontend', function () {
     ]);
 });
 
-gulp.task('watch', gulp.parallel('watch-backend', 'watch-frontend'));
+gulp.task('watch-example-plugins', gulp.series('build-example-plugins', function () {
+    return gulp.watch('example-plugins/**/*.js*', gulp.series('build-example-plugins'));
+}));
+
+gulp.task('watch', gulp.parallel('watch-backend', 'watch-frontend', 'watch-example-plugins'));

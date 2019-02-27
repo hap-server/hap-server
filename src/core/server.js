@@ -11,6 +11,7 @@ import persist from 'node-persist';
 import {uuid} from 'hap-nodejs';
 
 import Connection from './connection';
+import PluginManager from './plugins';
 import Bridge from './bridge';
 import Homebridge from './homebridge';
 import Logger from './logger';
@@ -107,6 +108,41 @@ export default class Server extends EventEmitter {
         const server = new this(config.config, storage);
 
         return server;
+    }
+
+    async loadAccessoriesFromConfig() {
+        await this.loadAccessories(this.config['accessories-2'], true);
+    }
+
+    async loadAccessories(accessories, dont_throw) {
+        await Promise.all(accessories.map(accessory_config => this.loadAccessory(accessory_config).catch(err => {
+            if (!dont_throw) throw err;
+
+            this.log.warn('Error loading accessory', accessory_config.plugin, accessory_config.accessory, accessory_config.name, err);
+        })));
+    }
+
+    async loadAccessory(accessory_config) {
+        const {plugin: plugin_name, accessory: accessory_type, name} = accessory_config;
+
+        if (!plugin_name || !accessory_type || !name) throw new Error('Invalid accessory configuration: accessories must have the plugin, accessory and name properties');
+
+        const plugin = PluginManager.getPlugin(plugin_name);
+        if (!plugin) throw new Error('No plugin with the name "' + plugin_name + '"');
+
+        const accessory_handler = plugin.getAccessoryHandler(accessory_type);
+        if (!accessory_handler) throw new Error('No accessory handler with the name "' + accessory_type + '"');
+
+        if (!accessory_config.uuid) accessory_config.uuid = uuid.generate('accessory:' + plugin_name + ':' + accessory_type + ':' + name);
+
+        const accessory = await accessory_handler.call(plugin, accessory_config);
+
+        if (this.getAccessory(accessory.UUID)) throw new Error('Already have an accessory with the UUID "' + accessory.UUID + '"');
+
+        const plugin_accessory = new PluginAccessory(this, accessory, plugin, accessory_type);
+
+        this.accessories.push(plugin_accessory);
+        this.bridge.addAccessory(accessory);
     }
 
     publish() {
@@ -209,5 +245,26 @@ export default class Server extends EventEmitter {
                 value,
             }),
         });
+    }
+}
+
+export class PluginAccessory {
+    constructor(server, accessory, plugin, accessory_type) {
+        this.server = server;
+        this.accessory = accessory;
+        this.plugin = plugin;
+        this.accessory_type = accessory_type;
+    }
+
+    get uuid() {
+        return this.accessory.UUID;
+    }
+}
+
+export class PluginAccessoryPlatformAccessory extends PluginAccessory {
+    constructor(server, accessory, plugin, accessory_platform) {
+        super(server, accessory, plugin);
+
+        this.accessory_platform = accessory_platform;
     }
 }
