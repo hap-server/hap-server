@@ -36,7 +36,8 @@ export default class Bridge {
 
         this.bridge.on('service-characteristic-change', event => {
             // this.log.info('Updating characteristic', event);
-            this.server.handleCharacteristicUpdate(event.accessory || this.homebridge._bridge, event.service, event.characteristic, event.newValue, event.oldValue, event.context);
+            this.server.handleCharacteristicUpdate(event.accessory || this.bridge, event.service,
+                event.characteristic, event.newValue, event.oldValue, event.context);
         });
 
         const addBridgedAccessory = this.bridge.addBridgedAccessory;
@@ -44,7 +45,8 @@ export default class Bridge {
         this.bridge.addBridgedAccessory = (accessory, defer_update, ...args) => {
             accessory.on('service-characteristic-change', event => {
                 // this.log.info('Updating characteristic', accessory, event);
-                this.server.handleCharacteristicUpdate(event.accessory || accessory, event.service, event.characteristic, event.newValue, event.oldValue, event.context);
+                this.server.handleCharacteristicUpdate(event.accessory || accessory, event.service,
+                    event.characteristic, event.newValue, event.oldValue, event.context);
             });
 
             return addBridgedAccessory.call(this.bridge, accessory, defer_update, ...args);
@@ -74,10 +76,10 @@ export default class Bridge {
     }
 
     printSetupInfo() {
-        // console.log('Setup payload:', this.bridge.setupURI());
+        console.log('Setup payload:', this.bridge.setupURI());
 
         console.log('Scan this code with your HomeKit app on your iOS device to pair with Homebridge:');
-        // qrcode.generate(this.bridge.setupURI());
+        qrcode.generate(this.bridge.setupURI());
 
         console.log('Or enter this code with your HomeKit app on your iOS device to pair with Homebridge:');
         console.log(chalk.black.bgWhite('                       '));

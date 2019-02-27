@@ -2,9 +2,10 @@
 import Bridge from './bridge';
 
 import {Server as HomebridgeServer} from 'homebridge/lib/server';
-import {Plugin as HomebridgePluginManager} from 'homebridge/lib/plugin';
 import {User as HomebridgeUser} from 'homebridge/lib/user';
-// import Logger, {_system as homebridge_logger} from 'homebridge/lib/logger';
+import {_system as homebridge_logger} from 'homebridge/lib/logger';
+
+homebridge_logger.prefix = 'Homebridge';
 
 export default class Homebridge extends Bridge {
     constructor(server, log, config, unauthenticated_access) {
@@ -37,7 +38,8 @@ export default class Homebridge extends Bridge {
 
         this.bridge.on('service-characteristic-change', event => {
             // this.log.info('Updating characteristic', event);
-            this.server.handleCharacteristicUpdate(event.accessory || this.homebridge._bridge, event.service, event.characteristic, event.newValue, event.oldValue, event.context);
+            this.server.handleCharacteristicUpdate(event.accessory || this.bridge,
+                event.service, event.characteristic, event.newValue, event.oldValue, event.context);
         });
 
         const addBridgedAccessory = this.bridge.addBridgedAccessory;
@@ -45,7 +47,8 @@ export default class Homebridge extends Bridge {
         this.bridge.addBridgedAccessory = (accessory, defer_update, ...args) => {
             accessory.on('service-characteristic-change', event => {
                 // this.log.info('Updating characteristic', accessory, event);
-                this.server.handleCharacteristicUpdate(event.accessory || accessory, event.service, event.characteristic, event.newValue, event.oldValue, event.context);
+                this.server.handleCharacteristicUpdate(event.accessory || accessory,
+                    event.service, event.characteristic, event.newValue, event.oldValue, event.context);
             });
 
             return addBridgedAccessory.call(this.bridge, accessory, defer_update, ...args);

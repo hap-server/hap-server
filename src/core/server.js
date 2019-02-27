@@ -8,7 +8,7 @@ import express from 'express';
 import WebSocket from 'ws';
 import persist from 'node-persist';
 
-import hap, {uuid} from 'hap-nodejs';
+import {uuid} from 'hap-nodejs';
 
 import Connection from './connection';
 import Bridge from './bridge';
@@ -71,19 +71,21 @@ export default class Server extends EventEmitter {
         const console_error = console.error;
 
         console.log = (data, ...args) => {
-            for (let ws of this.wss.clients) {
+            for (const ws of this.wss.clients) {
                 const connection = Connection.getConnectionForWebSocket(ws);
-                if (connection && connection.enable_proxy_stdout)
+                if (connection && connection.enable_proxy_stdout) {
                     ws.send('**:' + JSON.stringify({type: 'stdout', data: data + '\n'}));
+                }
             }
 
             console_log(data, ...args);
         };
         console.error = (data, ...args) => {
-            for (let ws of this.wss.clients) {
+            for (const ws of this.wss.clients) {
                 const connection = Connection.getConnectionForWebSocket(ws);
-                if (connection && connection.enable_proxy_stdout)
+                if (connection && connection.enable_proxy_stdout) {
                     ws.send('**:' + JSON.stringify({type: 'stderr', data: data + '\n'}));
+                }
             }
 
             console_error(data, ...args);
@@ -108,7 +110,7 @@ export default class Server extends EventEmitter {
     }
 
     publish() {
-        for (let bridge of this.bridges) {
+        for (const bridge of this.bridges) {
             bridge.publish();
         }
     }
@@ -118,11 +120,11 @@ export default class Server extends EventEmitter {
 
         if (plugin_accessory) return plugin_accessory.accessory;
 
-        for (let bridge of this.bridges) {
+        for (const bridge of this.bridges) {
             if (!bridge instanceof Homebridge) continue;
             if (bridge.uuid === uuid) return bridge.bridge;
 
-            for (let accessory of bridge.bridge.bridgedAccessories) {
+            for (const accessory of bridge.bridge.bridgedAccessories) {
                 if (accessory.UUID === uuid) return accessory;
             }
         }
@@ -176,7 +178,7 @@ export default class Server extends EventEmitter {
     }
 
     handleWebsocketConnection(ws) {
-        const connection = new Connection(this, ws);
+        new Connection(this, ws);
     }
 
     /**
@@ -188,7 +190,7 @@ export default class Server extends EventEmitter {
     sendBroadcast(data, except) {
         const message = '**:' + JSON.stringify(data);
 
-        for (let ws of this.wss.clients) {
+        for (const ws of this.wss.clients) {
             if (ws.readyState !== WebSocket.OPEN) continue;
             if (except && except === ws || except instanceof Array && except.includes(ws)) continue;
 

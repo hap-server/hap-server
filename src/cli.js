@@ -3,10 +3,8 @@ import process from 'process';
 import os from 'os';
 import fs from 'fs';
 
-import persist from 'node-persist';
 import yargs from 'yargs';
 
-import {Server as HomebridgeServer} from 'homebridge/lib/server';
 import {Plugin as HomebridgePluginManager} from 'homebridge/lib/plugin';
 import {User as HomebridgeUser} from 'homebridge/lib/user';
 import HomebridgeLogger, {_system as homebridge_logger} from 'homebridge/lib/logger';
@@ -43,7 +41,7 @@ yargs.command('$0', 'Run the HAP and web server [config]', yargs => {
     yargs.option('print-setup', {
         aliases: ['Q', 'qrcode'],
         describe: 'Print setup information',
-        default: true,
+        default: false,
     });
     yargs.option('allow-unauthenticated', {
         aliases: ['I', 'insecure'],
@@ -53,7 +51,8 @@ yargs.command('$0', 'Run the HAP and web server [config]', yargs => {
 
     yargs.option('plugin-path', {
         alias: 'P',
-        describe: 'Additional paths to look for plugins at as well as the default location ([path] can also point to a single plugin)',
+        describe: 'Additional paths to look for plugins at as well as the default location'
+            + ' ([path] can also point to a single plugin)',
         type: 'array',
     });
     yargs.option('data-path', {
@@ -94,17 +93,19 @@ yargs.command('$0', 'Run the HAP and web server [config]', yargs => {
     HomebridgeLogger.setTimestampEnabled(Logger.enable_timestamps = argv.timestamps);
     if (argv['force-colour']) HomebridgeLogger.forceColor(), forceColourLogs();
 
-    const show_qr_code = argv['print-setup'];
+    const print_setup_info = argv['print-setup'];
     const unauthenticated_access = argv['allow-unauthenticated'];
 
-    for (let plugin_path of argv['plugin-path'] || []) {
+    for (const plugin_path of argv['plugin-path'] || []) {
         HomebridgePluginManager.addPluginPath(path.resolve(process.cwd(), plugin_path));
     }
 
     if (typeof config['plugin-path'] === 'string') {
         HomebridgePluginManager.addPluginPath(path.resolve(path.dirname(config_path), config['plugin-path']));
-    } else if (config['plugin-path'] instanceof Array) for (let plugin_path of config['plugin-path']) {
-        HomebridgePluginManager.addPluginPath(path.resolve(path.dirname(config_path), plugin_path));
+    } else if (config['plugin-path'] instanceof Array) {
+        for (const plugin_path of config['plugin-path']) {
+            HomebridgePluginManager.addPluginPath(path.resolve(path.dirname(config_path), plugin_path));
+        }
     }
 
     log.info('Starting Homebridge with configuration file', HomebridgeUser.configPath());
@@ -128,13 +129,19 @@ yargs.command('$0', 'Run the HAP and web server [config]', yargs => {
     const http_server = server.createServer();
     http_server.listen(8080);
 
+    for (const bridge of server.bridges) {
+        bridge.unauthenticated_access = unauthenticated_access;
+    }
+
     server.publish();
 
-    for (let bridge of server.bridges) {
-        // Bridge has already been paired with
-        if (bridge.bridge._accessoryInfo && bridge.bridge._accessoryInfo.pairedClients.length) continue;
+    if (print_setup_info) {
+        for (const bridge of server.bridges) {
+            // Bridge has already been paired with
+            if (bridge.bridge._accessoryInfo && bridge.bridge._accessoryInfo.pairedClients.length) continue;
 
-        bridge.printSetupInfo();
+            bridge.printSetupInfo();
+        }
     }
 });
 
@@ -145,4 +152,6 @@ yargs.command('version', 'Show version number', yargs => {}, async argv => {
 });
 
 yargs.scriptName('homebridge-web-ui').help().version(false);
+
+// eslint-disable-next-line no-unused-args
 const _argv = yargs.argv;
