@@ -1,7 +1,6 @@
 <template>
     <div class="service service-lightbulb" :class="{active: on, updating, clickable: !updating}" @click="setOn(!on)">
-        <h5>{{ service.accessory.name }}</h5>
-        <h5>{{ service.name }}</h5>
+        <h5>{{ service.name || service.accessory.name }}</h5>
         <p>Lightbulb</p>
         <p v-if="updating">Updating</p>
         <p v-else>{{ on && brightness !== undefined ? brightness + '%' : on ? 'On' : 'Off' }}</p>

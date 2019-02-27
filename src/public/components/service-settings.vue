@@ -3,20 +3,14 @@
         <div class="form-group row">
             <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-name'">Name</label>
             <div class="col-sm-9">
-                <input type="text" class="form-control form-control-sm" :id="_uid + '-name'" v-model="name" :placeholder="accessory.default_name" :disabled="saving" />
+                <input type="text" class="form-control form-control-sm" :id="_uid + '-name'" v-model="name" :placeholder="service.default_name" :disabled="saving" />
             </div>
         </div>
-
-        <list-group>
-            <list-item v-for="service in accessory.services" :key="service.uuid" @click="$emit('show-service-settings', service)">
-                {{ service.name || service.uuid }}
-                <small v-if="service.name" class="text-muted">{{ service.type_name }} {{ service.uuid }}</small>
-            </list-item>
-        </list-group>
 
         <div class="d-flex">
             <div v-if="saving">Saving</div>
             <div class="flex-fill"></div>
+            <button class="btn btn-default btn-sm" type="button" @click="$emit('show-accessory-settings')">Accessory settings</button>
             <button class="btn btn-default btn-sm" type="button" @click="() => $refs.panel.close()" :disabled="saving">Cancel</button>
             <button class="btn btn-primary btn-sm" type="button" @click="save(true)" :disabled="saving">Save</button>
         </div>
@@ -25,11 +19,9 @@
 
 <script>
     import Panel from './panel.vue';
-    import ListGroup from './list-group.vue';
-    import ListItem from './list-item.vue';
 
     export default {
-        props: ['connection', 'accessory'],
+        props: ['connection', 'service'],
         data() {
             return {
                 saving: false,
@@ -39,11 +31,9 @@
         },
         components: {
             Panel,
-            ListGroup,
-            ListItem,
         },
         created() {
-            this.name = this.accessory.configured_name;
+            this.name = this.service.configured_name;
         },
         methods: {
             async save(close) {
@@ -55,7 +45,7 @@
                         name: this.name,
                     };
 
-                    await this.accessory.updateData(data);
+                    await this.service.updateData(data);
 
                     if (close) this.$emit('close');
                 } finally {

@@ -1,7 +1,6 @@
 <template>
     <div class="service service-switch">
-        <h5>{{ service.accessory.name }}</h5>
-        <h5>{{ service.name }}</h5>
+        <h5>{{ service.name || service.accessory.name }}</h5>
         <p>Programmable Switch</p>
     </div>
 </template>

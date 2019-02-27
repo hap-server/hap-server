@@ -25,11 +25,15 @@
             <service-container v-for="accessory in Object.values(accessories)" :key="accessory.uuid" :title="accessory.name">
                 <service v-for="service in accessory.services" :key="service.uuid" :connection="connection" :service="service" @show-settings="show_accessory_settings = service.accessory" />
             </service-container>
+
+            <div class="section">
+                <p>{{ Object.keys(accessories).length }} accessor{{ Object.keys(accessories).length === 1 ? 'y' : 'ies' }}</p>
+            </div>
         </div>
 
-        <settings v-if="show_settings" :connection="connection" @updated-settings="reload" @close="show_settings = false" />
-        <accessory-settings v-if="show_accessory_settings" :connection="connection" :accessory="show_accessory_settings" @close="show_accessory_settings = null" />
-        <!-- <service-settings v-if="show_service_settings" :connection="connection" :service="show_service_settings" /> -->
+        <settings v-if="show_settings" :connection="connection" :accessories="accessories" @show-accessory-settings="accessory => show_accessory_settings = accessory" @updated-settings="reload" @close="show_settings = false" />
+        <accessory-settings v-if="show_accessory_settings" :connection="connection" :accessory="show_accessory_settings" @show-service-settings="service => show_service_settings = service" @close="show_accessory_settings = null" />
+        <service-settings v-if="show_service_settings" :connection="connection" :service="show_service_settings" @show-accessory-settings="show_accessory_settings = service.accessory; show_service_settings = null" @close="show_service_settings = null" />
     </div>
 </template>
 
@@ -42,6 +46,7 @@
 
     import Settings from './settings.vue';
     import AccessorySettings from './accessory-settings.vue';
+    import ServiceSettings from './service-settings.vue';
 
     export default {
         data() {
@@ -54,7 +59,7 @@
 
                 show_settings: false,
                 show_accessory_settings: null,
-                // show_service_settings: null,
+                show_service_settings: null,
 
                 accessories: {},
                 refresh_accessories_timeout: null,
@@ -70,6 +75,7 @@
 
             Settings,
             AccessorySettings,
+            ServiceSettings,
         },
         async created() {
             window.vroot = this;

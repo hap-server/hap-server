@@ -90,17 +90,15 @@ export default class Service extends EventEmitter {
     _setData(data, here) {
         this._data = Object.freeze(data);
 
-        for (let key of Object.keys(data).filter(key => key.startsWith('Characteristic.'))) {
-            const characteristic_id = key.substr(8);
-            const characteristic = this.characteristics[characteristic_id];
-
-            if (!characteristic) continue;
-
-            characteristic._setData(data[key], here);
-        }
-
         this.emit('data-updated', here);
         this.emit('updated', here);
+    }
+
+    async updateData(data) {
+        const accessory_data = Object.assign({}, this.accessory.data);
+        accessory_data['Service.' + this.uuid] = data;
+        await this.accessory.connection.setAccessoryData(this.accessory.uuid, accessory_data);
+        this._setData(data, true);
     }
 
     get name() {
@@ -112,7 +110,7 @@ export default class Service extends EventEmitter {
     }
 
     get default_name() {
-        return this.details.name;
+        return this.getCharacteristicValueByName('Name');
     }
 
     get type() {
@@ -175,6 +173,10 @@ export default class Service extends EventEmitter {
 
     get is_system_service() {
         return system_types.includes(this.type);
+    }
+
+    get type_name() {
+        return type_names[this.type];
     }
 
     static get types() {
