@@ -1,15 +1,27 @@
 <template>
     <panel ref="panel" class="home-settings" @close="$emit('close')">
-        <div class="form-group">
-            <label class="form-label-sm">Output</label>
-            <terminal :terminal="terminal" />
-        </div>
+        <ul class="nav nav-tabs nav-sm mb-3">
+            <li class="nav-item"><a class="nav-link" :class="{active: tab === 'general'}" href="#" @click.prevent="tab = 'general'">General</a></li>
+            <li class="nav-item"><a class="nav-link" :class="{active: tab === 'accessories'}" href="#" @click.prevent="tab = 'accessories'">Accessories</a></li>
+            <li class="nav-item"><a class="nav-link" :class="{active: tab === 'output'}" href="#" @click.prevent="tab = 'output'">Output</a></li>
+        </ul>
 
-        <div class="form-group row">
+        <div v-if="tab === 'general'" class="form-group row">
             <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-name'">Name</label>
             <div class="col-sm-9">
                 <input type="text" class="form-control form-control-sm" :id="_uid + '-name'" v-model="name" placeholder="Home" :disabled="loading || saving" />
             </div>
+        </div>
+
+        <list-group v-if="tab === 'accessories'" class="mb-3">
+            <list-item v-for="accessory in Object.values(accessories)" :key="accessory.uuid" @click="$emit('show-accessory-settings', accessory)">
+                {{ accessory.name }}
+                <small class="text-muted">{{ accessory.uuid }}</small>
+            </list-item>
+        </list-group>
+
+        <div v-if="tab === 'output'" class="form-group">
+            <terminal :terminal="terminal" />
         </div>
 
         <div class="d-flex">
@@ -27,13 +39,17 @@
 
     import Panel from './panel.vue';
     import TerminalComponent from './terminal.vue';
+    import ListGroup from './list-group.vue';
+    import ListItem from './list-item.vue';
 
     export default {
-        props: ['connection'],
+        props: ['connection', 'accessories'],
         data() {
             return {
                 loading: false,
                 saving: false,
+
+                tab: 'general',
 
                 terminal: null,
 
@@ -43,6 +59,8 @@
         components: {
             Panel,
             Terminal: TerminalComponent,
+            ListGroup,
+            ListItem,
         },
         async created() {
             this.terminal = new Terminal({
@@ -58,13 +76,14 @@
             // this.terminal.element.parentElement.removeChild(this.terminal.element);
             // this.$refs.terminal.appendChild(this.terminal.element);
 
-            await this.connection.enableProxyStdout();
-            this.terminal.write('\nStarted stdout proxy...\n');
-
             this.connection.on('stdout', this.stdout);
             this.connection.on('stderr', this.stderr);
 
-            await this.reload();
+            await Promise.all([
+                this.reload(),
+                this.loadPairings(),
+                this.connection.enableProxyStdout().then(() => this.terminal.write('\nStarted stdout proxy...\n')),
+            ]);
         },
         async destroy() {
             this.connection.removeListener('stdout', this.stdout);

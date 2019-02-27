@@ -1,11 +1,10 @@
-.section {
+.section,
+.service-container {
     margin: 1rem;
     min-height: 12em;
 }
 
 .service-container {
-    @extend .section;
-
     margin: 1rem 0 0 1rem;
 }
 

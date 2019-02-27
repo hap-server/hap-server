@@ -23,7 +23,7 @@
 
             <!-- <h3>Accessories</h3> -->
             <service-container v-for="accessory in Object.values(accessories)" :key="accessory.uuid" :title="accessory.name">
-                <service v-for="service in accessory.services" :key="service.uuid" :connection="connection" :service="service" @show-settings="show_accessory_settings = service.accessory" />
+                <service v-for="service in accessory.services" :key="service.uuid" :connection="connection" :service="service" @show-settings="settings.push(service)" />
             </service-container>
 
             <div class="section">
@@ -31,9 +31,12 @@
             </div>
         </div>
 
-        <settings v-if="show_settings" :connection="connection" :accessories="accessories" @show-accessory-settings="accessory => show_accessory_settings = accessory" @updated-settings="reload" @close="show_settings = false" />
-        <accessory-settings v-if="show_accessory_settings" :connection="connection" :accessory="show_accessory_settings" @show-service-settings="service => show_service_settings = service" @close="show_accessory_settings = null" />
-        <service-settings v-if="show_service_settings" :connection="connection" :service="show_service_settings" @show-accessory-settings="show_accessory_settings = service.accessory; show_service_settings = null" @close="show_service_settings = null" />
+        <settings v-if="show_settings" :connection="connection" :accessories="accessories" :accessory_platforms="accessory_platforms" @show-accessory-settings="accessory => settings.push(accessory)" @updated-settings="reload" @close="show_settings = false" />
+
+        <template v-for="(item, index) in settings">
+            <accessory-settings v-if="item.constructor.name === 'Accessory'" :connection="connection" :accessory="item" @show-service-settings="service => settings.push(service)" @close="settings.splice(index, 1)" />
+            <service-settings v-else-if="item.constructor.name === 'Service'" :connection="connection" :service="item" @show-accessory-settings="settings.push(item.accessory)" @close="settings.splice(index, 1)" />
+        </template>
     </div>
 </template>
 
@@ -58,8 +61,7 @@
                 name: null,
 
                 show_settings: false,
-                show_accessory_settings: null,
-                show_service_settings: null,
+                settings: [],
 
                 accessories: {},
                 refresh_accessories_timeout: null,

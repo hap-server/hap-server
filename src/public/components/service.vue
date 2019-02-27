@@ -3,15 +3,13 @@
         <component v-if="component" :is="component" :connection="connection" :service="service" />
 
         <div v-else-if="service.is_system_service" class="service unsupported-service error">
-            <h5>{{ service.accessory.name }}</h5>
-            <h5>{{ service.name }}</h5>
+            <h5>{{ service.name || service.accessory.name }}</h5>
             <p class="status">System service</p>
             <p v-if="service_name">{{ service_name }}</p>
         </div>
 
         <div v-else class="service unsupported-service">
-            <h5>{{ service.accessory.name }}</h5>
-            <h5>{{ service.name }}</h5>
+            <h5>{{ service.name || service.accessory.name }}</h5>
             <p class="status">Not supported</p>
             <p v-if="service_name">{{ service_name }}</p>
         </div>
