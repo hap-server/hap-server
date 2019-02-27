@@ -9,12 +9,13 @@ import yargs from 'yargs';
 import {Server as HomebridgeServer} from 'homebridge/lib/server';
 import {Plugin as HomebridgePluginManager} from 'homebridge/lib/plugin';
 import {User as HomebridgeUser} from 'homebridge/lib/user';
-import Logger, {_system as homebridge_logger} from 'homebridge/lib/logger';
+import HomebridgeLogger, {_system as homebridge_logger} from 'homebridge/lib/logger';
 import hap from 'hap-nodejs';
 
-import {Server as WebServer} from '.';
+import {Server} from '.';
+import Logger, {forceColour as forceColourLogs} from './core/logger';
 
-const logger = new Logger.Logger('UI');
+const log = new Logger();
 
 yargs.option('debug', {
     alias: 'D',
@@ -89,9 +90,9 @@ yargs.command('$0', 'Run the HAP and web server [config]', yargs => {
 
     HomebridgeUser.setStoragePath(data_path);
 
-    Logger.setDebugEnabled(argv.debug);
-    Logger.setTimestampEnabled(argv.timestamps);
-    if (argv['force-colour']) Logger.forceColor();
+    HomebridgeLogger.setDebugEnabled(Logger.enable_debug = argv.debug);
+    HomebridgeLogger.setTimestampEnabled(Logger.enable_timestamps = argv.timestamps);
+    if (argv['force-colour']) HomebridgeLogger.forceColor(), forceColourLogs();
 
     const show_qr_code = argv['print-setup'];
     const unauthenticated_access = argv['allow-unauthenticated'];
@@ -106,48 +107,35 @@ yargs.command('$0', 'Run the HAP and web server [config]', yargs => {
         HomebridgePluginManager.addPluginPath(path.resolve(path.dirname(config_path), plugin_path));
     }
 
-    const ui_storage_path = path.resolve(data_path, 'ui-storage');
-
-    homebridge_logger.info('Starting Homebridge with configuration file', HomebridgeUser.configPath());
-    homebridge_logger.debug('Data path:', HomebridgeUser.storagePath());
-    homebridge_logger.debug('Persist path:', HomebridgeUser.persistPath());
-    homebridge_logger.debug('Accessory cache path:', HomebridgeUser.cachedAccessoryPath());
-    homebridge_logger.debug('UI storage path:', ui_storage_path);
-    homebridge_logger.debug('Plugin paths:', HomebridgePluginManager.paths);
-
-    // return;
-
-    const storage = persist.create({
-        dir: ui_storage_path,
-        stringify: data => JSON.stringify(data, null, 4),
-    });
-
-    await storage.init();
+    log.info('Starting Homebridge with configuration file', HomebridgeUser.configPath());
+    log.debug('Data path:', HomebridgeUser.storagePath());
+    log.debug('Persist path:', HomebridgeUser.persistPath());
+    log.debug('Accessory cache path:', HomebridgeUser.cachedAccessoryPath());
+    log.debug('Plugin paths:', HomebridgePluginManager.paths);
+    log.debug('UI storage path:', path.resolve(data_path, 'ui-storage'));
 
     homebridge_logger.prefix = 'Homebridge';
 
     // Initialize HAP-NodeJS with a custom persist directory
     hap.init(HomebridgeUser.persistPath());
 
-    const homebridge_server = new HomebridgeServer({insecureAccess: unauthenticated_access, hideQRCode: !show_qr_code});
+    const server = await Server.createServer({
+        data_path,
+        config_path,
+        config,
+    });
 
-    for (let [signal, code] of Object.entries({'SIGINT': 2, 'SIGTERM': 15})) {
-        process.on(signal, () => {
-            homebridge_logger.info('Got %s, shutting down Homebridge...', signal);
-
-            homebridge_server._teardown();
-            // setTimeout(() => process.exit(128 + code), 5000);
-            setTimeout(() => process.exit(128 + code), 1000);
-            homebridge_server._api.emit('shutdown');
-        });
-    }
-
-    homebridge_server.run();
-
-    const web_server = new WebServer(homebridge_server, logger, storage);
-    const http_server = web_server.createServer();
-
+    const http_server = server.createServer();
     http_server.listen(8080);
+
+    server.publish();
+
+    for (let bridge of server.bridges) {
+        // Bridge has already been paired with
+        if (bridge.bridge._accessoryInfo && bridge.bridge._accessoryInfo.pairedClients.length) continue;
+
+        bridge.printSetupInfo();
+    }
 });
 
 yargs.command('version', 'Show version number', yargs => {}, async argv => {

@@ -25,9 +25,9 @@ export default class Characteristic extends EventEmitter {
 
         this._details = Object.freeze(details);
 
-        if (this.value !== old_value) {
+        // if (this.value !== old_value) {
             this.emit('value-updated', this.value, old_value);
-        }
+        // }
 
         this.emit('details-updated');
         this.emit('updated');

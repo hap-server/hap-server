@@ -1,3 +1,6 @@
+
+import Homebridge from './homebridge';
+
 let id = 0;
 
 const message_methods = {
@@ -22,12 +25,12 @@ export default class Connection {
         this.id = id++;
         this.enable_proxy_stdout = false;
 
-        this.server.log.debug('WebSocket connection', this.id, this.ws);
+        // this.server.log.debug('WebSocket connection', this.id, this.ws);
 
         ws_map.set(this.ws, this);
 
         ws.on('message', message => {
-            this.server.log.debug('Received', this.id, message);
+            // this.server.log.debug('Received', this.id, message);
 
             if (message === 'pong') {
                 this.server.log.info('Received ping response');
@@ -76,100 +79,94 @@ export default class Connection {
         }
     }
 
+    /**
+     * Gets the UUID of every accessory.
+     */
     async handleListAccessoriesMessage(messageid, data) {
         this.respond(messageid, await this.listAccessories());
     }
 
-    /**
-     * Gets the UUID of every accessory.
-     */
     listAccessories() {
         const uuids = [];
 
-        for (let bridge of [this.server.homebridge._bridge]) {
-            uuids.push(bridge.UUID);
+        for (let bridge of this.server.bridges) {
+            if (!bridge instanceof Homebridge) continue;
+            uuids.push(bridge.uuid);
 
-            for (let accessory of bridge.bridgedAccessories) {
+            for (let accessory of bridge.bridge.bridgedAccessories) {
                 uuids.push(accessory.UUID);
             }
         }
 
-        return uuids;
-    }
+        for (let accessory of this.server.accessories) {
+            uuids.push(accessory.uuid);
+        }
 
-    async handleGetAccessoriesMessage(messageid, data) {
-        this.respond(messageid, await this.getAccessories(...data.id));
+        return uuids;
     }
 
     /**
      * Gets the details of accessories.
      * This is what the accessory exposes.
      */
+    async handleGetAccessoriesMessage(messageid, data) {
+        this.respond(messageid, await this.getAccessories(...data.id));
+    }
+
     getAccessories(...id) {
         return Promise.all(id.map(id => this.getAccessory(id)));
     }
 
-    getAccessory(id) {
-        for (let bridge of [this.server.homebridge._bridge]) {
-            for (let accessory of [bridge, ...bridge.bridgedAccessories]) {
-                if (accessory.UUID !== id) continue;
+    getAccessory(uuid) {
+        const accessory = this.server.getAccessory(uuid);
 
-                const hap = accessory.toHAP()[0];
+        if (!accessory) return null;
 
-                // Add service subtypes
-                for (let service of accessory.services) {
-                    const service_hap = hap.services.find(s => s.iid === service.iid);
+        const hap = accessory.toHAP()[0];
 
-                    service_hap.subtype = service.subtype;
-                }
+        // Add service subtypes
+        for (let service of accessory.services) {
+            const service_hap = hap.services.find(s => s.iid === service.iid);
 
-                return hap;
-            }
+            service_hap.subtype = service.subtype;
         }
 
-        //
-        return {
-            name: 'Test 2',
-        };
-    }
-
-    async handleGetCharacteristicsMessage(messageid, data) {
-        this.respond(messageid, await this.getCharacteristics(...data.ids));
+        return hap;
     }
 
     /**
      * Gets the value of a characteristic.
      */
+    async handleGetCharacteristicsMessage(messageid, data) {
+        this.respond(messageid, await this.getCharacteristics(...data.ids));
+    }
+
     getCharacteristics(...ids) {
         return Promise.all(ids.map(ids => this.getCharacteristic(...ids)));
     }
 
     getCharacteristic(accessory_uuid, service_uuid, characteristic_uuid) {
+        const accessory = this.server.getAccessory(accessory_uuid);
+
         const service_type = service_uuid.indexOf('.') !== -1 ? service_uuid.substr(0, service_uuid.indexOf('.')) : service_uuid;
         const service_subtype = service_uuid.indexOf('.') !== -1 ? service_uuid.substr(service_uuid.indexOf('.') + 1) : undefined;
 
-        for (let bridge of [this.server.homebridge._bridge]) {
-            for (let accessory of [bridge, ...bridge.bridgedAccessories]) {
-                if (accessory.UUID !== accessory_uuid) continue;
+        const service = accessory.services.find(service => service.UUID === service_type && ((!service.subtype && !service_subtype) || service.subtype === service_subtype));
+        if (!service) return;
 
-                const service = accessory.services.find(service => service.UUID === service_type && ((!service.subtype && !service_subtype) || service.subtype === service_subtype));
-                if (!service) return;
+        const characteristic = service.characteristics.find(characteristic => characteristic.UUID === characteristic_uuid);
+        if (!characteristic) return;
 
-                const characteristic = service.characteristics.find(characteristic => characteristic.UUID === characteristic_uuid);
-                if (!characteristic) return;
-
-                return characteristic.toHAP();
-            }
-        }
-    }
-
-    async handleSetCharacteristicsMessage(messageid, data) {
-        this.respond(messageid, await this.setCharacteristics(...data.ids_data));
+        return characteristic.toHAP();
     }
 
     /**
      * Sets the value of a characteristic.
      */
+    async handleSetCharacteristicsMessage(messageid, data) {
+        this.respond(messageid, await this.setCharacteristics(...data.ids_data));
+    }
+
     setCharacteristics(...ids) {
         return Promise.all(ids.map(ids => this.setCharacteristic(...ids)));
     }
@@ -177,34 +174,29 @@ export default class Connection {
     setCharacteristic(accessory_uuid, service_uuid, characteristic_uuid, value) {
         this.server.log.info('Setting characteristic', accessory_uuid, service_uuid, characteristic_uuid, 'to', value);
 
+        const accessory = this.server.getAccessory(accessory_uuid);
+
         const service_type = service_uuid.indexOf('.') !== -1 ? service_uuid.substr(0, service_uuid.indexOf('.')) : service_uuid;
         const service_subtype = service_uuid.indexOf('.') !== -1 ? service_uuid.substr(service_uuid.indexOf('.') + 1) : undefined;
 
-        for (let bridge of [this.server.homebridge._bridge]) {
-            for (let accessory of [bridge, ...bridge.bridgedAccessories]) {
-                if (accessory.UUID !== accessory_uuid) continue;
+        const service = accessory.services.find(service => service.UUID === service_type && ((!service.subtype && !service_subtype) || service.subtype === service_subtype));
+        if (!service) return;
 
-                const service = accessory.services.find(service => service.UUID === service_type && ((!service.subtype && !service_subtype) || service.subtype === service_subtype));
-                if (!service) return;
-
-                const characteristic = service.characteristics.find(characteristic => characteristic.UUID === characteristic_uuid);
-                if (!characteristic) return;
+        const characteristic = service.characteristics.find(characteristic => characteristic.UUID === characteristic_uuid);
+        if (!characteristic) return;
 
 
-                return characteristic.setValue(value);
-                // return characteristic.emit('set', value);
-            }
-        }
-    }
-
-    async handleGetAccessoriesDataMessage(messageid, data) {
-        this.respond(messageid, await this.getAccessoriesData(...data.id));
+        return characteristic.setValue(value);
     }
 
     /**
      * Gets the details of accessories.
      * This is stored by the web UI.
      */
+    async handleGetAccessoriesDataMessage(messageid, data) {
+        this.respond(messageid, await this.getAccessoriesData(...data.id));
+    }
+
     getAccessoriesData(...id) {
         return Promise.all(id.map(id => this.getAccessoryData(id)));
     }
@@ -216,14 +208,14 @@ export default class Connection {
         return await this.server.storage.getItem('AccessoryData.' + id) || {};
     }
 
-    async handleSetAccessoriesDataMessage(messageid, data) {
-        this.respond(messageid, await this.setAccessoriesData(...data.id_data));
-    }
-
     /**
      * Sets extra data of accessories.
      * This is stored by the web UI.
      */
+    async handleSetAccessoriesDataMessage(messageid, data) {
+        this.respond(messageid, await this.setAccessoriesData(...data.id_data));
+    }
+
     setAccessoriesData(...id_data) {
         return Promise.all(id_data.map(([id, data]) => this.setAccessoryData(id, data)));
     }
@@ -241,26 +233,26 @@ export default class Connection {
         }, this.ws);
     }
 
+    /**
+     * Gets global settings.
+     */
     async handleGetHomeSettingsMessage(messageid, data) {
         this.respond(messageid, await this.getHomeSettings());
     }
 
-    /**
-     * Gets global settings.
-     */
     async getHomeSettings() {
         this.server.log.debug('Getting global settings');
 
         return await this.server.storage.getItem('Home') || {};
     }
 
+    /**
+     * Sets global settings.
+     */
     async handleSetHomeSettingsMessage(messageid, data) {
         this.respond(messageid, await this.setHomeSettings(data.data));
     }
 
-    /**
-     * Sets global settings.
-     */
     async setHomeSettings(data) {
         this.server.log.debug('Setting global settings', data);
 

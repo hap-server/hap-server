@@ -2,50 +2,70 @@ import http from 'http';
 import https from 'https';
 import url from 'url';
 import path from 'path';
+import EventEmitter from 'events';
 
 import express from 'express';
 import WebSocket from 'ws';
+import persist from 'node-persist';
+
+import hap, {uuid} from 'hap-nodejs';
 
 import Connection from './connection';
+import Bridge from './bridge';
+import Homebridge from './homebridge';
+import Logger from './logger';
 
-export default class Server {
-    constructor(homebridge, log, storage) {
-        this.homebridge = homebridge;
-        this.log = log;
+export default class Server extends EventEmitter {
+    constructor(config, storage, log) {
+        super();
+
+        this.config = config;
         this.storage = storage;
+        this.log = log || new Logger();
+
+        this.accessories = [];
+        this.bridges = [];
 
         this.app = express();
         this.app.use(express.static(path.resolve(__dirname, '..', 'public')));
 
-        this.wss = new WebSocket.Server({ noServer: true });
+        this.wss = new WebSocket.Server({noServer: true});
         this.wss.on('connection', ws => this.handleWebsocketConnection(ws));
+
+        // this.bridge = new Bridge(this, this.log.withPrefix('HAP Bridge'), {
+        //     uuid: uuid.generate('HomeBridge'),
+        //     // username: bridgeConfig.username || 'CC:22:3D:E3:CE:30',
+        //     // port: bridgeConfig.port || 0,
+        //     // pincode: bridgeConfig.pin || '031-45-154',
+        //     // category: Accessory.Categories.BRIDGE,
+        //     // mdns: this._config.mdns,
+        //     allow_insecure_access: false,
+        // });
+        this.homebridge = new Homebridge(this, this.log.withPrefix('Homebridge'), {
+            // uuid: uuid.generate('HomeBridge'),
+            bridge: config.homebridge || config.bridge,
+            accessories: config['homebridge-accessories'] || config.accessories,
+            platforms: config['homebridge-platforms'] || config.platforms,
+        });
+
+        this.bridges.push(this.homebridge);
+
+        this.bridge = new Bridge(this, this.log.withPrefix('HAP Bridge'), {
+            uuid: uuid.generate('HomeBridge'),
+            // name: 'Bridge #1',
+            // username: bridgeConfig.username || 'CC:22:3D:E3:CE:30',
+            username: '00:00:00:00:00:01',
+            // port: bridgeConfig.port || 0,
+            // pincode: bridgeConfig.pin || '031-45-154',
+            // category: Accessory.Categories.BRIDGE,
+            // mdns: this._config.mdns,
+            allow_insecure_access: false,
+        });
+
+        this.bridges.push(this.bridge);
 
         this.handle = this.handle.bind(this);
         this.upgrade = this.upgrade.bind(this);
-
-        this.handleCharacteristicUpdate = this.handleCharacteristicUpdate.bind(this);
-
-        this.homebridge._bridge.on('service-characteristic-change', event => {
-            // this.log.info('Updating characteristic', event);
-            this.handleCharacteristicUpdate(event.accessory || this.homebridge._bridge, event.service, event.characteristic, event.newValue, event.oldValue, event.context);
-        });
-
-        for (let accessory of this.homebridge._bridge.bridgedAccessories) {
-            accessory.on('service-characteristic-change', event => {
-                // this.log.info('Updating characteristic', accessory, event);
-                this.handleCharacteristicUpdate(event.accessory || accessory, event.service, event.characteristic, event.newValue, event.oldValue, event.context);
-            });
-        }
-
-        const addBridgedAccessory = this.homebridge._bridge.addBridgedAccessory;
-        this.homebridge._bridge.addBridgedAccessory = (accessory, defer_update, ...args) => {
-            accessory.on('service-characteristic-change', event => {
-                // this.log.info('Updating characteristic', accessory, event);
-                this.handleCharacteristicUpdate(event.accessory || accessory, event.service, event.characteristic, event.newValue, event.oldValue, event.context);
-            });
-
-            return addBridgedAccessory.call(this.homebridge._bridge, accessory, defer_update, ...args);
-        };
 
         const console_log = console.log;
         const console_error = console.error;
@@ -68,6 +88,48 @@ export default class Server {
 
             console_error(data, ...args);
         };
+    }
+
+    static async createServer(config) {
+        if (!config) config = {};
+
+        const ui_storage_path = path.resolve(config.data_path, 'ui-storage');
+
+        const storage = persist.create({
+            dir: ui_storage_path,
+            stringify: data => JSON.stringify(data, null, 4),
+        });
+
+        await storage.init();
+
+        const server = new this(config.config, storage);
+
+        return server;
+    }
+
+    publish() {
+        for (let bridge of this.bridges) {
+            bridge.publish();
+        }
+    }
+
+    getAccessory(uuid) {
+        const plugin_accessory = this.getPluginAccessory(uuid);
+
+        if (plugin_accessory) return plugin_accessory.accessory;
+
+        for (let bridge of this.bridges) {
+            if (!bridge instanceof Homebridge) continue;
+            if (bridge.uuid === uuid) return bridge.bridge;
+
+            for (let accessory of bridge.bridge.bridgedAccessories) {
+                if (accessory.UUID === uuid) return accessory;
+            }
+        }
+    }
+
+    getPluginAccessory(uuid) {
+        return this.accessories.find(accessory => accessory.uuid === uuid);
     }
 
     createServer(options) {
@@ -140,7 +202,10 @@ export default class Server {
             accessory_uuid: accessory.UUID,
             service_id: service.UUID + (service.subtype ? '.' + service.subtype : ''),
             characteristic_id: characteristic.UUID,
-            details: characteristic.toHAP(),
+            details: Object.assign({}, characteristic.toHAP(), {
+                // Make sure the value is set (for event only characteristics)
+                value,
+            }),
         });
     }
 }

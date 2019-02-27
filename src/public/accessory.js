@@ -44,7 +44,7 @@ export default class Accessory extends EventEmitter {
         const added_service_details = [];
         const removed_service_ids = [];
 
-        for (let service_details of details.services) {
+        for (let service_details of details.services || []) {
             const uuid = service_details.type + (service_details.subtype ? '.' + service_details.subtype : '');
             const service = this.services[uuid];
 

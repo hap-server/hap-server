@@ -87,10 +87,9 @@ export default class Connection extends EventEmitter {
         });
     }
 
-    listAccessories(...id) {
+    listAccessories() {
         return this.send({
             type: 'list-accessories',
-            id,
         });
     }
 

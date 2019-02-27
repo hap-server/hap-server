@@ -12,9 +12,11 @@
         "url": "https://gitlab.fancy.org.uk/samuel/homebridge-web-ui"
     },
     "dependencies": {
+        "chalk": "^2.4.2",
         "express": "^4.16.4",
         "homebridge": "^0.4.46",
         "node-persist": "^3.0.4",
+        "qrcode-terminal": "^0.12.0",
         "ws": "^6.1.4",
         "yargs": "^13.2.1"
     },
@@ -23,6 +25,8 @@
         "babel-preset-env": "^1.6.1",
         "bootstrap": "^4.3.1",
         "css-loader": "^2.1.0",
+        "eslint": "^5.14.1",
+        "eslint-config-google": "^0.12.0",
         "gulp": "^4.0.0",
         "gulp-babel": "^7.0.1",
         "html-webpack-plugin": "^3.2.0",
