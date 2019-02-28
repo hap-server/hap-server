@@ -33,38 +33,6 @@ export default class Server extends EventEmitter {
         this.wss = new WebSocket.Server({noServer: true});
         this.wss.on('connection', ws => this.handleWebsocketConnection(ws));
 
-        // this.bridge = new Bridge(this, this.log.withPrefix('HAP Bridge'), {
-        //     uuid: uuid.generate('HomeBridge'),
-        //     // username: bridgeConfig.username || 'CC:22:3D:E3:CE:30',
-        //     // port: bridgeConfig.port || 0,
-        //     // pincode: bridgeConfig.pin || '031-45-154',
-        //     // category: Accessory.Categories.BRIDGE,
-        //     // mdns: this._config.mdns,
-        //     allow_insecure_access: false,
-        // });
-        this.homebridge = new Homebridge(this, this.log.withPrefix('Homebridge'), {
-            // uuid: uuid.generate('HomeBridge'),
-            bridge: config.homebridge || config.bridge,
-            accessories: config['homebridge-accessories'] || config.accessories,
-            platforms: config['homebridge-platforms'] || config.platforms,
-        });
-
-        this.bridges.push(this.homebridge);
-
-        this.bridge = new Bridge(this, this.log.withPrefix('HAP Bridge'), {
-            uuid: uuid.generate('HomeBridge'),
-            // name: 'Bridge #1',
-            // username: bridgeConfig.username || 'CC:22:3D:E3:CE:30',
-            username: '00:00:00:00:00:01',
-            // port: bridgeConfig.port || 0,
-            // pincode: bridgeConfig.pin || '031-45-154',
-            // category: Accessory.Categories.BRIDGE,
-            // mdns: this._config.mdns,
-            allow_insecure_access: false,
-        });
-
-        this.bridges.push(this.bridge);
-
         this.handle = this.handle.bind(this);
         this.upgrade = this.upgrade.bind(this);
 
@@ -110,22 +78,78 @@ export default class Server extends EventEmitter {
         return server;
     }
 
+    loadBridgesFromConfig() {
+        if (!this.config.bridges) return Promise.resolve();
+
+        return Promise.all(this.config.bridges.map(bridge_config => this.loadBridge(bridge_config)));
+    }
+
+    loadBridge(bridge_config) {
+        // bridge_config.username is required - all other properties are optional
+        const name = bridge_config.username || 'Bridge ' + bridge_config.username.match(/(.{2}\:.{2})$/)[1];
+
+        const bridge = new Bridge(this, this.log.withPrefix(name), {
+            uuid: bridge_config.uuid || uuid.generate('hap-server:bridge:' + bridge_config.username),
+            name,
+            username: bridge_config.username,
+            port: bridge_config.port,
+            pincode: bridge_config.pincode,
+            unauthenticated_access: bridge_config.unauthenticated_access,
+        });
+
+        bridge.accessory_uuids = bridge_config.accessories || [];
+
+        this.bridges.push(bridge);
+
+        for (const accessory_uuid of bridge.accessory_uuids) {
+            if (accessory_uuid instanceof Array) {
+                const accessory = this.accessories.find(accessory => accessory_uuid[0] === accessory.plugin.name &&
+                    accessory_uuid[1] === accessory.accessory_type &&
+                    accessory_uuid[2] === accessory.accessory.displayName);
+                if (!accessory) continue;
+
+                bridge.addAccessory(accessory);
+            } else {
+                const accessory = this.accessories.find(accessory => accessory.uuid === accessory_uuid);
+                if (!accessory) continue;
+
+                bridge.addAccessory(accessory);
+            }
+        }
+    }
+
+    loadHomebridge() {
+        if (this.homebridge) return;
+
+        // config.bridge, config.accessories and config.platforms are for Homebridge
+        // If any of these exist, the user wants to run Homebridge as well
+        this.homebridge = new Homebridge(this, this.log.withPrefix('Homebridge'), {
+            bridge: this.config.bridge,
+            accessories: this.config.accessories,
+            platforms: this.config.platforms,
+        });
+
+        this.bridges.push(this.homebridge);
+    }
+
     async loadAccessoriesFromConfig() {
-        await this.loadAccessories(this.config['accessories-2'], true);
+        await this.loadAccessories(this.config.accessories2 || [], true);
     }
 
     async loadAccessories(accessories, dont_throw) {
         await Promise.all(accessories.map(accessory_config => this.loadAccessory(accessory_config).catch(err => {
             if (!dont_throw) throw err;
 
-            this.log.warn('Error loading accessory', accessory_config.plugin, accessory_config.accessory, accessory_config.name, err);
+            this.log.warn('Error loading accessory', accessory_config.plugin, accessory_config.accessory,
+                accessory_config.name, err);
         })));
     }
 
     async loadAccessory(accessory_config) {
         const {plugin: plugin_name, accessory: accessory_type, name} = accessory_config;
 
-        if (!plugin_name || !accessory_type || !name) throw new Error('Invalid accessory configuration: accessories must have the plugin, accessory and name properties');
+        if (!plugin_name || !accessory_type || !name) throw new Error('Invalid accessory configuration: accessories'
+            + ' must have the plugin, accessory and name properties');
 
         const plugin = PluginManager.getPlugin(plugin_name);
         if (!plugin) throw new Error('No plugin with the name "' + plugin_name + '"');
@@ -133,21 +157,50 @@ export default class Server extends EventEmitter {
         const accessory_handler = plugin.getAccessoryHandler(accessory_type);
         if (!accessory_handler) throw new Error('No accessory handler with the name "' + accessory_type + '"');
 
-        if (!accessory_config.uuid) accessory_config.uuid = uuid.generate('accessory:' + plugin_name + ':' + accessory_type + ':' + name);
+        if (!accessory_config.uuid) accessory_config.uuid = uuid.generate('accessory:' + plugin_name + ':' +
+            accessory_type + ':' + name);
 
         const accessory = await accessory_handler.call(plugin, accessory_config);
 
-        if (this.getAccessory(accessory.UUID)) throw new Error('Already have an accessory with the UUID "' + accessory.UUID + '"');
+        if (this.getAccessory(accessory.UUID)) throw new Error('Already have an accessory with the UUID "' +
+            accessory.UUID + '"');
 
         const plugin_accessory = new PluginAccessory(this, accessory, plugin, accessory_type);
 
         this.accessories.push(plugin_accessory);
-        this.bridge.addAccessory(accessory);
+
+        for (let bridge of this.bridges.find(bridge => bridge.accessory_uuids.find(accessory_uuid =>
+            accessory_uuid instanceof Array ? accessory_uuid[0] === plugin_name &&
+                accessory_uuid[1] === accessory_type && accessory_uuid[2] === name :
+                accessory_uuid === accessory_config.uuid
+        ))) {
+            bridge.addAccessory(accessory);
+        }
+    }
+
+    async loadAccessoryPlatformsFromConfig() {
+        await this.loadAccessoryPlatforms(this.config.platforms2 || [], true);
+    }
+
+    async loadAccessoryPlatforms(accessories, dont_throw) {
+        await Promise.all(accessories.map(accessory_platform_config =>
+            this.loadAccessory(accessory_platform_config).catch(err => {
+                if (!dont_throw) throw err;
+
+                this.log.warn('Error loading accessory platform', accessory_platform_config.plugin,
+                    accessory_platform_config.platform, accessory_platform_config.name, err);
+            })));
     }
 
     publish() {
         for (const bridge of this.bridges) {
             bridge.publish();
+        }
+    }
+
+    unpublish() {
+        for (const bridge of this.bridges) {
+            bridge.unpublish();
         }
     }
 

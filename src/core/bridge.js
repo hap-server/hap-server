@@ -1,4 +1,5 @@
 
+import os from 'os';
 import chalk from 'chalk';
 import qrcode from 'qrcode-terminal';
 import {Bridge as HAPBridge, Accessory, Service, Characteristic} from './hap-async';
@@ -13,7 +14,7 @@ export default class Bridge {
         }
 
         this.uuid = config.uuid;
-        this.name = config.name || 'Homebridge';
+        this.name = config.name || os.hostname();
         this.username = config.username || 'CC:22:3D:E3:CE:30';
         this.port = config.port || 0;
         this.pincode = config.pincode || '031-45-154',
@@ -23,14 +24,13 @@ export default class Bridge {
 
         this.bridge = new HAPBridge(this.name, config.uuid);
         this.bridge.on('listening', port => {
-            this.log.info('Homebridge is running on port %s.', port);
+            this.log.info(`${this.name} is running on port ${port}`);
+            Object.freeze(this);
         });
-
-        Object.freeze(this);
 
         this.bridge.getService(Service.AccessoryInformation)
             .setCharacteristic(Characteristic.Manufacturer, 'Samuel Elliott')
-            .setCharacteristic(Characteristic.Model, 'Homebridge')
+            .setCharacteristic(Characteristic.Model, require('../../package').name)
             .setCharacteristic(Characteristic.SerialNumber, this.username)
             .setCharacteristic(Characteristic.FirmwareRevision, require('../../package').version);
 
@@ -78,10 +78,10 @@ export default class Bridge {
     printSetupInfo() {
         console.log('Setup payload:', this.bridge.setupURI());
 
-        console.log('Scan this code with your HomeKit app on your iOS device to pair with Homebridge:');
+        console.log('Scan this code with your HomeKit app on your iOS device:');
         qrcode.generate(this.bridge.setupURI());
 
-        console.log('Or enter this code with your HomeKit app on your iOS device to pair with Homebridge:');
+        console.log('Or enter this code with your HomeKit app on your iOS device:');
         console.log(chalk.black.bgWhite('                       '));
         console.log(chalk.black.bgWhite('    ┌────────────┐     '));
         console.log(chalk.black.bgWhite('    │ ' + this.pincode + ' │     '));

@@ -10,7 +10,7 @@ export default class Accessory extends EventEmitter {
      *
      * @param {Connection} connection
      * @param {string} uuid
-     * @param {object} details The accessory exposed to Homebridge (read only)
+     * @param {object} details The HAP accessory data (read only)
      * @param {object} data Configuration data stored by the web UI (read/write)
      */
     constructor(connection, uuid, details, data) {

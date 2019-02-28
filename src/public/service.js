@@ -10,7 +10,7 @@ export default class Service extends EventEmitter {
      *
      * @param {Accessory} accessory
      * @param {string} uuid
-     * @param {object} details The service exposed to Homebridge (read only)
+     * @param {object} details The HAP service data (read only)
      * @param {object} data Configuration data stored by the web UI (read/write)
      */
     constructor(accessory, uuid, details, data) {
@@ -120,7 +120,7 @@ export default class Service extends EventEmitter {
     }
 
     findCharacteristic(callback) {
-        for (const characteristic of this.characteristics) {
+        for (const characteristic of Object.values(this.characteristics)) {
             if (callback.call(this, characteristic)) return characteristic;
         }
     }
@@ -128,7 +128,7 @@ export default class Service extends EventEmitter {
     findCharacteristics(callback) {
         const characteristics = [];
 
-        for (const characteristic of this.characteristics) {
+        for (const characteristic of Object.values(this.characteristics)) {
             if (callback.call(this, characteristic)) characteristics.push(characteristic);
         }
 

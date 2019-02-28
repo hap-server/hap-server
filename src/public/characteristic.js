@@ -6,7 +6,7 @@ export default class Characteristic extends EventEmitter {
      *
      * @param {Service} service
      * @param {string} uuid
-     * @param {object} details The characteristic exposed to Homebridge (read only)
+     * @param {object} details The HAP characteristic data (read only)
      */
     constructor(service, uuid, details) {
         super();

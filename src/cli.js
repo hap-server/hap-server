@@ -4,6 +4,7 @@ import os from 'os';
 import fs from 'fs';
 
 import yargs from 'yargs';
+import chalk from 'chalk';
 
 import {Plugin as HomebridgePluginManager} from 'homebridge/lib/plugin';
 import {User as HomebridgeUser} from 'homebridge/lib/user';
@@ -31,11 +32,22 @@ yargs.option('force-colour', {
     default: false,
 });
 
-yargs.command('$0', 'Run the HAP and web server [config]', yargs => {
+yargs.command('$0 [config]', 'Run the HAP and web server', yargs => {
     yargs.positional('config', {
         describe: 'The configuration file to use',
         type: 'string',
         default: path.join(os.homedir(), '.homebridge', 'config.json'),
+    });
+    yargs.option('data-path', {
+        aliases: ['U', 'user-storage-path'],
+        describe: 'Path to store data',
+        type: 'string',
+    });
+    yargs.option('plugin-path', {
+        alias: 'P',
+        describe: 'Additional paths to look for plugins at as well as the default location'
+            + ' ([path] can also point to a single plugin)',
+        type: 'array',
     });
 
     yargs.option('print-setup', {
@@ -49,18 +61,19 @@ yargs.command('$0', 'Run the HAP and web server [config]', yargs => {
         default: false,
     });
 
-    yargs.option('plugin-path', {
-        alias: 'P',
-        describe: 'Additional paths to look for plugins at as well as the default location'
-            + ' ([path] can also point to a single plugin)',
-        type: 'array',
+    yargs.option('user', {
+        alias: 'u',
+        describe: 'User to run as after starting',
     });
-    yargs.option('data-path', {
-        aliases: ['U', 'user-storage-path'],
-        describe: 'Path to look for Homebridge data',
-        type: 'string',
+    yargs.option('group', {
+        alias: 'g',
+        describe: 'Group to run as after starting',
     });
 }, async argv => {
+    /**
+     * Read configuration data.
+     */
+
     const config_path = path.resolve(process.cwd(), argv.config);
     let config;
 
@@ -69,32 +82,39 @@ yargs.command('$0', 'Run the HAP and web server [config]', yargs => {
         config = JSON.parse(config_json);
     } catch (error) {
         if (error && error.code === 'ENOENT') {
-            console.error('The configuration file (' + config_path + ') doesn\'t exist.');
+            console.error(chalk.red(`The configuration file (${config_path}) doesn\'t exist.`));
         } else if (error instanceof SyntaxError) {
-            console.error('Syntax error reading configuration file (' + config_path + '):', error.message);
+            console.error(chalk.red(`Syntax error reading configuration file (${config_path}):`), error.message);
         } else {
-            console.error('Error reading configuration file (' + config_path + '):', error);
+            console.error(chalk.red(`Error reading configuration file (${config_path}):`), error);
         }
 
         process.exit(1);
+        return;
     }
 
-    HomebridgeUser.configPath = () => config_path;
-    HomebridgeUser.config = () => config;
+    /**
+     * Storage paths.
+     */
 
     const data_path = argv['data-path'] ? path.resolve(process.cwd(), argv['data-path'])
         : config['data-path'] ? path.resolve(path.dirname(config_path), config['data-path'])
-            // : path.resolve(os.homedir(), '.homebridge');
             : path.dirname(config_path);
 
+    const hap_storage_path = path.join(data_path, 'persist');
+    hap.init(hap_storage_path);
+
     HomebridgeUser.setStoragePath(data_path);
+    HomebridgeUser.configPath = () => config_path;
+    HomebridgeUser.config = () => config;
+
+    /**
+     * Flags.
+     */
 
     HomebridgeLogger.setDebugEnabled(Logger.enable_debug = argv.debug);
     HomebridgeLogger.setTimestampEnabled(Logger.enable_timestamps = argv.timestamps);
     if (argv['force-colour']) HomebridgeLogger.forceColor(), forceColourLogs();
-
-    const print_setup_info = argv['print-setup'];
-    const unauthenticated_access = argv['allow-unauthenticated'];
 
     for (const plugin_path of argv['plugin-path'] || []) {
         PluginManager.addPluginPath(path.resolve(process.cwd(), plugin_path));
@@ -108,16 +128,18 @@ yargs.command('$0', 'Run the HAP and web server [config]', yargs => {
         }
     }
 
-    log.info('Starting Homebridge with configuration file', HomebridgeUser.configPath());
-    log.debug('Data path:', HomebridgeUser.storagePath());
-    log.debug('Persist path:', HomebridgeUser.persistPath());
-    log.debug('Accessory cache path:', HomebridgeUser.cachedAccessoryPath());
-    log.debug('Plugin paths:', HomebridgePluginManager.paths);
-    log.debug('UI storage path:', path.resolve(data_path, 'ui-storage'));
-    log.debug('Plugin storage path:', path.resolve(data_path, 'plugin-storage'));
+    /**
+     * Run the HAP and web server.
+     */
 
-    // Initialize HAP-NodeJS with a custom persist directory
-    hap.init(HomebridgeUser.persistPath());
+    log.info('Starting hap-server with configuration file', config_path);
+    log.debug('Data path:', data_path);
+    log.debug('hap-nodejs storage path:', hap_storage_path);
+    log.debug('UI storage path:', path.resolve(data_path, 'ui-storage'));
+    log.debug('Plugin paths:', PluginManager.plugin_paths);
+    log.debug('Plugin storage path:', path.resolve(data_path, 'plugin-storage'));
+    log.debug('Homebridge plugin paths:', HomebridgePluginManager.paths);
+    log.debug('Homebridge accessory cache path:', HomebridgeUser.cachedAccessoryPath());
 
     const server = await Server.createServer({
         data_path,
@@ -128,18 +150,40 @@ yargs.command('$0', 'Run the HAP and web server [config]', yargs => {
     PluginManager.storage_path = path.resolve(data_path, 'plugin-storage');
     await PluginManager.loadPlugins();
 
+    log.info('Starting web server');
     const http_server = server.createServer();
-    http_server.listen(8080);
+    await new Promise((rs, rj) => http_server.listen(config.http_port || 0, config.http_host || '::',
+        err => err ? rj(err) : rs()));
 
-    for (const bridge of server.bridges) {
-        bridge.unauthenticated_access = unauthenticated_access;
+    const http_host = config.http_host || '::';
+    const http_port = http_server.address().port;
+    log.info(`Listening on ${http_host} port ${http_port}`);
+
+    log.info('Loading accessories and accessory platforms');
+    await Promise.all([
+        server.loadAccessoriesFromConfig(),
+        server.loadAccessoryPlatformsFromConfig(),
+    ]);
+
+    log.info('Loading HAP bridges');
+    await server.loadBridgesFromConfig();
+
+    if (config.bridge || config.accessories || config.platforms) {
+        log.info('Loading Homebridge');
+        await server.loadHomebridge();
     }
 
-    await server.loadAccessoriesFromConfig();
+    for (const bridge of server.bridges) {
+        bridge.unauthenticated_access = argv['allow-unauthenticated'];
+    }
 
-    server.publish();
+    log.info('Publishing HAP services');
+    await server.publish();
 
-    if (print_setup_info) {
+    if (argv.group) process.setgid(argv.group);
+    if (argv.user) process.setuid(argv.user);
+
+    if (argv['print-setup']) {
         for (const bridge of server.bridges) {
             // Bridge has already been paired with
             if (bridge.bridge._accessoryInfo && bridge.bridge._accessoryInfo.pairedClients.length) continue;
@@ -147,15 +191,26 @@ yargs.command('$0', 'Run the HAP and web server [config]', yargs => {
             bridge.printSetupInfo();
         }
     }
+
+    for (const [signal, code] of Object.entries({'SIGINT': 2, 'SIGTERM': 15})) {
+        process.on(signal, () => {
+            log.info(`Got ${signal}, shutting down...`);
+
+            server.unpublish();
+            http_server.close();
+
+            setTimeout(() => process.exit(128 + code), 2000);
+        });
+    }
 });
 
 yargs.command('version', 'Show version number', yargs => {}, async argv => {
-    console.log('homebridge-web-ui version', require('../package').version);
+    console.log('hap-server version', require('../package').version);
     console.log('homebridge version', require('homebridge/package').version);
     console.log('hap-nodejs version', require('hap-nodejs/package').version);
 });
 
-yargs.scriptName('homebridge-web-ui').help().version(false);
+yargs.scriptName('hap-server').help().version(false);
 
 // eslint-disable-next-line no-unused-vars
 const _argv = yargs.argv;

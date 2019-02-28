@@ -2,11 +2,11 @@
     "name": "virtual-switches",
     "private": true,
     "keywords": [
-        "homebridge-web-ui-plugin"
+        "hap-server-plugin"
     ],
     "main": "index.js",
     "engines": {
-        "homebridge-web-ui": "^0.1.0",
+        "hap-server": "^0.1.0",
         "node": "^8.0.0"
     }
 }

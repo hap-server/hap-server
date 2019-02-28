@@ -31,7 +31,7 @@ export default class Homebridge extends Bridge {
             _no_bridge: true,
         });
 
-        this.log.info('Homebridge config', config);
+        // this.log.debug('Homebridge config', config);
 
         this.homebridge = homebridge;
         this.bridge = this.homebridge._bridge;

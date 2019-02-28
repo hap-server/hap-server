@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import util from 'util';
 
+import semver from 'semver';
 import persist from 'node-persist';
 import hap from 'hap-nodejs';
 import * as HapAsync from './hap-async';
@@ -12,7 +13,7 @@ import {Plugin as HomebridgePluginManager} from 'homebridge/lib/plugin';
 
 import Logger from './logger';
 
-import {version from homebridge_web_ui_version} from '../../package';
+import {version as hap_server_version} from '../../package';
 
 const fs_stat = util.promisify(fs.stat);
 const fs_readdir = util.promisify(fs.readdir);
@@ -66,7 +67,7 @@ export class PluginManager {
         const module_load = Module._load;
 
         Module._load = function (request, parent, isMain) {
-            if (request === 'homebridge-api' || request.startsWith('homebridge-api/')) {
+            if (request === 'hap-server-api' || request.startsWith('hap-server-api/')) {
                 const plugin = PluginManager.instance.getPluginByModule(parent);
 
                 if (plugin) {
@@ -85,7 +86,7 @@ export class PluginManager {
     }
 
     static requireApi(request, plugin, parent) {
-        if (request === 'homebridge-api') {
+        if (request === 'hap-server-api') {
             let plugin_api = PluginManager.instance.plugin_apis.get(plugin);
 
             if (!plugin_api) PluginManager.instance.plugin_apis.set(plugin, plugin_api = Object.freeze({
@@ -101,11 +102,11 @@ export class PluginManager {
             }));
 
             return plugin_api;
-        } else if (request === 'homebridge-api/hap') {
+        } else if (request === 'hap-server-api/hap') {
             return hap;
-        } else if (request === 'homebridge-api/hap-async') {
+        } else if (request === 'hap-server-api/hap-async') {
             return HapAsync;
-        } else if (request === 'homebridge-api/storage') {
+        } else if (request === 'hap-server-api/storage') {
             if (!plugin.name) {
                 throw new Error('Storage is only available for plugins with a name');
             }
@@ -123,7 +124,7 @@ export class PluginManager {
             return plugin_storage;
         }
 
-        log.warn(plugin.name, 'tried to load an unknown virtual homebridge-api/* module');
+        log.warn(plugin.name, 'tried to load an unknown virtual hap-server-api/* module');
     }
 
     getPlugin(plugin_name) {
@@ -143,18 +144,18 @@ export class PluginManager {
                 throw new Error('"' + plugin_path + '" doesn\'t have a name in it\'s package.json');
             }
 
-            if (!package_json.engines || !package_json.engines['homebridge-web-ui'] ||
-                !package_json.keywords || !package_json.keywords.includes('homebridge-web-ui-plugin')) {
-                throw new Error('"' + package_json.name + '" is not a homebridge-web-ui plugin');
+            if (!package_json.engines || !package_json.engines['hap-server'] ||
+                !package_json.keywords || !package_json.keywords.includes('hap-server-plugin')) {
+                throw new Error('"' + package_json.name + '" is not a hap-server plugin');
             }
 
-            if (!semver.satisfies(homebridge_web_ui_version, package_json.engines['homebridge-web-ui'])) {
-                throw new Error('"' + name + '" requires a homebridge-web-ui version of '
-                    + package_json.engines['homebridge-web-ui'] + ' - you have version ' + homebridge_web_ui_version);
+            if (!semver.satisfies(hap_server_version, package_json.engines['hap-server'])) {
+                throw new Error('"' + package_json.name + '" requires a hap-server version of '
+                    + package_json.engines['hap-server'] + ' - you have version ' + hap_server_version);
             }
 
             if (package_json.engines.node && !semver.satisfies(process.version, package_json.engines.node)) {
-                log.warn('"' + name + '" requires a Node.js version of '
+                log.warn('"' + package_json.name + '" requires a Node.js version of '
                     + package_json.engines.node + ' - you have version ' + process.version);
             }
         }
@@ -190,7 +191,7 @@ export class PluginManager {
     }
 
     addPluginPath(path) {
-        this.plugin_paths.push(path);
+        this.plugin_paths.unshift(path);
         HomebridgePluginManager.addPluginPath(path);
     }
 
@@ -199,10 +200,14 @@ export class PluginManager {
     }
 
     async _loadPlugin(plugin_path) {
-        const stat = await fs_stat(plugin_path);
+        try {
+            const stat = await fs_stat(plugin_path);
 
-        if (stat.isFile()) {
-            return this.loadPlugin(plugin_path);
+            if (stat.isFile()) {
+                return this.loadPlugin(plugin_path);
+            }
+        } catch (err) {
+            return;
         }
 
         try {

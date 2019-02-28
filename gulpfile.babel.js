@@ -71,14 +71,14 @@ gulp.task('build-frontend', function () {
 
 gulp.task('build-example-plugins', gulp.parallel(function () {
     return pump([
-        gulp.src('example-plugins/**/*.js'),
+        gulp.src('example-plugins/src/**/*.js'),
         babel(),
-        gulp.dest('dist/example-plugins'),
+        gulp.dest('example-plugins/dist'),
     ]);
 }, function () {
     return pump([
-        gulp.src('example-plugins/**/*.json'),
-        gulp.dest('dist/example-plugins'),
+        gulp.src('example-plugins/src/**/*.json'),
+        gulp.dest('example-plugins/dist'),
     ]);
 }));
 
@@ -98,7 +98,7 @@ gulp.task('watch-frontend', function () {
 });
 
 gulp.task('watch-example-plugins', gulp.series('build-example-plugins', function () {
-    return gulp.watch('example-plugins/**/*.js*', gulp.series('build-example-plugins'));
+    return gulp.watch('example-plugins/src/**/*.js*', gulp.series('build-example-plugins'));
 }));
 
 gulp.task('watch', gulp.parallel('watch-backend', 'watch-frontend', 'watch-example-plugins'));

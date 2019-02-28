@@ -1,5 +1,0 @@
-#!/usr/bin/env node
-
-process.title = 'homebridge, homebridge-web-ui';
-
-require('../dist/cli');

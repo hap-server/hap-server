@@ -26,7 +26,7 @@ export default class Logger extends Function {
             func = console.error;
         }
 
-        args.unshift(chalk.cyan('[' + this.prefix.join(' ') + ']'));
+        if (this.prefix.length) args.unshift(chalk.cyan('[' + this.prefix.join(' ') + ']'));
 
         if (this.enable_timestamps && this.constructor.enable_timestamps) {
             args.unshift(chalk.white('[' + (new Date()).toLocaleString() + ']'));
@@ -36,7 +36,7 @@ export default class Logger extends Function {
     }
 
     debug(...args) {
-        if (!this.enable_debug || !this.constructor.enable_timestamps) return;
+        if (!this.enable_debug || !this.constructor.enable_debug) return;
 
         this.write('debug', ...args);
     }
