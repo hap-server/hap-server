@@ -56,6 +56,83 @@ A lot.
 - [x] Full compatibility with Homebridge
     - Run instead of Homebridge and use all Homebridge plugins with the web interface
 
+Installation
+---
+
+```
+npm install -g hap-server
+
+# Or if that doesn't work
+sudo npm install -g hap-server
+```
+
+This will install hap-server and link the `hap-server` executable.
+
+You can now run hap-server with your configuration. Once you've tested your configuration you'll probably want to
+set it up as a system service with `systemd` (Debian), `launchd` (macOS) or whatever service manager you have
+installed.
+
+Usage
+---
+
+To run hap-server, just run `hap-server`.
+
+```
+Samuels-MacBook-Air:~ samuel$ hap-server
+[28/02/2019, 01:56:01] Starting hap-server with configuration file /Users/samuel/.homebridge/config.json
+...
+```
+
+hap-server will exit with an error if the configuration file doesn't exist. To use a custom configuration file path
+pass it as the first argument.
+
+```
+Samuels-MacBook-Air:hap-server samuel$ hap-server data/config.json
+[28/02/2019, 01:56:01] Starting hap-server with configuration file /Users/samuel/Documents/Projects/hap-server/data/config.json
+...
+```
+
+All Homebridge command line flags work with hap-server.
+
+```
+Samuels-MacBook-Air:~ samuel$ hap-server help
+hap-server [config]
+
+Run the HAP and web server
+
+Commands:
+  hap-server [config]     Run the HAP and web server                   [default]
+  hap-server version      Show version number
+
+Positionals:
+  config  The configuration file to use
+                     [string] [default: "/Users/samuel/.homebridge/config.json"]
+
+Options:
+  --debug, -D              Enable debug level logging           [default: false]
+  --timestamps             Add timestamps to logs                [default: true]
+  --force-colour           Force colour in logs                 [default: false]
+  --help                   Show help                                   [boolean]
+  --data-path              Path to store data                           [string]
+  --plugin-path, -P        Additional paths to look for plugins at as well as
+                           the default location ([path] can also point to a
+                           single plugin)                                [array]
+  --print-setup            Print setup information              [default: false]
+  --allow-unauthenticated  Allow unauthenticated requests (for easier hacking)
+                                                                [default: false]
+  --user, -u               User to run as after starting
+  --group, -g              Group to run as after starting
+```
+
+To show the version number run `hap-server version`.
+
+```
+Samuels-MacBook-Air:~ samuel$ hap-server version
+hap-server version 0.1.0
+homebridge version 0.4.46
+hap-nodejs version 0.4.48
+```
+
 Configuration
 ---
 
@@ -103,6 +180,28 @@ The host to listen to connections for the web interface on. By default hap-serve
 
 The port to listen to connections for the web interface on. By default hap-server will use any available port, so you
 will probably want to set this.
+
+### `data-path`
+
+The `data-path` property sets the base path for storing data. By default this is the directory your `config.json` file
+is in.
+
+### `plugin-path`
+
+An array of plugin paths to add or a single plugin path.
+
+```json
+{
+    "plugin-path": [
+        "../example-plugins/dist/virtual-switches"
+    ]
+}
+```
+```json
+{
+    "plugin-path": "../example-plugins/dist/virtual-switches"
+}
+```
 
 ### `bridges`
 
