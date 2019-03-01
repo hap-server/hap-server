@@ -184,6 +184,18 @@ export default class Service extends EventEmitter {
     static get types() {
         return type_uuids;
     }
+
+    get collapse_to() {
+        for (const collapsed_service_type of Object.keys(collapsed_services)) {
+            const collapsed_service = collapsed_services[collapsed_service_type];
+
+            if (collapsed_service.includes(this.type)) return collapsed_service_type;
+        }
+    }
+
+    static registerCollapsedService(uuid, collapsed_services) {
+        collapsed_services[uuid] = collapsed_services;
+    }
 }
 
 export const types = {};
@@ -207,9 +219,14 @@ for (const key of Object.keys(type_uuids)) {
 
 export const system_types = [
     Service.AccessoryInformation,
+    Service.BatteryService,
     Service.InputSource, // Input Source services are used by the Television service
 
     // Bridge Setup
     // https://github.com/nfarina/homebridge/blob/0d77bb93d33a7b6e158efe4b4d546636d976d5c7/lib/bridgeSetupManager.js
     '49FB9D4D-0FEA-4BF1-8FA6-E7B18AB86DCE',
 ];
+
+export const collapsed_services = {
+    [Service.StatelessProgrammableSwitch]: [Service.StatelessProgrammableSwitch],
+};

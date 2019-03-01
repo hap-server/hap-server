@@ -162,7 +162,7 @@ export default class Connection extends EventEmitter {
     }
 
     handleBroadcastMessage(data) {
-        console.log('Received broadcast message', data);
+        // console.log('Received broadcast message', data);
 
         if (data && data.type && broadcast_message_methods[data.type]) {
             this[broadcast_message_methods[data.type]].call(this, data);

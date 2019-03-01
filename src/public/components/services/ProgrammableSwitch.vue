@@ -11,7 +11,7 @@
 <script>
     import Service from '../../service';
 
-    export const uuid = Service.StatelessProgrammableSwitch;
+    export const uuid = 'CollapsedService.' + Service.StatelessProgrammableSwitch;
 
     export default {
         props: ['connection', 'service'],
