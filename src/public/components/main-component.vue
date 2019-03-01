@@ -18,7 +18,10 @@
 
             <service-container title="Accessories">
                 <template v-for="accessory in accessories">
-                    <service v-for="service in accessory.display_services" :data-key="accessory.uuid + '.' + service.uuid" :key="accessory.uuid + '.' + service.uuid" :connection="connection" :service="service" @show-details="closing => modals.push({type: 'accessory-details', service, closing})" @show-settings="modals.push({type: 'service-settings', service})" />
+                    <service v-for="service in accessory.display_services" :key="accessory.uuid + '.' + service.uuid" :connection="connection" :service="service" @show-details="closing => modals.push({type: 'accessory-details', service, closing})" @show-settings="modals.push({type: 'service-settings', service})" />
+
+                    <!-- Show a not supported tile -->
+                    <service v-if="!accessory.display_services.length" :connection="connection" :service="{accessory}" @show-details="closing => modals.push({type: 'accessory-details', service: {accessory}, closing})" />
                 </template>
             </service-container>
 

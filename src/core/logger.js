@@ -1,15 +1,21 @@
 import chalk from 'chalk';
 
-export default class Logger extends Function {
+export default class Logger {
     constructor(...prefix) {
-        super('this.call(arguments)');
+        const logger = function (...args) {
+            return logger.call(this, args);
+        };
 
-        this.prefix = prefix;
-        this.enable_timestamps = true;
-        this.enable_debug = true;
+        logger.__proto__ = this.constructor.prototype;
+
+        logger.prefix = prefix;
+        logger.enable_timestamps = true;
+        logger.enable_debug = true;
+
+        return logger;
     }
 
-    call(...args) {
+    call(context, args) {
         this.log(...args);
     }
 
