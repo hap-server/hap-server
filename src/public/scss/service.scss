@@ -46,4 +46,10 @@
     &.active {
         background-color: rgba(255, 255, 255, 0.9);
     }
+
+    transition: filter 1.5s ease;
+
+    &.details-open {
+        filter: opacity(0);
+    }
 }

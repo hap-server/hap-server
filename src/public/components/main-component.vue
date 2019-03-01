@@ -2,7 +2,7 @@
     <div class="root" :class="{scrolled}">
         <div class="header">
             <div class="left">
-                <div class="badge badge-pill badge-dark" @click="show_settings = true">Settings</div>
+                <div class="badge badge-pill badge-dark" @click="modals.push({type: 'settings'})">Settings</div>
             </div>
             <h1>{{ name || 'Home' }}</h1>
             <div class="right">
@@ -16,14 +16,8 @@
                 <button class="btn btn-default btn-sm" @click="ping">Ping</button>
             </div>
 
-            <!-- <h3>Fake accessories</h3>
-            <div class="section mx-0">
-                <service :connection="connection" :service="{name: 'Test 1', type: '00000049-0000-1000-8000-0026BB765291'}" />
-            </div> -->
-
-            <!-- <h3>Accessories</h3> -->
             <service-container v-for="accessory in Object.values(accessories)" :key="accessory.uuid" :title="accessory.name">
-                <service v-for="service in accessory.services" :key="service.uuid" :connection="connection" :service="service" @show-settings="settings.push(service)" />
+                <service v-for="service in accessory.services" :key="service.uuid" :connection="connection" :service="service" @show-details="closing => modals.push({type: 'accessory-details', service, closing})" @show-settings="modals.push({type: 'service-settings', service})" />
             </service-container>
 
             <div class="section">
@@ -31,11 +25,12 @@
             </div>
         </div>
 
-        <settings v-if="show_settings" :connection="connection" :accessories="accessories" :accessory_platforms="accessory_platforms" @show-accessory-settings="accessory => settings.push(accessory)" @updated-settings="reload" @close="show_settings = false" />
+        <template v-for="(modal, index) in modals">
+            <settings v-if="modal.type === 'settings'" :ref="'modal-' + index" :connection="connection" :accessories="accessories" :accessory-platforms="accessory_platforms" @show-accessory-settings="accessory => modals.push({type: 'accessory-settings', accessory})" @updated-settings="reload" @close="modals.splice(index, 1)" />
+            <accessory-settings v-else-if="modal.type === 'accessory-settings'" :ref="'modal-' + index" :connection="connection" :accessory="modal.accessory" @show-service-settings="service => settings.push({type: 'service-settings', service})" @close="modals.splice(index, 1)" />
+            <service-settings v-else-if="modal.type === 'service-settings'" :ref="'modal-' + index" :connection="connection" :service="modal.service" @show-accessory-settings="modals.push({type: 'accessory-settings', accessory: modal.service.accessory})" @close="modals.splice(index, 1)" />
 
-        <template v-for="(item, index) in settings">
-            <accessory-settings v-if="item.constructor.name === 'Accessory'" :connection="connection" :accessory="item" @show-service-settings="service => settings.push(service)" @close="settings.splice(index, 1)" />
-            <service-settings v-else-if="item.constructor.name === 'Service'" :connection="connection" :service="item" @show-accessory-settings="settings.push(item.accessory)" @close="settings.splice(index, 1)" />
+            <accessory-details v-else-if="modal.type === 'accessory-details'" :ref="'modal-' + index" :service="modal.service" :modal="modal" @show-settings="modals.push({type: 'service-settings', service: modal.service})" @close="modals.splice(index, 1)" />
         </template>
     </div>
 </template>
@@ -46,6 +41,7 @@
 
     import Service from './service.vue';
     import ServiceContainer from './service-container.vue';
+    import AccessoryDetails from './accessory-details.vue';
 
     import Settings from './settings.vue';
     import AccessorySettings from './accessory-settings.vue';
@@ -60,20 +56,18 @@
 
                 name: null,
 
-                show_settings: false,
-                settings: [],
-
                 accessories: {},
                 refresh_accessories_timeout: null,
                 loading_accessories: false,
 
-                // title: 'Home',
+                modals: [],
                 scrolled: false,
             };
         },
         components: {
             Service,
             ServiceContainer,
+            AccessoryDetails,
 
             Settings,
             AccessorySettings,
@@ -254,14 +248,24 @@
         },
         computed: {
             title() {
-                if (this.show_service_settings) return this.show_service_settings.name + ' Settings';
-                if (this.show_accessory_settings) return this.show_accessory_settings.name + ' Settings';
-                if (this.show_settings) return 'Settings';
+                if (this.modals.length) {
+                    const modal = this.modals[this.modals.length - 1];
+
+                    if (!modal.title) {
+                        if (modal.type === 'settings') return 'Settings';
+                        if (modal.type === 'accessory-settings') return modal.accessory.name + ' Settings';
+                        if (modal.type === 'service-settings') return modal.service.name || modal.service.accessory.name + ' Settings';
+
+                        if (modal.type === 'accessory-details') return modal.service.name || modal.service.accessory.name + ' Settings';
+                    }
+
+                    return modal.title;
+                }
 
                 return this.name || 'Home';
             },
             settings_open() {
-                return this.show_service_settings || this.show_accessory_settings || this.show_settings;
+                return !!this.modals.length;
             }
         },
         watch: {
