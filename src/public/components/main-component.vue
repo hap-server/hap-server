@@ -18,10 +18,14 @@
 
             <service-container title="Accessories">
                 <template v-for="accessory in accessories">
-                    <service v-for="service in accessory.display_services" :key="accessory.uuid + '.' + service.uuid" :connection="connection" :service="service" @show-details="closing => modals.push({type: 'accessory-details', service, closing})" @show-settings="modals.push({type: 'service-settings', service})" />
+                    <!-- Show a bridge tile -->
+                    <!-- TODO: check if this is actually a bridge -->
+                    <service v-if="accessory.details.aid == 1" :connection="connection" :service="{accessory, type: '--bridge'}" @show-details="closing => modals.push({type: 'accessory-details', service: {accessory, type: '--bridge'}, closing})" />
 
                     <!-- Show a not supported tile -->
-                    <service v-if="!accessory.display_services.length" :connection="connection" :service="{accessory}" @show-details="closing => modals.push({type: 'accessory-details', service: {accessory}, closing})" />
+                    <service v-else-if="!accessory.display_services.length" :connection="connection" :service="{accessory}" @show-details="closing => modals.push({type: 'accessory-details', service: {accessory}, closing})" />
+
+                    <service v-for="service in accessory.display_services" :key="accessory.uuid + '.' + service.uuid" :connection="connection" :service="service" @show-details="closing => modals.push({type: 'accessory-details', service, closing})" @show-settings="modals.push({type: 'service-settings', service})" />
                 </template>
             </service-container>
 
@@ -44,10 +48,10 @@
 
         <template v-for="(modal, index) in modals">
             <settings v-if="modal.type === 'settings'" :ref="'modal-' + index" :connection="connection" :accessories="accessories" :accessory-platforms="accessory_platforms" @show-accessory-settings="accessory => modals.push({type: 'accessory-settings', accessory})" @updated-settings="reload" @close="modals.splice(index, 1)" />
-            <accessory-settings v-else-if="modal.type === 'accessory-settings'" :ref="'modal-' + index" :connection="connection" :accessory="modal.accessory" @show-service-settings="service => settings.push({type: 'service-settings', service})" @close="modals.splice(index, 1)" />
+            <accessory-settings v-else-if="modal.type === 'accessory-settings'" :ref="'modal-' + index" :connection="connection" :accessory="modal.accessory" @show-service-settings="service => modals.push({type: 'service-settings', service})" @close="modals.splice(index, 1)" />
             <service-settings v-else-if="modal.type === 'service-settings'" :ref="'modal-' + index" :connection="connection" :service="modal.service" @show-accessory-settings="modals.push({type: 'accessory-settings', accessory: modal.service.accessory})" @close="modals.splice(index, 1)" />
 
-            <accessory-details v-else-if="modal.type === 'accessory-details'" :ref="'modal-' + index" :service="modal.service" :modal="modal" @show-settings="modals.push({type: 'service-settings', service: modal.service})" @close="modals.splice(index, 1)" />
+            <accessory-details v-else-if="modal.type === 'accessory-details'" :ref="'modal-' + index" :service="modal.service" :modal="modal" @show-settings="modals.push({type: 'service-settings', service: modal.service})" @show-accessory-settings="modals.push({type: 'accessory-settings', accessory: modal.service.accessory})" @close="modals.splice(index, 1)" />
         </template>
     </div>
 </template>
@@ -277,9 +281,9 @@
                     if (!modal.title) {
                         if (modal.type === 'settings') return 'Settings';
                         if (modal.type === 'accessory-settings') return modal.accessory.name + ' Settings';
-                        if (modal.type === 'service-settings') return modal.service.name || modal.service.accessory.name + ' Settings';
+                        if (modal.type === 'service-settings') return (modal.service.name || modal.service.accessory.name) + ' Settings';
 
-                        if (modal.type === 'accessory-details') return modal.service.name || modal.service.accessory.name + ' Settings';
+                        if (modal.type === 'accessory-details') return modal.service.name || modal.service.accessory.name;
                     }
 
                     return modal.title;
