@@ -5,13 +5,20 @@
         </div>
 
         <div class="service-container-contents">
-            <slot />
+            <sortable :sorted="sorted" :filter-text="true">
+                <slot />
+            </sortable>
         </div>
     </div>
 </template>
 
 <script>
+    import Sortable from './sortable.vue';
+
     export default {
-        props: ['title']
+        props: ['title', 'sorted'],
+        components: {
+            Sortable,
+        }
     };
 </script>

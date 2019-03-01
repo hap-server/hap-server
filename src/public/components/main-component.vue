@@ -20,10 +20,10 @@
                 <template v-for="accessory in accessories">
                     <!-- Show a bridge tile -->
                     <!-- TODO: check if this is actually a bridge -->
-                    <service v-if="accessory.details.aid == 1" :connection="connection" :service="{accessory, type: '--bridge'}" @show-details="closing => modals.push({type: 'accessory-details', service: {accessory, type: '--bridge'}, closing})" />
+                    <service v-if="accessory.details.aid == 1" :key="accessory.uuid + '.--bridge'" :connection="connection" :service="{accessory, type: '--bridge'}" @show-details="closing => modals.push({type: 'accessory-details', service: {accessory, type: '--bridge'}, closing})" />
 
                     <!-- Show a not supported tile -->
-                    <service v-else-if="!accessory.display_services.length" :connection="connection" :service="{accessory}" @show-details="closing => modals.push({type: 'accessory-details', service: {accessory}, closing})" />
+                    <service v-else-if="!accessory.display_services.length" :key="accessory.uuid + '.'" :connection="connection" :service="{accessory}" @show-details="closing => modals.push({type: 'accessory-details', service: {accessory}, closing})" />
 
                     <service v-for="service in accessory.display_services" :key="accessory.uuid + '.' + service.uuid" :connection="connection" :service="service" @show-details="closing => modals.push({type: 'accessory-details', service, closing})" @show-settings="modals.push({type: 'service-settings', service})" />
                 </template>
