@@ -19,8 +19,7 @@
             <service-container title="Accessories">
                 <template v-for="accessory in accessories">
                     <!-- Show a bridge tile -->
-                    <!-- TODO: check if this is actually a bridge -->
-                    <service v-if="accessory.details.aid == 1" :key="accessory.uuid + '.--bridge'" :connection="connection" :service="{accessory, type: '--bridge'}" @show-details="closing => modals.push({type: 'accessory-details', service: {accessory, type: '--bridge'}, closing})" />
+                    <service v-if="bridge_uuids.includes(accessory.uuid)" :key="accessory.uuid + '.--bridge'" :connection="connection" :service="{accessory, type: '--bridge'}" @show-details="closing => modals.push({type: 'accessory-details', service: {accessory, type: '--bridge'}, closing})" />
 
                     <!-- Show a not supported tile -->
                     <service v-else-if="!accessory.display_services.length" :key="accessory.uuid + '.'" :connection="connection" :service="{accessory}" @show-details="closing => modals.push({type: 'accessory-details', service: {accessory}, closing})" />
@@ -47,8 +46,8 @@
         </div>
 
         <template v-for="(modal, index) in modals">
-            <settings v-if="modal.type === 'settings'" :ref="'modal-' + index" :connection="connection" :accessories="accessories" :accessory-platforms="accessory_platforms" @show-accessory-settings="accessory => modals.push({type: 'accessory-settings', accessory})" @updated-settings="reload" @close="modals.splice(index, 1)" />
-            <accessory-settings v-else-if="modal.type === 'accessory-settings'" :ref="'modal-' + index" :connection="connection" :accessory="modal.accessory" @show-service-settings="service => modals.push({type: 'service-settings', service})" @close="modals.splice(index, 1)" />
+            <settings v-if="modal.type === 'settings'" :ref="'modal-' + index" :connection="connection" :accessories="accessories" @show-accessory-settings="accessory => modals.push({type: 'accessory-settings', accessory})" @updated-settings="reload" @close="modals.splice(index, 1)" />
+            <accessory-settings v-else-if="modal.type === 'accessory-settings'" :ref="'modal-' + index" :connection="connection" :accessory="modal.accessory" :accessories="accessories" @show-accessory-settings="accessory => modals.push({type: 'accessory-settings', accessory})" @show-service-settings="service => modals.push({type: 'service-settings', service})" @close="modals.splice(index, 1)" />
             <service-settings v-else-if="modal.type === 'service-settings'" :ref="'modal-' + index" :connection="connection" :service="modal.service" @show-accessory-settings="modals.push({type: 'accessory-settings', accessory: modal.service.accessory})" @close="modals.splice(index, 1)" />
 
             <accessory-details v-else-if="modal.type === 'accessory-details'" :ref="'modal-' + index" :service="modal.service" :modal="modal" @show-settings="modals.push({type: 'service-settings', service: modal.service})" @show-accessory-settings="modals.push({type: 'accessory-settings', accessory: modal.service.accessory})" @close="modals.splice(index, 1)" />
@@ -80,6 +79,9 @@
                 accessories: {},
                 refresh_accessories_timeout: null,
                 loading_accessories: false,
+
+                bridge_uuids: [],
+                loading_bridges: false,
 
                 modals: [],
                 scrolled: false,
@@ -157,6 +159,7 @@
 
             await Promise.all([
                 this.reload(),
+                this.reloadBridges(),
                 this.refreshAccessories(true),
             ]);
 
@@ -203,8 +206,18 @@
                     this.loading = false;
                 }
             },
+            async reloadBridges() {
+                if (this.loading_bridges) throw new Error('Already loading bridges');
+                this.loading_bridges = true;
+
+                try {
+                    this.bridge_uuids = await this.connection.listBridges(true);
+                } finally {
+                    this.loading_bridges = false;
+                }
+            },
             async refreshAccessories(dont_emit_events) {
-                if (this.loading_accessories) throw new Error('Already trying to connect');
+                if (this.loading_accessories) throw new Error('Already loading accessories');
                 this.loading_accessories = true;
 
                 try {

@@ -108,12 +108,12 @@ export default class Server extends EventEmitter {
                     accessory_uuid[2] === accessory.accessory.displayName);
                 if (!accessory) continue;
 
-                bridge.addAccessory(accessory);
+                bridge.addAccessory(accessory.accessory);
             } else {
                 const accessory = this.accessories.find(accessory => accessory.uuid === accessory_uuid);
                 if (!accessory) continue;
 
-                bridge.addAccessory(accessory);
+                bridge.addAccessory(accessory.accessory);
             }
         }
     }
@@ -169,7 +169,7 @@ export default class Server extends EventEmitter {
 
         this.accessories.push(plugin_accessory);
 
-        for (let bridge of this.bridges.find(bridge => bridge.accessory_uuids.find(accessory_uuid =>
+        for (let bridge of this.bridges.filter(bridge => bridge.accessory_uuids.find(accessory_uuid =>
             accessory_uuid instanceof Array ? accessory_uuid[0] === plugin_name &&
                 accessory_uuid[1] === accessory_type && accessory_uuid[2] === name :
                 accessory_uuid === accessory_config.uuid

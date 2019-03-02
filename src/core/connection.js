@@ -14,6 +14,12 @@ const message_methods = {
     'set-home-settings': 'handleSetHomeSettingsMessage',
     'enable-proxy-stdout': 'handleEnableProxyStdoutMessage',
     'disable-proxy-stdout': 'handleDisableProxyStdoutMessage',
+    'list-bridges': 'handleListBridgesMessage',
+    'get-bridges': 'handleGetBridgesMessage',
+    'list-pairings': 'handleListPairingsMessage',
+    'get-pairings': 'handleGetPairingsMessage',
+    'get-pairings-data': 'handleGetPairingsDataMessage',
+    'set-pairings-data': 'handleSetPairingsDataMessage',
 };
 
 const ws_map = new WeakMap();
@@ -284,5 +290,96 @@ export default class Connection {
         this.enable_proxy_stdout = false;
 
         this.respond(messageid);
+    }
+
+    /**
+     * Gets the UUID of every bridge.
+     */
+    async handleListBridgesMessage(messageid, data) {
+        this.respond(messageid, await this.listBridges(data.include_homebridge));
+    }
+
+    listBridges(include_homebridge) {
+        const uuids = [];
+
+        for (const bridge of this.server.bridges) {
+            if (!include_homebridge && bridge instanceof Homebridge) continue;
+
+            uuids.push(bridge.uuid);
+        }
+
+        return uuids;
+    }
+
+    /**
+     * Gets the details of a bridge.
+     */
+    async handleGetBridgesMessage(messageid, data) {
+        this.respond(messageid, await this.getBridges(...data.uuid));
+    }
+
+    getBridges(...uuid) {
+        return Promise.all(uuid.map(uuid => this.getBridge(uuid)));
+    }
+
+    getBridge(uuid) {
+        const bridge = this.server.bridges.find(bridge => bridge.uuid === uuid);
+        this.server.log.debug('Getting bridge info', uuid, bridge);
+        if (!bridge) return;
+
+        const bridge_details = {
+            uuid,
+            accessory_uuids: [],
+        };
+
+        for (const accessory of bridge.bridge.bridgedAccessories) {
+            bridge_details.accessory_uuids.push(accessory.UUID);
+        }
+
+        return bridge_details;
+    }
+
+    /**
+     * Lists pairings.
+     */
+    async handleListPairingsMessage(messageid, data) {
+        this.respond(messageid, await this.listPairings(data.bridge_uuid));
+    }
+
+    listPairings(bridge_uuid) {
+        const bridge = this.server.bridges.find(bridge => bridge.uuid === bridge_uuid);
+        if (!bridge) return null;
+
+        const ids = [];
+
+        for (const client_username of Object.keys(bridge.bridge._accessoryInfo.pairedClients)) {
+            ids.push(client_username);
+        }
+
+        return ids;
+    }
+
+    /**
+     * Gets the details of pairings.
+     */
+    async handleGetPairingsMessage(messageid, data) {
+        this.respond(messageid, await this.getPairings(...data.ids));
+    }
+
+    getPairings(...id) {
+        return Promise.all(id.map(([bridge_uuid, id]) => this.getPairing(bridge_uuid, id)));
+    }
+
+    getPairing(bridge_uuid, id) {
+        const bridge = this.server.bridges.find(bridge => bridge.uuid === bridge_uuid);
+        if (!bridge) return null;
+
+        const public_key = bridge.bridge._accessoryInfo.pairedClients[id];
+
+        return {
+            bridge_uuid,
+            id,
+            public_key: public_key.toString('hex'),
+        };
     }
 }

@@ -154,7 +154,7 @@ export default class Accessory extends EventEmitter {
             this.display_services.push(service);
             this.emit('new-display-service', service);
 
-            console.log('Added display service', service.name, 'to', this.name, service, this);
+            // console.log('Added display service', service.name, 'to', this.name, service, this);
         }
 
         if (added_display_services.length) this.emit('new-display-services', added_display_services);

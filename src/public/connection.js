@@ -161,6 +161,34 @@ export default class Connection extends EventEmitter {
         });
     }
 
+    listBridges(include_homebridge) {
+        return this.send({
+            type: 'list-bridges',
+            include_homebridge,
+        });
+    }
+
+    getBridges(...uuid) {
+        return this.send({
+            type: 'get-bridges',
+            uuid,
+        });
+    }
+
+    listPairings(bridge_uuid) {
+        return this.send({
+            type: 'list-pairings',
+            bridge_uuid,
+        });
+    }
+
+    getPairings(...ids) {
+        return this.send({
+            type: 'get-pairings',
+            ids,
+        });
+    }
+
     handleBroadcastMessage(data) {
         // console.log('Received broadcast message', data);
 

@@ -3,6 +3,7 @@
         <ul class="nav nav-tabs nav-sm mb-3">
             <li class="nav-item"><a class="nav-link" :class="{active: tab === 'general'}" href="#" @click.prevent="tab = 'general'">General</a></li>
             <li class="nav-item"><a class="nav-link" :class="{active: tab === 'accessories'}" href="#" @click.prevent="tab = 'accessories'">Accessories</a></li>
+            <li class="nav-item"><a class="nav-link" :class="{active: tab === 'bridges'}" href="#" @click.prevent="tab = 'bridges'">Bridges</a></li>
             <li class="nav-item"><a class="nav-link" :class="{active: tab === 'output'}" href="#" @click.prevent="tab = 'output'">Output</a></li>
         </ul>
 
@@ -17,6 +18,13 @@
             <list-item v-for="accessory in Object.values(accessories)" :key="accessory.uuid" @click="$emit('show-accessory-settings', accessory)">
                 {{ accessory.name }}
                 <small class="text-muted">{{ accessory.uuid }}</small>
+            </list-item>
+        </list-group>
+
+        <list-group v-if="tab === 'bridges'" class="mb-3">
+            <list-item v-for="bridge_uuid in bridges" :key="bridge_uuid" @click="$emit('show-accessory-settings', accessories[bridge_uuid])">
+                {{ accessories[bridge_uuid] && accessories[bridge_uuid].name }}
+                <small class="text-muted">{{ bridge_uuid }}</small>
             </list-item>
         </list-group>
 
@@ -54,6 +62,7 @@
                 terminal: null,
 
                 name: null,
+                bridges: [],
             };
         },
         components: {
@@ -81,14 +90,18 @@
 
             await Promise.all([
                 this.reload(),
-                this.loadPairings(),
+                this.loadBridges(),
                 this.connection.enableProxyStdout().then(() => this.terminal.write('\nStarted stdout proxy...\n')),
             ]);
         },
-        async destroy() {
-            this.connection.removeListener('stdout', this.stdout);
-            this.connection.removeListener('stderr', this.stderr);
-            await this.connection.disableProxyStdout();
+        destroy() {
+            this.connection.removeListener('added-bridge', this.addedBridge);
+            this.connection.removeListener('removed-bridge', this.removedBridge);
+
+            return this.connection.disableProxyStdout().then(() => {
+                this.connection.removeListener('stdout', this.stdout);
+                this.connection.removeListener('stderr', this.stderr);
+            });
         },
         methods: {
             async reload() {
@@ -101,6 +114,16 @@
                     this.name = data.name;
                 } finally {
                     this.loading = false;
+                }
+            },
+            async loadBridges() {
+                if (this.loading_bridges) throw new Error('Already loading');
+                this.loading_bridges = true;
+
+                try {
+                    this.bridges = await this.connection.listBridges();
+                } finally {
+                    this.loading_bridges = false;
                 }
             },
             async save(close) {
