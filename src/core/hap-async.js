@@ -88,7 +88,7 @@ class AsyncService extends Service {
     getCharacteristic(name) {
         const characteristic = Service.prototype.getCharacteristic.call(this, name);
 
-        characteristic.__proto__ = AsyncCharacteristic.prototype;
+        if (characteristic) characteristic.__proto__ = AsyncCharacteristic.prototype;
 
         return characteristic;
     }

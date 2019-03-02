@@ -26,14 +26,14 @@ export class PluginManager {
         return instance || (instance = new PluginManager());
     }
 
-    loadAccessoryUI(accessory_ui) {
-        return Promise.all(accessory_ui.scripts.map(script => {
+    async loadAccessoryUI(accessory_ui) {
+        for (const script of accessory_ui.scripts) {
             try {
-                this.loadAccessoryUIScript(accessory_ui, script);
+                await this.loadAccessoryUIScript(accessory_ui, script);
             } catch (err) {
                 console.error('Error loading accessory UI script', accessory_ui.id, script, err);
             }
-        }));
+        }
     }
 
     async loadAccessoryUIScript(accessory_ui, script) {
@@ -44,13 +44,7 @@ export class PluginManager {
 
     require(accessory_ui, script, cache, module, request) {
         if (request === '.' || request === '..' || request.startsWith('./') || request.startsWith('../')) {
-            const absolute_request = path.relative(script, request);
-
-            if (cache[absolute_request]) {
-                return cache[absolute_request].exports;
-            }
-
-            throw new Error('Unknown module ' + absolute_request);
+            request = path.resolve(path.dirname(script), request);
         }
 
         if (request === 'hap-server-api/accessory-ui') {
@@ -61,6 +55,14 @@ export class PluginManager {
             return vue_module;
         } else if (request === 'axios') {
             return axios_module;
+        }
+
+        if (cache[request]) {
+            return cache[request].exports;
+        } else if (cache[request + '.js']) {
+            return cache[request + '.js'].exports;
+        } else if (cache[request + '/index.js']) {
+            return cache[request + '/index.js'].exports;
         }
 
         throw new Error('Unknown module ' + request);

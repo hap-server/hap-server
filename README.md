@@ -12,7 +12,10 @@ A lot.
     - [x] Lightbulb
     - [x] Programmable Switch (shows last action for five seconds)
     - [ ] [All other services supported by hap-nodejs](https://github.com/khaost/hap-nodejs/tree/master/lib/gen)
-- [ ] Accessory control
+- [x] Accessory control
+    - [x] Switch
+    - [ ] Lightbulb
+    - [ ] Programmable Switch
     - [ ] [All services supported by hap-nodejs](https://github.com/khaost/hap-nodejs/tree/master/lib/gen)
 - [ ] Historical data
     - [ ] Store changes to an accessory's state
@@ -41,8 +44,9 @@ A lot.
     - [x] Accessories
     - [ ] Accessory platforms
     - [x] All current Homebridge accessories + accessory platforms
-    - [ ] Web interface plugins
-        - [ ] Accessory control
+    - [x] Web interface plugins
+        - [x] Basic accessory control
+        - [x] Accessory control
         - [ ] Accessory + accessory platform discovery + setup
         - [ ] Accessory + accessory platform configuration
         - Maybe allow plugins to mount a static directory on the web server then try to evaluate a JavaScript file?
@@ -313,7 +317,7 @@ The `PluginAPI` instance (`hapserver`) has the following functions:
 
 #### `hapserver.registerAccessory`
 
-Registers an accessory type. It should pass a name to identify the accessory type and a function that creates
+Registers an accessory type. You should pass a name to identify the accessory type and a function that creates
 accessories. The handler function is passed the configuration object including the UUID or generated UUID and should
 return either an Accessory or a Promise which resolves to an Accessory.
 
@@ -340,7 +344,27 @@ TODO
 
 #### `hapserver.registerAccessoryUI`
 
-TODO
+Registers an Accessory UI object. Accessory UIs should load one or more scripts with `accessory_ui.loadScript` which
+register UI components. In this example the `ui` directory will be available at `/accessory-ui/{accessory_ui.id}` and
+the web interface will try to load `/accessory-ui/{accessory_ui.id}/index.js`.
+
+```js
+import hapserver, {AccessoryUI} from 'hap-server-api';
+import path from 'path';
+
+const accessory_ui = new AccessoryUI();
+
+accessory_ui.loadScript('/index.js');
+accessory_ui.static('/', path.join(__dirname, 'ui'));
+
+hapserver.registerAccessoryUI(accessory_ui);
+```
+
+Accessory UIs have an [Express](https://expressjs.com) server at `accessory_ui.express`, which handles requests to
+`/accessory-ui/{accessory_ui.id}`.
+
+See [Accessory UIs](#accessory-uis) for information about what scripts can do once they're loaded into the web
+interface.
 
 #### `hapserver.registerAccessoryDiscovery`
 
@@ -349,3 +373,110 @@ TODO
 #### `hapserver.registerAccessorySetup`
 
 TODO
+
+### Accessory UIs
+
+Accessory UIs register components in the web interface. Accessory UI scripts should be registered with
+[`hapserver.registerAccessoryUI`](#hapserver-registeraccessoryui). Accessory UI scripts will have a `require` function
+like Node.js modules. `require` can be used to get the exports of any script exposed by the Express server *that have
+already been loaded*. You can load new scripts with `require.import`, which returns a Promise resolving to the script's
+exports. Like plugins running on the server, Accessory UIs use the `require` function to access the plugin API.
+
+You can also use [webpack](https://webpack.js.org) to bundle your Accessory UI's dependencies. Remember to use
+`__non_webpack_require__` to access the Accessory UI API.
+
+#### `accessoryui.registerServiceComponent`
+
+Registers a service component (the small tile). This expects a service type and a
+[Vue component](https://vuejs.org/v2/guide/). The Vue component will receive one prop, `service`.
+
+```js
+import accessoryui, {Service} from 'hap-server-api/accessory-ui';
+
+accessoryui.registerServiceComponent(Service.LightSensor, {
+    template: `<div class="service service-light-sensor">
+        <h5>{{ service.name || service.accessory.name }}</h5>
+        <p>Light Sensor</p>
+        <p>{{ light }} lux</p>
+    </div>`,
+    props: ['service'],
+    computed: {
+        light() {
+            return this.service.getCharacteristicValueByName('CurrentAmbientLightLevel');
+        },
+    },
+});
+```
+
+Don't include Vue as a dependency of your plugin. The web interface plugin manager exposes Vue as axios through the
+`require` function.
+
+```js
+import Vue from 'vue';
+import axios from 'axios';
+```
+
+#### `accessoryui.registerServiceComponent`
+
+Registers a service component (the small tile). This expects a service type and a
+[Vue component](https://vuejs.org/v2/guide/). The Vue component will receive one prop, `service`.
+
+```js
+import accessoryui, {Service} from 'hap-server-api/accessory-ui';
+
+accessoryui.registerServiceComponent(Service.LightSensor, {
+    template: `<div class="service service-light-sensor">
+        <h5>{{ service.name || service.accessory.name }}</h5>
+        <p>Light Sensor</p>
+        <p>{{ light }} lux</p>
+    </div>`,
+    props: ['service'],
+    computed: {
+        light() {
+            return this.service.getCharacteristicValueByName('CurrentAmbientLightLevel');
+        },
+    },
+});
+```
+
+#### `accessoryui.registerAccessoryDetailsComponent`
+
+Registers an accessory details component (the full screen view). This expects a service type and a
+[Vue component](https://vuejs.org/v2/guide/). The Vue component will receive one prop, `service`.
+
+```js
+import accessoryui, {Service} from 'hap-server-api/accessory-ui';
+import AccessoryDetails from 'hap-server-api/accessory-ui/accessory-details';
+
+accessoryui.registerServiceComponent(Service.LightSensor, {
+    template: `<accessory-details class="accessory-details-light-sensor" :name="service.name || service.accessory.name" @show-settings="$emit('show-settings')">
+        <p>Light Sensor</p>
+        <p>{{ light }} lux</p>
+    </accessory-details>`,
+    components: {
+        AccessoryDetails,
+    },
+    props: ['service'],
+    computed: {
+        light() {
+            return this.service.getCharacteristicValueByName('CurrentAmbientLightLevel');
+        },
+    },
+});
+```
+
+#### `accessoryui.registerCollapsedService`
+
+Registers a collapsed service. This allows multiple services to be displayed as a single service. All services of the
+registered types will be collapsed into a single service. The first argument doesn't have to be a real service UUID and
+collapsed services don't have to collapse multiple services.
+
+```js
+import accessoryui, {Service} from 'hap-server-api/accessory-ui';
+
+accessoryui.registerCollapsedService(Service.Television, [
+    Service.Television,
+    Service.InputSource,
+    Service.TelevisionSpeaker,
+]);
+```

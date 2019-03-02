@@ -39,7 +39,7 @@ hapserver.registerAccessory('VirtualSwitch', async config => {
 
     _log.info('Switch', config.name, 'is', initial_state ? 'on' : 'off');
 
-    _log.info(accessory, switch_service);
+    // _log.info(accessory, switch_service);
 
     return accessory;
 });
