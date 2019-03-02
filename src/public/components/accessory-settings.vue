@@ -109,9 +109,9 @@
                 this.saving = true;
 
                 try {
-                    const data = {
+                    const data = Object.assign({}, this.accessory.data, {
                         name: this.name,
-                    };
+                    });
 
                     await this.accessory.updateData(data);
 

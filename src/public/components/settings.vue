@@ -61,6 +61,7 @@
 
                 terminal: null,
 
+                data: null,
                 name: null,
                 bridges: [],
             };
@@ -111,6 +112,7 @@
                 try {
                     const data = await this.connection.getHomeSettings();
 
+                    this.data = data;
                     this.name = data.name;
                 } finally {
                     this.loading = false;
@@ -131,9 +133,9 @@
                 this.saving = true;
 
                 try {
-                    const data = {
+                    const data = Object.assign({}, this.data, {
                         name: this.name,
-                    };
+                    });
 
                     await this.connection.setHomeSettings(data);
                     this.$emit('updated-settings', data);

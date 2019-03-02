@@ -41,9 +41,9 @@
                 this.saving = true;
 
                 try {
-                    const data = {
+                    const data = Object.assign({}, this.service.data, {
                         name: this.name,
-                    };
+                    });
 
                     await this.service.updateData(data);
 
