@@ -192,10 +192,6 @@ export default class Service extends EventEmitter {
             if (collapsed_service.includes(this.type)) return collapsed_service_type;
         }
     }
-
-    static registerCollapsedService(uuid, collapsed_services) {
-        collapsed_services[uuid] = collapsed_services;
-    }
 }
 
 export const types = {};

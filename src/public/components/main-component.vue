@@ -58,6 +58,7 @@
 <script>
     import Connection from '../connection';
     import Accessory from '../accessory';
+    import PluginManager from '../plugins';
 
     import Service from './service.vue';
     import ServiceContainer from './service-container.vue';
@@ -66,6 +67,8 @@
     import Settings from './settings.vue';
     import AccessorySettings from './accessory-settings.vue';
     import ServiceSettings from './service-settings.vue';
+
+    export const instances = new Set();
 
     export default {
         data() {
@@ -97,10 +100,7 @@
             ServiceSettings,
         },
         async created() {
-            window.vroot = this;
-            window.accessories = this.accessories;
-
-            window.getAccessories = () => Object.values(this.accessories);
+            instances.add(this);
 
             window.addEventListener('scroll', this.onscroll);
             window.addEventListener('touchmove', this.onscroll);
@@ -159,6 +159,7 @@
 
             await Promise.all([
                 this.reload(),
+                this.loadAccessoryUIs(),
                 this.reloadBridges(),
                 this.refreshAccessories(true),
             ]);
@@ -175,6 +176,8 @@
             window.removeEventListener('touchmove', this.onscroll);
 
             this.connection.disconnect();
+
+            instances.remove(this);
         },
         methods: {
             async connect() {
@@ -204,6 +207,18 @@
                     this.name = data.name || 'Home';
                 } finally {
                     this.loading = false;
+                }
+            },
+            async loadAccessoryUIs() {
+                if (this.loading_accessory_uis) throw new Error('Already loading accessory UIs');
+                this.loading_accessory_uis = true;
+
+                try {
+                    const accessory_uis = await this.connection.getAccessoryUIs();
+
+                    await Promise.all(accessory_uis.map(accessory_ui => PluginManager.loadAccessoryUI(accessory_ui)));
+                } finally {
+                    this.loading_accessory_uis = false;
                 }
             },
             async reloadBridges() {

@@ -1,4 +1,5 @@
 
+import PluginManager from './plugins';
 import Homebridge from './homebridge';
 
 let id = 0;
@@ -20,6 +21,7 @@ const message_methods = {
     'get-pairings': 'handleGetPairingsMessage',
     'get-pairings-data': 'handleGetPairingsDataMessage',
     'set-pairings-data': 'handleSetPairingsDataMessage',
+    'get-accessory-uis': 'handleGetAccessoryUIsMessage',
 };
 
 const ws_map = new WeakMap();
@@ -381,5 +383,21 @@ export default class Connection {
             id,
             public_key: public_key.toString('hex'),
         };
+    }
+
+    /**
+     * Gets accessory UIs.
+     */
+    async handleGetAccessoryUIsMessage(messageid, data) {
+        this.respond(messageid, await this.getAccessoryUIs());
+    }
+
+    getAccessoryUIs() {
+        return PluginManager.getAccessoryUIs().map(accessory_ui => {
+            return {
+                id: accessory_ui.id,
+                scripts: accessory_ui.scripts,
+            };
+        });
     }
 }

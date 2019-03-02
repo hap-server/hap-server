@@ -25,10 +25,6 @@ export default class Accessory extends EventEmitter {
         this.display_services = [];
         this._setData(data || {});
         this._setDetails(details || {});
-
-        // this.services.push(new Service(this, 'test', {type: '00000049-0000-1000-8000-0026BB765291'}));
-
-        // this._updateServicesFrom(details);
     }
 
     get details() {
@@ -181,6 +177,25 @@ export default class Accessory extends EventEmitter {
         if (added_display_services.length || removed_display_services.length) {
             this.emit('updated-display-services', added_display_services, removed_display_services);
         }
+    }
+
+    refreshDisplayServices() {
+        const services = [];
+
+        for (const service of Object.values(this.services)) {
+            if (this.display_services.find(display_service => {
+                if (service === display_service) return true;
+
+                if (display_service instanceof CollapsedService && display_service.services.includes(service)) return true;
+
+                return false;
+            })) continue;
+
+            services.push(service);
+        }
+
+        // Call updateDisplayServices with services that aren't displayed
+        this._updateDisplayServices(services, []);
     }
 
     get data() {

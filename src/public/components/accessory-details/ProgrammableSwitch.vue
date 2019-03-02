@@ -1,5 +1,5 @@
 <template>
-    <accessory-details class="accessory-details-switch" :active="on" :updating="updating" :name="service.name || service.accessory.name" @show-settings="$emit('show-settings')">
+    <accessory-details class="accessory-details-programmable-switch" :active="on" :updating="updating" :name="service.name || service.accessory.name" @show-settings="$emit('show-settings')">
         <p>Programmable Switch</p>
 
         <p>There {{ service.services.length === 1 ? 'is' : 'are' }} {{ service.services.length || 'no' }} button{{ service.services.length !== 1 ? 's' : '' }}.

@@ -240,7 +240,21 @@ export default class Server extends EventEmitter {
     }
 
     handle(req, res, next) {
-        if (url.parse(req.url).pathname === '/websocket') {
+        const {pathname} = url.parse(req.url);
+
+        const accessory_ui_match = pathname.match(/^\/accessory-ui\/([0-9]+)(\/.*)?$/);
+
+        if (accessory_ui_match) {
+            const accessory_ui_id = accessory_ui_match[1];
+            const accessory_ui_pathname = accessory_ui_match[2] || '/';
+
+            req.url = accessory_ui_pathname;
+
+            const accessory_ui = PluginManager.getAccessoryUI(accessory_ui_id);
+            if (!accessory_ui) return res.end('Cannot ' + req.method + ' ' + pathname);
+
+            accessory_ui.handle(req, res, next);
+        } else if (pathname === '/websocket') {
             // If path is /websocket tell the client to upgrade the request
             const body = http.STATUS_CODES[426];
 

@@ -6,6 +6,7 @@ import util from 'util';
 
 import semver from 'semver';
 import persist from 'node-persist';
+import express from 'express';
 import hap from 'hap-nodejs';
 import * as HapAsync from './hap-async';
 
@@ -102,10 +103,6 @@ export class PluginManager {
             }));
 
             return plugin_api;
-        } else if (request === 'hap-server-api/hap') {
-            return hap;
-        } else if (request === 'hap-server-api/hap-async') {
-            return HapAsync;
         } else if (request === 'hap-server-api/storage') {
             if (!plugin.name) {
                 throw new Error('Storage is only available for plugins with a name');
@@ -122,13 +119,15 @@ export class PluginManager {
             }));
 
             return plugin_storage;
+        } else if (request === 'hap-server-api/hap') {
+            return hap;
+        } else if (request === 'hap-server-api/hap-async') {
+            return HapAsync;
+        } else if (request === 'hap-server-api/express') {
+            return express;
         }
 
         log.warn(plugin.name, 'tried to load an unknown virtual hap-server-api/* module');
-    }
-
-    getPlugin(plugin_name) {
-        return this.plugins.find(plugin => plugin.name === plugin_name || plugin.path === plugin_name);
     }
 
     async loadPlugin(plugin_path) {
@@ -226,6 +225,22 @@ export class PluginManager {
             } catch (err) {}
         }));
     }
+
+    getPlugin(plugin_name) {
+        return this.plugins.find(plugin => plugin.name === plugin_name || plugin.path === plugin_name);
+    }
+
+    getAccessoryUIs() {
+        return this.plugins.map(plugin => plugin.getAccessoryUIs()).flat();
+    }
+
+    getAccessoryUI(id) {
+        for (const plugin of this.plugins) {
+            const accessory_ui = plugin.getAccessoryUI(id);
+
+            if (accessory_ui) return accessory_ui;
+        }
+    }
 }
 
 export default PluginManager.instance;
@@ -283,6 +298,12 @@ export class Plugin {
 
     getAccessoryUIs() {
         return [...this.accessory_ui];
+    }
+
+    getAccessoryUI(id) {
+        for (const accessory_ui of this.accessory_ui) {
+            if (accessory_ui.id == id) return accessory_ui;
+        }
     }
 
     registerAccessoryUI(handler) {
@@ -380,8 +401,33 @@ export class AccessoryPlatform {
 }
 
 export class AccessoryUI {
+    constructor() {
+        this.id = AccessoryUI.id++;
 
+        this.express = express();
+        this.scripts = [];
+
+        Object.freeze(this);
+    }
+
+    use(...args) {
+        return this.express.use(...args);
+    }
+
+    static(prefix, path) {
+        return this.express.use(prefix, express.static(path));
+    }
+
+    handle(req, res, next) {
+        this.express.handle(req, res, next);
+    }
+
+    loadScript(path) {
+        this.scripts.push(path);
+    }
 }
+
+AccessoryUI.id = 0;
 
 export class AccessoryDiscovery {
     constructor(plugin) {

@@ -189,6 +189,12 @@ export default class Connection extends EventEmitter {
         });
     }
 
+    getAccessoryUIs() {
+        return this.send({
+            type: 'get-accessory-uis',
+        });
+    }
+
     handleBroadcastMessage(data) {
         // console.log('Received broadcast message', data);
 

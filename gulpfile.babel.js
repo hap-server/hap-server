@@ -44,6 +44,12 @@ const webpack_config = {
             chunkFilename: '[id].css',
         }),
     ],
+    resolve: {
+        alias: {
+            // Include the template compiler for plugin with accessory UIs
+            'vue$': 'vue/dist/vue.esm.js', // 'vue/dist/vue.common.js' for webpack 1
+        },
+    },
 };
 
 gulp.task('build-backend', gulp.parallel(function () {

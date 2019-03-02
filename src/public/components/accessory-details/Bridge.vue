@@ -1,5 +1,5 @@
 <template>
-    <accessory-details class="accessory-details-switch" :name="service.accessory.name" @show-settings="$emit('show-accessory-settings')">
+    <accessory-details class="accessory-details-bridge" :name="service.accessory.name" @show-settings="$emit('show-accessory-settings')">
         <p>Bridge</p>
     </accessory-details>
 </template>

@@ -1,5 +1,5 @@
 <template>
-    <div class="service service-switch" :class="{active}">
+    <div class="service service-programmable-switch" :class="{active}">
         <h5>{{ service.name || service.accessory.name }}</h5>
         <p>Programmable Switch</p>
         <p v-if="last_event === 0">Single Press</p>
