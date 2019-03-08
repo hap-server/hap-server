@@ -1,18 +1,23 @@
 <template>
-    <div class="service service-lightbulb" :class="{active: on, updating, clickable: !updating}" @click="setOn(!on)">
-        <h5>{{ service.name || service.accessory.name }}</h5>
-        <p>Lightbulb</p>
-        <p v-if="updating">Updating</p>
-        <p v-else>{{ on && brightness !== undefined ? brightness + '%' : on ? 'On' : 'Off' }}</p>
-    </div>
+    <service class="service-lightbulb" :service="service" type="Lightbulb" :active="on" :updating="updating" @click="setOn(!on)">
+        <lightbulb-icon slot="icon" />
+
+        <p>{{ on && brightness !== undefined ? brightness + '%' : on ? 'On' : 'Off' }}</p>
+    </service>
 </template>
 
 <script>
     import Service from '../../service';
+    import ServiceComponent from './service.vue';
+    import LightbulbIcon from '../icons/lightbulb.vue';
 
     export const uuid = Service.Lightbulb;
 
     export default {
+        components: {
+            Service: ServiceComponent,
+            LightbulbIcon,
+        },
         props: ['connection', 'service'],
         data() {
             return {

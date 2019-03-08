@@ -1,19 +1,25 @@
 <template>
-    <div class="service service-programmable-switch" :class="{active}">
-        <h5>{{ service.name || service.accessory.name }}</h5>
-        <p>Programmable Switch</p>
+    <service class="service-programmable-switch" :service="service" type="Programmable Switch" :active="active">
+        <button-icon slot="icon" />
+
         <p v-if="last_event === 0">Single Press</p>
         <p v-else-if="last_event === 1">Double Press</p>
         <p v-else-if="last_event === 2">Long Press</p>
-    </div>
+    </service>
 </template>
 
 <script>
     import Service from '../../service';
+    import ServiceComponent from './service.vue';
+    import ButtonIcon from '../icons/button.vue';
 
     export const uuid = 'CollapsedService.' + Service.StatelessProgrammableSwitch;
 
     export default {
+        components: {
+            Service: ServiceComponent,
+            ButtonIcon,
+        },
         props: ['connection', 'service'],
         data() {
             return {

@@ -10,8 +10,10 @@ import Characteristic from './characteristic';
 
 import {instances as main_component_instances} from './components/main-component.vue';
 import service_components from './components/services';
+import * as service_component_module from './components/services/service.vue';
 import accessory_details_components from './components/accessory-details';
 import * as accessory_details_component_module from './components/accessory-details/accessory-details.vue';
+import icon_component_modules from './components/icons';
 
 let instance;
 
@@ -49,8 +51,12 @@ export class PluginManager {
 
         if (request === 'hap-server-api/accessory-ui') {
             return this.getPluginAPI(accessory_ui);
+        } else if (request === 'hap-server-api/accessory-ui/service') {
+            return service_component_module;
         } else if (request === 'hap-server-api/accessory-ui/accessory-details') {
             return accessory_details_component_module;
+        } else if (request.startsWith('hap-server-api/accessory-ui/icons/') && icon_component_modules.has('./' + request.substr(34) + '.vue')) {
+            return icon_component_modules.get('./' + request.substr(34) + '.vue');
         } else if (request === 'vue') {
             return vue_module;
         } else if (request === 'axios') {

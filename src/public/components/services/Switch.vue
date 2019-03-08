@@ -1,18 +1,23 @@
 <template>
-    <div class="service service-switch" :class="{active: on, updating, clickable: !updating}" @click="setOn(!on)">
-        <h5>{{ service.name || service.accessory.name }}</h5>
-        <p>Switch</p>
-        <p v-if="updating">Updating</p>
-        <p v-else>{{ on ? 'On' : 'Off' }}</p>
-    </div>
+    <service class="service-switch" :service="service" type="Switch" :active="on" :updating="updating" @click="setOn(!on)">
+        <switch-icon slot="icon" />
+
+        <p>{{ on ? 'On' : 'Off' }}</p>
+    </service>
 </template>
 
 <script>
     import Service from '../../service';
+    import ServiceComponent from './service.vue';
+    import SwitchIcon from '../icons/light-switch.vue';
 
     export const uuid = Service.Switch;
 
     export default {
+        components: {
+            Service: ServiceComponent,
+            SwitchIcon,
+        },
         props: ['connection', 'service'],
         data() {
             return {

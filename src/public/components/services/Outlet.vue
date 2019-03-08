@@ -1,18 +1,19 @@
 <template>
-    <div class="service service-outlet" :class="{active: on, updating, clickable: !updating}" @click="setOn(!on)">
-        <h5>{{ service.name || service.accessory.name }}</h5>
-        <p>Outlet</p>
-        <p v-if="updating">Updating</p>
-        <p v-else>{{ on ? 'On' : 'Off' }}</p>
-    </div>
+    <service class="service-outlet" :service="service" type="Outlet" :active="on" :updating="updating" @click="setOn(!on)">
+        <p>{{ on ? 'On' : 'Off' }}</p>
+    </service>
 </template>
 
 <script>
     import Service from '../../service';
+    import ServiceComponent from './service.vue';
 
     export const uuid = Service.Outlet;
 
     export default {
+        components: {
+            Service: ServiceComponent,
+        },
         props: ['connection', 'service'],
         data() {
             return {

@@ -18,6 +18,31 @@
     padding: 0.9em;
     font-size: 0.8em;
 
+    display: flex;
+    flex-direction: column;
+
+    .service-top {
+        height: 30px;
+        flex: 0 0 auto;
+
+        .service-icon,
+        .icon {
+            width: 30px;
+        }
+    }
+
+    svg.icon {
+        fill: rgba(0, 0, 0, 0.7);
+    }
+
+    img.icon {
+        filter: opacity(0.7);
+    }
+
+    .service-info {
+        flex: 0 0 auto;
+    }
+
     h5 {
         font-size: 1em;
         font-weight: 600;
@@ -33,7 +58,7 @@
 
     &.unsupported-service,
     &.unavailable-accessory {
-        .status {
+        .service-status {
             color: $red;
             font-weight: 600;
         }
@@ -45,6 +70,14 @@
 
     &.active {
         background-color: rgba(255, 255, 255, 0.9);
+
+        svg.icon {
+            fill: rgba(0, 0, 0, 1);
+        }
+
+        img.icon {
+            filter: opacity(1);
+        }
     }
 
     transition: filter 1.5s ease;
