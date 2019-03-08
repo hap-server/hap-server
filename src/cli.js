@@ -19,16 +19,19 @@ const log = new Logger();
 yargs.option('debug', {
     alias: 'D',
     describe: 'Enable debug level logging',
+    type: 'boolean',
     default: false,
 });
 yargs.option('timestamps', {
     aliases: ['T', 'timestamp'],
     describe: 'Add timestamps to logs',
+    type: 'boolean',
     default: true,
 });
 yargs.option('force-colour', {
     aliases: ['C', 'force-color', 'color'],
     describe: 'Force colour in logs',
+    type: 'boolean',
     default: false,
 });
 
@@ -53,11 +56,13 @@ yargs.command('$0 [config]', 'Run the HAP and web server', yargs => {
     yargs.option('print-setup', {
         aliases: ['Q', 'qrcode'],
         describe: 'Print setup information',
+        type: 'boolean',
         default: false,
     });
     yargs.option('allow-unauthenticated', {
         aliases: ['I', 'insecure'],
         describe: 'Allow unauthenticated requests (for easier hacking)',
+        type: 'boolean',
         default: false,
     });
 
@@ -97,7 +102,7 @@ yargs.command('$0 [config]', 'Run the HAP and web server', yargs => {
      * Storage paths.
      */
 
-    const data_path = argv['data-path'] ? path.resolve(process.cwd(), argv['data-path'])
+    const data_path = argv.dataPath ? path.resolve(process.cwd(), argv.dataPath)
         : config['data-path'] ? path.resolve(path.dirname(config_path), config['data-path'])
             : path.dirname(config_path);
 
@@ -114,9 +119,9 @@ yargs.command('$0 [config]', 'Run the HAP and web server', yargs => {
 
     HomebridgeLogger.setDebugEnabled(Logger.enable_debug = argv.debug);
     HomebridgeLogger.setTimestampEnabled(Logger.enable_timestamps = argv.timestamps);
-    if (argv['force-colour']) HomebridgeLogger.forceColor(), forceColourLogs();
+    if (argv.forceColour) HomebridgeLogger.forceColor(), forceColourLogs();
 
-    for (const plugin_path of argv['plugin-path'] || []) {
+    for (const plugin_path of argv.pluginPath || []) {
         PluginManager.addPluginPath(path.resolve(process.cwd(), plugin_path));
     }
 
@@ -133,6 +138,7 @@ yargs.command('$0 [config]', 'Run the HAP and web server', yargs => {
      */
 
     log.info('Starting hap-server with configuration file', config_path);
+    log.info('Arguments', argv);
     log.debug('Data path:', data_path);
     log.debug('hap-nodejs storage path:', hap_storage_path);
     log.debug('UI storage path:', path.resolve(data_path, 'ui-storage'));
@@ -159,11 +165,8 @@ yargs.command('$0 [config]', 'Run the HAP and web server', yargs => {
     const http_port = http_server.address().port;
     log.info(`Listening on ${http_host} port ${http_port}`);
 
-    log.info('Loading accessories and accessory platforms');
-    await Promise.all([
-        server.loadAccessoriesFromConfig(),
-        server.loadAccessoryPlatformsFromConfig(),
-    ]);
+    log.info('Loading cached accessories');
+    await server.loadCachedAccessories();
 
     log.info('Loading HAP bridges');
     await server.loadBridgesFromConfig();
@@ -174,16 +177,30 @@ yargs.command('$0 [config]', 'Run the HAP and web server', yargs => {
     }
 
     for (const bridge of server.bridges) {
-        bridge.unauthenticated_access = argv['allow-unauthenticated'];
+        bridge.unauthenticated_access = argv.allowUnauthenticated;
     }
 
     log.info('Publishing HAP services');
     await server.publish();
 
+    log.info('Loading accessories and accessory platforms');
+    await Promise.all([
+        server.loadAccessoriesFromConfig(),
+        server.loadAccessoryPlatformsFromConfig(),
+    ]);
+
+    log.info('Saving cached accessories');
+    await server.saveCachedAccessories();
+
+    log.info('Running', server.accessories.length, 'accessories', server.cached_accessories.length, 'cached accessories');
+    for (const bridge of server.bridges) {
+        log.info('Bridge', bridge.name, bridge.bridge.bridgedAccessories.length, 'accessories', server.cached_accessories.length, 'cached accessories');
+    }
+
     if (argv.group) process.setgid(argv.group);
     if (argv.user) process.setuid(argv.user);
 
-    if (argv['print-setup']) {
+    if (argv.printSetup) {
         for (const bridge of server.bridges) {
             // Bridge has already been paired with
             if (bridge.bridge._accessoryInfo && bridge.bridge._accessoryInfo.pairedClients.length) continue;
@@ -199,7 +216,7 @@ yargs.command('$0 [config]', 'Run the HAP and web server', yargs => {
             server.unpublish();
             http_server.close();
 
-            setTimeout(() => process.exit(128 + code), 2000);
+            setTimeout(() => process.exit(128 + code), 1000);
         });
     }
 });

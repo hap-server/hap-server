@@ -15,6 +15,7 @@ import PluginManager from './plugins';
 import Bridge from './bridge';
 import Homebridge from './homebridge';
 import Logger from './logger';
+import {Accessory, Service, Characteristic} from './hap-async';
 
 export default class Server extends EventEmitter {
     constructor(config, storage, log) {
@@ -25,6 +26,7 @@ export default class Server extends EventEmitter {
         this.log = log || new Logger();
 
         this.accessories = [];
+        this.cached_accessories = [];
         this.bridges = [];
 
         this.app = express();
@@ -95,9 +97,9 @@ export default class Server extends EventEmitter {
             port: bridge_config.port,
             pincode: bridge_config.pincode,
             unauthenticated_access: bridge_config.unauthenticated_access,
-        });
 
-        bridge.accessory_uuids = bridge_config.accessories || [];
+            accessory_uuids: bridge_config.accessories,
+        });
 
         this.bridges.push(bridge);
 
@@ -106,14 +108,18 @@ export default class Server extends EventEmitter {
                 const accessory = this.accessories.find(accessory => accessory_uuid[0] === accessory.plugin.name &&
                     accessory_uuid[1] === accessory.accessory_type &&
                     accessory_uuid[2] === accessory.accessory.displayName);
-                if (!accessory) continue;
+                if (accessory) bridge.addAccessory(accessory.accessory);
 
-                bridge.addAccessory(accessory.accessory);
+                const cached_accessory = this.cached_accessories.find(accessory => accessory_uuid[0] === accessory.plugin.name &&
+                    accessory_uuid[1] === accessory.accessory_type &&
+                    accessory_uuid[2] === accessory.accessory.displayName)
+                if (cached_accessory) bridge.addCachedAccessory(cached_accessory.accessory);
             } else {
-                const accessory = this.accessories.find(accessory => accessory.uuid === accessory_uuid);
-                if (!accessory) continue;
+                const accessory = this.accessories.find(accessory => accessory.uuid === accessory_uuid)
+                if (accessory) bridge.addAccessory(accessory.accessory);
 
-                bridge.addAccessory(accessory.accessory);
+                const cached_accessory = this.cached_accessories.find(accessory => accessory.uuid === accessory_uuid)
+                if (cached_accessory) bridge.addCachedAccessory(accessory.cached_accessory);
             }
         }
     }
@@ -130,6 +136,45 @@ export default class Server extends EventEmitter {
         });
 
         this.bridges.push(this.homebridge);
+    }
+
+    async loadCachedAccessories() {
+        const cached_accessories = await this.storage.getItem('CachedAccessories') || [];
+
+        await Promise.all(cached_accessories.map(cache => this.loadCachedAccessory(cache)));
+    }
+
+    async loadCachedAccessory(cache) {
+        const plugin_accessory = PluginAccessory.restore(this, cache);
+
+        this.cached_accessories.push(plugin_accessory);
+
+        // this.log.debug('Loaded cached accessory', plugin_accessory.accessory.displayName, plugin_accessory.uuid, cache.plugin, cache.accessory_type);
+
+        for (let bridge of this.bridges.filter(bridge => bridge.accessory_uuids.find(accessory_uuid =>
+            accessory_uuid instanceof Array ? accessory_uuid[0] === cache.plugin &&
+                accessory_uuid[1] === cache.accessory_type &&
+                accessory_uuid[2] === cache.accessory.displayName :
+                accessory_uuid === plugin_accessory.uuid
+        ))) {
+            bridge.addCachedAccessory(plugin_accessory.accessory);
+        }
+    }
+
+    getCachedAccessory(uuid) {
+        return this.cached_accessories.find(accessory => accessory.uuid === uuid);
+    }
+
+    removeCachedAccessory(uuid) {
+        let index;
+        while ((index = this.cached_accessories.findIndex(accessory => accessory.uuid === uuid)) !== -1)
+            this.cached_accessories.splice(index, 1);
+    }
+
+    async saveCachedAccessories() {
+        const cached_accessories = await Promise.all(this.accessories.concat(this.cached_accessories).map(accessory => accessory.cache()));
+
+        await this.storage.setItem('CachedAccessories', cached_accessories);
     }
 
     async loadAccessoriesFromConfig() {
@@ -160,12 +205,17 @@ export default class Server extends EventEmitter {
         if (!accessory_config.uuid) accessory_config.uuid = uuid.generate('accessory:' + plugin_name + ':' +
             accessory_type + ':' + name);
 
-        const accessory = await accessory_handler.call(plugin, accessory_config);
+        const cached_accessory = this.getCachedAccessory(accessory_config.uuid);
 
-        if (this.getAccessory(accessory.UUID)) throw new Error('Already have an accessory with the UUID "' +
-            accessory.UUID + '"');
+        const accessory = await accessory_handler.call(plugin, accessory_config,
+            cached_accessory ? cached_accessory.accessory : undefined);
+
+        if (this.accessories.find(a => a.uuid === accessory.UUID)) throw new Error('Already have an accessory with' +
+            ' the UUID "' + accessory.UUID + '"');
 
         const plugin_accessory = new PluginAccessory(this, accessory, plugin, accessory_type);
+
+        this.removeCachedAccessory(accessory.UUID);
 
         this.accessories.push(plugin_accessory);
 
@@ -184,12 +234,16 @@ export default class Server extends EventEmitter {
 
     async loadAccessoryPlatforms(accessories, dont_throw) {
         await Promise.all(accessories.map(accessory_platform_config =>
-            this.loadAccessory(accessory_platform_config).catch(err => {
+            this.loadAccessoryPlatform(accessory_platform_config).catch(err => {
                 if (!dont_throw) throw err;
 
                 this.log.warn('Error loading accessory platform', accessory_platform_config.plugin,
                     accessory_platform_config.platform, accessory_platform_config.name, err);
             })));
+    }
+
+    async loadAccessoryPlatform(config) {
+        throw 'Not implemented';
     }
 
     publish() {
@@ -208,6 +262,10 @@ export default class Server extends EventEmitter {
         const plugin_accessory = this.getPluginAccessory(uuid);
 
         if (plugin_accessory) return plugin_accessory.accessory;
+
+        const cached_plugin_accessory = this.getCachedAccessory(uuid);
+
+        if (cached_plugin_accessory) return cached_plugin_accessory.accessory;
 
         for (const bridge of this.bridges) {
             if (!bridge instanceof Homebridge) continue;
@@ -316,15 +374,83 @@ export default class Server extends EventEmitter {
 }
 
 export class PluginAccessory {
-    constructor(server, accessory, plugin, accessory_type) {
+    constructor(server, accessory, plugin, accessory_type, data) {
         this.server = server;
         this.accessory = accessory;
         this.plugin = plugin;
         this.accessory_type = accessory_type;
+        this.data = data;
     }
 
     get uuid() {
         return this.accessory.UUID;
+    }
+
+    /**
+     * Return an object that can be used to recreate this accessory.
+     */
+    cache() {
+        return {
+            accessory: {
+                displayName: this.accessory.displayName,
+                UUID: this.accessory.UUID,
+                services: this.accessory.services.map(service => ({
+                    displayName: service.displayName,
+                    UUID: service.UUID,
+                    subtype: service.subtype,
+                    characteristics: service.characteristics.map(characteristic => ({
+                        displayName: characteristic.displayName,
+                        UUID: characteristic.UUID,
+                        value: characteristic.value,
+                        status: characteristic.status,
+                        eventOnlyCharacteristic: characteristic.eventOnlyCharacteristic,
+                        props: characteristic.props,
+                    })),
+                    optionalCharacteristics: service.optionalCharacteristics.map(characteristic => ({
+                        displayName: characteristic.displayName,
+                        UUID: characteristic.UUID,
+                        value: characteristic.value,
+                        status: characteristic.status,
+                        eventOnlyCharacteristic: characteristic.eventOnlyCharacteristic,
+                        props: characteristic.props,
+                    })),
+                })),
+            },
+            plugin: this.plugin.name,
+            accessory_type: this.accessory_type,
+            accessory_platform: this.accessory_platform,
+            data: this.data,
+        };
+    }
+
+    /**
+     * Create an accessory from cached data.
+     */
+    static restore(server, cache) {
+        const plugin = PluginManager.getPlugin(cache.plugin);
+        const accessory = new Accessory(cache.accessory.displayName, cache.accessory.UUID);
+
+        accessory.services = cache.accessory.services.map(service_cache => {
+            const service = new Service(service_cache.displayName, service_cache.UUID, service_cache.subtype);
+
+            service.characteristics = service_cache.characteristics.map(characteristic_cache => {
+                const characteristic = new Characteristic(characteristic_cache.displayName, characteristic_cache.UUID, characteristic_cache.props);
+
+                characteristic.value = characteristic_cache.value;
+                characteristic.status = characteristic_cache.status;
+                characteristic.eventOnlyCharacteristic = characteristic_cache.eventOnlyCharacteristic;
+
+                return characteristic;
+            });
+
+            return service;
+        });
+
+        const plugin_accessory = cache.accessory_platform ?
+            new PluginAccessoryPlatformAccessory(server, accessory, plugin, cache.accessory_platform) :
+            new PluginAccessory(server, accessory, plugin, cache.accessory_type);
+
+        return plugin_accessory;
     }
 }
 

@@ -98,16 +98,23 @@ export default class Connection {
         const uuids = [];
 
         for (const bridge of this.server.bridges) {
-            if (!bridge instanceof Homebridge) continue;
             uuids.push(bridge.uuid);
-
-            for (const accessory of bridge.bridge.bridgedAccessories) {
-                uuids.push(accessory.UUID);
-            }
         }
 
         for (const accessory of this.server.accessories) {
             uuids.push(accessory.uuid);
+        }
+
+        for (const accessory of this.server.cached_accessories) {
+            uuids.push(accessory.uuid);
+        }
+
+        for (const bridge of this.server.bridges) {
+            if (!(bridge instanceof Homebridge)) continue;
+
+            for (const accessory of bridge.bridge.bridgedAccessories) {
+                uuids.push(accessory.UUID);
+            }
         }
 
         return uuids;
