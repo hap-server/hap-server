@@ -1,5 +1,7 @@
 <template>
     <service class="service-outlet" :service="service" type="Outlet" :active="on" :updating="updating" @click="setOn(!on)">
+        <outlet-icon slot="icon" />
+
         <p>{{ on ? 'On' : 'Off' }}</p>
     </service>
 </template>
@@ -7,12 +9,14 @@
 <script>
     import Service from '../../service';
     import ServiceComponent from './service.vue';
+    import OutletIcon from '../icons/outlet.vue';
 
     export const uuid = Service.Outlet;
 
     export default {
         components: {
             Service: ServiceComponent,
+            OutletIcon,
         },
         props: ['connection', 'service'],
         data() {

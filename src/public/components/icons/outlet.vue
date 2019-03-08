@@ -1,0 +1,10 @@
+<!-- Socket icon by Icons8 -->
+<!-- https://icons8.com/icon/77792/socket -->
+
+<template>
+    <img class="icon icon-outlet" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFoAAABaCAYAAAA4qEECAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAJmSURBVHhe7dw9axRhGIXhFfzqTK2CYCsqBCwE/4SgWFoJ+iusgloKFqaw08ZCGwttbCy0UUGwEgURi6jgB/hV6f3wdPII68573rgz54arm8wOB7Ihk+zMnHPOOeecc845tyztxD7sH6G92IpN7TBu4Tt+jdhHrGMPuncSP1Bd2Fht4Ai6dQg/UV3M2L3BLnTpNqqLmIrzkLcDU3vL+NNTyIufxNWLT8lnyDuI6sWnRp6HTvI8dJLnoZM8D53keegkz0MneR46yRsy9GvcLDxGdXwr91G97idUx89D3pChb6DqHKrjWzmGqmeojp+HPA+d5HnoJM9DJ3keOsnz0Emeh07yPHSS56GTPA+d5HnoJM9DJ3keOsnz0EnekKGf42LhHqrjW7mO6nXfoTp+HvKGDD0m8jx0kuehkzwPneR56CTPQyd5HjrJ89BJnodO8jx0kuehk7zNGjo+oLOG0ziOM7iMV6iOV5PXe+hHOIq/tQUn8BLV16vI6zn0Fcz7OewV3EV1HgV5vYa+hn8tPgMZ3wHV+VqT12PoF9iORYqnEXxDdd6W5PUY+hSGdAnVeVuSpx76C+ItYEgHUJ27JXnqoe+gRW9Rnb8Veeqhr6JFD1GdvxV56qEvoEXxnVGdvxV5HjrJ89BJnnroeFBU/Do91FdU529FnnroZSHPQyd5HjrJ89BJnodO8uLuWPXCU/Ie8uJG/JCnAozBA3Qp7kdUFzAV8Y/zXYqnzg75J+5lFs8W2YZurUJ9K/J/EyPvRvfiD6LxQNQniBv21cUtuw+I9+SzWPTPa84555xzzjnnnHPOLdJs9htPXwfxzbaLIQAAAABJRU5ErkJggg==" />
+</template>
+
+<script>
+    export default {};
+</script>
