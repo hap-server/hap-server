@@ -6,7 +6,7 @@
             <p>System service</p>
         </service>
 
-        <service v-else class="service unsupported-service" :class="{'details-open': details_open}" :service="service" :type="service_name">
+        <service v-else class="unsupported-service" :class="{'details-open': details_open}" :service="service" :type="service_name">
             <p>Not supported</p>
         </service>
     </div>
