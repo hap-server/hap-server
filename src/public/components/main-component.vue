@@ -52,6 +52,10 @@
 
             <accessory-details v-else-if="modal.type === 'accessory-details'" :ref="'modal-' + index" :service="modal.service" :modal="modal" @show-settings="modals.push({type: 'service-settings', service: modal.service})" @show-accessory-settings="modals.push({type: 'accessory-settings', accessory: modal.service.accessory})" @close="modals.splice(index, 1)" />
         </template>
+
+        <div v-if="!connection" class="connecting" :class="{reconnecting: has_connected}">
+            <p>{{ has_connected ? 'Reconnecting' : 'Connecting' }}</p>
+        </div>
     </div>
 </template>
 
@@ -75,6 +79,7 @@
             return {
                 connection: null,
                 connecting: false,
+                has_connected: false,
                 loading: false,
 
                 name: null,
@@ -108,68 +113,21 @@
 
             this.$on('updated-accessories', (added, removed) => console.log('Updated accessories', added, removed));
 
-            await this.connect();
+            await this.tryConnect();
 
-            this.connection.on('update-home-settings', data => {
-                this.name = data.name;
-            });
-
-            this.connection.on('add-accessory', async accessory_uuid => {
-                const [accessory_details, accessory_data] = await Promise.all([
-                    this.connection.getAccessories(accessory_uuid),
-                    this.connection.getAccessoriesData(accessory_uuid),
-                ]);
-
-                const accessory = new Accessory(this.connection, accessory_uuid, accessory_details, accessory_data);
-
-                this.$set(this.accessories, accessory.uuid, accessory);
-                this.$emit('new-accessory', accessory);
-                this.$emit('new-accessories', [accessory]);
-                this.$emit('updated-accessories', [accessory], []);
-            });
-
-            this.connection.on('remove-accessory', accessory_uuid => {
-                const accessory = this.accessories[uuid];
-
-                this.$delete(this.accessories, accessory.uuid);
-                this.$emit('removed-accessory', accessory);
-                this.$emit('removed-accessories', [accessory]);
-                this.$emit('updated-accessories', [], [accessory]);
-            });
-
-            this.connection.on('update-accessory', (uuid, details) => {
-                const accessory = this.accessories[uuid];
-
-                accessory._setDetails(details);
-            });
-
-            this.connection.on('update-accessory-data', (uuid, data) => {
-                const accessory = this.accessories[uuid];
-
-                accessory._setData(data);
-            });
-
-            this.connection.on('update-characteristic', (accessory_uuid, service_uuid, characteristic_uuid, details) => {
-                const accessory = this.accessories[accessory_uuid];
-                const service = accessory.findService(service => service.uuid === service_uuid);
-                const characteristic = service.findCharacteristic(c => c.uuid === characteristic_uuid);
-
-                characteristic._setDetails(details);
-            });
-
-            await Promise.all([
-                this.reload(),
-                this.loadAccessoryUIs(),
-                this.reloadBridges(),
-                this.refreshAccessories(true),
-            ]);
+            // await Promise.all([
+            //     this.reload(),
+            //     this.loadAccessoryUIs(),
+            //     this.reloadBridges(),
+            //     this.refreshAccessories(true),
+            // ]);
 
             const refresh_accessories_function = async () => {
                 await this.refreshAccessories();
 
                 this.refresh_accessories_timeout = setTimeout(refresh_accessories_function, 600000);
             };
-            // this.refresh_accessories_timeout = setTimeout(refresh_accessories_function, 600000);
+            this.refresh_accessories_timeout = setTimeout(refresh_accessories_function, 10000);
         },
         destroyed() {
             window.removeEventListener('scroll', this.onscroll);
@@ -186,11 +144,92 @@
 
                 try {
                     this.connection = await Connection.connect();
+
+                    this.has_connected = true;
+                    this.connectionEvents(this.connection);
                 } finally {
                     this.connecting = false;
                 }
 
                 this.ping();
+            },
+            async tryConnect() {
+                while (!this.connection) {
+                    console.log('Trying to connect');
+
+                    try {
+                        await this.connect();
+                        break;
+                    } catch (err) {
+                        console.error('Connect error', err);
+                    }
+
+                    await new Promise(r => setTimeout(r, 4000));
+                }
+
+                await Promise.all([
+                    this.reload(),
+                    this.loadAccessoryUIs(),
+                    this.reloadBridges(),
+                    this.refreshAccessories(true),
+                ]);
+            },
+            async connectionEvents(connection) {
+                connection.on('disconnected', event => {
+                    if (!event.wasClean) console.error('Disconnected', event);
+                    else console.log('Disconnected');
+
+                    this.connection = null;
+
+                    return this.tryConnect();
+                });
+
+                connection.on('update-home-settings', data => {
+                    this.name = data.name;
+                });
+
+                connection.on('add-accessory', async accessory_uuid => {
+                    const [accessory_details, accessory_data] = await Promise.all([
+                        this.connection.getAccessories(accessory_uuid),
+                        this.connection.getAccessoriesData(accessory_uuid),
+                    ]);
+
+                    const accessory = new Accessory(this.connection, accessory_uuid, accessory_details, accessory_data);
+
+                    this.$set(this.accessories, accessory.uuid, accessory);
+                    this.$emit('new-accessory', accessory);
+                    this.$emit('new-accessories', [accessory]);
+                    this.$emit('updated-accessories', [accessory], []);
+                });
+
+                connection.on('remove-accessory', accessory_uuid => {
+                    const accessory = this.accessories[uuid];
+
+                    this.$delete(this.accessories, accessory.uuid);
+                    this.$emit('removed-accessory', accessory);
+                    this.$emit('removed-accessories', [accessory]);
+                    this.$emit('updated-accessories', [], [accessory]);
+                });
+
+                connection.on('update-accessory', (uuid, details) => {
+                    const accessory = this.accessories[uuid];
+
+                    accessory._setDetails(details);
+                });
+
+                connection.on('update-accessory-data', (uuid, data) => {
+                    const accessory = this.accessories[uuid];
+
+                    accessory._setData(data);
+                });
+
+                connection.on('update-characteristic', (accessory_uuid, service_uuid, characteristic_uuid, details) => {
+                    const accessory = this.accessories[accessory_uuid];
+                    const service = accessory.findService(service => service.uuid === service_uuid);
+                    const characteristic = service.findCharacteristic(c => c.uuid === characteristic_uuid);
+
+                    characteristic._setDetails(details);
+                });
             },
             async ping() {
                 console.log('Sending ping request');
@@ -319,16 +358,16 @@
 
                 return this.name || 'Home';
             },
-            settings_open() {
-                return !!this.modals.length;
+            modal_open() {
+                return !this.connected || !!this.modals.length;
             }
         },
         watch: {
             title(title) {
                 document.title = title;
             },
-            settings_open() {
-                document.body.style.overflow = this.settings_open ? 'hidden' : 'auto';
+            modal_open() {
+                document.body.style.overflow = this.modal_open ? 'hidden' : 'auto';
             }
         }
     };

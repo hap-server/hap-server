@@ -62,6 +62,10 @@ export default class Connection extends EventEmitter {
 
             console.error('Invalid message');
         };
+
+        this.ws.onclose = event => {
+            this.emit('disconnected', event);
+        };
     }
 
     static connect(url) {
@@ -73,6 +77,10 @@ export default class Connection extends EventEmitter {
             ws.onopen = () => {
                 const connection = new Connection(ws);
                 resolve(connection);
+            };
+
+            ws.onerror = event => {
+                reject(event);
             };
         });
     }

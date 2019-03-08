@@ -75,3 +75,24 @@ body {
 @import 'service';
 @import 'settings';
 @import 'accessory-details';
+
+.connecting {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 3;
+
+    background-color: rgba(0, 0, 0, 0.15);
+    -webkit-backdrop-filter: blur(2px);
+    color: #ffffff;
+
+    display: flex;
+    flex-direction: column;
+
+    p {
+        text-align: center;
+        margin: auto;
+    }
+}
