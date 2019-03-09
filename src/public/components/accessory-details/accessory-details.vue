@@ -8,7 +8,7 @@
                     </slot>
                 </div>
 
-                <h4>{{ name }}</h4>
+                <h4>{{ name || service.name || service.accessory.name }}</h4>
 
                 <slot name="status" />
 
@@ -37,6 +37,7 @@
         components: {
             HomeIcon,
         },
-        props: ['active', 'updating', 'name']
+        props: ['active', 'updating', 'name'],
+        inject: ['service']
     };
 </script>

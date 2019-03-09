@@ -28,6 +28,11 @@
                 touchstart_timeout: null,
             };
         },
+        provide() {
+            return {
+                service: this.service,
+            };
+        },
         computed: {
             component() {
                 return service_components.get(this.service.type);

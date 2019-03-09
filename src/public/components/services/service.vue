@@ -38,7 +38,8 @@
         components: {
             HomeIcon,
         },
-        props: ['active', 'updating', 'service', 'type'],
+        props: ['active', 'updating', 'name', 'type'],
+        inject: ['service'],
         computed: {
             show_room_name() {
                 return false;
@@ -47,7 +48,7 @@
                 return null;
             },
             service_name() {
-                if (!this.service) return null;
+                if (this.name || !this.service) return this.name;
 
                 const name = this.service.name || this.service.accessory.name || '';
 

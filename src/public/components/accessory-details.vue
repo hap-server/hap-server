@@ -22,14 +22,19 @@
     import AccessoryDetails from './accessory-details/accessory-details.vue';
 
     export default {
+        components: {
+            AccessoryDetails,
+        },
         props: ['connection', 'service', 'modal'],
         data() {
             return {
                 show: true,
             };
         },
-        components: {
-            AccessoryDetails,
+        provide() {
+            return {
+                service: this.service,
+            };
         },
         computed: {
             component() {
