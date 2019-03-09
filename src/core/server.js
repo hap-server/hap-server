@@ -37,6 +37,11 @@ export default class Server extends EventEmitter {
 
         this.handle = this.handle.bind(this);
         this.upgrade = this.upgrade.bind(this);
+        this._handleCharacteristicUpdate = (default_accessory, event) => {
+            // this.log.info('Updating characteristic', event);
+            this.handleCharacteristicUpdate(event.accessory || default_accessory, event.service,
+                event.characteristic, event.newValue, event.oldValue, event.context);
+        };
 
         const console_log = console.log;
         const console_error = console.error;
@@ -209,6 +214,11 @@ export default class Server extends EventEmitter {
 
         const accessory = await accessory_handler.call(plugin, accessory_config,
             cached_accessory ? cached_accessory.accessory : undefined);
+
+        accessory.on('service-characteristic-change', event => {
+            this.handleCharacteristicUpdate(event.accessory || accessory, event.service,
+                event.characteristic, event.newValue, event.oldValue, event.context);
+        });
 
         if (this.accessories.find(a => a.uuid === accessory.UUID)) throw new Error('Already have an accessory with' +
             ' the UUID "' + accessory.UUID + '"');

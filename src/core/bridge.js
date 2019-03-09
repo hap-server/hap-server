@@ -23,42 +23,32 @@ export default class Bridge {
         this.accessory_uuids = config.accessory_uuids || [];
         this.cached_accessories = [];
 
-        if (config._no_bridge) return;
+        this.bridge = this._createBridge(config);
 
-        this.bridge = new HAPBridge(this.name, this.uuid);
         this.bridge.on('listening', port => {
             this.log.info(`${this.name} is running on port ${port}`);
             Object.freeze(this);
         });
 
-        this.bridge._assignIDs = this.assignIDs.bind(this);
+        this._handleCharacteristicUpdate = this.server._handleCharacteristicUpdate.bind(this.server, this.bridge);
+        this.bridge.on('service-characteristic-change', this._handleCharacteristicUpdate);
+    }
 
-        this.bridge._handleAccessories = callback => this.handleAccessories().then(v => callback(null, v), callback);
+    _createBridge(config) {
+        const bridge = new HAPBridge(this.name, this.uuid);
 
-        this.bridge.getService(Service.AccessoryInformation)
+        bridge._assignIDs = this.assignIDs.bind(this);
+
+        bridge._handleAccessories = callback => this.handleAccessories().then(v => callback(null, v), callback);
+
+        bridge.getService(Service.AccessoryInformation)
             .setCharacteristic(Characteristic.Manufacturer, 'Samuel Elliott')
             .setCharacteristic(Characteristic.Model, require('../../package').name)
             .setCharacteristic(Characteristic.SerialNumber, this.username)
             .setCharacteristic(Characteristic.FirmwareRevision, require('../../package').version)
             .setCharacteristic(Characteristic.HardwareRevision, os.hostname());
 
-        this.bridge.on('service-characteristic-change', event => {
-            // this.log.info('Updating characteristic', event);
-            this.server.handleCharacteristicUpdate(event.accessory || this.bridge, event.service,
-                event.characteristic, event.newValue, event.oldValue, event.context);
-        });
-
-        const addBridgedAccessory = this.bridge.addBridgedAccessory;
-
-        this.bridge.addBridgedAccessory = (accessory, defer_update, ...args) => {
-            accessory.on('service-characteristic-change', event => {
-                // this.log.info('Updating characteristic', accessory, event);
-                this.server.handleCharacteristicUpdate(event.accessory || accessory, event.service,
-                    event.characteristic, event.newValue, event.oldValue, event.context);
-            });
-
-            return addBridgedAccessory.call(this.bridge, accessory, defer_update, ...args);
-        };
+        return bridge;
     }
 
     publish() {

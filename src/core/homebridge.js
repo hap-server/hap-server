@@ -28,31 +28,15 @@ export default class Homebridge extends Bridge {
             port: config.port,
             pincode: config.pincode,
             unauthenticated_access,
-            _no_bridge: true,
-        });
 
-        // this.log.debug('Homebridge config', config);
+            homebridge,
+        });
 
         this.homebridge = homebridge;
-        this.bridge = this.homebridge._bridge;
+    }
 
-        this.bridge.on('service-characteristic-change', event => {
-            // this.log.info('Updating characteristic', event);
-            this.server.handleCharacteristicUpdate(event.accessory || this.bridge,
-                event.service, event.characteristic, event.newValue, event.oldValue, event.context);
-        });
-
-        const addBridgedAccessory = this.bridge.addBridgedAccessory;
-
-        this.bridge.addBridgedAccessory = (accessory, defer_update, ...args) => {
-            accessory.on('service-characteristic-change', event => {
-                // this.log.info('Updating characteristic', accessory, event);
-                this.server.handleCharacteristicUpdate(event.accessory || accessory,
-                    event.service, event.characteristic, event.newValue, event.oldValue, event.context);
-            });
-
-            return addBridgedAccessory.call(this.bridge, accessory, defer_update, ...args);
-        };
+    _createBridge(config) {
+        return config.homebridge._bridge;
     }
 
     publish() {
@@ -63,11 +47,35 @@ export default class Homebridge extends Bridge {
         this.homebridge._teardown();
     }
 
+    assignIDs(accessory) {
+        throw new Error('Cannot assign IDs for Homebridge');
+    }
+
+    handleAccessories(accessory) {
+        throw new Error('Cannot handle /accessories requests for Homebridge');
+    }
+
+    cachedAccessoriesHAP(accessory) {
+        return [];
+    }
+
     addAccessory(accessory) {
         throw new Error('Cannot add accessory to Homebridge');
     }
 
     removeAccessory(accessory) {
+        throw new Error('Cannot remove accessory from Homebridge');
+    }
+
+    addCachedAccessory(accessory) {
+        throw new Error('Cannot add accessory to Homebridge');
+    }
+
+    removeCachedAccessory(accessory) {
+        throw new Error('Cannot remove accessory from Homebridge');
+    }
+
+    removeAllCachedAccessories() {
         throw new Error('Cannot remove accessory from Homebridge');
     }
 }
