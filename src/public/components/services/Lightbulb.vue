@@ -18,7 +18,7 @@
             Service: ServiceComponent,
             LightbulbIcon,
         },
-        props: ['connection', 'service'],
+        props: ['service'],
         data() {
             return {
                 updating: false,

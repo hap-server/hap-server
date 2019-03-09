@@ -18,7 +18,7 @@
             Service: ServiceComponent,
             OutletIcon,
         },
-        props: ['connection', 'service'],
+        props: ['service'],
         data() {
             return {
                 updating: false,

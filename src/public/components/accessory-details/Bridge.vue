@@ -11,7 +11,7 @@
     export const uuid = '--bridge';
 
     export default {
-        props: ['connection', 'service'],
+        props: ['service'],
         components: {
             AccessoryDetails,
         }

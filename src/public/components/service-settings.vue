@@ -1,17 +1,19 @@
 <template>
     <panel ref="panel" @close="$emit('close')">
-        <div class="form-group row">
-            <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-name'">Name</label>
-            <div class="col-sm-9">
-                <input type="text" class="form-control form-control-sm" :id="_uid + '-name'" v-model="name" :placeholder="service.default_name" :disabled="saving" />
+        <form @submit.prevent="save(true)">
+            <div class="form-group row">
+                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-name'">Name</label>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control form-control-sm" :id="_uid + '-name'" v-model="name" :placeholder="service.default_name" :disabled="saving" />
+                </div>
             </div>
-        </div>
+        </form>
 
         <div class="d-flex">
             <div v-if="saving">Saving</div>
             <div class="flex-fill"></div>
-            <button class="btn btn-default btn-sm" type="button" @click="$emit('show-accessory-settings')">Accessory settings</button>
-            <button class="btn btn-default btn-sm" type="button" @click="() => $refs.panel.close()" :disabled="saving">Cancel</button>
+            <button class="btn btn-default btn-sm" type="button" @click="$emit('show-accessory-settings')">Accessory settings</button>&nbsp;
+            <button class="btn btn-default btn-sm" type="button" @click="() => $refs.panel.close()" :disabled="saving">Cancel</button>&nbsp;
             <button class="btn btn-primary btn-sm" type="button" @click="save(true)" :disabled="saving">Save</button>
         </div>
     </panel>

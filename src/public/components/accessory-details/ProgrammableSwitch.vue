@@ -19,7 +19,7 @@
     export const uuid = 'CollapsedService.' + Service.StatelessProgrammableSwitch;
 
     export default {
-        props: ['connection', 'service'],
+        props: ['service'],
         data() {
             return {
                 updating: false,

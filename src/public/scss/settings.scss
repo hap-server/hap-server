@@ -38,7 +38,8 @@
         animation: panel-out 0.5s ease-out;
     }
 
-    .home-settings & {
+    .home-settings &,
+    .accessory-settings & {
         max-width: 626px;
     }
 }

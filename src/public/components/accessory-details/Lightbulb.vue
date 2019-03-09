@@ -13,7 +13,7 @@
     export const uuid = Service.Lightbulb;
 
     export default {
-        props: ['connection', 'service'],
+        props: ['service'],
         data() {
             return {
                 updating: false,

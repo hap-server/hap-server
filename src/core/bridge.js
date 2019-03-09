@@ -39,7 +39,8 @@ export default class Bridge {
             .setCharacteristic(Characteristic.Manufacturer, 'Samuel Elliott')
             .setCharacteristic(Characteristic.Model, require('../../package').name)
             .setCharacteristic(Characteristic.SerialNumber, this.username)
-            .setCharacteristic(Characteristic.FirmwareRevision, require('../../package').version);
+            .setCharacteristic(Characteristic.FirmwareRevision, require('../../package').version)
+            .setCharacteristic(Characteristic.HardwareRevision, os.hostname());
 
         this.bridge.on('service-characteristic-change', event => {
             // this.log.info('Updating characteristic', event);

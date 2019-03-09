@@ -16,6 +16,6 @@
             Service,
             BridgeIcon,
         },
-        props: ['connection', 'service']
+        props: ['service']
     };
 </script>

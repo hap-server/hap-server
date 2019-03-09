@@ -20,7 +20,7 @@
             Service: ServiceComponent,
             ButtonIcon,
         },
-        props: ['connection', 'service'],
+        props: ['service'],
         data() {
             return {
                 last_event: null,

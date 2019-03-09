@@ -1,6 +1,6 @@
 <template>
     <div class="service-wrapper" :data-accessory-uuid="service.accessory.uuid" :data-service-uuid="service.uuid" :data-service-type="service.type" @contextmenu.prevent="showDetails" @touchstart="touchstart" @touchend="touchend">
-        <component v-if="component" ref="service" :is="component" :class="{'details-open': details_open}" :connection="connection" :service="service" @show-details="this.$emit('show-details', () => details_open = false); details_open = true" />
+        <component v-if="component" ref="service" :is="component" :class="{'details-open': details_open}" :service="service" @show-details="this.$emit('show-details', () => details_open = false); details_open = true" />
 
         <service v-else-if="service.is_system_service" class="unsupported-service error" :service="service" type="System service">
             <p>System service</p>

@@ -2,7 +2,7 @@ import EventEmitter from 'events';
 
 import Vue from 'vue';
 
-import Service, {collapsed_services} from './service';
+import Service, {collapsed_services, type_uuids as service_types} from './service';
 import CollapsedService from './collapsed-service';
 
 import service_components from './components/services';
@@ -263,6 +263,10 @@ export default class Accessory extends EventEmitter {
 
     getService(uuid) {
         return this.services[uuid];
+    }
+
+    getServiceByName(name) {
+        return this.services[service_types[name]];
     }
 
     get accessory_information() {

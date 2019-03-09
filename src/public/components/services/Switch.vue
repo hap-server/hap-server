@@ -18,7 +18,7 @@
             Service: ServiceComponent,
             SwitchIcon,
         },
-        props: ['connection', 'service'],
+        props: ['service'],
         data() {
             return {
                 updating: false,

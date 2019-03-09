@@ -7,12 +7,14 @@
             <li class="nav-item"><a class="nav-link" :class="{active: tab === 'output'}" href="#" @click.prevent="tab = 'output'">Output</a></li>
         </ul>
 
-        <div v-if="tab === 'general'" class="form-group row">
-            <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-name'">Name</label>
-            <div class="col-sm-9">
-                <input type="text" class="form-control form-control-sm" :id="_uid + '-name'" v-model="name" placeholder="Home" :disabled="loading || saving" />
+        <form v-if="tab === 'general'" @submit.prevent="save(true)">
+            <div class="form-group row">
+                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-name'">Name</label>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control form-control-sm" :id="_uid + '-name'" v-model="name" placeholder="Home" :disabled="loading || saving" />
+                </div>
             </div>
-        </div>
+        </form>
 
         <list-group v-if="tab === 'accessories'" class="mb-3">
             <list-item v-for="accessory in Object.values(accessories)" :key="accessory.uuid" @click="$emit('show-accessory-settings', accessory)">
@@ -36,8 +38,11 @@
             <div v-if="loading">Loading</div>
             <div v-else-if="saving">Saving</div>
             <div class="flex-fill"></div>
-            <button class="btn btn-default btn-sm" type="button" @click="() => $refs.panel.close()" :disabled="saving">Cancel</button>
-            <button class="btn btn-primary btn-sm" type="button" @click="save(true)" :disabled="loading || saving">Save</button>
+            <template v-if="tab === 'general'">
+                <button class="btn btn-default btn-sm" type="button" @click="() => $refs.panel.close()" :disabled="saving">Cancel</button>&nbsp;
+                <button key="primary" class="btn btn-primary btn-sm" type="button" @click="save(true)" :disabled="loading || saving">Save</button>
+            </template>
+            <button v-else key="primary" class="btn btn-primary btn-sm" type="button" @click="() => $refs.panel.close()" :disabled="loading || saving">Done</button>
         </div>
     </panel>
 </template>
@@ -152,6 +157,21 @@
             stderr(data) {
                 console.error('stderr', data);
                 this.terminal.write(data);
+            }
+        },
+        watch: {
+            async connection(connection, old_connection) {
+                if (old_connection) old_connection.disableProxyStdout().then(() => {
+                    old_connection.removeListener('stdout', this.stdout);
+                    old_connection.removeListener('stderr', this.stderr);
+                });
+
+                if (connection) {
+                    connection.on('stdout', this.stdout);
+                    connection.on('stderr', this.stderr);
+
+                    await connection.enableProxyStdout().then(() => this.terminal.write('\nStarted stdout proxy...\n'));
+                };
             }
         }
     };
