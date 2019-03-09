@@ -11,8 +11,7 @@ import {User as HomebridgeUser} from 'homebridge/lib/user';
 import HomebridgeLogger from 'homebridge/lib/logger';
 import hap from 'hap-nodejs';
 
-import {Server, PluginManager} from '.';
-import Logger, {forceColour as forceColourLogs} from './core/logger';
+import {Server, PluginManager, Logger, forceColourLogs} from '.';
 
 const log = new Logger();
 
@@ -192,21 +191,17 @@ yargs.command('$0 [config]', 'Run the HAP and web server', yargs => {
     log.info('Saving cached accessories');
     await server.saveCachedAccessories();
 
-    log.info('Running', server.accessories.length, 'accessories', server.cached_accessories.length, 'cached accessories');
-    for (const bridge of server.bridges) {
-        log.info('Bridge', bridge.name, bridge.bridge.bridgedAccessories.length, 'accessories', server.cached_accessories.length, 'cached accessories');
-    }
-
     if (argv.group) process.setgid(argv.group);
     if (argv.user) process.setuid(argv.user);
 
-    if (argv.printSetup) {
-        for (const bridge of server.bridges) {
-            // Bridge has already been paired with
-            if (bridge.bridge._accessoryInfo && bridge.bridge._accessoryInfo.pairedClients.length) continue;
+    log.info('Running', server.accessories.length, 'accessories', server.cached_accessories.length, 'cached accessories');
+    for (const bridge of server.bridges) {
+        log.info('Bridge', bridge.name, bridge.bridge.bridgedAccessories.length, 'accessories', server.cached_accessories.length, 'cached accessories');
 
-            bridge.printSetupInfo();
-        }
+        // Bridge has already been paired with
+        if (bridge.bridge._accessoryInfo && bridge.bridge._accessoryInfo.pairedClients.length) continue;
+
+        if (argv.printSetup) bridge.printSetupInfo();
     }
 
     for (const [signal, code] of Object.entries({'SIGINT': 2, 'SIGTERM': 15})) {

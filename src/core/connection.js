@@ -74,7 +74,7 @@ export default class Connection {
     }
 
     handleMessage(messageid, data) {
-        this.server.log.debug('Received message', data, 'from', this.id, 'with messageid', messageid);
+        // this.server.log.debug('Received message', data, 'from', this.id, 'with messageid', messageid);
 
         if (data === 'ping') {
             this.respond(messageid, 'pong');
@@ -190,7 +190,7 @@ export default class Connection {
     }
 
     setCharacteristic(accessory_uuid, service_uuid, characteristic_uuid, value) {
-        this.server.log.info('Setting characteristic', accessory_uuid, service_uuid, characteristic_uuid, 'to', value);
+        // this.server.log.info('Setting characteristic', accessory_uuid, service_uuid, characteristic_uuid, 'to', value);
 
         const accessory = this.server.getAccessory(accessory_uuid);
 

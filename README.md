@@ -11,12 +11,16 @@ A lot.
     - [x] Switch
     - [x] Lightbulb
     - [x] Programmable Switch (shows last action for five seconds)
+    - [x] Outlet
+    - [x] Television
     - [ ] [All other services supported by hap-nodejs](https://github.com/khaost/hap-nodejs/tree/master/lib/gen)
 - [x] Accessory control
     - [x] Switch
     - [ ] Lightbulb
     - [ ] Programmable Switch
-    - [ ] [All services supported by hap-nodejs](https://github.com/khaost/hap-nodejs/tree/master/lib/gen)
+    - [x] Outlet
+    - [ ] Television
+    - [ ] [All other services supported by hap-nodejs](https://github.com/khaost/hap-nodejs/tree/master/lib/gen)
 - [ ] Historical data
     - [ ] Store changes to an accessory's state
     - [ ] Elgato Eve???
@@ -39,6 +43,7 @@ A lot.
     - [ ] Manage users/permissions
     - [ ] Manage HomeKit bridges + choose accessories to expose
         - Per-user HomeKit bridges (see above)
+    - [ ] Expose accessories via multiple bridges
     - [ ] Manage + name HomeKit pairings
 - [x] Plugins
     - [x] Accessories
@@ -49,7 +54,6 @@ A lot.
         - [x] Accessory control
         - [ ] Accessory + accessory platform discovery + setup
         - [ ] Accessory + accessory platform configuration
-        - Maybe allow plugins to mount a static directory on the web server then try to evaluate a JavaScript file?
     - [ ] Web interface themes?
     - [ ] Automation plugins
         - Automation plugins can run other automation checks
@@ -392,13 +396,15 @@ Registers a service component (the small tile). This expects a service type and 
 
 ```js
 import accessoryui, {Service} from 'hap-server-api/accessory-ui';
+import ServiceComponent from 'hap-server-api/accessory-ui/service';
 
 accessoryui.registerServiceComponent(Service.LightSensor, {
-    template: `<div class="service service-light-sensor">
-        <h5>{{ service.name || service.accessory.name }}</h5>
-        <p>Light Sensor</p>
+    template: `<service class="service-light-sensor" :name="service.name || service.accessory.name">
         <p>{{ light }} lux</p>
-    </div>`,
+    </service>`,
+    components: {
+        Service: ServiceComponent,
+    },
     props: ['service'],
     computed: {
         light() {
@@ -408,35 +414,12 @@ accessoryui.registerServiceComponent(Service.LightSensor, {
 });
 ```
 
-Don't include Vue as a dependency of your plugin. The web interface plugin manager exposes Vue as axios through the
+Don't include Vue as a dependency of your plugin. The web interface plugin manager exposes Vue and axios through the
 `require` function.
 
 ```js
 import Vue from 'vue';
 import axios from 'axios';
-```
-
-#### `accessoryui.registerServiceComponent`
-
-Registers a service component (the small tile). This expects a service type and a
-[Vue component](https://vuejs.org/v2/guide/). The Vue component will receive one prop, `service`.
-
-```js
-import accessoryui, {Service} from 'hap-server-api/accessory-ui';
-
-accessoryui.registerServiceComponent(Service.LightSensor, {
-    template: `<div class="service service-light-sensor">
-        <h5>{{ service.name || service.accessory.name }}</h5>
-        <p>Light Sensor</p>
-        <p>{{ light }} lux</p>
-    </div>`,
-    props: ['service'],
-    computed: {
-        light() {
-            return this.service.getCharacteristicValueByName('CurrentAmbientLightLevel');
-        },
-    },
-});
 ```
 
 #### `accessoryui.registerAccessoryDetailsComponent`
@@ -448,7 +431,7 @@ Registers an accessory details component (the full screen view). This expects a 
 import accessoryui, {Service} from 'hap-server-api/accessory-ui';
 import AccessoryDetails from 'hap-server-api/accessory-ui/accessory-details';
 
-accessoryui.registerServiceComponent(Service.LightSensor, {
+accessoryui.registerAccessoryDetailsComponent(Service.LightSensor, {
     template: `<accessory-details class="accessory-details-light-sensor" :name="service.name || service.accessory.name" @show-settings="$emit('show-settings')">
         <p>Light Sensor</p>
         <p>{{ light }} lux</p>
