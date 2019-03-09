@@ -225,4 +225,5 @@ export const system_types = [
 
 export const collapsed_services = {
     [Service.StatelessProgrammableSwitch]: [Service.StatelessProgrammableSwitch],
+    [Service.Television]: [Service.Television, Service.TelevisionSpeaker, Service.InputSource],
 };
