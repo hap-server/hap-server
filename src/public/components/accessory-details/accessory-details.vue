@@ -2,6 +2,12 @@
     <div class="accessory-details" :class="{active: active, updating}">
         <div class="accessory-details-container">
             <slot name="container">
+                <div class="accessory-details-icon">
+                    <slot name="icon">
+                        <home-icon />
+                    </slot>
+                </div>
+
                 <h4>{{ name }}</h4>
 
                 <slot name="status" />
@@ -25,7 +31,12 @@
 </template>
 
 <script>
+    import HomeIcon from '../icons/home.vue';
+
     export default {
+        components: {
+            HomeIcon,
+        },
         props: ['active', 'updating', 'name']
     };
 </script>

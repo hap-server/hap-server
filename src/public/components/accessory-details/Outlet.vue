@@ -1,5 +1,7 @@
 <template>
     <accessory-details class="accessory-details-outlet" :active="on" :updating="updating" :name="service.name || service.accessory.name" @show-settings="$emit('show-settings')">
+        <outlet-icon slot="icon" />
+
         <p>Outlet</p>
         <p v-if="updating">Updating</p>
         <p @click.stop="setOn(!on)">{{ on ? 'On' : 'Off' }}</p>
@@ -9,6 +11,7 @@
 <script>
     import Service from '../../service';
     import AccessoryDetails from './accessory-details.vue';
+    import OutletIcon from '../icons/outlet.vue';
 
     export const uuid = Service.Outlet;
 
@@ -21,6 +24,7 @@
         },
         components: {
             AccessoryDetails,
+            OutletIcon,
         },
         computed: {
             on() {

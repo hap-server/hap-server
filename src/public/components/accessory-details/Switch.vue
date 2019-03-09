@@ -1,5 +1,7 @@
 <template>
     <accessory-details class="accessory-details-switch" :active="on" :updating="updating" :name="service.name || service.accessory.name" @show-settings="$emit('show-settings')">
+        <switch-icon slot="icon" />
+
         <p>Switch</p>
         <p v-if="updating">Updating</p>
         <p @click.stop="setOn(!on)">{{ on ? 'On' : 'Off' }}</p>
@@ -9,6 +11,7 @@
 <script>
     import Service from '../../service';
     import AccessoryDetails from './accessory-details.vue';
+    import SwitchIcon from '../icons/light-switch.vue';
 
     export const uuid = Service.Switch;
 
@@ -21,6 +24,7 @@
         },
         components: {
             AccessoryDetails,
+            SwitchIcon,
         },
         computed: {
             on() {

@@ -1,5 +1,7 @@
 <template>
     <accessory-details class="accessory-details-programmable-switch" :active="on" :updating="updating" :name="service.name || service.accessory.name" @show-settings="$emit('show-settings')">
+        <button-icon slot="icon" />
+
         <p>Programmable Switch</p>
 
         <p>There {{ service.services.length === 1 ? 'is' : 'are' }} {{ service.services.length || 'no' }} button{{ service.services.length !== 1 ? 's' : '' }}.
@@ -15,6 +17,7 @@
 <script>
     import Service from '../../service';
     import AccessoryDetails from './accessory-details.vue';
+    import ButtonIcon from '../icons/button.vue';
 
     export const uuid = 'CollapsedService.' + Service.StatelessProgrammableSwitch;
 
@@ -27,6 +30,7 @@
         },
         components: {
             AccessoryDetails,
+            ButtonIcon,
         },
         computed: {
             on() {

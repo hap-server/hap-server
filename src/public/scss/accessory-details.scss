@@ -39,6 +39,23 @@
             content: '';
             flex: 1 0 auto;
         }
+
+        .accessory-details-icon,
+        .icon {
+            height: 30px;
+        }
+
+        .accessory-details-icon {
+            margin-bottom: 1em;
+        }
+
+        svg.icon {
+            fill: #ffffff;
+        }
+
+        img.icon {
+            filter: brightness(0) invert(100%);
+        }
     }
 
     &.unsupported-service,
