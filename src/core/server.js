@@ -93,7 +93,7 @@ export default class Server extends EventEmitter {
 
     loadBridge(bridge_config) {
         // bridge_config.username is required - all other properties are optional
-        const name = bridge_config.username || 'Bridge ' + bridge_config.username.match(/(.{2}\:.{2})$/)[1];
+        const name = bridge_config.name || 'Bridge ' + bridge_config.username.match(/(.{2}\:.{2})$/)[1];
 
         const bridge = new Bridge(this, this.log.withPrefix(name), {
             uuid: bridge_config.uuid || uuid.generate('hap-server:bridge:' + bridge_config.username),

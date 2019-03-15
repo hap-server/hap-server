@@ -3,6 +3,7 @@ import os from 'os';
 import chalk from 'chalk';
 import qrcode from 'qrcode-terminal';
 import {Bridge as HAPBridge, Accessory, Service, Characteristic} from './hap-async';
+import AccessoryProxy from './accessoryproxy';
 
 export default class Bridge {
     constructor(server, log, config) {
@@ -22,6 +23,7 @@ export default class Bridge {
 
         this.accessory_uuids = config.accessory_uuids || [];
         this.cached_accessories = [];
+        this.accessory_proxy_map = new WeakMap();
 
         this.bridge = this._createBridge(config);
 
@@ -134,16 +136,36 @@ export default class Bridge {
         return this.cached_accessories.map(accessory => accessory.toHAP(args)[0]);
     }
 
+    getAccessoryProxy(accessory) {
+        if (this.accessory_proxy_map.has(accessory)) return this.accessory_proxy_map.get(accessory);
+
+        if (accessory instanceof AccessoryProxy) {
+            this.accessory_proxy_map.set(accessory.accessory, accessory);
+            return accessory;
+        }
+
+        const proxy = new AccessoryProxy(accessory /* , permissions */);
+        this.accessory_proxy_map.set(accessory, proxy);
+
+        return proxy;
+    }
+
     addAccessory(accessory) {
+        accessory = this.getAccessoryProxy(accessory);
+
         this.bridge.addBridgedAccessory(accessory);
         this.removeCachedAccessory(accessory);
     }
 
     removeAccessory(accessory) {
+        accessory = this.getAccessoryProxy(accessory);
+
         this.bridge.removeBridgeAccessory(accessory);
     }
 
     addCachedAccessory(accessory) {
+        accessory = this.getAccessoryProxy(accessory);
+
         this.log.debug('Adding cached accessory', accessory.displayName, 'to', this.name);
 
         if (accessory._isBridge) throw new Error('Cannot Bridge another Bridge!');
@@ -159,6 +181,8 @@ export default class Bridge {
     }
 
     removeCachedAccessory(accessory) {
+        accessory = this.getAccessoryProxy(accessory);
+
         let index;
         while ((index = this.cached_accessories.indexOf(accessory)) !== -1) this.cached_accessories.splice(index, 1);
 
