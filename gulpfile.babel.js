@@ -50,6 +50,9 @@ const webpack_config = {
             'vue$': 'vue/dist/vue.esm.js', // 'vue/dist/vue.common.js' for webpack 1
         },
     },
+    output: {
+        filename: '[name].js',
+    },
 };
 
 gulp.task('build-backend', gulp.parallel(function () {
@@ -68,8 +71,8 @@ gulp.task('build-backend', gulp.parallel(function () {
 
 gulp.task('build-frontend', function () {
     return pump([
-        gulp.src('src/public/index.js'),
         gulp.src('src/public/scss/index.scss'),
+        gulp.src('src/public/index.js'),
         webpack(webpack_config),
         gulp.dest('dist/public'),
     ]);
