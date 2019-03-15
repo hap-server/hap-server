@@ -25,27 +25,27 @@
             <dl class="row">
                 <template v-if="manufacturer">
                     <dt class="col-sm-4">Manufacturer</dt>
-                    <dd class="col-sm-8 text-right">{{ manufacturer.value }}</dd>
+                    <dd class="col-sm-8 text-right selectable">{{ manufacturer.value }}</dd>
                 </template>
 
                 <template v-if="model">
                     <dt class="col-sm-4">Model</dt>
-                    <dd class="col-sm-8 text-right">{{ model.value }}</dd>
+                    <dd class="col-sm-8 text-right selectable">{{ model.value }}</dd>
                 </template>
 
                 <template v-if="serial_number">
                     <dt class="col-sm-4">Serial Number</dt>
-                    <dd class="col-sm-8 text-right">{{ serial_number.value }}</dd>
+                    <dd class="col-sm-8 text-right selectable">{{ serial_number.value }}</dd>
                 </template>
 
                 <template v-if="firmware_revision">
                     <dt class="col-sm-4">Firmware</dt>
-                    <dd class="col-sm-8 text-right">{{ firmware_revision.value }}</dd>
+                    <dd class="col-sm-8 text-right selectable">{{ firmware_revision.value }}</dd>
                 </template>
 
                 <template v-if="hardware_revision">
                     <dt class="col-sm-4">Hardware Revision</dt>
-                    <dd class="col-sm-8 text-right">{{ hardware_revision.value }}</dd>
+                    <dd class="col-sm-8 text-right selectable">{{ hardware_revision.value }}</dd>
                 </template>
             </dl>
         </form>

@@ -2,7 +2,7 @@
     <div class="root" :class="{scrolled}">
         <div class="header">
             <div class="left">
-                <div class="badge badge-pill badge-dark" @click="modals.push({type: 'settings'})">Settings</div>
+                <div class="badge badge-pill badge-dark clickable" @click="modals.push({type: 'settings'})">Settings</div>
             </div>
             <h1>{{ name || 'Home' }}</h1>
             <div class="right">

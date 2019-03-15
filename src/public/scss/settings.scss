@@ -29,6 +29,7 @@
     border: darken($light, 20%) 1px solid;
     border-top-width: 0;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 
     &.v-enter-active {
         animation: panel-in 0.5s ease-in;
