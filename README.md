@@ -117,19 +117,20 @@ Positionals:
                      [string] [default: "/Users/samuel/.homebridge/config.json"]
 
 Options:
-  --debug, -D              Enable debug level logging           [default: false]
-  --timestamps             Add timestamps to logs                [default: true]
-  --force-colour           Force colour in logs                 [default: false]
-  --help                   Show help                                   [boolean]
-  --data-path              Path to store data                           [string]
-  --plugin-path, -P        Additional paths to look for plugins at as well as
-                           the default location ([path] can also point to a
-                           single plugin)                                [array]
-  --print-setup            Print setup information              [default: false]
-  --allow-unauthenticated  Allow unauthenticated requests (for easier hacking)
-                                                                [default: false]
-  --user, -u               User to run as after starting
-  --group, -g              Group to run as after starting
+  --debug, -D                  Enable debug level logging
+                                                      [boolean] [default: false]
+  --timestamps, -T             Add timestamps to logs  [boolean] [default: true]
+  --force-colour, -C           Force colour in logs   [boolean] [default: false]
+  --help                       Show help                               [boolean]
+  --data-path, -U              Path to store data                       [string]
+  --plugin-path, -P            Additional paths to look for plugins at as well
+                               as the default location ([path] can also point to
+                               a single plugin)                          [array]
+  --print-setup, -Q            Print setup information[boolean] [default: false]
+  --allow-unauthenticated, -I  Allow unauthenticated requests (for easier
+                               hacking)               [boolean] [default: false]
+  --user, -u                   User to run as after starting
+  --group, -g                  Group to run as after starting
 ```
 
 To show the version number run `hap-server version`.
@@ -387,7 +388,14 @@ already been loaded*. You can load new scripts with `require.import`, which retu
 exports. Like plugins running on the server, Accessory UIs use the `require` function to access the plugin API.
 
 You can also use [webpack](https://webpack.js.org) to bundle your Accessory UI's dependencies. Remember to use
-`__non_webpack_require__` to access the Accessory UI API.
+`__non_webpack_require__` to access the Accessory UI API or add the API as
+[external modules](https://webpack.js.org/configuration/externals/):
+
+```js
+    externals: [
+        (context, request, callback) => request.match(/^(hap-server-api\/.*|vue|axios)$/g) ? callback(null, `require(${JSON.stringify(request)})`) : callback(),
+    ],
+```
 
 #### `accessoryui.registerServiceComponent`
 

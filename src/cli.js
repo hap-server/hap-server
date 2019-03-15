@@ -22,13 +22,15 @@ yargs.option('debug', {
     default: false,
 });
 yargs.option('timestamps', {
-    aliases: ['T', 'timestamp'],
+    alias: 'T',
+    aliases: ['timestamp', 'T'],
     describe: 'Add timestamps to logs',
     type: 'boolean',
     default: true,
 });
 yargs.option('force-colour', {
-    aliases: ['C', 'force-color', 'color'],
+    alias: 'C',
+    aliases: ['force-color', 'color', 'C'],
     describe: 'Force colour in logs',
     type: 'boolean',
     default: false,
@@ -40,8 +42,10 @@ yargs.command('$0 [config]', 'Run the HAP and web server', yargs => {
         type: 'string',
         default: path.join(os.homedir(), '.homebridge', 'config.json'),
     });
+
     yargs.option('data-path', {
-        aliases: ['U', 'user-storage-path'],
+        alias: 'U',
+        aliases: ['user-storage-path', 'U'],
         describe: 'Path to store data',
         type: 'string',
     });
@@ -53,13 +57,15 @@ yargs.command('$0 [config]', 'Run the HAP and web server', yargs => {
     });
 
     yargs.option('print-setup', {
-        aliases: ['Q', 'qrcode'],
+        alias: 'Q',
+        aliases: ['qrcode', 'Q'],
         describe: 'Print setup information',
         type: 'boolean',
         default: false,
     });
     yargs.option('allow-unauthenticated', {
-        aliases: ['I', 'insecure'],
+        alias: 'I',
+        aliases: ['insecure', 'I'],
         describe: 'Allow unauthenticated requests (for easier hacking)',
         type: 'boolean',
         default: false,
