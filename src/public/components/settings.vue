@@ -31,6 +31,15 @@
         </list-group>
 
         <div v-if="tab === 'output'" class="form-group">
+            <dl v-if="command_line_flags.length" class="row">
+                <dt class="col-sm-3">Command</dt>
+                <dd class="col-sm-9 text-right selectable">
+                    <template v-for="arg in command_line_flags">
+                        {{ arg.match(/[^\\]\s/g) ? `"${arg}"` : arg }}
+                    </template>
+                </dd>
+            </dl>
+
             <terminal :terminal="terminal" />
         </div>
 
@@ -38,6 +47,9 @@
             <div v-if="loading">Loading</div>
             <div v-else-if="saving">Saving</div>
             <div class="flex-fill"></div>
+            <template v-if="tab === 'accessories'">
+                <button class="btn btn-default btn-sm" type="button" @click="$emit('refresh-accessories')" :disabled="loadingAccessories">Refresh accessories</button>&nbsp;
+            </template>
             <template v-if="tab === 'general'">
                 <button class="btn btn-default btn-sm" type="button" @click="() => $refs.panel.close()" :disabled="saving">Cancel</button>&nbsp;
                 <button key="primary" class="btn btn-primary btn-sm" type="button" @click="save(true)" :disabled="loading || saving">Save</button>
@@ -56,11 +68,13 @@
     import ListItem from './list-item.vue';
 
     export default {
-        props: ['connection', 'accessories'],
+        props: ['connection', 'accessories', 'loading-accessories'],
         data() {
             return {
                 loading: false,
                 saving: false,
+
+                command_line_flags: [],
 
                 tab: 'general',
 
@@ -96,6 +110,7 @@
 
             await Promise.all([
                 this.reload(),
+                this.loadCommandLineFlags(),
                 this.loadBridges(),
                 this.connection.enableProxyStdout().then(() => this.terminal.write('\nStarted stdout proxy...\n')),
             ]);
@@ -122,6 +137,9 @@
                 } finally {
                     this.loading = false;
                 }
+            },
+            async loadCommandLineFlags() {
+                this.command_line_flags = await this.connection.getCommandLineFlags();
             },
             async loadBridges() {
                 if (this.loading_bridges) throw new Error('Already loading');

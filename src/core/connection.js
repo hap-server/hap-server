@@ -1,4 +1,5 @@
 
+import process from 'process';
 import PluginManager from './plugins';
 import Homebridge from './homebridge';
 
@@ -13,6 +14,7 @@ const message_methods = {
     'set-accessories-data': 'handleSetAccessoriesDataMessage',
     'get-home-settings': 'handleGetHomeSettingsMessage',
     'set-home-settings': 'handleSetHomeSettingsMessage',
+    'get-command-line-flags': 'handleGetCommandLineFlagsMessage',
     'enable-proxy-stdout': 'handleEnableProxyStdoutMessage',
     'disable-proxy-stdout': 'handleDisableProxyStdoutMessage',
     'list-bridges': 'handleListBridgesMessage',
@@ -283,6 +285,12 @@ export default class Connection {
             type: 'update-home-settings',
             data,
         }, this.ws);
+    }
+
+    handleGetCommandLineFlagsMessage(messageid) {
+        this.server.log.info('Getting command line flags for', this.id);
+
+        this.respond(messageid, process.argv);
     }
 
     handleEnableProxyStdoutMessage(messageid) {

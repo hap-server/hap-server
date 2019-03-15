@@ -16,11 +16,22 @@
         </div>
 
         <template v-for="(modal, index) in modals">
-            <settings v-if="modal.type === 'settings'" :ref="'modal-' + index" :connection="connection" :accessories="accessories" @show-accessory-settings="accessory => modals.push({type: 'accessory-settings', accessory})" @updated-settings="reload" @close="modals.splice(index, 1)" />
-            <accessory-settings v-else-if="modal.type === 'accessory-settings'" :ref="'modal-' + index" :connection="connection" :accessory="modal.accessory" :accessories="accessories" @show-accessory-settings="accessory => modals.push({type: 'accessory-settings', accessory})" @show-service-settings="service => modals.push({type: 'service-settings', service})" @close="modals.splice(index, 1)" />
-            <service-settings v-else-if="modal.type === 'service-settings'" :ref="'modal-' + index" :connection="connection" :service="modal.service" @show-accessory-settings="modals.push({type: 'accessory-settings', accessory: modal.service.accessory})" @close="modals.splice(index, 1)" />
+            <settings v-if="modal.type === 'settings'" :ref="'modal-' + index" :connection="connection"
+                :accessories="accessories" @show-accessory-settings="accessory => modals.push({type: 'accessory-settings', accessory})"
+                :loading-accessories="loading_accessories" @refresh-accessories="refreshAccessories()"
+                @updated-settings="reload" @close="modals.splice(index, 1)" />
+            <accessory-settings v-else-if="modal.type === 'accessory-settings'" :ref="'modal-' + index" :connection="connection"
+                :accessory="modal.accessory" :accessories="accessories" @show-accessory-settings="accessory => modals.push({type: 'accessory-settings', accessory})"
+                @show-service-settings="service => modals.push({type: 'service-settings', service})"
+                @close="modals.splice(index, 1)" />
+            <service-settings v-else-if="modal.type === 'service-settings'" :ref="'modal-' + index" :connection="connection"
+                :service="modal.service" @show-accessory-settings="modals.push({type: 'accessory-settings', accessory: modal.service.accessory})"
+                @close="modals.splice(index, 1)" />
 
-            <accessory-details v-else-if="modal.type === 'accessory-details'" :ref="'modal-' + index" :service="modal.service" :modal="modal" @show-settings="modals.push({type: 'service-settings', service: modal.service})" @show-accessory-settings="modals.push({type: 'accessory-settings', accessory: modal.service.accessory})" @close="modals.splice(index, 1)" />
+            <accessory-details v-else-if="modal.type === 'accessory-details'" :ref="'modal-' + index" :modal="modal"
+                :service="modal.service" @show-settings="modals.push({type: 'service-settings', service: modal.service})"
+                @show-accessory-settings="modals.push({type: 'accessory-settings', accessory: modal.service.accessory})"
+                @close="modals.splice(index, 1)" />
         </template>
 
         <div v-if="!connection" class="connecting" :class="{reconnecting: has_connected}">

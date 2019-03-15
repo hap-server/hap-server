@@ -157,6 +157,12 @@ export default class Connection extends EventEmitter {
         });
     }
 
+    getCommandLineFlags() {
+        return this.send({
+            type: 'get-command-line-flags',
+        });
+    }
+
     enableProxyStdout() {
         return this.send({
             type: 'enable-proxy-stdout',
