@@ -278,7 +278,7 @@ export default class Server extends EventEmitter {
         if (cached_plugin_accessory) return cached_plugin_accessory.accessory;
 
         for (const bridge of this.bridges) {
-            if (!bridge instanceof Homebridge) continue;
+            if (!(bridge instanceof Homebridge)) continue;
             if (bridge.uuid === uuid) return bridge.bridge;
 
             for (const accessory of bridge.bridge.bridgedAccessories) {

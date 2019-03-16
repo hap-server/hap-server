@@ -203,7 +203,7 @@ export class PluginAPI {
             throw new Error('There is already a collapsed service with the UUID "' + uuid + '"');
         }
 
-        if (!collapsed_service_types instanceof Array) {
+        if (!(collapsed_service_types instanceof Array)) {
             throw new Error('collapsed_services must be an Array');
         }
 

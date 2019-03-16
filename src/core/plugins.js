@@ -285,7 +285,7 @@ export class Plugin {
             throw new Error(this.name + ' has already registered an accessory platform with the name "' + name + '".');
         }
 
-        if (!handler instanceof AccessoryPlatform) {
+        if (!(handler instanceof AccessoryPlatform)) {
             handler = AccessoryPlatform.withHandler(handler);
         }
 
@@ -307,7 +307,7 @@ export class Plugin {
     }
 
     registerAccessoryUI(handler) {
-        if (!handler instanceof AccessoryUI) {
+        if (!(handler instanceof AccessoryUI)) {
             throw new Error('handler must be an AccessoryUI object');
         }
 
@@ -321,7 +321,7 @@ export class Plugin {
     }
 
     registerAccessoryDiscovery(handler) {
-        if (!handler instanceof AccessoryDiscovery) {
+        if (!(handler instanceof AccessoryDiscovery)) {
             throw new Error('handler must be an AccessoryDiscovery object');
         }
 
@@ -344,7 +344,7 @@ export class Plugin {
             name = handler.name;
         }
 
-        if (!handler instanceof AccessorySetup.prototype) {
+        if (!(handler instanceof AccessorySetup.prototype)) {
             throw new Error('handler must be a class that extends AccessorySetup');
         }
 
