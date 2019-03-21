@@ -1,3 +1,5 @@
+import path from 'path';
+
 import gulp from 'gulp';
 import pump from 'pump';
 import babel from 'gulp-babel';
@@ -5,14 +7,18 @@ import webpack from 'webpack-stream';
 import json from 'gulp-json-editor';
 import file from 'gulp-file';
 import minify from 'gulp-minify';
+import replace from 'gulp-replace';
+import del from 'del';
 
 import VueLoaderPlugin from 'vue-loader/lib/plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import TerserPlugin from 'terser-webpack-plugin';
 import OptimizeCSSAssetsPlugin from 'optimize-css-assets-webpack-plugin';
+import HotModuleReplacementPlugin from 'webpack/lib/HotModuleReplacementPlugin';
 
 const webpack_config = {
+    context: __dirname,
     mode: 'development',
     module: {
         rules: [
@@ -60,19 +66,35 @@ const webpack_config = {
     },
 };
 
-gulp.task('build-backend', gulp.parallel(function () {
+export const webpack_hot_config = Object.assign({}, webpack_config, {
+    entry: [
+        'webpack-hot-middleware/client',
+        path.join(__dirname, 'src/public/scss/index.scss'),
+        path.join(__dirname, 'src/public/index.js'),
+    ],
+    module: Object.assign({}, webpack_config.module, {
+        rules: webpack_config.module.rules.map((rule, i) => i === 1 ? {
+            test: /\.(s?c|sa)ss$/,
+            use: [
+                'style-loader',
+                'css-loader',
+                'sass-loader',
+            ],
+        } : rule),
+    }),
+    plugins: webpack_config.plugins.concat([
+        new HotModuleReplacementPlugin(),
+    ]),
+});
+
+gulp.task('build-backend', function () {
     return pump([
         gulp.src('src/*.js'),
+        gulp.src('src/core/**/*.js', {base: 'src'}),
         babel(),
         gulp.dest('dist'),
     ]);
-}, function () {
-    return pump([
-        gulp.src('src/core/**/*.js'),
-        babel(),
-        gulp.dest('dist/core'),
-    ]);
-}));
+});
 
 gulp.task('build-frontend', function () {
     return pump([
@@ -139,22 +161,18 @@ const release_webpack_config = Object.assign({}, webpack_config, {
     },
 });
 
-gulp.task('build-backend-release', gulp.parallel(function () {
+gulp.task('build-backend-release', function () {
     return pump([
         gulp.src('src/index.js'),
         gulp.src('src/cli.js'),
+        gulp.src('src/core/**/*.js', {base: 'src'}),
+        replace(/\bDEVELOPMENT\s*=\s*true\b/gi, 'DEVELOPMENT = false'),
+        replace(/\bDEVELOPMENT(?!\s*=)\b/gi, 'false'),
         babel(),
         minify(release_minify_config),
         gulp.dest('release'),
     ]);
-}, function () {
-    return pump([
-        gulp.src('src/core/**/*.js'),
-        babel(),
-        minify(release_minify_config),
-        gulp.dest('release/core'),
-    ]);
-}));
+});
 
 gulp.task('build-frontend-release', function () {
     return pump([
@@ -200,3 +218,7 @@ gulp.task('copy-release-files', function () {
 });
 
 gulp.task('build-release', gulp.parallel('build-backend-release', 'build-frontend-release', 'copy-release-executables', 'copy-release-files'));
+
+gulp.task('clean-release', gulp.series(function () {
+    return del(['release']);
+}, 'build-release'));

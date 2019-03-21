@@ -17,6 +17,8 @@ import Homebridge from './homebridge';
 import Logger from './logger';
 import {Accessory, Service, Characteristic} from './hap-async';
 
+const DEVELOPMENT = true;
+
 export default class Server extends EventEmitter {
     constructor(config, storage, log) {
         super();
@@ -30,7 +32,22 @@ export default class Server extends EventEmitter {
         this.bridges = [];
 
         this.app = express();
-        this.app.use(express.static(path.resolve(__dirname, '..', 'public')));
+
+        if (!DEVELOPMENT) {
+            this.app.use(express.static(path.resolve(__dirname, '..', 'public')));
+        }
+
+        if (DEVELOPMENT) {
+            const webpack = require('webpack');
+            const devmiddleware = require('webpack-dev-middleware');
+            const hotmiddleware = require('webpack-hot-middleware');
+            require('babel-register');
+
+            const compiler = webpack(require('../../gulpfile.babel').webpack_hot_config);
+
+            this.app.use(devmiddleware(compiler));
+            this.app.use(hotmiddleware(compiler));
+        }
 
         this.wss = new WebSocket.Server({noServer: true});
         this.wss.on('connection', ws => this.handleWebsocketConnection(ws));
