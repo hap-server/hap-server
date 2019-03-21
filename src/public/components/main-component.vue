@@ -2,7 +2,12 @@
     <div class="root" :class="{scrolled}">
         <div class="header">
             <div class="left">
-                <div class="badge badge-pill badge-dark clickable" @click="modals.push({type: 'settings'})">Settings</div>
+                <span v-if="authenticated_user" class="badge badge-pill badge-dark clickable" @click="modals.push({type: 'authenticate'})">
+                    Authenticated as {{ authenticated_user.name }}
+                </span>
+                <span v-else class="badge badge-pill badge-dark clickable" @click="modals.push({type: 'authenticate'})">Login</span>
+
+                <span class="badge badge-pill badge-dark clickable" @click="modals.push({type: 'settings'})">Settings</span>
             </div>
             <h1>{{ name || 'Home' }}</h1>
             <div class="right">
@@ -16,7 +21,9 @@
         </div>
 
         <template v-for="(modal, index) in modals">
-            <settings v-if="modal.type === 'settings'" :ref="'modal-' + index" :connection="connection"
+            <authenticate v-if="modal.type === 'authenticate'" :ref="'modal-' + index" :connection="connection" @close="modals.splice(index, 1)" />
+
+            <settings v-else-if="modal.type === 'settings'" :ref="'modal-' + index" :connection="connection"
                 :accessories="accessories" @show-accessory-settings="accessory => modals.push({type: 'accessory-settings', accessory})"
                 :loading-accessories="loading_accessories" @refresh-accessories="refreshAccessories()"
                 @updated-settings="reload" @close="modals.splice(index, 1)" />
@@ -44,6 +51,8 @@
     import Connection from '../connection';
     import Accessory from '../accessory';
     import PluginManager from '../plugins';
+
+    import Authenticate from './authenticate.vue';
 
     import Layout from './layout.vue';
     import AccessoryDetails from './accessory-details.vue';
@@ -76,6 +85,8 @@
             };
         },
         components: {
+            Authenticate,
+
             Layout,
             AccessoryDetails,
 
@@ -325,6 +336,8 @@
                     const modal = this.modals[this.modals.length - 1];
 
                     if (!modal.title) {
+                        if (modal.type === 'authenticate') return 'Login';
+
                         if (modal.type === 'settings') return 'Settings';
                         if (modal.type === 'accessory-settings') return modal.accessory.name + ' Settings';
                         if (modal.type === 'service-settings') return (modal.service.name || modal.service.accessory.name) + ' Settings';
@@ -338,7 +351,10 @@
                 return this.name || 'Home';
             },
             modal_open() {
-                return !this.connected || !!this.modals.length;
+                return this.connecting || !!this.modals.length;
+            },
+            authenticated_user() {
+                return this.connection ? this.connection.authenticated_user : undefined;
             }
         },
         watch: {
@@ -347,6 +363,20 @@
             },
             modal_open() {
                 document.body.style.overflow = this.modal_open ? 'hidden' : 'auto';
+            },
+            connection(connection, old_connection) {
+                for (const accessory of Object.values(this.accessories)) {
+                    accessory.connection = connection;
+                }
+            },
+            async authenticated_user(authenticated_user) {
+                if (!authenticated_user) return;
+
+                await Promise.all([
+                    this.reload(),
+                    this.reloadBridges(),
+                    this.refreshAccessories(true),
+                ]);
             }
         }
     };

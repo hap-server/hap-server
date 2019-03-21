@@ -25,8 +25,8 @@ A lot.
     - [ ] Store changes to an accessory's state
     - [ ] Elgato Eve???
 - [ ] Security
-    - [ ] Authentication
-    - [ ] Users (maybe use system users/LDAP?)
+    - [x] Authentication
+        - Completely handled by plugins
     - [ ] Permissions
     - [ ] Per-user HomeKit bridges
         - This would allow you to configure all accessories in Homebridge and then allow multiple people to create
@@ -54,6 +54,8 @@ A lot.
         - [x] Accessory control
         - [ ] Accessory + accessory platform discovery + setup
         - [ ] Accessory + accessory platform configuration
+        - [x] Authentication
+        - [ ] User management
     - [ ] Web interface themes?
     - [ ] Automation plugins
         - Automation plugins can run other automation checks
@@ -379,6 +381,28 @@ TODO
 
 TODO
 
+#### `hapserver.registerAuthenticationHandler`
+
+Registers an authentication handler. Authentication handlers receive authentication messages from the web interface
+and should register an accessory UI with an authentication handler component in the web interface.
+
+See [`accessoryui.registerAuthenticationHandlerComponent`](#accessoryui-registerauthenticationhandlercomponent).
+
+```js
+import hapserver, {AuthenticatedUser} from 'hap-server-api';
+
+hapserver.registerAuthenticationHandler('LocalStorage', async (data, previous_user) => {
+    // Check the credentials from the web interface
+    const user = await checkCredentialsAndGetUser(data);
+
+    // Return an AuthenticatedUser object with a globally unique ID (used for permissions) and a name to display in the web interface
+    return new AuthenticatedUser(user.id, user.name || data.username);
+
+    // You don't have to return an AuthenticatedUser object immediately
+    // You can return plain objects and throw errors and create a multi-step login process
+});
+```
+
 ### Accessory UIs
 
 Accessory UIs register components in the web interface. Accessory UI scripts should be registered with
@@ -470,4 +494,66 @@ accessoryui.registerCollapsedService(Service.Television, [
     Service.InputSource,
     Service.TelevisionSpeaker,
 ]);
+```
+
+#### `accessoryui.registerAuthenticationHandlerComponent`
+
+Registers an authentication handler component.
+
+See [`hapserver.registerAuthenticationHandler`](#hapserver-registerauthenticationhandler).
+
+```js
+
+import accessoryui from 'hap-server-api/accessory-ui';
+
+const AuthenticationHandlerComponent = {
+    template: `<div class="authentication-handler authentication-handler-storage">
+        <form @submit.prevent="authenticate">
+            <!-- Ask the user for their login credentials -->
+
+            <div class="d-flex">
+                <div class="flex-fill"></div>
+                <button class="btn btn-default btn-sm" type="button" @click="$emit('close')">Cancel</button>
+                <button class="btn btn-primary btn-sm" type="submit" :disabled="authenticating">Login</button>
+            </div>
+        </form>
+    </div>`,
+    props: ['connection'],
+    data() {
+        return {
+            authenticating: false,
+            username: '',
+            password: '',
+        };
+    },
+    methods: {
+        async authenticate() {
+            if (this.authenticating) throw new Error('Already authenticating');
+            this.authenticating = true;
+
+            try {
+                const user = await this.connection.send({
+                    username: this.username,
+                    password: this.password,
+                });
+
+                // You don't have to return an AuthenticatedUser object immediately
+                // You can make multiple requests to the authentication handler and create a multi-step login process
+
+                this.$emit('user', user);
+                this.$emit('close');
+            } finally {
+                this.authenticating = false;
+            }
+        },
+    },
+    watch: {
+        authenticating(authenticating) {
+            this.$emit('authenticating', authenticating);
+        },
+    },
+};
+
+// First argument is the same ID passed to hapserver.registerAuthenticationHandler, second is a Vue component and the third is an optional display name for when multiple authentication handlers are available
+accessoryui.registerAuthenticationHandlerComponent('LocalStorage', AuthenticationHandlerComponent, 'Local Storage');
 ```

@@ -8,12 +8,15 @@ import * as axios_module from 'axios';
 import Service, {type_names as service_type_names, system_types as system_service_types, collapsed_services} from './service';
 import Characteristic from './characteristic';
 
+import {AuthenticatedUser} from './connection';
+
 import {instances as main_component_instances} from './components/main-component.vue';
 import service_components from './components/services';
 import * as service_component_module from './components/services/service.vue';
 import accessory_details_components from './components/accessory-details';
 import * as accessory_details_component_module from './components/accessory-details/accessory-details.vue';
 import icon_component_modules from './components/icons';
+import authentication_handler_components from './components/authentication-handlers';
 
 let instance;
 
@@ -129,6 +132,8 @@ export class PluginManager {
             __esModule: true,
             default: plugin_api,
 
+            AuthenticatedUser,
+
             // Expose Service and Characteristic for the default UUIDs
             Service,
             Characteristic,
@@ -204,7 +209,7 @@ export class PluginAPI {
         }
 
         if (!(collapsed_service_types instanceof Array)) {
-            throw new Error('collapsed_services must be an Array');
+            throw new Error('collapsed_service_types must be an Array');
         }
 
         for (const collapsed_service_type of collapsed_service_types) {
@@ -219,5 +224,26 @@ export class PluginAPI {
         collapsed_services[uuid] = collapsed_service_types;
 
         this.refreshDisplayServices();
+    }
+
+    registerAuthenticationHandlerComponent(localid, component, name) {
+        const id = this.accessory_ui.plugin_authentication_handlers[localid];
+
+        if (typeof id === 'undefined') {
+            throw new Error('Unknown authentication handler "' + localid + '"');
+        }
+
+        if (authentication_handler_components.has(id)) {
+            throw new Error('There is already an authentication handler component with the ID "' + id +
+                '" (global ID of "' + localid + '")');
+        }
+
+        if (!name) name = localid;
+
+        if (!component.name) {
+            component.name = 'authentication-handler-' + localid;
+        }
+
+        authentication_handler_components.set(id, {component, name});
     }
 }

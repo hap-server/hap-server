@@ -9,7 +9,7 @@ for (const file of contextRequire.keys()) {
 
     accessory_details_components.set(service.uuid, service.default);
 
-    console.log(file, service);
+    console.log('Accessory details', file, service);
 }
 
 export default accessory_details_components;

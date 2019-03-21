@@ -96,10 +96,12 @@ export class PluginManager {
                 parent_module: parent,
                 default: new PluginAPI(plugin, parent),
                 log: new Logger(plugin.name),
-                AccessoryPlatform,
-                AccessoryUI,
-                AccessoryDiscovery,
-                AccessorySetup,
+                AccessoryPlatform: AccessoryPlatform.bind(AccessoryPlatform, plugin),
+                AccessoryUI: AccessoryUI.bind(AccessoryUI, plugin),
+                AccessoryDiscovery: AccessoryDiscovery.bind(AccessoryDiscovery, plugin),
+                AccessorySetup: AccessorySetup.bind(AccessorySetup, plugin),
+                AuthenticationHandler: AuthenticationHandler.bind(AuthenticationHandler, plugin),
+                AuthenticatedUser: AuthenticatedUser.bind(AuthenticatedUser, plugin),
             }));
 
             return plugin_api;
@@ -241,6 +243,18 @@ export class PluginManager {
             if (accessory_ui) return accessory_ui;
         }
     }
+
+    getAuthenticationHandlers() {
+        return this.plugins.map(plugin => plugin.getAuthenticationHandlers()).flat();
+    }
+
+    getAuthenticationHandler(id) {
+        for (const plugin of this.plugins) {
+            for (const authentication_handler of plugin.authentication_handlers.values()) {
+                if (authentication_handler.id === id) return authentication_handler;
+            }
+        }
+    }
 }
 
 export default PluginManager.instance;
@@ -250,11 +264,13 @@ export class Plugin {
         this.plugin_manager = plugin_manager;
         this.path = path;
         this.name = name;
+
         this.accessories = new Map();
         this.accessory_platforms = new Map();
         this.accessory_ui = new Set();
         this.accessory_discovery = new Set();
         this.accessory_setup = new Map();
+        this.authentication_handlers = new Map();
     }
 
     getAccessoryHandler(name) {
@@ -262,6 +278,10 @@ export class Plugin {
     }
 
     registerAccessory(name, handler) {
+        if (typeof handler !== 'function') {
+            throw new Error('handler must be a function');
+        }
+
         if (this.accessories.has(name)) {
             throw new Error(this.name + ' has already registered an accessory with the name "' + name + '".');
         }
@@ -276,16 +296,20 @@ export class Plugin {
     }
 
     registerAccessoryPlatform(name, handler) {
-        if (name instanceof AccessoryPlatform && !handler) {
+        if ((name instanceof AccessoryPlatform.prototype || typeof name === 'function') && !handler) {
             handler = name;
             name = handler.name;
+        }
+
+        if (!(handler instanceof AccessoryPlatform.prototype) && typeof handler !== 'function') {
+            throw new Error('handler must be a class that extends AccessoryPlatform or a function');
         }
 
         if (this.accessory_platforms.has(name)) {
             throw new Error(this.name + ' has already registered an accessory platform with the name "' + name + '".');
         }
 
-        if (!(handler instanceof AccessoryPlatform)) {
+        if (!(handler instanceof AccessoryPlatform.prototype)) {
             handler = AccessoryPlatform.withHandler(handler);
         }
 
@@ -349,12 +373,40 @@ export class Plugin {
         }
 
         if (this.accessory_setup.has(name)) {
-            throw new Error(this.name + ' has already registered an accessory platform with the name "' + name + '".');
+            throw new Error(this.name + ' has already registered an accessory setup handler with the name "' + name + '".');
         }
 
         log.info('Registering accessory setup handler', name, 'from plugin', this.name);
 
         this.accessory_setup.set(name, handler);
+    }
+
+    getAuthenticationHandlers() {
+        return [...this.authentication_handlers.keys()];
+    }
+
+    getAuthenticationHandler(name) {
+        return this.authentication_handlers.get(name);
+    }
+
+    registerAuthenticationHandler(name, handler, disconnect_handler) {
+        name = '' + name;
+
+        if (typeof handler !== 'function') {
+            throw new Error('handler must be a function');
+        }
+
+        if (this.authentication_handlers.has(name)) {
+            throw new Error(this.name + ' has already registered an authentication handler with the name "' + name + '".');
+        }
+
+        if (!(handler instanceof AuthenticationHandler)) {
+            handler = new AuthenticationHandler(this, name, handler, disconnect_handler);
+        }
+
+        log.info('Registering authentication handler', name, 'from plugin', this.name);
+
+        this.authentication_handlers.set(name, handler);
     }
 }
 
@@ -401,8 +453,9 @@ export class AccessoryPlatform {
 }
 
 export class AccessoryUI {
-    constructor() {
+    constructor(plugin) {
         this.id = AccessoryUI.id++;
+        this.plugin = plugin;
 
         this.express = express();
         this.scripts = [];
@@ -441,6 +494,59 @@ export class AccessorySetup {
     }
 }
 
+export class AuthenticationHandler {
+    constructor(plugin, localid, handler, disconnect_handler) {
+        Object.defineProperty(this, 'id', {value: AuthenticationHandler.id++});
+        Object.defineProperty(this, 'plugin', {value: plugin});
+        Object.defineProperty(this, 'localid', {value: localid});
+
+        this.handler = handler;
+        this.disconnect_handler = disconnect_handler;
+    }
+
+    async handleMessage(data) {
+        const response = await this.handler.call(this, data);
+
+        if (response instanceof AuthenticatedUser) {
+            if (response.authentication_handler && response.authentication_handler !== this) {
+                throw new Error('The authentication handler returned an AuthenticatedUser object that belongs to'
+                    + ' another authentication handler');
+            }
+
+            Object.defineProperty(response, 'authentication_handler', {value: this});
+        }
+
+        return response;
+    }
+
+    handleReauthenticate(authenticated_user) {
+        if (!this.disconnect_handler) return;
+
+        return this.disconnect_handler.call(this, authenticated_user, false);
+    }
+
+    handleDisconnect(authenticated_user) {
+        if (!this.disconnect_handler) return;
+
+        return this.disconnect_handler.call(this, authenticated_user, true);
+    }
+}
+
+AuthenticationHandler.id = 0;
+
+export class AuthenticatedUser {
+    constructor(plugin, id, name, authentication_handler) {
+        Object.defineProperty(this, 'plugin', {value: plugin});
+        Object.defineProperty(this, 'id', {value: id});
+
+        if (authentication_handler && authentication_handler instanceof AuthenticationHandler) {
+            Object.defineProperty(this, 'authentication_handler', {value: authentication_handler});
+        }
+
+        this.name = name;
+    }
+}
+
 export class PluginAPI {
     constructor(plugin, parent_module) {
         this.plugin = plugin;
@@ -471,6 +577,10 @@ export class PluginAPI {
 
     registerAccessorySetup(name, handler) {
         return this.plugin.registerAccessorySetup(name, handler);
+    }
+
+    registerAuthenticationHandler(name, handler, disconnect_handler) {
+        return this.plugin.registerAuthenticationHandler(name, handler, disconnect_handler);
     }
 }
 

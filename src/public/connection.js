@@ -18,6 +18,7 @@ export default class Connection extends EventEmitter {
         this.ws = ws;
         this.messageid = 0;
         this.callbacks = new Map();
+        this.authenticated_user = null;
 
         // this.ws.send('something');
 
@@ -248,5 +249,46 @@ export default class Connection extends EventEmitter {
 
     handleStderr(data) {
         this.emit('stderr', data.data);
+    }
+}
+
+export class AuthenticationHandlerConnection {
+    constructor(connection, authentication_handler_id) {
+        this.connection = connection;
+        this.authentication_handler_id = authentication_handler_id;
+    }
+
+    async send(data) {
+        const response = await this.connection.send({
+            type: 'authenticate',
+            authentication_handler_id: this.authentication_handler_id,
+            data,
+        });
+
+        if (response.reject) {
+            if (response.error) {
+                const error = new (global[response.constructor] || Error)(response.data.message);
+                error.code = response.data.code;
+                throw error;
+            }
+
+            throw response.data;
+        }
+
+        if (response.success) {
+            const authenticated_user = new AuthenticatedUser(this.authentication_handler_id);
+
+            Object.assign(authenticated_user, response.data);
+
+            return authenticated_user;
+        }
+
+        return response.data;
+    }
+}
+
+export class AuthenticatedUser {
+    constructor(authentication_handler_id) {
+        this.authentication_handler_id = authentication_handler_id;
     }
 }

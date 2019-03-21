@@ -37,6 +37,7 @@
         "axios": "^0.18.0",
         "babel-core": "^6.26.3",
         "babel-preset-env": "^1.6.1",
+        "bcrypt": "^3.0.4",
         "bootstrap": "^4.3.1",
         "css-loader": "^2.1.0",
         "eslint": "^5.14.1",

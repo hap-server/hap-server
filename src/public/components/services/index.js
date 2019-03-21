@@ -9,7 +9,7 @@ for (const file of contextRequire.keys()) {
 
     service_components.set(service.uuid, service.default);
 
-    console.log(file, service);
+    console.log('Service tile', file, service);
 }
 
 export default service_components;

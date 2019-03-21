@@ -1,6 +1,6 @@
 
 import process from 'process';
-import PluginManager from './plugins';
+import PluginManager, {AuthenticatedUser} from './plugins';
 import Homebridge from './homebridge';
 
 let id = 0;
@@ -24,6 +24,7 @@ const message_methods = {
     'get-pairings-data': 'handleGetPairingsDataMessage',
     'set-pairings-data': 'handleSetPairingsDataMessage',
     'get-accessory-uis': 'handleGetAccessoryUIsMessage',
+    'authenticate': 'handleAuthenticateMessage',
 };
 
 const ws_map = new WeakMap();
@@ -33,24 +34,36 @@ export default class Connection {
         this.server = server;
         this.ws = ws;
         this.id = id++;
+        this.log = server.log.withPrefix('Connection #' + this.id);
+        this.authenticated_user = null;
         this.enable_proxy_stdout = false;
+        this.last_message = null;
+        this.closed = false;
 
         // this.server.log.debug('WebSocket connection', this.id, this.ws);
 
         ws_map.set(this.ws, this);
 
         ws.on('message', message => {
+            if (this.closed) {
+                this.log.warning('Received message from closed connection...!?');
+                this.ws.close();
+                return;
+            }
+
+            this.last_message = Date.now();
+
             // this.server.log.debug('Received', this.id, message);
 
             if (message === 'pong') {
-                this.server.log.info('Received ping response');
+                this.log.info('Received ping response');
                 return;
             }
 
             const match = message.match(/^\*([0-9]+)\:(.*)$/);
 
             if (!match) {
-                this.server.log.error('Received invalid message from client', this.id);
+                this.log.error('Received invalid message');
                 return;
             }
 
@@ -60,7 +73,33 @@ export default class Connection {
             this.handleMessage(messageid, data);
         });
 
-        ws.send('ping');
+        ws.on('close', code => {
+            this.closed = true;
+            clearInterval(this.terminateInterval);
+
+            this.log.info('Connection closed with code', code);
+
+            try {
+                if (this.authenticated_user) {
+                    this.authenticated_user.authentication_handler.handleDisconnect(this.authenticated_user);
+                }
+            } catch (err) {
+                this.log.error('Error in disconnect handler', err);
+            }
+        });
+
+        // ws.send('ping');
+        ws.ping();
+        ws.on('pong', () => this.last_message = Date.now());
+
+        this.terminateInterval = setInterval(() => {
+            this.ws.ping();
+
+            // A message was received less than 30 seconds ago
+            if (this.last_message > Date.now() - 30000) return;
+
+            this.ws.terminate();
+        }, 15000);
     }
 
     static getConnectionForWebSocket(ws) {
@@ -226,7 +265,7 @@ export default class Connection {
 
     async getAccessoryData(id) {
         //
-        this.server.log.debug('Getting data for accessory', id);
+        this.log.debug('Getting data for accessory', id);
 
         return await this.server.storage.getItem('AccessoryData.' + id) || {};
     }
@@ -245,7 +284,7 @@ export default class Connection {
 
     async setAccessoryData(uuid, data) {
         //
-        this.server.log.debug('Setting data for accessory', uuid, data);
+        this.log.debug('Setting data for accessory', uuid, data);
 
         await this.server.storage.setItem('AccessoryData.' + uuid, data);
 
@@ -264,7 +303,7 @@ export default class Connection {
     }
 
     async getHomeSettings() {
-        this.server.log.debug('Getting global settings');
+        this.log.debug('Getting global settings');
 
         return await this.server.storage.getItem('Home') || {};
     }
@@ -277,7 +316,7 @@ export default class Connection {
     }
 
     async setHomeSettings(data) {
-        this.server.log.debug('Setting global settings', data);
+        this.log.debug('Setting global settings', data);
 
         await this.server.storage.setItem('Home', data);
 
@@ -288,22 +327,22 @@ export default class Connection {
     }
 
     handleGetCommandLineFlagsMessage(messageid) {
-        this.server.log.info('Getting command line flags for', this.id);
+        this.log.info('Getting command line flags for', this.id);
 
         this.respond(messageid, process.argv);
     }
 
     handleEnableProxyStdoutMessage(messageid) {
-        this.server.log.info('Enabling stdout proxy for', this.id);
+        this.log.info('Enabling stdout proxy for', this.id);
         this.enable_proxy_stdout = true;
 
-        setTimeout(() => this.server.log.info('Should work'), 1000);
+        setTimeout(() => this.log.info('Should work'), 1000);
 
         this.respond(messageid);
     }
 
     handleDisableProxyStdoutMessage(messageid) {
-        this.server.log.info('Disabling stdout proxy for', this.id);
+        this.log.info('Disabling stdout proxy for', this.id);
         this.enable_proxy_stdout = false;
 
         this.respond(messageid);
@@ -341,7 +380,7 @@ export default class Connection {
 
     getBridge(uuid) {
         const bridge = this.server.bridges.find(bridge => bridge.uuid === uuid);
-        this.server.log.debug('Getting bridge info', uuid, bridge);
+        this.log.debug('Getting bridge info', uuid, bridge);
         if (!bridge) return;
 
         const bridge_details = {
@@ -409,10 +448,59 @@ export default class Connection {
 
     getAccessoryUIs() {
         return PluginManager.getAccessoryUIs().map(accessory_ui => {
+            const plugin_authentication_handlers = {};
+
+            for (const [localid, authentication_handler] of accessory_ui.plugin.authentication_handlers.entries()) {
+                plugin_authentication_handlers[localid] = authentication_handler.id;
+            }
+
             return {
                 id: accessory_ui.id,
                 scripts: accessory_ui.scripts,
+
+                plugin_authentication_handlers,
             };
         });
+    }
+
+    async handleAuthenticateMessage(messageid, data) {
+        try {
+            const id = data.authentication_handler_id;
+            const authentication_handler = PluginManager.getAuthenticationHandler(id);
+
+            this.log.info('Received authenticate message', messageid, data, authentication_handler);
+
+            if (!authentication_handler) {
+                throw {message: 'Unknown authentication handler'};
+            }
+
+            const response = await authentication_handler.handleMessage(data.data, this.authenticated_user);
+
+            if (response instanceof AuthenticatedUser) {
+                try {
+                    if (this.authenticated_user) {
+                        this.authenticated_user.authentication_handler.handleReauthenticate(this.authenticated_user);
+                    }
+                } catch (err) {
+                    this.log.error('Error in reauthenticate handler', err);
+                }
+
+                this.authenticated_user = response;
+            }
+
+            this.respond(messageid, {
+                success: response instanceof AuthenticatedUser,
+                data: response,
+            });
+        } catch (err) {
+            this.log.error('Error authenticating', err);
+
+            this.respond(messageid, {
+                reject: true,
+                error: err instanceof Error,
+                constructor: err.constructor.name,
+                data: err instanceof Error ? {message: err.message, code: err.code} : err,
+            });
+        }
     }
 }
