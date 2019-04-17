@@ -24,7 +24,7 @@ lint:
     script:
         # Run eslint for JS and Vue files separately
         - npx eslint --ext .js src example-plugins/src
-        - npx eslint --ext .vue src example-plugins/src
+        - npx eslint --ext .vue src
         - npx sass-lint -v
     cache:
         paths:
