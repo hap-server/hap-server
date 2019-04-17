@@ -1,7 +1,9 @@
 @import '../../../node_modules/bootstrap/scss/bootstrap';
 @import '../../../node_modules/xterm/dist/xterm';
 
-html, body, .root {
+html,
+body,
+.root {
     width: 100vw;
     height: 100vh;
 
@@ -77,11 +79,15 @@ body {
 }
 
 .main {
-    h1, h2, h3 {
+    h1,
+    h2,
+    h3 {
         margin: 1rem;
     }
 
-    h1, h2, h3,
+    h1,
+    h2,
+    h3,
     .section p,
     .btn-default {
         color: $light;
