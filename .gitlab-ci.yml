@@ -22,7 +22,9 @@ build:
 
 lint:
     script:
-        - npx eslint src example-plugins/src
+        # Run eslint for JS and Vue files separately
+        - npx eslint --ext .js src example-plugins/src
+        - npx eslint --ext .vue src example-plugins/src
     cache:
         paths:
             - node_modules/

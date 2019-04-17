@@ -7,6 +7,6 @@
         props: ['terminal'],
         mounted() {
             this.terminal.open(this.$el);
-        }
+        },
     };
 </script>

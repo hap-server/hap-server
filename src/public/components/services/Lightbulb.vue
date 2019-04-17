@@ -30,7 +30,7 @@
             },
             brightness() {
                 return this.service.getCharacteristicValueByName('Brightness');
-            }
+            },
         },
         methods: {
             async setOn(value) {
@@ -43,7 +43,7 @@
                 } finally {
                     this.updating = false;
                 }
-            }
-        }
+            },
+        },
     };
 </script>

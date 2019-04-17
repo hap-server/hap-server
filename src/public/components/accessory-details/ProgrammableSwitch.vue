@@ -7,7 +7,7 @@
         <p>There {{ service.services.length === 1 ? 'is' : 'are' }} {{ service.services.length || 'no' }} button{{ service.services.length !== 1 ? 's' : '' }}.
 
         <div class="programmable-switch-buttons">
-            <div v-for="(button, index) in service.services" class="programmable-switch-button">
+            <div v-for="(button, index) in service.services" :key="index" class="programmable-switch-button">
                 <h5>{{ button.name ? button.name.startsWith(service.name) ? button.name.substr(service.name.length).trim() : button.name.startsWith(service.default_name) ? button.name.substr(service.default_name.length).trim() : button.name : 'Button #' + index }}</h5>
             </div>
         </div>
@@ -35,7 +35,7 @@
         computed: {
             on() {
                 return this.service.getCharacteristicValueByName('On');
-            }
+            },
         },
         methods: {
             async setOn(value) {
@@ -48,7 +48,7 @@
                 } finally {
                     this.updating = false;
                 }
-            }
-        }
+            },
+        },
     };
 </script>

@@ -19,6 +19,6 @@
         props: ['title', 'sorted'],
         components: {
             Sortable,
-        }
+        },
     };
 </script>

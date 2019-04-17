@@ -42,7 +42,7 @@
             },
             service_name() {
                 return type_names[this.service.type];
-            }
+            },
         },
         mounted() {
             this.show = true;
@@ -54,7 +54,7 @@
                 if (this.modal && this.modal.closing) {
                     this.modal.closing();
                 }
-            }
-        }
+            },
+        },
     };
 </script>

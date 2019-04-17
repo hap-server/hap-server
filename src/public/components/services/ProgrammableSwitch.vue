@@ -40,7 +40,7 @@
         computed: {
             programmable_switch_event() {
                 return this.service.getCharacteristicByName('ProgrammableSwitchEvent');
-            }
+            },
         },
         watch: {
             programmable_switch_event(programmable_switch_event, old_programmable_switch_event) {
@@ -51,7 +51,7 @@
                 if (programmable_switch_event) {
                     programmable_switch_event.on('value-updated', this.handleSwitchEvent);
                 }
-            }
+            },
         },
         methods: {
             handleSwitchEvent(value) {
@@ -63,7 +63,7 @@
 
                 setTimeout(() => this.active = false, 1000);
                 setTimeout(() => this.last_event = null, 5000);
-            }
-        }
+            },
+        },
     };
 </script>

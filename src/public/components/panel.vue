@@ -29,7 +29,7 @@
         methods: {
             close() {
                 this.show = false;
-            }
-        }
+            },
+        },
     };
 </script>

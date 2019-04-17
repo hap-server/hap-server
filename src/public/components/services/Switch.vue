@@ -27,7 +27,7 @@
         computed: {
             on() {
                 return this.service.getCharacteristicValueByName('On');
-            }
+            },
         },
         methods: {
             async setOn(value) {
@@ -40,7 +40,7 @@
                 } finally {
                     this.updating = false;
                 }
-            }
-        }
+            },
+        },
     };
 </script>

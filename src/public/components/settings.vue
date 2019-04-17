@@ -175,10 +175,11 @@
             stderr(data) {
                 console.error('stderr', data);
                 this.terminal.write(data);
-            }
+            },
         },
         watch: {
             async connection(connection, old_connection) {
+                // eslint-disable-next-line curly
                 if (old_connection) old_connection.disableProxyStdout().then(() => {
                     old_connection.removeListener('stdout', this.stdout);
                     old_connection.removeListener('stderr', this.stderr);
@@ -190,7 +191,7 @@
 
                     await connection.enableProxyStdout().then(() => this.terminal.write('\nStarted stdout proxy...\n'));
                 };
-            }
-        }
+            },
+        },
     };
 </script>

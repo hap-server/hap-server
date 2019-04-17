@@ -53,7 +53,7 @@
                 } finally {
                     this.saving = false;
                 }
-            }
-        }
+            },
+        },
     };
 </script>

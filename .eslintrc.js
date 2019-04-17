@@ -1,5 +1,8 @@
 module.exports = {
-    extends: 'google',
+    extends: [
+        'google',
+        'plugin:vue/recommended',
+    ],
     parserOptions: {
         ecmaVersion: 8,
         sourceType: 'module',
@@ -13,5 +16,27 @@ module.exports = {
 
         'require-jsdoc': 'off',
         'valid-jsdoc': 'off',
+
+        'vue/html-indent': ['error', 4, {
+            alignAttributesVertically: false,
+        }],
+        'vue/html-self-closing': ['warn', {
+            html: {
+                normal: 'any',
+            },
+        }],
+        'vue/script-indent': ['error', 4, {
+            baseIndent: 1,
+            switchCase: 0,
+            ignores: [],
+        }],
     },
+    overrides: [
+        {
+            files: ['*.vue'],
+            rules: {
+                'indent': 'off',
+            },
+        },
+    ],
 };

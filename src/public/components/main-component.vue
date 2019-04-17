@@ -21,21 +21,21 @@
         </div>
 
         <template v-for="(modal, index) in modals">
-            <authenticate v-if="modal.type === 'authenticate'" :ref="'modal-' + index" :connection="connection" @close="modals.splice(index, 1)" />
+            <authenticate v-if="modal.type === 'authenticate'" :key="index" :ref="'modal-' + index" :connection="connection" @close="modals.splice(index, 1)" />
 
-            <settings v-else-if="modal.type === 'settings'" :ref="'modal-' + index" :connection="connection"
+            <settings v-else-if="modal.type === 'settings'" :key="index" :ref="'modal-' + index" :connection="connection"
                 :accessories="accessories" @show-accessory-settings="accessory => modals.push({type: 'accessory-settings', accessory})"
                 :loading-accessories="loading_accessories" @refresh-accessories="refreshAccessories()"
                 @updated-settings="reload" @close="modals.splice(index, 1)" />
-            <accessory-settings v-else-if="modal.type === 'accessory-settings'" :ref="'modal-' + index" :connection="connection"
+            <accessory-settings v-else-if="modal.type === 'accessory-settings'" :key="index" :ref="'modal-' + index" :connection="connection"
                 :accessory="modal.accessory" :accessories="accessories" @show-accessory-settings="accessory => modals.push({type: 'accessory-settings', accessory})"
                 @show-service-settings="service => modals.push({type: 'service-settings', service})"
                 @close="modals.splice(index, 1)" />
-            <service-settings v-else-if="modal.type === 'service-settings'" :ref="'modal-' + index" :connection="connection"
+            <service-settings v-else-if="modal.type === 'service-settings'" :key="index" :ref="'modal-' + index" :connection="connection"
                 :service="modal.service" @show-accessory-settings="modals.push({type: 'accessory-settings', accessory: modal.service.accessory})"
                 @close="modals.splice(index, 1)" />
 
-            <accessory-details v-else-if="modal.type === 'accessory-details'" :ref="'modal-' + index" :modal="modal"
+            <accessory-details v-else-if="modal.type === 'accessory-details'" :key="index" :ref="'modal-' + index" :modal="modal"
                 :service="modal.service" @show-settings="modals.push({type: 'service-settings', service: modal.service})"
                 @show-accessory-settings="modals.push({type: 'accessory-settings', accessory: modal.service.accessory})"
                 @close="modals.splice(index, 1)" />
@@ -270,7 +270,7 @@
                     const new_accessories = [];
                     const removed_accessories = [];
 
-                    for (let accessory_uuid of accessory_uuids) {
+                    for (const accessory_uuid of accessory_uuids) {
                         // Accessory already exists
                         if (this.accessories[accessory_uuid]) continue;
 
@@ -278,7 +278,7 @@
                         new_accessories.push(accessory_uuid);
                     }
 
-                    for (let accessory_uuid of Object.keys(this.accessories)) {
+                    for (const accessory_uuid of Object.keys(this.accessories)) {
                         // Accessory still exists
                         if (accessory_uuids.includes(accessory_uuid)) continue;
 
@@ -294,7 +294,7 @@
                     const added_accessories = new_accessories.map((uuid, index) =>
                         new Accessory(this.connection, uuid, new_accessory_details[index], new_accessory_data[index]));
 
-                    for (let accessory of added_accessories) {
+                    for (const accessory of added_accessories) {
                         this.$set(this.accessories, accessory.uuid, accessory);
                         if (!dont_emit_events) this.$emit('new-accessory', accessory);
                     }
@@ -303,7 +303,7 @@
 
                     const removed_accessory_objects = removed_accessories.map(uuid => this.accessories[uuid]);
 
-                    for (let accessory of removed_accessory_objects) {
+                    for (const accessory of removed_accessory_objects) {
                         this.$delete(this.accessories, accessory.uuid);
                         if (!dont_emit_events) this.$emit('removed-accessory', accessory);
                     }
@@ -323,12 +323,12 @@
             findServices(callback) {
                 const services = [];
 
-                for (let accessory of this.accessories) {
+                for (const accessory of this.accessories) {
                     services.push(...accessory.services.filter(callback));
                 }
 
                 return services;
-            }
+            },
         },
         computed: {
             title() {
@@ -355,7 +355,7 @@
             },
             authenticated_user() {
                 return this.connection ? this.connection.authenticated_user : undefined;
-            }
+            },
         },
         watch: {
             title(title) {
@@ -377,7 +377,7 @@
                     this.reloadBridges(),
                     this.refreshAccessories(true),
                 ]);
-            }
-        }
+            },
+        },
     };
 </script>

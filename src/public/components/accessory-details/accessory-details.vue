@@ -38,6 +38,6 @@
             HomeIcon,
         },
         props: ['active', 'updating', 'name'],
-        inject: ['service']
+        inject: ['service'],
     };
 </script>

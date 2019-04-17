@@ -32,7 +32,7 @@
         watch: {
             sorted(sorted) {
                 this.sorted_cache = sorted;
-            }
-        }
+            },
+        },
     };
 </script>

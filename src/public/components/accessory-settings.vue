@@ -16,6 +16,7 @@
 
             <h5 v-if="accessory.findService(service => !service.is_system_service)">Services</h5>
             <list-group class="mb-3">
+                <!-- eslint-disable-next-line vue/no-use-v-if-with-v-for -->
                 <list-item v-for="service in accessory.services" v-if="!service.is_system_service" :key="service.uuid" @click="$emit('show-service-settings', service)">
                     {{ service.name || service.uuid }}
                     <small v-if="service.name" class="text-muted">{{ service.type_name }} {{ service.uuid }}</small>
@@ -51,7 +52,7 @@
         </form>
 
         <list-group v-if="tab === 'accessories'" class="mb-3">
-            <list-item v-for="accessory in accessories" v-if="accessory_uuids.includes(accessory.uuid)" :key="accessory.uuid" @click="$emit('show-accessory-settings', accessory)">
+            <list-item v-for="accessory in bridged_accessories" :key="accessory.uuid" @click="$emit('show-accessory-settings', accessory)">
                 {{ accessory.name }}
                 <small class="text-muted">{{ accessory.uuid }}</small>
             </list-item>
@@ -138,7 +139,10 @@
             accessory_flags() {
                 if (!this.accessory_information) return;
                 return this.accessory_information.getCharacteristicByName('AccessoryFlags');
-            }
+            },
+            bridged_accessories() {
+                return this.accessories.filter(accessory => this.accessory_uuids.includes(accessory.uuid));
+            },
         },
         async created() {
             this.name = this.accessory.configured_name;
@@ -198,7 +202,7 @@
                 } finally {
                     this.identify_saving = false;
                 }
-            }
-        }
+            },
+        },
     };
 </script>

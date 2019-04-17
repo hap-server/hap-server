@@ -18,6 +18,6 @@
         components: {
             AccessoryDetails,
             BridgeIcon,
-        }
+        },
     };
 </script>

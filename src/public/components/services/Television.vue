@@ -42,7 +42,7 @@
                 if (!this.active_input) return;
 
                 return this.active_input.getCharacteristicValueByName('ConfiguredName');
-            }
+            },
         },
         methods: {
             async setActive(value) {
@@ -55,7 +55,7 @@
                 } finally {
                     this.updating = false;
                 }
-            }
-        }
+            },
+        },
     };
 </script>

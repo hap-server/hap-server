@@ -9,7 +9,7 @@
             <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-handler'">Handler</label>
             <div class="col-sm-9">
                 <select class="custom-select custom-select-sm" ref="select" :id="_uid + '-handler'" :disabled="authenticating" @change="() => selected = parseInt($refs.select.value)">
-                    <option v-for="(id, index) in authentication_handlers" :key="id" :value="id" :selected="selected === id">{{ getAuthenticationHandlerName(id) }}</option>
+                    <option v-for="id in authentication_handlers" :key="id" :value="id" :selected="selected === id">{{ getAuthenticationHandlerName(id) }}</option>
                 </select>
             </div>
         </div>
@@ -66,12 +66,12 @@
                 }
 
                 this.connection.authenticated_user = authenticated_user;
-            }
+            },
         },
         computed: {
             component() {
                 return this.getAuthenticationHandlerComponent(this.selected);
-            }
+            },
         },
         watch: {
             authentication_handlers() {
@@ -85,7 +85,7 @@
                 if (!this.authentication_handler_connection) return;
 
                 this.authentication_handler_connection.connection = connection;
-            }
-        }
+            },
+        },
     };
 </script>

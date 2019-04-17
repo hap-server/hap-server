@@ -53,7 +53,7 @@
                 const name = this.service.name || this.service.accessory.name || '';
 
                 return name.startsWith(this.room_name) ? name.substr(this.room_name.length) : name;
-            }
-        }
+            },
+        },
     };
 </script>

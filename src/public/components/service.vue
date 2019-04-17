@@ -39,7 +39,7 @@
             },
             service_name() {
                 return type_names[this.service.type];
-            }
+            },
         },
         methods: {
             showDetails() {
@@ -61,7 +61,7 @@
             },
             touchend() {
                 if (this.touchstart_timeout) clearTimeout(this.touchstart_timeout);
-            }
-        }
+            },
+        },
     };
 </script>

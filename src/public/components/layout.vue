@@ -43,6 +43,6 @@
             Service,
             ServiceContainer,
         },
-        props: ['connection', 'accessories', 'bridge_uuids']
+        props: ['connection', 'accessories', 'bridge_uuids'],
     };
 </script>
