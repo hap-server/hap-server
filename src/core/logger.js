@@ -15,6 +15,12 @@ export default class Logger {
         this.enable_timestamps = true;
         this.enable_debug = true;
 
+        Object.defineProperty(loggerfunction, 'prefix', {get: () => this.prefix, set: v => this.prefix = v});
+        Object.defineProperty(loggerfunction, 'enable_timestamps',
+            {get: () => this.enable_timestamps, set: v => this.enable_timestamps = v});
+        Object.defineProperty(loggerfunction, 'enable_debug',
+            {get: () => this.enable_debug, set: v => this.enable_debug = v});
+
         return loggerfunction;
     }
 
