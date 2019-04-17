@@ -18,10 +18,7 @@
         "type": "git",
         "url": "https://gitlab.fancy.org.uk/samuel/hap-server"
     },
-    "files": [
-        "dist",
-        "bin"
-    ],
+    "private": true,
     "dependencies": {
         "chalk": "^2.4.2",
         "express": "^4.16.4",

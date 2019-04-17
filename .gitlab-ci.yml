@@ -1,0 +1,38 @@
+# This file is a template, and might need editing before it works on your project.
+# Official framework image. Look for the different tagged releases at:
+# https://hub.docker.com/r/library/node/tags/
+image: node:latest
+
+# This folder is cached between builds
+# http://docs.gitlab.com/ce/ci/yaml/README.html#cache
+cache:
+    paths:
+        - node_modules/
+
+build:
+    stage: build
+    script:
+        - npm install
+        - npx gulp build
+        - npx gulp release
+    artifacts:
+        paths:
+            - dist
+            - release
+
+lint:
+    script:
+        - npx eslint src example-plugins/src
+
+publish:
+    stage: deploy
+    script:
+        - cd release
+        - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
+        - npm publish
+    dependencies:
+        - build
+    only:
+        - /^v.*$/
+    except:
+        - branches

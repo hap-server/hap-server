@@ -203,19 +203,18 @@ gulp.task('copy-release-executables', function () {
 gulp.task('copy-release-files', function () {
     return pump([
         gulp.src('package.json'),
-        json({
-            main: 'index.js',
-            files: [
-                'index.js',
-                'cli.js',
-            ],
-            devDependencies: [],
-            scripts: {
+        json(packagejson => {
+            packagejson.private = false;
+            packagejson.main = 'index.js';
+            packagejson.devDependencies = [];
+            packagejson.scripts = {
                 start: 'bin/hap-server',
-            },
+            };
+            return packagejson;
         }),
 
         gulp.src('README.md'),
+        gulp.src('LICENSE'),
 
         gulp.dest('release'),
     ]);
