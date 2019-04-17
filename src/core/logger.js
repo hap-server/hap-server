@@ -2,17 +2,20 @@ import chalk from 'chalk';
 
 export default class Logger {
     constructor(...prefix) {
-        const logger = function (...args) {
-            return logger.call(this, args);
+        const logger = this;
+
+        const loggerfunction = function() {
+            // eslint-disable-next-line no-invalid-this, prefer-rest-params
+            return logger.call(this, arguments);
         };
 
-        logger.__proto__ = this.constructor.prototype;
+        loggerfunction.__proto__ = this.constructor.prototype;
 
-        logger.prefix = prefix;
-        logger.enable_timestamps = true;
-        logger.enable_debug = true;
+        this.prefix = prefix;
+        this.enable_timestamps = true;
+        this.enable_debug = true;
 
-        return logger;
+        return loggerfunction;
     }
 
     call(context, args) {

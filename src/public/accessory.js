@@ -2,7 +2,7 @@ import EventEmitter from 'events';
 
 import Vue from 'vue';
 
-import Service, {collapsed_services, type_uuids as service_types} from './service';
+import Service, {type_uuids as service_types} from './service';
 import CollapsedService from './collapsed-service';
 
 import service_components from './components/services';
@@ -139,8 +139,9 @@ export default class Accessory extends EventEmitter {
 
             if (collapsed_service_type) {
                 let removed_collapsed_services = removed_collapsed_service_types[collapsed_service_type];
-                if (!removed_collapsed_services) removed_collapsed_services =
-                    removed_collapsed_service_types[collapsed_service_type] = [];
+                if (!removed_collapsed_services) {
+                    removed_collapsed_services = removed_collapsed_service_types[collapsed_service_type] = [];
+                }
 
                 removed_collapsed_services.push(service);
             }

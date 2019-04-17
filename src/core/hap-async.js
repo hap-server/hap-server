@@ -1,4 +1,6 @@
 
+/* eslint prefer-rest-params: 'off' */
+
 import EventEmitter from 'events';
 import {Accessory, Service, Characteristic} from 'hap-nodejs';
 import {once} from 'hap-nodejs/lib/util/once';
@@ -113,7 +115,7 @@ class AsyncCharacteristic extends Characteristic {
         let _return;
         if (!callback) _return = new Promise((rs, rj) => callback = (err, data) => err ? rj(err) : rs(data));
 
-        // Handle special event only characteristics.
+        // Handle special event only characteristics
         if (this.eventOnlyCharacteristic === true) {
             if (callback) callback(null, null);
 
@@ -121,32 +123,36 @@ class AsyncCharacteristic extends Characteristic {
         }
 
         if (this.listeners('get').length > 0) {
-            // allow a listener to handle the fetching of this value, and wait for completion
+            // Allow a listener to handle the fetching of this value, and wait for completion
             const cb = once((err, newValue) => {
                 this.status = err;
 
                 if (err) {
-                    // pass the error along to our callback
+                    // Pass the error along to our callback
                     if (callback) callback(err);
                 } else {
-                    newValue = this.validateValue(newValue); //validateValue returns a value that has be cooerced into a valid value.
-                    if (newValue === undefined || newValue === null)
-                        newValue = this.getDefaultValue();
+                    // validateValue returns a value that has be cooerced into a valid value
+                    newValue = this.validateValue(newValue);
 
-                    // getting the value was a success; we can pass it along and also update our cached value
-                    var oldValue = this.value;
+                    if (newValue === undefined || newValue === null) {
+                        newValue = this.getDefaultValue();
+                    }
+
+                    // Getting the value was a success; we can pass it along and also update our cached value
+                    const oldValue = this.value;
                     this.value = newValue;
                     if (callback) callback(null, newValue);
 
-                    // emit a change event if necessary
-                    if (oldValue !== newValue)
+                    // Emit a change event if necessary
+                    if (oldValue !== newValue) {
                         this.emit('change', {oldValue, newValue, context});
+                    }
                 }
             });
 
             this.emit('get', cb, context, connectionID).then(r => (r = r.find(r => r)) ? undefined : cb(null, r)).catch(cb);
         } else {
-            // no one is listening to the 'get' event, so just return the cached value
+            // No one is listening to the 'get' event, so just return the cached value
             if (callback) callback(this.status, this.value);
         }
 
@@ -169,42 +175,47 @@ class AsyncCharacteristic extends Characteristic {
             this.status = null;
         }
 
-        newValue = this.validateValue(newValue); //validateValue returns a value that has be cooerced into a valid value.
+        // validateValue returns a value that has be cooerced into a valid value
+        newValue = this.validateValue(newValue);
 
         if (this.listeners('set').length > 0) {
-            // allow a listener to handle the setting of this value, and wait for completion
+            // Allow a listener to handle the setting of this value, and wait for completion
             const cb = once(err => {
                 this.status = err;
 
                 if (err) {
-                    // pass the error along to our callback
+                    // Pass the error along to our callback
                     if (callback) callback(err);
                 } else {
-                    if (newValue === undefined || newValue === null)
+                    if (newValue === undefined || newValue === null) {
                         newValue = this.getDefaultValue();
+                    }
 
-                    // setting the value was a success; so we can cache it now
-                    var oldValue = this.value;
+                    // Setting the value was a success; so we can cache it now
+                    const oldValue = this.value;
                     this.value = newValue;
                     if (callback) callback();
 
-                    if (this.eventOnlyCharacteristic === true || oldValue !== newValue)
+                    if (this.eventOnlyCharacteristic === true || oldValue !== newValue) {
                         this.emit('change', {oldValue, newValue, context});
+                    }
                 }
             });
 
             this.emit('set', newValue, cb, context, connectionID).then(r => cb()).catch(cb);
         } else {
-            if (newValue === undefined || newValue === null)
+            if (newValue === undefined || newValue === null) {
                 newValue = this.getDefaultValue();
+            }
 
-            // no one is listening to the 'set' event, so just assign the value blindly
-            var oldValue = this.value;
+            // No one is listening to the 'set' event, so just assign the value blindly
+            const oldValue = this.value;
             this.value = newValue;
             if (callback) callback();
 
-            if (this.eventOnlyCharacteristic === true || oldValue !== newValue)
+            if (this.eventOnlyCharacteristic === true || oldValue !== newValue) {
                 this.emit('change', {oldValue, newValue, context});
+            }
         }
 
         return _return || this;
@@ -225,19 +236,23 @@ class AsyncCharacteristic extends Characteristic {
             this.status = null;
         }
 
-        newValue = this.validateValue(newValue); //validateValue returns a value that has be cooerced into a valid value.
+        // validateValue returns a value that has be cooerced into a valid value
+        newValue = this.validateValue(newValue);
 
-        if (newValue === undefined || newValue === null)
+        if (newValue === undefined || newValue === null) {
             newValue = this.getDefaultValue();
-        // no one is listening to the 'set' event, so just assign the value blindly
-        var oldValue = this.value;
+        }
+
+        // No one is listening to the 'set' event, so just assign the value blindly
+        const oldValue = this.value;
         this.value = newValue;
         if (callback) callback();
 
-        if (this.eventOnlyCharacteristic === true || oldValue !== newValue)
+        if (this.eventOnlyCharacteristic === true || oldValue !== newValue) {
             this.emit('change', {oldValue, newValue, context});
+        }
 
-        return _return || this; // for chaining
+        return _return || this;
     }
 
     emit() {
@@ -276,7 +291,7 @@ export class AsyncEventEmitter extends EventEmitter {
                 event: data,
                 fn: err => {
                     if (err) throw err;
-                }
+                },
             }];
         }
 

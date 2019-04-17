@@ -471,7 +471,7 @@ export default class Connection {
             this.log.info('Received authenticate message', messageid, data, authentication_handler);
 
             if (!authentication_handler) {
-                throw {message: 'Unknown authentication handler'};
+                throw new Error('Unknown authentication handler');
             }
 
             const response = await authentication_handler.handleMessage(data.data, this.authenticated_user);

@@ -147,13 +147,13 @@ export default class Server extends EventEmitter {
 
                 const cached_accessory = this.cached_accessories.find(accessory => accessory_uuid[0] === accessory.plugin.name &&
                     accessory_uuid[1] === accessory.accessory_type &&
-                    accessory_uuid[2] === accessory.accessory.displayName)
+                    accessory_uuid[2] === accessory.accessory.displayName);
                 if (cached_accessory) bridge.addCachedAccessory(cached_accessory.accessory);
             } else {
-                const accessory = this.accessories.find(accessory => accessory.uuid === accessory_uuid)
+                const accessory = this.accessories.find(accessory => accessory.uuid === accessory_uuid);
                 if (accessory) bridge.addAccessory(accessory.accessory);
 
-                const cached_accessory = this.cached_accessories.find(accessory => accessory.uuid === accessory_uuid)
+                const cached_accessory = this.cached_accessories.find(accessory => accessory.uuid === accessory_uuid);
                 if (cached_accessory) bridge.addCachedAccessory(accessory.cached_accessory);
             }
         }
@@ -186,7 +186,7 @@ export default class Server extends EventEmitter {
 
         // this.log.debug('Loaded cached accessory', plugin_accessory.accessory.displayName, plugin_accessory.uuid, cache.plugin, cache.accessory_type);
 
-        for (let bridge of this.bridges.filter(bridge => bridge.accessory_uuids.find(accessory_uuid =>
+        for (const bridge of this.bridges.filter(bridge => bridge.accessory_uuids.find(accessory_uuid =>
             accessory_uuid instanceof Array ? accessory_uuid[0] === cache.plugin &&
                 accessory_uuid[1] === cache.accessory_type &&
                 accessory_uuid[2] === cache.accessory.displayName :
@@ -202,12 +202,14 @@ export default class Server extends EventEmitter {
 
     removeCachedAccessory(uuid) {
         let index;
-        while ((index = this.cached_accessories.findIndex(accessory => accessory.uuid === uuid)) !== -1)
+        while ((index = this.cached_accessories.findIndex(accessory => accessory.uuid === uuid)) !== -1) {
             this.cached_accessories.splice(index, 1);
+        }
     }
 
     async saveCachedAccessories() {
-        const cached_accessories = await Promise.all(this.accessories.concat(this.cached_accessories).map(accessory => accessory.cache()));
+        const cached_accessories = await Promise.all(this.accessories.concat(this.cached_accessories)
+            .map(accessory => accessory.cache()));
 
         await this.storage.setItem('CachedAccessories', cached_accessories);
     }
@@ -228,6 +230,7 @@ export default class Server extends EventEmitter {
     async loadAccessory(accessory_config) {
         const {plugin: plugin_name, accessory: accessory_type, name} = accessory_config;
 
+        // eslint-disable-next-line curly
         if (!plugin_name || !accessory_type || !name) throw new Error('Invalid accessory configuration: accessories'
             + ' must have the plugin, accessory and name properties');
 
@@ -237,6 +240,7 @@ export default class Server extends EventEmitter {
         const accessory_handler = plugin.getAccessoryHandler(accessory_type);
         if (!accessory_handler) throw new Error('No accessory handler with the name "' + accessory_type + '"');
 
+        // eslint-disable-next-line curly
         if (!accessory_config.uuid) accessory_config.uuid = uuid.generate('accessory:' + plugin_name + ':' +
             accessory_type + ':' + name);
 
@@ -250,6 +254,7 @@ export default class Server extends EventEmitter {
                 event.characteristic, event.newValue, event.oldValue, event.context);
         });
 
+        // eslint-disable-next-line curly
         if (this.accessories.find(a => a.uuid === accessory.UUID)) throw new Error('Already have an accessory with' +
             ' the UUID "' + accessory.UUID + '"');
 
@@ -259,7 +264,7 @@ export default class Server extends EventEmitter {
 
         this.accessories.push(plugin_accessory);
 
-        for (let bridge of this.bridges.filter(bridge => bridge.accessory_uuids.find(accessory_uuid =>
+        for (const bridge of this.bridges.filter(bridge => bridge.accessory_uuids.find(accessory_uuid =>
             accessory_uuid instanceof Array ? accessory_uuid[0] === plugin_name &&
                 accessory_uuid[1] === accessory_type && accessory_uuid[2] === name :
                 accessory_uuid === accessory_config.uuid
@@ -283,7 +288,7 @@ export default class Server extends EventEmitter {
     }
 
     async loadAccessoryPlatform(config) {
-        throw 'Not implemented';
+        throw new Error('Not implemented');
     }
 
     publish() {

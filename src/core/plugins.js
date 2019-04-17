@@ -67,7 +67,7 @@ export class PluginManager {
     static requirePatch() {
         const module_load = Module._load;
 
-        Module._load = function (request, parent, isMain) {
+        Module._load = function(request, parent, isMain) {
             if (request === 'hap-server-api' || request.startsWith('hap-server-api/')) {
                 const plugin = PluginManager.instance.getPluginByModule(parent);
 
@@ -78,18 +78,21 @@ export class PluginManager {
                 }
             }
 
+            // eslint-disable-next-line prefer-rest-params
             return module_load.apply(this, arguments);
         };
     }
 
     getPluginByModule(module) {
-        return this.plugins.find(plugin => module.filename === plugin.path || module.filename.startsWith(plugin.path + path.sep));
+        return this.plugins.find(plugin => module.filename === plugin.path ||
+            module.filename.startsWith(plugin.path + path.sep));
     }
 
     static requireApi(request, plugin, parent) {
         if (request === 'hap-server-api') {
             let plugin_api = PluginManager.instance.plugin_apis.get(plugin);
 
+            // eslint-disable-next-line curly
             if (!plugin_api) PluginManager.instance.plugin_apis.set(plugin, plugin_api = Object.freeze({
                 __esModule: true,
                 plugin,
@@ -112,6 +115,7 @@ export class PluginManager {
 
             let plugin_storage = PluginManager.instance.plugin_storage.get(plugin.name);
 
+            // eslint-disable-next-line curly
             if (!plugin_storage) PluginManager.instance.plugin_storage.set(plugin.name, plugin_storage = Object.freeze({
                 __esModule: true,
                 default: persist.create({
@@ -212,6 +216,7 @@ export class PluginManager {
         }
 
         try {
+            // eslint-disable-next-line no-unused-vars
             const package_stat = await fs_stat(path.join(plugin_path, 'package.json'));
 
             return this.loadPlugin(plugin_path);
@@ -373,7 +378,8 @@ export class Plugin {
         }
 
         if (this.accessory_setup.has(name)) {
-            throw new Error(this.name + ' has already registered an accessory setup handler with the name "' + name + '".');
+            throw new Error(this.name + ' has already registered an accessory setup handler with the name "' +
+                name + '".');
         }
 
         log.info('Registering accessory setup handler', name, 'from plugin', this.name);
@@ -397,7 +403,8 @@ export class Plugin {
         }
 
         if (this.authentication_handlers.has(name)) {
-            throw new Error(this.name + ' has already registered an authentication handler with the name "' + name + '".');
+            throw new Error(this.name + ' has already registered an authentication handler with the name "' +
+                name + '".');
         }
 
         if (!(handler instanceof AuthenticationHandler)) {
@@ -438,7 +445,7 @@ export class AccessoryPlatform {
     }
 
     async init(cached_accessories) {
-        for (let cached_accessory of cached_accessories) {
+        for (const cached_accessory of cached_accessories) {
             this.accessories.add(cached_accessory);
         }
     }

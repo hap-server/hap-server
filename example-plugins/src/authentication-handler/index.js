@@ -1,3 +1,4 @@
+/* eslint no-throw-literal: 'off' */
 
 import hapserver, {AuthenticatedUser, AccessoryUI, log} from 'hap-server-api';
 import storage from 'hap-server-api/storage';
@@ -7,6 +8,7 @@ import bcrypt from 'bcrypt';
 const hashPassword = (password, rounds) => new Promise((rs, rj) => bcrypt.hash(password, rounds || 10, (err, hash) => err ? rj(err) : rs(hash)));
 const comparePassword = (password, hash) => new Promise((rs, rj) => bcrypt.hash(password, hash, (err, result) => err ? rj(err) : rs(result)));
 
+// eslint-disable-next-line no-unused-vars
 const checkPassword = (password, hash) => comparePassword(password, hash).then(result => {
     if (!result) throw new Error('Password does not match the hash.');
 });

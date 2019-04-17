@@ -1,4 +1,6 @@
 
+/* eslint prefer-rest-params: 'off' */
+
 import {Accessory, Service, Characteristic} from './hap-async';
 
 export default class AccessoryProxy extends Accessory {

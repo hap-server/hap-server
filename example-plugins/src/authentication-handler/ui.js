@@ -56,7 +56,7 @@ const AuthenticationHandlerComponent = {
                 });
 
                 if (!(user instanceof AuthenticatedUser)) {
-                    throw 'user was not an AuthenticatedUser object';
+                    throw new Error('user was not an AuthenticatedUser object');
                 }
 
                 this.$emit('user', user);

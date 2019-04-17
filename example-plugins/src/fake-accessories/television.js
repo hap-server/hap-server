@@ -1,5 +1,4 @@
 
-import storage from 'hap-server-api/storage';
 import {Accessory, Service, Characteristic} from 'hap-server-api/hap-async';
 
 export default function createAccessory(name, uuid, log) {
@@ -21,8 +20,7 @@ export default function createAccessory(name, uuid, log) {
     television_service.getCharacteristic(Characteristic.Active)
         .on('set', async new_value => {
             log.info('set Active => setNewValue: ' + new_value);
-        })
-        // .updateValue(Characteristic.Active.ACTIVE);
+        }); // .updateValue(Characteristic.Active.ACTIVE);
 
     television_service.getCharacteristic(Characteristic.ActiveIdentifier)
         .on('set', async new_value => {
