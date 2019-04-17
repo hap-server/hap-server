@@ -1,0 +1,55 @@
+{
+    "http_port": 8082,
+
+    "plugin-path": [
+        "../example-plugins/dist"
+    ],
+    "data-path": ".",
+
+    "bridge": {
+        "name": "Homebridge",
+        "username": "CC:22:3D:E3:CE:30",
+        "port": 51826,
+        "pin": "031-45-154"
+    },
+
+    "platforms": [
+    ],
+
+    "bridges": [
+        {
+            "name": "Bridge #2",
+            "username": "00:00:00:00:00:02",
+            "pin": "031-45-154",
+            "accessories": [
+                ["virtual-switches", "VirtualSwitch", "Switch #1"]
+            ],
+            "port": 8081
+        }
+    ],
+
+    "accessories2": [
+        {
+            "plugin": "virtual-switches",
+            "accessory": "VirtualSwitch",
+            "name": "Switch #1"
+        },
+        {
+            "plugin": "fake-accessories",
+            "accessory": "Television",
+            "name": "Television"
+        }
+    ],
+
+    "platforms2": [
+        {
+            "plugin": "virtual-switches",
+            "platform": "VirtualSwitches",
+            "switches": [
+                "Switch #2",
+                "Switch #3",
+                "Switch #4"
+            ]
+        }
+    ]
+}

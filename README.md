@@ -284,6 +284,27 @@ Optional. If not provided a UUID will be generated from the plugin name, accesso
 
 TODO
 
+Development
+---
+
+```
+# Clone the git repository
+git clone https://gitlab.fancy.org.uk/samuel/hap-server
+cd hap-server
+
+# Install dependencies
+npm install
+
+# Build/watch the backend and example plugins
+npx gulp watch-backend watch-example-plugins &
+
+# Copy the example configuration
+cp -r example-config data
+
+# Run the server (this will build the frontend)
+bin/hap-server data/config.json
+```
+
 Plugins
 ---
 
