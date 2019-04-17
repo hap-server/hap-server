@@ -14,7 +14,7 @@ build:
     script:
         - npm install
         - npx gulp build
-        - npx gulp release
+        - npx gulp build-release
     artifacts:
         paths:
             - dist
@@ -23,6 +23,10 @@ build:
 lint:
     script:
         - npx eslint src example-plugins/src
+    cache:
+        paths:
+            - node_modules/
+        policy: pull
 
 publish:
     stage: deploy
@@ -36,3 +40,7 @@ publish:
         - /^v.*$/
     except:
         - branches
+    cache:
+        paths:
+            - node_modules/
+        policy: pull

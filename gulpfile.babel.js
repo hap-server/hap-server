@@ -156,6 +156,14 @@ const release_minify_config = {
 
 const release_webpack_config = Object.assign({}, webpack_config, {
     mode: 'production',
+    plugins: webpack_config.plugins.filter(plugin => !(plugin instanceof MiniCssExtractPlugin)).concat([
+        new MiniCssExtractPlugin({
+            // Options similar to the same options in webpackOptions.output
+            // both options are optional
+            filename: '[hash].css',
+            chunkFilename: '[id].css',
+        }),
+    ]),
     output: undefined,
     optimization: {
         minimizer: [
