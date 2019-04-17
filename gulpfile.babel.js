@@ -41,6 +41,10 @@ const webpack_config = {
                     'sass-loader',
                 ],
             },
+            {
+                test: /\.(png|jpg|gif)$/,
+                loader: 'file-loader',
+            },
         ],
     },
     plugins: [

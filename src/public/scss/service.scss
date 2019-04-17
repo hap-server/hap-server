@@ -9,7 +9,8 @@
 
 .service {
     background-color: rgba(255, 255, 255, 0.5);
-    -webkit-backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
     border-radius: 0.8em;
 
     width: 100%;

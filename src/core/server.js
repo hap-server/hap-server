@@ -7,6 +7,7 @@ import EventEmitter from 'events';
 import express from 'express';
 import WebSocket from 'ws';
 import persist from 'node-persist';
+import csp from 'express-csp';
 
 import {uuid} from 'hap-nodejs';
 
@@ -32,6 +33,18 @@ export default class Server extends EventEmitter {
         this.bridges = [];
 
         this.app = express();
+
+        csp.extend(this.app, {
+            policy: {
+                directives: {
+                    'default-src': ['none'],
+                    'script-src': ['self', 'unsafe-eval'],
+                    'connect-src': ['self', '*'],
+                    'style-src': DEVELOPMENT ? ['self', 'unsafe-inline'] : ['self'],
+                    'img-src': ['self', 'data:'],
+                },
+            },
+        });
 
         if (!DEVELOPMENT) {
             this.app.use(express.static(path.resolve(__dirname, '..', 'public')));
@@ -325,6 +338,11 @@ export default class Server extends EventEmitter {
     }
 
     handle(req, res, next) {
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('X-Frame-Options', 'deny');
+        res.setHeader('X-XSS-Protection', '1');
+        res.setHeader('Feature-Policy', '');
+
         const {pathname} = url.parse(req.url);
 
         const accessory_ui_match = pathname.match(/^\/accessory-ui\/([0-9]+)(\/.*)?$/);
