@@ -200,9 +200,12 @@ yargs.command('$0 [config]', 'Run the HAP and web server', yargs => {
     if (argv.group) process.setgid(argv.group);
     if (argv.user) process.setuid(argv.user);
 
-    log.info('Running', server.accessories.length, 'accessories', server.cached_accessories.length, 'cached accessories');
+    log.info('Running', server.accessories.length, 'accessories',
+        server.cached_accessories.length, 'cached accessories');
+
     for (const bridge of server.bridges) {
-        log.info('Bridge', bridge.name, bridge.bridge.bridgedAccessories.length, 'accessories', server.cached_accessories.length, 'cached accessories');
+        log.info('Bridge', bridge.name, bridge.bridge.bridgedAccessories.length, 'accessories',
+            server.cached_accessories.length, 'cached accessories');
 
         // Bridge has already been paired with
         if (bridge.bridge._accessoryInfo && bridge.bridge._accessoryInfo.pairedClients.length) continue;

@@ -24,9 +24,20 @@ const AuthenticationHandlerComponent = {
                 </div>
             </div>
 
+            <div class="form-group row">
+                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-remember'"></label>
+                <div class="col-sm-9">
+                    <div class="custom-control custom-checkbox">
+                        <input :id="_uid + '-remember'" v-model="remember" type="checkbox" class="custom-control-input" />
+                        <label class="custom-control-label" :for="_uid + '-remember'">Remember me</label>
+                    </div>
+                </div>
+            </div>
+
             <p v-if="error && !error.validation" class="form-text text-danger">{{ error.message || error }}</p>
 
             <div class="d-flex">
+                <slot name="left-buttons" />
                 <div class="flex-fill"></div>
                 <button class="btn btn-default btn-sm" type="button" @click="$emit('close')">Cancel</button>
                 <button class="btn btn-primary btn-sm" type="submit" :disabled="authenticating">Login</button>
@@ -41,6 +52,7 @@ const AuthenticationHandlerComponent = {
 
             username: '',
             password: '',
+            remember: true,
         };
     },
     methods: {
@@ -53,6 +65,7 @@ const AuthenticationHandlerComponent = {
                 const user = await this.connection.send({
                     username: this.username,
                     password: this.password,
+                    remember: this.remember,
                 });
 
                 if (!(user instanceof AuthenticatedUser)) {

@@ -465,33 +465,36 @@ export default class Connection {
 
     async handleAuthenticateMessage(messageid, data) {
         try {
-            const id = data.authentication_handler_id;
-            const authentication_handler = PluginManager.getAuthenticationHandler(id);
+            if (typeof data.authentication_handler_id === 'number') {
+                const id = data.authentication_handler_id;
+                const authentication_handler = PluginManager.getAuthenticationHandler(id);
 
-            this.log.info('Received authenticate message', messageid, data, authentication_handler);
+                this.log.info('Received authenticate message', messageid, data, authentication_handler);
 
-            if (!authentication_handler) {
-                throw new Error('Unknown authentication handler');
-            }
-
-            const response = await authentication_handler.handleMessage(data.data, this.authenticated_user);
-
-            if (response instanceof AuthenticatedUser) {
-                try {
-                    if (this.authenticated_user) {
-                        this.authenticated_user.authentication_handler.handleReauthenticate(this.authenticated_user);
-                    }
-                } catch (err) {
-                    this.log.error('Error in reauthenticate handler', err);
+                if (!authentication_handler) {
+                    throw new Error('Unknown authentication handler');
                 }
 
-                this.authenticated_user = response;
-            }
+                const response = await authentication_handler.handleMessage(data.data, this.authenticated_user);
 
-            this.respond(messageid, {
-                success: response instanceof AuthenticatedUser,
-                data: response,
-            });
+                await this.sendAuthenticateResponse(messageid, response);
+            } else if (data.token) {
+                const token = data.token;
+
+                this.log.info('Resuming session');
+
+                const session = await this.server.storage.getItem('Session.' + token);
+                if (!session) throw new Error('Invalid session');
+
+                const authentication_handler = PluginManager.getAuthenticationHandler(session.authentication_handler_id);
+                if (!authentication_handler) throw new Error('Unknown authentication handler');
+
+                const authenticated_user = await authentication_handler.handleResumeSession(token, session.authenticated_user);
+
+                await this.sendAuthenticateResponse(messageid, authenticated_user);
+            } else {
+                throw new Error('Unknown authentication handler');
+            }
         } catch (err) {
             this.log.error('Error authenticating', err);
 
@@ -499,8 +502,42 @@ export default class Connection {
                 reject: true,
                 error: err instanceof Error,
                 constructor: err.constructor.name,
-                data: err instanceof Error ? {message: err.message, code: err.code} : err,
+                data: err instanceof Error ? {message: err.message, code: err.code, stack: err.stack} : err,
             });
         }
+    }
+
+    async sendAuthenticateResponse(messageid, response) {
+        if (response instanceof AuthenticatedUser) {
+            if (response.token) {
+                // Save the authenticated user to the session
+                await this.server.storage.setItem('Session.' + response.token, {
+                    authentication_handler_id: response.authentication_handler.id,
+                    authenticated_user: response,
+                });
+            }
+
+            try {
+                if (this.authenticated_user) {
+                    this.authenticated_user.authentication_handler.handleReauthenticate(this.authenticated_user);
+                }
+            } catch (err) {
+                this.log.error('Error in reauthenticate handler', err);
+            }
+
+            this.authenticated_user = response;
+
+            return this.respond(messageid, {
+                success: true,
+                data: response,
+                token: response.token,
+                authentication_handler_id: response.authentication_handler_id,
+            });
+        }
+
+        return this.respond(messageid, {
+            success: false,
+            data: response,
+        });
     }
 }

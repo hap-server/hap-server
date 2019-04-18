@@ -52,6 +52,8 @@ hapserver.registerAuthenticationHandler('LocalStorage', async (request, previous
 
     const authenticated_user = new AuthenticatedUser(user.id, user.name || request.username);
 
+    if (request.remember) await authenticated_user.enableReauthentication();
+
     authenticated_users.add(authenticated_user);
 
     return authenticated_user;

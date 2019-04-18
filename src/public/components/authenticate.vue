@@ -20,9 +20,20 @@
 
         <component v-if="component" :is="component" ref="component" :key="selected"
             :connection="authentication_handler_connection" @authenticating="a => authenticating = a"
-            @user="setAuthenticatedUser" @close="() => $refs.panel.close()" />
+            @user="setAuthenticatedUser" @close="() => $refs.panel.close()"
+        >
+            <template slot="left-buttons">
+                <button v-if="localStorage.token" class="btn btn-default btn-sm" type="button"
+                    @click="forgetAuthenticatedUser">Logout</button>
+            </template>
+            <template slot="right-buttons">
+                <button class="btn btn-default btn-sm" type="button" @click="() => $refs.panel.close()">Cancel</button>
+            </template>
+        </component>
 
         <div v-else class="d-flex">
+            <button v-if="localStorage.token" class="btn btn-default btn-sm" type="button"
+                @click="forgetAuthenticatedUser">Logout</button>
             <div class="flex-fill"></div>
             <button class="btn btn-default btn-sm" type="button" @click="() => $refs.panel.close()">Cancel</button>
         </div>
@@ -49,6 +60,8 @@
 
                 authentication_handler_connection: null,
                 authenticating: false,
+
+                localStorage,
             };
         },
         computed: {
@@ -93,6 +106,15 @@
                 }
 
                 this.connection.authenticated_user = authenticated_user;
+
+                // Save the token to localStorage
+                localStorage.setItem('token', authenticated_user.token);
+            },
+            forgetAuthenticatedUser() {
+                this.connection.authenticated_user = null;
+                localStorage.removeItem('token');
+                this.$forceUpdate();
+                this.$refs.panel.close();
             },
         },
     };

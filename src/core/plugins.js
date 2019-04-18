@@ -3,6 +3,7 @@ import Module from 'module';
 import fs from 'fs';
 import path from 'path';
 import util from 'util';
+import crypto from 'crypto';
 
 import semver from 'semver';
 import persist from 'node-persist';
@@ -508,6 +509,7 @@ export class AuthenticationHandler {
         Object.defineProperty(this, 'localid', {value: localid});
 
         this.handler = handler;
+        this.reconnect_handler = null;
         this.disconnect_handler = disconnect_handler;
     }
 
@@ -524,6 +526,26 @@ export class AuthenticationHandler {
         }
 
         return response;
+    }
+
+    /**
+     * @param {string} token
+     * @param {Object} data
+     * @return {Promise<AuthenticatedUser>}
+     */
+    handleResumeSession(token, data) {
+        if (this.reconnect_handler) return this.reconnect_handler.call(this, data);
+
+        const authenticated_user = new AuthenticatedUser(this.plugin, data.id, data.name, this);
+        Object.defineProperty(authenticated_user, 'token', {value: token});
+
+        for (const k of Object.keys(data)) {
+            if (!['plugin', 'id', 'name', 'authentication_handler', 'token'].includes(k)) {
+                authenticated_user[k] = data[k];
+            }
+        }
+
+        return authenticated_user;
     }
 
     handleReauthenticate(authenticated_user) {
@@ -546,11 +568,22 @@ export class AuthenticatedUser {
         Object.defineProperty(this, 'plugin', {value: plugin});
         Object.defineProperty(this, 'id', {value: id});
 
-        if (authentication_handler && authentication_handler instanceof AuthenticationHandler) {
-            Object.defineProperty(this, 'authentication_handler', {value: authentication_handler});
-        }
+        Object.defineProperty(this, 'authentication_handler',
+            authentication_handler && authentication_handler instanceof AuthenticationHandler
+                ? {value: authentication_handler} : {configurable: true, value: null});
+
+        Object.defineProperty(this, 'token', {configurable: true, value: null});
 
         this.name = name;
+    }
+
+    async enableReauthentication() {
+        const bytes = await new Promise((rs, rj) => crypto.randomBytes(48, (err, bytes) => err ? rj(err) : rs(bytes)));
+        const token = bytes.toString('hex');
+
+        Object.defineProperty(this, 'token', {value: token});
+
+        // The server will later save the session
     }
 }
 

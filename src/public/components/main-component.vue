@@ -62,7 +62,7 @@
 </template>
 
 <script>
-    import Connection from '../connection';
+    import Connection, {AuthenticatedUser} from '../connection';
     import Accessory from '../accessory';
     import PluginManager from '../plugins';
 
@@ -220,11 +220,33 @@
                 }
 
                 await Promise.all([
-                    this.reload(),
                     this.loadAccessoryUIs(),
-                    this.reloadBridges(),
-                    this.refreshAccessories(true),
+                    this.tryRestoreSession().catch(() => Promise.all([
+                        // These will be called when the authenticated user is changed
+                        this.reload(),
+                        this.reloadBridges(),
+                        this.refreshAccessories(true),
+                    ])),
                 ]);
+            },
+            async tryRestoreSession() {
+                // Restore the previous session
+                const token = localStorage.getItem('token');
+                if (!token) throw new Error('No previous session');
+
+                const response = await this.connection.send({
+                    type: 'authenticate',
+                    token,
+                });
+
+                if (response.reject || !response.success) throw new Error('Error restoring session');
+
+                const authenticated_user = new AuthenticatedUser(response.authentication_handler_id);
+
+                Object.defineProperty(authenticated_user, 'token', {value: token});
+                Object.assign(authenticated_user, response.data);
+
+                return this.connection.authenticated_user = authenticated_user;
             },
             async connectionEvents(connection) {
                 connection.on('disconnected', event => {
