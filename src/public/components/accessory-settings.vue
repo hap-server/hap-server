@@ -105,7 +105,7 @@
         props: {
             connection: Connection,
             accessory: Accessory,
-            accessories: Array,
+            accessories: Object,
         },
         data() {
             return {
@@ -157,7 +157,7 @@
                 return this.accessory_information.getCharacteristicByName('AccessoryFlags');
             },
             bridged_accessories() {
-                return this.accessories.filter(accessory => this.accessory_uuids.includes(accessory.uuid));
+                return Object.values(this.accessories).filter(accessory => this.accessory_uuids.includes(accessory.uuid));
             },
         },
         async created() {
