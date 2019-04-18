@@ -219,14 +219,13 @@
                     await new Promise(r => setTimeout(r, 4000));
                 }
 
+                const loadAccessoryUIs = this.loadAccessoryUIs();
+
                 await Promise.all([
-                    this.loadAccessoryUIs(),
-                    this.tryRestoreSession().catch(() => Promise.all([
-                        // These will be called when the authenticated user is changed
-                        this.reload(),
-                        this.reloadBridges(),
-                        this.refreshAccessories(true),
-                    ])),
+                    loadAccessoryUIs,
+                    this.tryRestoreSession().catch(() => {
+                        loadAccessoryUIs.then(() => this.modals.push({type: 'authenticate'}));
+                    }),
                 ]);
             },
             async tryRestoreSession() {
