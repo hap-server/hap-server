@@ -15,6 +15,8 @@ export default class Permissions {
      * @return {Promise<Array>}
      */
     getAuthorisedAccessoryUUIDs() {
+        if (!this.user) return [];
+
         const uuids = [];
 
         for (const bridge of this.server.bridges) {
@@ -47,6 +49,8 @@ export default class Permissions {
      * @return {Promise<boolean>}
      */
     checkCanGetAccessory(accessory_uuid) {
+        if (!this.user) return false;
+
         return true;
     }
 
@@ -55,12 +59,17 @@ export default class Permissions {
     }
 
     /**
-     * Check if the user can see an accessory.
+     * Check if the user can control an accessory.
      *
      * @param {string} accessory_uuid
+     * @param {string} service_uuid
+     * @param {string} characteristic_uuid
+     * @param {} value
      * @return {Promise<boolean>}
      */
     checkCanSetCharacteristic(accessory_uuid, service_uuid, characteristic_uuid, value) {
+        if (!this.user) return false;
+
         return true;
     }
 
@@ -69,12 +78,14 @@ export default class Permissions {
     }
 
     /**
-     * Check if the user can see an accessory.
+     * Check if the user can manage an accessory.
      *
      * @param {string} accessory_uuid
      * @return {Promise<boolean>}
      */
     checkCanSetAccessoryData(accessory_uuid) {
+        if (!this.user) return false;
+
         return true;
     }
 
@@ -83,12 +94,13 @@ export default class Permissions {
     }
 
     /**
-     * Check if the user can see an accessory.
+     * Check if the user can access this home's settings.
      *
-     * @param {string} accessory_uuid
      * @return {Promise<boolean>}
      */
     checkCanGetHomeSettings() {
+        if (!this.user) return false;
+
         return true;
     }
 
@@ -97,12 +109,13 @@ export default class Permissions {
     }
 
     /**
-     * Check if the user can see an accessory.
+     * Check if the user manage this home's settings.
      *
-     * @param {string} accessory_uuid
      * @return {Promise<boolean>}
      */
     checkCanSetHomeSettings() {
+        if (!this.user) return false;
+
         return true;
     }
 
@@ -111,11 +124,13 @@ export default class Permissions {
     }
 
     /**
-     * Check if the user can see an accessory.
+     * Check if the user can manage the server.
      *
      * @return {Promise<boolean>}
      */
     checkCanAccessServerRuntimeInfo() {
+        if (!this.user) return false;
+
         return true;
     }
 

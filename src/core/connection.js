@@ -41,13 +41,13 @@ export default class Connection {
         this.last_message = null;
         this.closed = false;
 
-        this.permissions = new Permissions();
+        this.permissions = new Permissions(this);
 
         // this.server.log.debug('WebSocket connection', this.id, this.ws);
 
         ws_map.set(this.ws, this);
 
-        ws.on('message', message => {
+        ws.on('message', async message => {
             if (this.closed) {
                 this.log.warning('Received message from closed connection...!?');
                 this.ws.close();
@@ -73,7 +73,18 @@ export default class Connection {
             const messageid = parseInt(match[1]);
             const data = match[2] !== 'undefined' ? JSON.parse(match[2]) : undefined;
 
-            this.handleMessage(messageid, data);
+            try {
+                await this.handleMessage(messageid, data);
+            } catch (err) {
+                this.log.error('Error in message handler', err);
+
+                this.respond(messageid, {
+                    reject: true,
+                    error: err instanceof Error,
+                    constructor: err.constructor.name,
+                    data: err instanceof Error ? {message: err.message, code: err.code, stack: err.stack} : err,
+                });
+            }
         });
 
         ws.on('close', code => {
@@ -162,7 +173,7 @@ export default class Connection {
         }
 
         const authorised_uuids = await this.permissions.getAuthorisedAccessoryUUIDs();
-        return uuids.filter(uuid => authorised_uuids.include(authorised_uuids));
+        return uuids.filter(uuid => authorised_uuids.include(uuid));
     }
 
     /**
@@ -207,7 +218,7 @@ export default class Connection {
         return Promise.all(ids.map(ids => this.getCharacteristic(...ids)));
     }
 
-    getCharacteristic(accessory_uuid, service_uuid, characteristic_uuid) {
+    async getCharacteristic(accessory_uuid, service_uuid, characteristic_uuid) {
         await this.permissions.assertCanGetAccessory(accessory_uuid);
 
         const accessory = this.server.getAccessory(accessory_uuid);
@@ -238,7 +249,7 @@ export default class Connection {
         return Promise.all(ids.map(ids => this.setCharacteristic(...ids)));
     }
 
-    setCharacteristic(accessory_uuid, service_uuid, characteristic_uuid, value) {
+    async setCharacteristic(accessory_uuid, service_uuid, characteristic_uuid, value) {
         await this.permissions.assertCanSetCharacteristic(accessory_uuid, service_uuid, characteristic_uuid, value);
 
         // this.server.log.info('Setting characteristic', accessory_uuid, service_uuid, characteristic_uuid, 'to', value);
@@ -389,7 +400,7 @@ export default class Connection {
         }
 
         const authorised_uuids = await this.permissions.getAuthorisedAccessoryUUIDs();
-        return uuids.filter(uuid => authorised_uuids.include(authorised_uuids));
+        return uuids.filter(uuid => authorised_uuids.include(uuid));
     }
 
     /**
