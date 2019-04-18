@@ -55,14 +55,10 @@
                 }
             },
             getButtonName(button, index) {
-                return button.name ? button.name.startsWith(service.name) ? button.name.substr(service.name.length).trim() : button.name.startsWith(service.default_name) ? button.name.substr(service.default_name.length).trim() : button.name : 'Button #' + index;
-
-                if (button.name) return button.name.startsWith(service.name) ? button.name.substr(service.name.length).trim() : button.name.startsWith(service.default_name) ? button.name.substr(service.default_name.length).trim() : button.name;
-
                 if (!button.name) return 'Button #' + index;
 
-                if (button.name.startsWith(service.name)) return button.name.substr(service.name.length).trim();
-                if (button.name.startsWith(service.default_name)) return button.name.substr(service.default_name.length).trim();
+                if (button.name.startsWith(this.service.name)) return button.name.substr(this.service.name.length).trim();
+                if (button.name.startsWith(this.service.default_name)) return button.name.substr(this.service.default_name.length).trim();
 
                 return button.name;
             },

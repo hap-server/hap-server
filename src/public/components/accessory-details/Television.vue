@@ -1,5 +1,5 @@
 <template>
-    <accessory-details class="accessory-television" :active="active" :updating="updating"
+    <accessory-details class="accessory-television" :active="!!active" :updating="updating"
         :name="service.name || service.accessory.name" @show-settings="$emit('show-settings')"
     >
         <television-icon slot="icon" />
