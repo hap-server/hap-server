@@ -2,6 +2,7 @@
 import process from 'process';
 import PluginManager, {AuthenticatedUser} from './plugins';
 import Homebridge from './homebridge';
+import Permissions from './permissions';
 
 let id = 0;
 
@@ -39,6 +40,8 @@ export default class Connection {
         this.enable_proxy_stdout = false;
         this.last_message = null;
         this.closed = false;
+
+        this.permissions = new Permissions();
 
         // this.server.log.debug('WebSocket connection', this.id, this.ws);
 
@@ -135,7 +138,7 @@ export default class Connection {
         this.respond(messageid, await this.listAccessories());
     }
 
-    listAccessories() {
+    async listAccessories() {
         const uuids = [];
 
         for (const bridge of this.server.bridges) {
@@ -158,7 +161,8 @@ export default class Connection {
             }
         }
 
-        return uuids;
+        const authorised_uuids = await this.permissions.getAuthorisedAccessoryUUIDs();
+        return uuids.filter(uuid => authorised_uuids.include(authorised_uuids));
     }
 
     /**
@@ -173,7 +177,9 @@ export default class Connection {
         return Promise.all(id.map(id => this.getAccessory(id)));
     }
 
-    getAccessory(uuid) {
+    async getAccessory(uuid) {
+        await this.permissions.assertCanGetAccessory(uuid);
+
         const accessory = this.server.getAccessory(uuid);
 
         if (!accessory) return null;
@@ -202,6 +208,8 @@ export default class Connection {
     }
 
     getCharacteristic(accessory_uuid, service_uuid, characteristic_uuid) {
+        await this.permissions.assertCanGetAccessory(accessory_uuid);
+
         const accessory = this.server.getAccessory(accessory_uuid);
 
         const service_type = service_uuid.indexOf('.') !== -1 ?
@@ -231,6 +239,8 @@ export default class Connection {
     }
 
     setCharacteristic(accessory_uuid, service_uuid, characteristic_uuid, value) {
+        await this.permissions.assertCanSetCharacteristic(accessory_uuid, service_uuid, characteristic_uuid, value);
+
         // this.server.log.info('Setting characteristic', accessory_uuid, service_uuid, characteristic_uuid, 'to', value);
 
         const accessory = this.server.getAccessory(accessory_uuid);
@@ -264,6 +274,8 @@ export default class Connection {
     }
 
     async getAccessoryData(id) {
+        await this.permissions.assertCanGetAccessory(id);
+
         //
         this.log.debug('Getting data for accessory', id);
 
@@ -283,6 +295,8 @@ export default class Connection {
     }
 
     async setAccessoryData(uuid, data) {
+        await this.permissions.assertCanSetAccessoryData(accessory_uuid);
+
         //
         this.log.debug('Setting data for accessory', uuid, data);
 
@@ -303,6 +317,8 @@ export default class Connection {
     }
 
     async getHomeSettings() {
+        await this.permissions.assertCanGetHomeSettings();
+
         this.log.debug('Getting global settings');
 
         return await this.server.storage.getItem('Home') || {};
@@ -316,6 +332,8 @@ export default class Connection {
     }
 
     async setHomeSettings(data) {
+        await this.permissions.assertCanSetHomeSettings();
+
         this.log.debug('Setting global settings', data);
 
         await this.server.storage.setItem('Home', data);
@@ -326,13 +344,17 @@ export default class Connection {
         }, this.ws);
     }
 
-    handleGetCommandLineFlagsMessage(messageid) {
+    async handleGetCommandLineFlagsMessage(messageid) {
+        await this.permissions.assertCanAccessServerRuntimeInfo();
+
         this.log.info('Getting command line flags for', this.id);
 
         this.respond(messageid, process.argv);
     }
 
-    handleEnableProxyStdoutMessage(messageid) {
+    async handleEnableProxyStdoutMessage(messageid) {
+        await this.permissions.assertCanAccessServerRuntimeInfo();
+
         this.log.info('Enabling stdout proxy for', this.id);
         this.enable_proxy_stdout = true;
 
@@ -341,7 +363,9 @@ export default class Connection {
         this.respond(messageid);
     }
 
-    handleDisableProxyStdoutMessage(messageid) {
+    async handleDisableProxyStdoutMessage(messageid) {
+        await this.permissions.assertCanAccessServerRuntimeInfo();
+
         this.log.info('Disabling stdout proxy for', this.id);
         this.enable_proxy_stdout = false;
 
@@ -355,7 +379,7 @@ export default class Connection {
         this.respond(messageid, await this.listBridges(data.include_homebridge));
     }
 
-    listBridges(include_homebridge) {
+    async listBridges(include_homebridge) {
         const uuids = [];
 
         for (const bridge of this.server.bridges) {
@@ -364,7 +388,8 @@ export default class Connection {
             uuids.push(bridge.uuid);
         }
 
-        return uuids;
+        const authorised_uuids = await this.permissions.getAuthorisedAccessoryUUIDs();
+        return uuids.filter(uuid => authorised_uuids.include(authorised_uuids));
     }
 
     /**
@@ -378,7 +403,10 @@ export default class Connection {
         return Promise.all(uuid.map(uuid => this.getBridge(uuid)));
     }
 
-    getBridge(uuid) {
+    async getBridge(uuid) {
+        await this.permissions.assertCanGetAccessory(uuid);
+        const authorised_uuids = await this.permissions.getAuthorisedAccessoryUUIDs();
+
         const bridge = this.server.bridges.find(bridge => bridge.uuid === uuid);
         this.log.debug('Getting bridge info', uuid, bridge);
         if (!bridge) return;
@@ -389,6 +417,7 @@ export default class Connection {
         };
 
         for (const accessory of bridge.bridge.bridgedAccessories) {
+            if (!authorised_uuids.includes(accessory.UUID)) continue;
             bridge_details.accessory_uuids.push(accessory.UUID);
         }
 
@@ -402,7 +431,10 @@ export default class Connection {
         this.respond(messageid, await this.listPairings(data.bridge_uuid));
     }
 
-    listPairings(bridge_uuid) {
+    async listPairings(bridge_uuid) {
+        await this.permissions.assertCanGetAccessory(bridge_uuid);
+        await this.permissions.assertCanAccessServerRuntimeInfo();
+
         const bridge = this.server.bridges.find(bridge => bridge.uuid === bridge_uuid);
         if (!bridge) return null;
 
@@ -426,7 +458,10 @@ export default class Connection {
         return Promise.all(id.map(([bridge_uuid, id]) => this.getPairing(bridge_uuid, id)));
     }
 
-    getPairing(bridge_uuid, id) {
+    async getPairing(bridge_uuid, id) {
+        await this.permissions.assertCanGetAccessory(bridge_uuid);
+        await this.permissions.assertCanAccessServerRuntimeInfo();
+
         const bridge = this.server.bridges.find(bridge => bridge.uuid === bridge_uuid);
         if (!bridge) return null;
 
