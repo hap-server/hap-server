@@ -3,8 +3,12 @@
 </template>
 
 <script>
+    import {Terminal} from 'xterm';
+
     export default {
-        props: ['terminal'],
+        props: {
+            terminal: Terminal,
+        },
         mounted() {
             this.terminal.open(this.$el);
         },

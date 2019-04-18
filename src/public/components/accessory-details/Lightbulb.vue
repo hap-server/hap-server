@@ -1,5 +1,7 @@
 <template>
-    <accessory-details class="accessory-details-lightbulb" :active="on" :updating="updating" :name="service.name || service.accessory.name" @show-settings="$emit('show-settings')">
+    <accessory-details class="accessory-details-lightbulb" :active="on" :updating="updating"
+        :name="service.name || service.accessory.name" @show-settings="$emit('show-settings')"
+    >
         <lightbulb-icon slot="icon" />
 
         <p>Lightbulb</p>
@@ -16,15 +18,17 @@
     export const uuid = Service.Lightbulb;
 
     export default {
-        props: ['service'],
+        components: {
+            AccessoryDetails,
+            LightbulbIcon,
+        },
+        props: {
+            service: Service,
+        },
         data() {
             return {
                 updating: false,
             };
-        },
-        components: {
-            AccessoryDetails,
-            LightbulbIcon,
         },
         computed: {
             on() {

@@ -10,14 +10,17 @@
             <div class="form-group row">
                 <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-name'">Name</label>
                 <div class="col-sm-9">
-                    <input type="text" class="form-control form-control-sm" :id="_uid + '-name'" v-model="name" :placeholder="accessory.default_name" :disabled="saving" />
+                    <input :id="_uid + '-name'" v-model="name" type="text" class="form-control form-control-sm"
+                        :placeholder="accessory.default_name" :disabled="saving" />
                 </div>
             </div>
 
             <h5 v-if="accessory.findService(service => !service.is_system_service)">Services</h5>
             <list-group class="mb-3">
                 <!-- eslint-disable-next-line vue/no-use-v-if-with-v-for -->
-                <list-item v-for="service in accessory.services" v-if="!service.is_system_service" :key="service.uuid" @click="$emit('show-service-settings', service)">
+                <list-item v-for="service in accessory.services" v-if="!service.is_system_service" :key="service.uuid"
+                    @click="$emit('show-service-settings', service)"
+                >
                     {{ service.name || service.uuid }}
                     <small v-if="service.name" class="text-muted">{{ service.type_name }} {{ service.uuid }}</small>
                 </list-item>
@@ -52,7 +55,9 @@
         </form>
 
         <list-group v-if="tab === 'accessories'" class="mb-3">
-            <list-item v-for="accessory in bridged_accessories" :key="accessory.uuid" @click="$emit('show-accessory-settings', accessory)">
+            <list-item v-for="accessory in bridged_accessories" :key="accessory.uuid"
+                @click="$emit('show-accessory-settings', accessory)"
+            >
                 {{ accessory.name }}
                 <small class="text-muted">{{ accessory.uuid }}</small>
             </list-item>
@@ -69,23 +74,39 @@
             <div v-if="loading">Loading</div>
             <div v-else-if="saving">Saving</div>
             <div class="flex-fill"></div>
-            <button v-if="identify" class="btn btn-default btn-sm" type="button" @click="setIdentify" :disabled="identify_saving">Identify</button>
+            <button v-if="identify" class="btn btn-default btn-sm" type="button" :disabled="identify_saving"
+                @click="setIdentify">Identify</button>
             <template v-if="!is_bridge || tab === 'general'">
-                <button class="btn btn-default btn-sm" type="button" @click="() => $refs.panel.close()" :disabled="saving">Cancel</button>&nbsp;
-                <button key="primary" class="btn btn-primary btn-sm" type="button" @click="save(true)" :disabled="loading || saving">Save</button>
+                <button class="btn btn-default btn-sm" type="button" :disabled="saving"
+                    @click="() => $refs.panel.close()">Cancel</button>&nbsp;
+                <button key="primary" class="btn btn-primary btn-sm" type="button" :disabled="loading || saving"
+                    @click="save(true)">Save</button>
             </template>
-            <button v-else key="primary" class="btn btn-primary btn-sm" type="button" @click="() => $refs.panel.close()" :disabled="loading || saving">Done</button>
+            <button v-else key="primary" class="btn btn-primary btn-sm" type="button" :disabled="loading || saving"
+                @click="() => $refs.panel.close()">Done</button>
         </div>
     </panel>
 </template>
 
 <script>
+    import Connection from '../connection';
+    import Accessory from '../accessory';
+
     import Panel from './panel.vue';
     import ListGroup from './list-group.vue';
     import ListItem from './list-item.vue';
 
     export default {
-        props: ['connection', 'accessory', 'accessories'],
+        components: {
+            Panel,
+            ListGroup,
+            ListItem,
+        },
+        props: {
+            connection: Connection,
+            accessory: Accessory,
+            accessories: Array,
+        },
         data() {
             return {
                 loading: false,
@@ -102,11 +123,6 @@
 
                 identify_saving: false,
             };
-        },
-        components: {
-            Panel,
-            ListGroup,
-            ListItem,
         },
         computed: {
             accessory_information() {
@@ -172,7 +188,8 @@
 
                 try {
                     const pairings = await this.connection.listPairings(this.accessory.uuid) || [];
-                    this.pairings = await this.connection.getPairings(...pairings.map(pairing_id => ([this.accessory.uuid, pairing_id])));
+                    this.pairings = await this.connection.getPairings(...pairings
+                        .map(pairing_id => ([this.accessory.uuid, pairing_id])));
                 } finally {
                     this.loading_pairings = false;
                 }

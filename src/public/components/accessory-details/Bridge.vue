@@ -1,5 +1,7 @@
 <template>
-    <accessory-details class="accessory-details-bridge" :name="service.accessory.name" @show-settings="$emit('show-accessory-settings')">
+    <accessory-details class="accessory-details-bridge" :name="service.accessory.name"
+        @show-settings="$emit('show-accessory-settings')"
+    >
         <bridge-icon slot="icon" />
 
         <p>Bridge</p>
@@ -7,6 +9,7 @@
 </template>
 
 <script>
+    import Service from '../../service';
     import AccessoryDetails from './accessory-details.vue';
     import BridgeIcon from '../icons/hub.vue';
 
@@ -14,10 +17,12 @@
     export const uuid = '--bridge';
 
     export default {
-        props: ['service'],
         components: {
             AccessoryDetails,
             BridgeIcon,
+        },
+        props: {
+            service: Service,
         },
     };
 </script>

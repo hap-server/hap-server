@@ -40,7 +40,7 @@ export default class Service extends EventEmitter {
         const added_characteristic_details = [];
         const removed_characteristic_uuids = [];
 
-        for (const characteristic_details of details.characteristics) {
+        for (const characteristic_details of details.characteristics || []) {
             const characteristic = this.characteristics[characteristic_details.type];
 
             // Characteristic doesn't already exist
@@ -191,6 +191,46 @@ export default class Service extends EventEmitter {
 
             if (collapsed_service.includes(this.type)) return collapsed_service_type;
         }
+    }
+}
+
+export class BridgeService extends Service {
+    /**
+     * Creates a fake Service for bridges.
+     *
+     * @param {Accessory} accessory
+     */
+    constructor(accessory) {
+        super(accessory, '--bridge');
+    }
+
+    static for(accessory) {
+        const services = this.services || (this.services = new WeakMap());
+        if (services.has(accessory)) return services.get(accessory);
+
+        const service = new this(accessory);
+        services.set(accessory, service);
+        return service;
+    }
+}
+
+export class UnsupportedService extends Service {
+    /**
+     * Creates a fake Service to display when an accessory has no supported services.
+     *
+     * @param {Accessory} accessory
+     */
+    constructor(accessory) {
+        super(accessory, '');
+    }
+
+    static for(accessory) {
+        const services = this.services || (this.services = new WeakMap());
+        if (services.has(accessory)) return services.get(accessory);
+
+        const service = new this(accessory);
+        services.set(accessory, service);
+        return service;
     }
 }
 

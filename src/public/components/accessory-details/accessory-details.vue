@@ -23,7 +23,9 @@
 
             <div class="right">
                 <slot name="footer-right">
-                    <div class="badge badge-pill badge-dark clickable" @click.stop="$emit('show-settings')">Settings</div>
+                    <div class="badge badge-pill badge-dark clickable" @click.stop="$emit('show-settings')">
+                        Settings
+                    </div>
                 </slot>
             </div>
         </div>
@@ -37,7 +39,11 @@
         components: {
             HomeIcon,
         },
-        props: ['active', 'updating', 'name'],
+        props: {
+            active: Boolean,
+            updating: Boolean,
+            name: String,
+        },
         inject: ['service'],
     };
 </script>

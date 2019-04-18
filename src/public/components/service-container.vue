@@ -16,9 +16,12 @@
     import Sortable from './sortable.vue';
 
     export default {
-        props: ['title', 'sorted'],
         components: {
             Sortable,
+        },
+        props: {
+            title: {type: String, default: 'Accessories'},
+            sorted: Array,
         },
     };
 </script>

@@ -1,5 +1,7 @@
 <template>
-    <accessory-details class="accessory-television" :active="active" :updating="updating" :name="service.name || service.accessory.name" @show-settings="$emit('show-settings')">
+    <accessory-details class="accessory-television" :active="active" :updating="updating"
+        :name="service.name || service.accessory.name" @show-settings="$emit('show-settings')"
+    >
         <television-icon slot="icon" />
 
         <p>Television</p>
@@ -16,15 +18,17 @@
     export const uuid = 'CollapsedService.' + Service.Television;
 
     export default {
-        props: ['service'],
+        components: {
+            AccessoryDetails,
+            TelevisionIcon,
+        },
+        props: {
+            service: Service,
+        },
         data() {
             return {
                 updating: false,
             };
-        },
-        components: {
-            AccessoryDetails,
-            TelevisionIcon,
         },
         computed: {
             television_service() {

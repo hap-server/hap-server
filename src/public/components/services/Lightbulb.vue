@@ -1,5 +1,7 @@
 <template>
-    <service class="service-lightbulb" :service="service" type="Lightbulb" :active="on" :updating="updating" @click="setOn(!on)">
+    <service class="service-lightbulb" :service="service" type="Lightbulb" :active="on" :updating="updating"
+        @click="setOn(!on)"
+    >
         <lightbulb-icon slot="icon" />
 
         <p>{{ on && brightness !== undefined ? brightness + '%' : on ? 'On' : 'Off' }}</p>
@@ -18,7 +20,9 @@
             Service: ServiceComponent,
             LightbulbIcon,
         },
-        props: ['service'],
+        props: {
+            service: Service,
+        },
         data() {
             return {
                 updating: false,

@@ -4,12 +4,18 @@
 
         <div class="header">
             <div class="left">
-                <span v-if="authenticated_user" class="badge badge-pill badge-dark clickable" @click="modals.push({type: 'authenticate'})">
+                <span v-if="authenticated_user" class="badge badge-pill badge-dark clickable"
+                    @click="modals.push({type: 'authenticate'})"
+                >
                     Authenticated as {{ authenticated_user.name }}
                 </span>
-                <span v-else class="badge badge-pill badge-dark clickable" @click="modals.push({type: 'authenticate'})">Login</span>
+                <span v-else class="badge badge-pill badge-dark clickable" @click="modals.push({type: 'authenticate'})">
+                    Login
+                </span>
 
-                <span class="badge badge-pill badge-dark clickable" @click="modals.push({type: 'settings'})">Settings</span>
+                <span class="badge badge-pill badge-dark clickable" @click="modals.push({type: 'settings'})">
+                    Settings
+                </span>
             </div>
             <h1>{{ name || 'Home' }}</h1>
             <div class="right">
@@ -19,26 +25,32 @@
         <div class="main">
             <h1>{{ name || 'Home' }}</h1>
 
-            <layout :connection="connection" :accessories="accessories" :bridge_uuids="bridge_uuids" @modal="modal => modals.push(modal)" @ping="ping" />
+            <layout :connection="connection" :accessories="accessories" :bridge-uuids="bridge_uuids"
+                @modal="modal => modals.push(modal)" @ping="ping" />
         </div>
 
         <template v-for="(modal, index) in modals">
-            <authenticate v-if="modal.type === 'authenticate'" :key="index" :ref="'modal-' + index" :connection="connection" @close="modals.splice(index, 1)" />
+            <authenticate v-if="modal.type === 'authenticate'" :key="index" :ref="'modal-' + index"
+                :connection="connection" @close="modals.splice(index, 1)" />
 
-            <settings v-else-if="modal.type === 'settings'" :key="index" :ref="'modal-' + index" :connection="connection"
-                :accessories="accessories" @show-accessory-settings="accessory => modals.push({type: 'accessory-settings', accessory})"
-                :loading-accessories="loading_accessories" @refresh-accessories="refreshAccessories()"
+            <settings v-else-if="modal.type === 'settings'" :key="index" :ref="'modal-' + index"
+                :connection="connection" :accessories="accessories" :loading-accessories="loading_accessories"
+                @show-accessory-settings="accessory => modals.push({type: 'accessory-settings', accessory})"
+                @refresh-accessories="refreshAccessories()"
                 @updated-settings="reload" @close="modals.splice(index, 1)" />
-            <accessory-settings v-else-if="modal.type === 'accessory-settings'" :key="index" :ref="'modal-' + index" :connection="connection"
-                :accessory="modal.accessory" :accessories="accessories" @show-accessory-settings="accessory => modals.push({type: 'accessory-settings', accessory})"
+            <accessory-settings v-else-if="modal.type === 'accessory-settings'" :key="index" :ref="'modal-' + index"
+                :connection="connection" :accessory="modal.accessory" :accessories="accessories"
+                @show-accessory-settings="accessory => modals.push({type: 'accessory-settings', accessory})"
                 @show-service-settings="service => modals.push({type: 'service-settings', service})"
                 @close="modals.splice(index, 1)" />
-            <service-settings v-else-if="modal.type === 'service-settings'" :key="index" :ref="'modal-' + index" :connection="connection"
-                :service="modal.service" @show-accessory-settings="modals.push({type: 'accessory-settings', accessory: modal.service.accessory})"
+            <service-settings v-else-if="modal.type === 'service-settings'" :key="index" :ref="'modal-' + index"
+                :connection="connection" :service="modal.service"
+                @show-accessory-settings="modals.push({type: 'accessory-settings', accessory: modal.service.accessory})"
                 @close="modals.splice(index, 1)" />
 
-            <accessory-details v-else-if="modal.type === 'accessory-details'" :key="index" :ref="'modal-' + index" :modal="modal"
-                :service="modal.service" @show-settings="modals.push({type: 'service-settings', service: modal.service})"
+            <accessory-details v-else-if="modal.type === 'accessory-details'" :key="index" :ref="'modal-' + index"
+                :modal="modal" :service="modal.service"
+                @show-settings="modals.push({type: 'service-settings', service: modal.service})"
                 @show-accessory-settings="modals.push({type: 'accessory-settings', accessory: modal.service.accessory})"
                 @close="modals.splice(index, 1)" />
         </template>
@@ -62,6 +74,16 @@
     export const instances = new Set();
 
     export default {
+        components: {
+            Authenticate,
+
+            Layout,
+            AccessoryDetails,
+
+            Settings: () => import(/* webpackChunkName: 'settings' */ './settings.vue'),
+            AccessorySettings: () => import(/* webpackChunkName: 'settings' */ './accessory-settings.vue'),
+            ServiceSettings: () => import(/* webpackChunkName: 'settings' */ './service-settings.vue'),
+        },
         data() {
             return {
                 connection: null,
@@ -82,15 +104,57 @@
                 scrolled: false,
             };
         },
-        components: {
-            Authenticate,
+        computed: {
+            title() {
+                if (this.modals.length) {
+                    const modal = this.modals[this.modals.length - 1];
 
-            Layout,
-            AccessoryDetails,
+                    if (!modal.title) {
+                        if (modal.type === 'authenticate') return 'Login';
 
-            Settings: () => import(/* webpackChunkName: 'settings' */ './settings.vue'),
-            AccessorySettings: () => import(/* webpackChunkName: 'settings' */ './accessory-settings.vue'),
-            ServiceSettings: () => import(/* webpackChunkName: 'settings' */ './service-settings.vue'),
+                        if (modal.type === 'settings') return 'Settings';
+                        if (modal.type === 'accessory-settings') return modal.accessory.name + ' Settings';
+                        if (modal.type === 'service-settings') return (modal.service.name || modal.service.accessory.name) + ' Settings';
+
+                        if (modal.type === 'accessory-details') return modal.service.name || modal.service.accessory.name;
+                    }
+
+                    return modal.title;
+                }
+
+                return this.name || 'Home';
+            },
+            background_url() {
+                return require('../../../assets/default-wallpaper.jpg');
+            },
+            modal_open() {
+                return this.connecting || !!this.modals.length;
+            },
+            authenticated_user() {
+                return this.connection ? this.connection.authenticated_user : undefined;
+            },
+        },
+        watch: {
+            title(title) {
+                document.title = title;
+            },
+            modal_open() {
+                document.body.style.overflow = this.modal_open ? 'hidden' : 'auto';
+            },
+            connection(connection, old_connection) {
+                for (const accessory of Object.values(this.accessories)) {
+                    accessory.connection = connection;
+                }
+            },
+            async authenticated_user(authenticated_user) {
+                if (!authenticated_user) return;
+
+                await Promise.all([
+                    this.reload(),
+                    this.reloadBridges(),
+                    this.refreshAccessories(true),
+                ]);
+            },
         },
         async created() {
             instances.add(this);
@@ -326,58 +390,6 @@
                 }
 
                 return services;
-            },
-        },
-        computed: {
-            title() {
-                if (this.modals.length) {
-                    const modal = this.modals[this.modals.length - 1];
-
-                    if (!modal.title) {
-                        if (modal.type === 'authenticate') return 'Login';
-
-                        if (modal.type === 'settings') return 'Settings';
-                        if (modal.type === 'accessory-settings') return modal.accessory.name + ' Settings';
-                        if (modal.type === 'service-settings') return (modal.service.name || modal.service.accessory.name) + ' Settings';
-
-                        if (modal.type === 'accessory-details') return modal.service.name || modal.service.accessory.name;
-                    }
-
-                    return modal.title;
-                }
-
-                return this.name || 'Home';
-            },
-            background_url() {
-                return require('../../../assets/default-wallpaper.jpg');
-            },
-            modal_open() {
-                return this.connecting || !!this.modals.length;
-            },
-            authenticated_user() {
-                return this.connection ? this.connection.authenticated_user : undefined;
-            },
-        },
-        watch: {
-            title(title) {
-                document.title = title;
-            },
-            modal_open() {
-                document.body.style.overflow = this.modal_open ? 'hidden' : 'auto';
-            },
-            connection(connection, old_connection) {
-                for (const accessory of Object.values(this.accessories)) {
-                    accessory.connection = connection;
-                }
-            },
-            async authenticated_user(authenticated_user) {
-                if (!authenticated_user) return;
-
-                await Promise.all([
-                    this.reload(),
-                    this.reloadBridges(),
-                    this.refreshAccessories(true),
-                ]);
             },
         },
     };

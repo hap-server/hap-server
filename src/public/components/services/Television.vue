@@ -1,5 +1,7 @@
 <template>
-    <service class="service-television" :service="service" type="Television" :active="active" :updating="updating" @click="setActive(active ? 0 : 1)">
+    <service class="service-television" :service="service" type="Television" :active="!!active" :updating="updating"
+        @click="setActive(active ? 0 : 1)"
+    >
         <television-icon slot="icon" />
 
         <p>{{ active ? input_label || 'On' : 'Off' }}</p>
@@ -18,7 +20,9 @@
             Service: ServiceComponent,
             TelevisionIcon,
         },
-        props: ['service'],
+        props: {
+            service: Service,
+        },
         data() {
             return {
                 updating: false,

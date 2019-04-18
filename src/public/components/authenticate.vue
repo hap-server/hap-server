@@ -8,13 +8,17 @@
         <div v-else-if="authentication_handlers.length !== 1" class="form-group row">
             <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-handler'">Handler</label>
             <div class="col-sm-9">
-                <select class="custom-select custom-select-sm" ref="select" :id="_uid + '-handler'" :disabled="authenticating" @change="() => selected = parseInt($refs.select.value)">
-                    <option v-for="id in authentication_handlers" :key="id" :value="id" :selected="selected === id">{{ getAuthenticationHandlerName(id) }}</option>
+                <select :id="_uid + '-handler'" ref="select" class="custom-select custom-select-sm"
+                    :disabled="authenticating" @change="() => selected = parseInt($refs.select.value)"
+                >
+                    <option v-for="id in authentication_handlers" :key="id" :value="id" :selected="selected === id">
+                        {{ getAuthenticationHandlerName(id) }}
+                    </option>
                 </select>
             </div>
         </div>
 
-        <component v-if="component" ref="component" :key="selected" :is="component"
+        <component v-if="component" :is="component" ref="component" :key="selected"
             :connection="authentication_handler_connection" @authenticating="a => authenticating = a"
             @user="setAuthenticatedUser" @close="() => $refs.panel.close()" />
 
@@ -26,12 +30,18 @@
 </template>
 
 <script>
-    import {AuthenticationHandlerConnection, AuthenticatedUser} from '../connection';
+    import Connection, {AuthenticationHandlerConnection, AuthenticatedUser} from '../connection';
+
     import authentication_handler_components from './authentication-handlers';
     import Panel from './panel.vue';
 
     export default {
-        props: ['connection'],
+        components: {
+            Panel,
+        },
+        props: {
+            connection: Connection,
+        },
         data() {
             return {
                 authentication_handlers: [],
@@ -41,8 +51,25 @@
                 authenticating: false,
             };
         },
-        components: {
-            Panel,
+        computed: {
+            component() {
+                return this.getAuthenticationHandlerComponent(this.selected);
+            },
+        },
+        watch: {
+            authentication_handlers() {
+                if (this.authentication_handlers.length === 1) this.selected = this.authentication_handlers[0];
+            },
+            selected(id, old_id) {
+                this.authentication_handler_connection = typeof id !== 'undefined'
+                    ? new AuthenticationHandlerConnection(this.connection, id) : null;
+                this.authenticating = false;
+            },
+            connection(connection) {
+                if (!this.authentication_handler_connection) return;
+
+                this.authentication_handler_connection.connection = connection;
+            },
         },
         created() {
             this.authentication_handlers = [...authentication_handler_components.keys()];
@@ -66,25 +93,6 @@
                 }
 
                 this.connection.authenticated_user = authenticated_user;
-            },
-        },
-        computed: {
-            component() {
-                return this.getAuthenticationHandlerComponent(this.selected);
-            },
-        },
-        watch: {
-            authentication_handlers() {
-                if (this.authentication_handlers.length === 1) this.selected = this.authentication_handlers[0];
-            },
-            selected(id, old_id) {
-                this.authentication_handler_connection = typeof id !== 'undefined' ? new AuthenticationHandlerConnection(this.connection, id) : null;
-                this.authenticating = false;
-            },
-            connection(connection) {
-                if (!this.authentication_handler_connection) return;
-
-                this.authentication_handler_connection.connection = connection;
             },
         },
     };

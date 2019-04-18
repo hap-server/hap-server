@@ -1,14 +1,17 @@
 <template>
-    <accessory-details class="accessory-details-programmable-switch" :active="on" :updating="updating" :name="service.name || service.accessory.name" @show-settings="$emit('show-settings')">
+    <accessory-details class="accessory-details-programmable-switch" :active="on" :updating="updating"
+        :name="service.name || service.accessory.name" @show-settings="$emit('show-settings')"
+    >
         <button-icon slot="icon" />
 
         <p>Programmable Switch</p>
 
-        <p>There {{ service.services.length === 1 ? 'is' : 'are' }} {{ service.services.length || 'no' }} button{{ service.services.length !== 1 ? 's' : '' }}.
+        <p>There {{ service.services.length === 1 ? 'is' : 'are' }} {{ service.services.length || 'no' }}
+            button{{ service.services.length !== 1 ? 's' : '' }}.</p>
 
         <div class="programmable-switch-buttons">
             <div v-for="(button, index) in service.services" :key="index" class="programmable-switch-button">
-                <h5>{{ button.name ? button.name.startsWith(service.name) ? button.name.substr(service.name.length).trim() : button.name.startsWith(service.default_name) ? button.name.substr(service.default_name.length).trim() : button.name : 'Button #' + index }}</h5>
+                <h5>{{ getButtonName(button, index) }}</h5>
             </div>
         </div>
     </accessory-details>
@@ -22,15 +25,17 @@
     export const uuid = 'CollapsedService.' + Service.StatelessProgrammableSwitch;
 
     export default {
-        props: ['service'],
+        components: {
+            AccessoryDetails,
+            ButtonIcon,
+        },
+        props: {
+            service: Service,
+        },
         data() {
             return {
                 updating: false,
             };
-        },
-        components: {
-            AccessoryDetails,
-            ButtonIcon,
         },
         computed: {
             on() {
@@ -48,6 +53,18 @@
                 } finally {
                     this.updating = false;
                 }
+            },
+            getButtonName(button, index) {
+                return button.name ? button.name.startsWith(service.name) ? button.name.substr(service.name.length).trim() : button.name.startsWith(service.default_name) ? button.name.substr(service.default_name.length).trim() : button.name : 'Button #' + index;
+
+                if (button.name) return button.name.startsWith(service.name) ? button.name.substr(service.name.length).trim() : button.name.startsWith(service.default_name) ? button.name.substr(service.default_name.length).trim() : button.name;
+
+                if (!button.name) return 'Button #' + index;
+
+                if (button.name.startsWith(service.name)) return button.name.substr(service.name.length).trim();
+                if (button.name.startsWith(service.default_name)) return button.name.substr(service.default_name.length).trim();
+
+                return button.name;
             },
         },
     };

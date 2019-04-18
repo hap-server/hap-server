@@ -5,7 +5,8 @@
 </template>
 
 <script>
-    import Service from './service.vue';
+    import Service from '../../service';
+    import ServiceComponent from './service.vue';
     import BridgeIcon from '../icons/hub.vue';
 
     // This isn't a real service
@@ -13,9 +14,11 @@
 
     export default {
         components: {
-            Service,
+            Service: ServiceComponent,
             BridgeIcon,
         },
-        props: ['service'],
+        props: {
+            service: Service,
+        },
     };
 </script>

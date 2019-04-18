@@ -7,12 +7,19 @@
         <service-container title="Accessories">
             <template v-for="accessory in accessories">
                 <!-- Show a bridge tile -->
-                <service v-if="bridge_uuids.includes(accessory.uuid)" :key="accessory.uuid + '.--bridge'" :connection="connection" :service="{accessory, type: '--bridge'}" @show-details="closing => $emit('modal', {type: 'accessory-details', service: {accessory, type: '--bridge'}, closing})" />
+                <service v-if="bridgeUuids.includes(accessory.uuid)" :key="accessory.uuid + '.--bridge'"
+                    :connection="connection" :service="getBridgeService(accessory)"
+                    @show-details="closing => $emit('modal', {type: 'accessory-details', service: getBridgeService(accessory), closing})" />
 
                 <!-- Show a not supported tile -->
-                <service v-else-if="!accessory.display_services.length" :key="accessory.uuid + '.'" :connection="connection" :service="{accessory}" @show-details="closing => $emit('modal', {type: 'accessory-details', service: {accessory}, closing})" />
+                <service v-else-if="!accessory.display_services.length" :key="accessory.uuid + '.'"
+                    :connection="connection" :service="getUnsupportedService(accessory)"
+                    @show-details="closing => $emit('modal', {type: 'accessory-details', service: getUnsupportedService(accessory), closing})" />
 
-                <service v-for="service in accessory.display_services" :key="accessory.uuid + '.' + service.uuid" :connection="connection" :service="service" @show-details="closing => $emit('modal', {type: 'accessory-details', service, closing})" @show-settings="$emit('modal', {type: 'service-settings', service})" />
+                <service v-for="service in accessory.display_services" :key="accessory.uuid + '.' + service.uuid"
+                    :connection="connection" :service="service"
+                    @show-details="closing => $emit('modal', {type: 'accessory-details', service, closing})"
+                    @show-settings="$emit('modal', {type: 'service-settings', service})" />
             </template>
         </service-container>
 
@@ -35,6 +42,9 @@
 </template>
 
 <script>
+    import Connection from '../connection';
+    import {BridgeService, UnsupportedService} from '../service';
+
     import Service from './service.vue';
     import ServiceContainer from './service-container.vue';
 
@@ -43,6 +53,20 @@
             Service,
             ServiceContainer,
         },
-        props: ['connection', 'accessories', 'bridge_uuids'],
+        props: {
+            connection: Connection,
+            accessories: Object,
+            bridgeUuids: {type: Array, default: () => []},
+        },
+        methods: {
+            getBridgeService(accessory) {
+                // {accessory, type: '--bridge'}
+                return BridgeService.for(accessory);
+            },
+            getUnsupportedService(accessory) {
+                // {accessory}
+                return UnsupportedService.for(accessory);
+            },
+        },
     };
 </script>

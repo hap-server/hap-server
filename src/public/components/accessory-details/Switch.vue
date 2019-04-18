@@ -1,5 +1,7 @@
 <template>
-    <accessory-details class="accessory-details-switch" :active="on" :updating="updating" :name="service.name || service.accessory.name" @show-settings="$emit('show-settings')">
+    <accessory-details class="accessory-details-switch" :active="on" :updating="updating"
+        :name="service.name || service.accessory.name" @show-settings="$emit('show-settings')"
+    >
         <switch-icon slot="icon" />
 
         <p>Switch</p>
@@ -16,15 +18,17 @@
     export const uuid = Service.Switch;
 
     export default {
-        props: ['service'],
+        components: {
+            AccessoryDetails,
+            SwitchIcon,
+        },
+        props: {
+            service: Service,
+        },
         data() {
             return {
                 updating: false,
             };
-        },
-        components: {
-            AccessoryDetails,
-            SwitchIcon,
         },
         computed: {
             on() {

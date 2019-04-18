@@ -38,7 +38,12 @@
         components: {
             HomeIcon,
         },
-        props: ['active', 'updating', 'name', 'type'],
+        props: {
+            active: Boolean,
+            updating: Boolean,
+            name: String,
+            type: {type: String, default: null},
+        },
         inject: ['service'],
         computed: {
             show_room_name() {

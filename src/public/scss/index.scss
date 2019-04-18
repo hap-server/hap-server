@@ -1,6 +1,12 @@
 @import '../../../node_modules/bootstrap/scss/bootstrap';
 @import '../../../node_modules/xterm/dist/xterm';
 
+$background-z-index: 0;
+$main-z-index: 100;
+$header-z-index: 200;
+$modal-z-index: 300;
+$connecting-modal-z-index: 400;
+
 html,
 body,
 .root {
@@ -31,6 +37,8 @@ body,
     background-attachment: fixed;
     background-size: cover;
     background-position: center;
+
+    z-index: $background-z-index;
 }
 
 .background {
@@ -56,7 +64,7 @@ body,
     width: 100%;
     transition: background-color 0.6s ease, border-color 0.6s ease;
     border-bottom: rgba(0, 0, 0, 0) 1px solid;
-    z-index: 200;
+    z-index: $header-z-index;
 
     .scrolled & {
         background-color: rgba(0, 0, 0, 0.6);
@@ -91,7 +99,7 @@ body,
 
 .main {
     position: relative;
-    z-index: 1;
+    z-index: $main-z-index;
 
     h1,
     h2,
@@ -119,7 +127,7 @@ body,
     left: 0;
     width: 100vw;
     height: 100vh;
-    z-index: 400;
+    z-index: $connecting-modal-z-index;
 
     background-color: rgba(0, 0, 0, 0.15);
     -webkit-backdrop-filter: blur(2px);

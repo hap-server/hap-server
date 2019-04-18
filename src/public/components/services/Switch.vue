@@ -1,5 +1,7 @@
 <template>
-    <service class="service-switch" :service="service" type="Switch" :active="on" :updating="updating" @click="setOn(!on)">
+    <service class="service-switch" :service="service" type="Switch" :active="on" :updating="updating"
+        @click="setOn(!on)"
+    >
         <switch-icon slot="icon" />
 
         <p>{{ on ? 'On' : 'Off' }}</p>
@@ -18,7 +20,9 @@
             Service: ServiceComponent,
             SwitchIcon,
         },
-        props: ['service'],
+        props: {
+            service: Service,
+        },
         data() {
             return {
                 updating: false,

@@ -20,22 +20,14 @@
             Service: ServiceComponent,
             ButtonIcon,
         },
-        props: ['service'],
+        props: {
+            service: Service,
+        },
         data() {
             return {
                 last_event: null,
                 active: false,
             };
-        },
-        created() {
-            if (this.programmable_switch_event) {
-                this.programmable_switch_event.on('value-updated', this.handleSwitchEvent);
-            }
-        },
-        destroy() {
-            if (this.programmable_switch_event) {
-                this.programmable_switch_event.removeListener('value-updated', this.handleSwitchEvent);
-            }
         },
         computed: {
             programmable_switch_event() {
@@ -52,6 +44,16 @@
                     programmable_switch_event.on('value-updated', this.handleSwitchEvent);
                 }
             },
+        },
+        created() {
+            if (this.programmable_switch_event) {
+                this.programmable_switch_event.on('value-updated', this.handleSwitchEvent);
+            }
+        },
+        destroy() {
+            if (this.programmable_switch_event) {
+                this.programmable_switch_event.removeListener('value-updated', this.handleSwitchEvent);
+            }
         },
         methods: {
             handleSwitchEvent(value) {

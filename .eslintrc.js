@@ -16,6 +16,7 @@ module.exports = {
         'max-len': ['warn', {code: 120}],
         // 'require-jsdoc': 'warn',
         'arrow-parens': ['warn', 'as-needed'],
+        'quote-props': ['warn', 'as-needed'],
 
         'require-jsdoc': 'off',
         'valid-jsdoc': 'off',
@@ -25,6 +26,7 @@ module.exports = {
         }],
         'vue/html-self-closing': ['warn', {
             html: {
+                void: 'always',
                 normal: 'any',
             },
         }],
@@ -32,6 +34,17 @@ module.exports = {
             baseIndent: 1,
             switchCase: 0,
             ignores: [],
+        }],
+        'vue/max-attributes-per-line': 'off',
+        'vue/singleline-html-element-content-newline': 'off',
+
+        // Self closing elements should have the closing bracket on the same line.
+        // Elements which have content should have the closing bracket on the next line if the last attribute is not
+        // on the same line as the opening bracket.
+        'vue/html-closing-bracket-newline': 'off',
+
+        'vue/multiline-html-element-content-newline': ['warn', {
+            ignores: ['p', 'button'],
         }],
     },
     overrides: [

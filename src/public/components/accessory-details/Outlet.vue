@@ -1,5 +1,7 @@
 <template>
-    <accessory-details class="accessory-details-outlet" :active="on" :updating="updating" :name="service.name || service.accessory.name" @show-settings="$emit('show-settings')">
+    <accessory-details class="accessory-details-outlet" :active="on" :updating="updating"
+        :name="service.name || service.accessory.name" @show-settings="$emit('show-settings')"
+    >
         <outlet-icon slot="icon" />
 
         <p>Outlet</p>
@@ -16,15 +18,17 @@
     export const uuid = Service.Outlet;
 
     export default {
-        props: ['service'],
+        components: {
+            AccessoryDetails,
+            OutletIcon,
+        },
+        props: {
+            service: Service,
+        },
         data() {
             return {
                 updating: false,
             };
-        },
-        components: {
-            AccessoryDetails,
-            OutletIcon,
         },
         computed: {
             on() {

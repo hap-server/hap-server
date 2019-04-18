@@ -1,5 +1,7 @@
 <template>
-    <service class="service-outlet" :service="service" type="Outlet" :active="on" :updating="updating" @click="setOn(!on)">
+    <service class="service-outlet" :service="service" type="Outlet" :active="on" :updating="updating"
+        @click="setOn(!on)"
+    >
         <outlet-icon slot="icon" />
 
         <p>{{ on ? 'On' : 'Off' }}</p>
@@ -18,7 +20,9 @@
             Service: ServiceComponent,
             OutletIcon,
         },
-        props: ['service'],
+        props: {
+            service: Service,
+        },
         data() {
             return {
                 updating: false,
