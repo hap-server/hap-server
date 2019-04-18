@@ -137,4 +137,19 @@ export default class Permissions {
     async assertCanAccessServerRuntimeInfo() {
         if (!await this.checkCanAccessServerRuntimeInfo()) throw new Error('You don\'t have permission to manage this home');
     }
+
+    /**
+     * Check if the user should receive a broadcast message.
+     *
+     * @param {Object} data
+     * @param {string} data.type
+     * @return {Promise<boolean>}
+     */
+    checkShouldReceiveBroadcast(data) {
+        if (data.type === 'update-characteristic') return this.checkCanGetAccessory(data.accessory_uuid);
+
+        if (!this.user) return false;
+
+        return true;
+    }
 }

@@ -405,6 +405,11 @@ export default class Server extends EventEmitter {
             if (ws.readyState !== WebSocket.OPEN) continue;
             if (except && except === ws || except instanceof Array && except.includes(ws)) continue;
 
+            const connection = Connection.getConnectionForWebSocket(ws);
+            if (except && except === connection || except instanceof Array && except.includes(connection)) continue;
+
+            if (!connection.permissions.checkShouldReceiveBroadcast(data)) continue;
+
             ws.send(message);
         }
     }
