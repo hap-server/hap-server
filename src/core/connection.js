@@ -47,7 +47,7 @@ export default class Connection {
 
         ws_map.set(this.ws, this);
 
-        ws.on('message', async message => {
+        ws.on('message', message => {
             if (this.closed) {
                 this.log.warning('Received message from closed connection...!?');
                 this.ws.close();
@@ -73,18 +73,7 @@ export default class Connection {
             const messageid = parseInt(match[1]);
             const data = match[2] !== 'undefined' ? JSON.parse(match[2]) : undefined;
 
-            try {
-                await this.handleMessage(messageid, data);
-            } catch (err) {
-                this.log.error('Error in message handler', err);
-
-                this.respond(messageid, {
-                    reject: true,
-                    error: err instanceof Error,
-                    constructor: err.constructor.name,
-                    data: err instanceof Error ? {message: err.message, code: err.code, stack: err.stack} : err,
-                });
-            }
+            this.handleMessage(messageid, data);
         });
 
         ws.on('close', code => {
@@ -124,7 +113,22 @@ export default class Connection {
         this.ws.send('**:' + JSON.stringify(data));
     }
 
-    respond(messageid, data) {
+    async respond(messageid, data) {
+        if (data instanceof Promise) {
+            try {
+                data = await data;
+            } catch (err) {
+                this.log.error('Error in message handler', err);
+
+                data = {
+                    reject: true,
+                    error: err instanceof Error,
+                    constructor: err.constructor.name,
+                    data: err instanceof Error ? {message: err.message, code: err.code, stack: err.stack} : err,
+                };
+            }
+        }
+
         this.ws.send('*' + messageid + ':' + JSON.stringify(data));
     }
 
@@ -145,8 +149,8 @@ export default class Connection {
     /**
      * Gets the UUID of every accessory.
      */
-    async handleListAccessoriesMessage(messageid, data) {
-        this.respond(messageid, await this.listAccessories());
+    handleListAccessoriesMessage(messageid, data) {
+        this.respond(messageid, this.listAccessories());
     }
 
     async listAccessories() {
@@ -173,15 +177,15 @@ export default class Connection {
         }
 
         const authorised_uuids = await this.permissions.getAuthorisedAccessoryUUIDs();
-        return uuids.filter(uuid => authorised_uuids.include(uuid));
+        return uuids.filter(uuid => authorised_uuids.includes(uuid));
     }
 
     /**
      * Gets the details of accessories.
      * This is what the accessory exposes.
      */
-    async handleGetAccessoriesMessage(messageid, data) {
-        this.respond(messageid, await this.getAccessories(...data.id));
+    handleGetAccessoriesMessage(messageid, data) {
+        this.respond(messageid, this.getAccessories(...data.id));
     }
 
     getAccessories(...id) {
@@ -210,8 +214,8 @@ export default class Connection {
     /**
      * Gets the value of a characteristic.
      */
-    async handleGetCharacteristicsMessage(messageid, data) {
-        this.respond(messageid, await this.getCharacteristics(...data.ids));
+    handleGetCharacteristicsMessage(messageid, data) {
+        this.respond(messageid, this.getCharacteristics(...data.ids));
     }
 
     getCharacteristics(...ids) {
@@ -241,8 +245,8 @@ export default class Connection {
     /**
      * Sets the value of a characteristic.
      */
-    async handleSetCharacteristicsMessage(messageid, data) {
-        this.respond(messageid, await this.setCharacteristics(...data.ids_data));
+    handleSetCharacteristicsMessage(messageid, data) {
+        this.respond(messageid, this.setCharacteristics(...data.ids_data));
     }
 
     setCharacteristics(...ids) {
@@ -276,8 +280,8 @@ export default class Connection {
      * Gets the details of accessories.
      * This is stored by the web UI.
      */
-    async handleGetAccessoriesDataMessage(messageid, data) {
-        this.respond(messageid, await this.getAccessoriesData(...data.id));
+    handleGetAccessoriesDataMessage(messageid, data) {
+        this.respond(messageid, this.getAccessoriesData(...data.id));
     }
 
     getAccessoriesData(...id) {
@@ -297,8 +301,8 @@ export default class Connection {
      * Sets extra data of accessories.
      * This is stored by the web UI.
      */
-    async handleSetAccessoriesDataMessage(messageid, data) {
-        this.respond(messageid, await this.setAccessoriesData(...data.id_data));
+    handleSetAccessoriesDataMessage(messageid, data) {
+        this.respond(messageid, this.setAccessoriesData(...data.id_data));
     }
 
     setAccessoriesData(...id_data) {
@@ -323,8 +327,8 @@ export default class Connection {
     /**
      * Gets global settings.
      */
-    async handleGetHomeSettingsMessage(messageid, data) {
-        this.respond(messageid, await this.getHomeSettings());
+    handleGetHomeSettingsMessage(messageid, data) {
+        this.respond(messageid, this.getHomeSettings());
     }
 
     async getHomeSettings() {
@@ -338,8 +342,8 @@ export default class Connection {
     /**
      * Sets global settings.
      */
-    async handleSetHomeSettingsMessage(messageid, data) {
-        this.respond(messageid, await this.setHomeSettings(data.data));
+    handleSetHomeSettingsMessage(messageid, data) {
+        this.respond(messageid, this.setHomeSettings(data.data));
     }
 
     async setHomeSettings(data) {
@@ -355,15 +359,23 @@ export default class Connection {
         }, this.ws);
     }
 
-    async handleGetCommandLineFlagsMessage(messageid) {
+    handleGetCommandLineFlagsMessage(messageid) {
+        this.respond(messageid, this.getCommandLineFlags());
+    }
+
+    async getCommandLineFlags() {
         await this.permissions.assertCanAccessServerRuntimeInfo();
 
         this.log.info('Getting command line flags for', this.id);
 
-        this.respond(messageid, process.argv);
+        return process.argv;
     }
 
-    async handleEnableProxyStdoutMessage(messageid) {
+    handleEnableProxyStdoutMessage(messageid) {
+        this.respond(messageid, this.enableProxyStdout());
+    }
+
+    async enableProxyStdout(messageid) {
         await this.permissions.assertCanAccessServerRuntimeInfo();
 
         this.log.info('Enabling stdout proxy for', this.id);
@@ -374,7 +386,11 @@ export default class Connection {
         this.respond(messageid);
     }
 
-    async handleDisableProxyStdoutMessage(messageid) {
+    handleDisableProxyStdoutMessage(messageid) {
+        this.respond(messageid, this.disableProxyStdout());
+    }
+
+    async disableProxyStdout(messageid) {
         await this.permissions.assertCanAccessServerRuntimeInfo();
 
         this.log.info('Disabling stdout proxy for', this.id);
@@ -386,8 +402,8 @@ export default class Connection {
     /**
      * Gets the UUID of every bridge.
      */
-    async handleListBridgesMessage(messageid, data) {
-        this.respond(messageid, await this.listBridges(data.include_homebridge));
+    handleListBridgesMessage(messageid, data) {
+        this.respond(messageid, this.listBridges(data.include_homebridge));
     }
 
     async listBridges(include_homebridge) {
@@ -400,14 +416,14 @@ export default class Connection {
         }
 
         const authorised_uuids = await this.permissions.getAuthorisedAccessoryUUIDs();
-        return uuids.filter(uuid => authorised_uuids.include(uuid));
+        return uuids.filter(uuid => authorised_uuids.includes(uuid));
     }
 
     /**
      * Gets the details of a bridge.
      */
-    async handleGetBridgesMessage(messageid, data) {
-        this.respond(messageid, await this.getBridges(...data.uuid));
+    handleGetBridgesMessage(messageid, data) {
+        this.respond(messageid, this.getBridges(...data.uuid));
     }
 
     getBridges(...uuid) {
@@ -438,8 +454,8 @@ export default class Connection {
     /**
      * Lists pairings.
      */
-    async handleListPairingsMessage(messageid, data) {
-        this.respond(messageid, await this.listPairings(data.bridge_uuid));
+    handleListPairingsMessage(messageid, data) {
+        this.respond(messageid, this.listPairings(data.bridge_uuid));
     }
 
     async listPairings(bridge_uuid) {
@@ -461,8 +477,8 @@ export default class Connection {
     /**
      * Gets the details of pairings.
      */
-    async handleGetPairingsMessage(messageid, data) {
-        this.respond(messageid, await this.getPairings(...data.ids));
+    handleGetPairingsMessage(messageid, data) {
+        this.respond(messageid, this.getPairings(...data.ids));
     }
 
     getPairings(...id) {
@@ -488,8 +504,8 @@ export default class Connection {
     /**
      * Gets accessory UIs.
      */
-    async handleGetAccessoryUIsMessage(messageid, data) {
-        this.respond(messageid, await this.getAccessoryUIs());
+    handleGetAccessoryUIsMessage(messageid, data) {
+        this.respond(messageid, this.getAccessoryUIs());
     }
 
     getAccessoryUIs() {

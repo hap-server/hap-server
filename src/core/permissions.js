@@ -1,4 +1,6 @@
 
+import Homebridge from './homebridge';
+
 export default class Permissions {
     constructor(connection) {
         this.connection = connection;
@@ -19,19 +21,19 @@ export default class Permissions {
 
         const uuids = [];
 
-        for (const bridge of this.server.bridges) {
+        for (const bridge of this.connection.server.bridges) {
             uuids.push(bridge.uuid);
         }
 
-        for (const accessory of this.server.accessories) {
+        for (const accessory of this.connection.server.accessories) {
             uuids.push(accessory.uuid);
         }
 
-        for (const accessory of this.server.cached_accessories) {
+        for (const accessory of this.connection.server.cached_accessories) {
             uuids.push(accessory.uuid);
         }
 
-        for (const bridge of this.server.bridges) {
+        for (const bridge of this.connection.server.bridges) {
             if (!(bridge instanceof Homebridge)) continue;
 
             for (const accessory of bridge.bridge.bridgedAccessories) {
