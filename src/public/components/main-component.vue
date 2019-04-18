@@ -1,5 +1,7 @@
 <template>
     <div class="root" :class="{scrolled}">
+        <div class="background" :style="{'background-image': `url(${JSON.stringify(background_url)})`}" />
+
         <div class="header">
             <div class="left">
                 <span v-if="authenticated_user" class="badge badge-pill badge-dark clickable" @click="modals.push({type: 'authenticate'})">
@@ -345,6 +347,9 @@
                 }
 
                 return this.name || 'Home';
+            },
+            background_url() {
+                return require('../../../assets/default-wallpaper.jpg');
             },
             modal_open() {
                 return this.connecting || !!this.modals.length;

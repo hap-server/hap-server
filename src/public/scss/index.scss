@@ -4,7 +4,7 @@
 html,
 body,
 .root {
-    width: 100vw;
+    width: 100%;
     height: 100vh;
 
     -moz-user-select: none;
@@ -24,12 +24,23 @@ body,
     cursor: pointer;
 }
 
-body {
+body,
+.background {
     background-color: $purple;
     background-image: url('../../../assets/default-wallpaper.jpg');
     background-attachment: fixed;
     background-size: cover;
     background-position: center;
+}
+
+.background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+
+    background-attachment: scroll;
 }
 
 .root {
@@ -45,7 +56,7 @@ body {
     width: 100%;
     transition: background-color 0.6s ease, border-color 0.6s ease;
     border-bottom: rgba(0, 0, 0, 0) 1px solid;
-    z-index: 1;
+    z-index: 200;
 
     .scrolled & {
         background-color: rgba(0, 0, 0, 0.6);
@@ -79,6 +90,9 @@ body {
 }
 
 .main {
+    position: relative;
+    z-index: 1;
+
     h1,
     h2,
     h3 {
@@ -105,7 +119,7 @@ body {
     left: 0;
     width: 100vw;
     height: 100vh;
-    z-index: 3;
+    z-index: 400;
 
     background-color: rgba(0, 0, 0, 0.15);
     -webkit-backdrop-filter: blur(2px);
