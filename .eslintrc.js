@@ -6,6 +6,9 @@ module.exports = {
     parserOptions: {
         ecmaVersion: 8,
         sourceType: 'module',
+
+        // https://eslint.vuejs.org/user-guide/#how-to-use-custom-parser
+        parser: 'babel-eslint',
     },
     rules: {
         indent: ['error', 4],
