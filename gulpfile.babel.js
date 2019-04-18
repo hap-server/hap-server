@@ -68,6 +68,18 @@ const webpack_config = {
     output: {
         filename: '[name].js',
     },
+    optimization: {
+        runtimeChunk: 'single',
+        splitChunks: {
+            cacheGroups: {
+                vendor: {
+                    test: /[\\/]node_modules[\\/]/,
+                    name: 'vendors',
+                    chunks: 'initial',
+                },
+            },
+        },
+    },
 };
 
 export const webpack_hot_config = Object.assign({}, webpack_config, {
@@ -156,7 +168,7 @@ const release_minify_config = {
 
 const release_webpack_config = Object.assign({}, webpack_config, {
     mode: 'production',
-    plugins: webpack_config.plugins.filter(plugin => !(plugin instanceof MiniCssExtractPlugin)).concat([
+    plugins: (webpack_config.plugins || []).filter(plugin => !(plugin instanceof MiniCssExtractPlugin)).concat([
         new MiniCssExtractPlugin({
             // Options similar to the same options in webpackOptions.output
             // both options are optional
@@ -165,12 +177,12 @@ const release_webpack_config = Object.assign({}, webpack_config, {
         }),
     ]),
     output: undefined,
-    optimization: {
+    optimization: Object.assign({}, webpack_config.optimization, {
         minimizer: [
             new TerserPlugin(),
             new OptimizeCSSAssetsPlugin(),
         ],
-    },
+    }),
 });
 
 gulp.task('build-backend-release', function () {

@@ -57,10 +57,6 @@
     import Layout from './layout.vue';
     import AccessoryDetails from './accessory-details.vue';
 
-    import Settings from './settings.vue';
-    import AccessorySettings from './accessory-settings.vue';
-    import ServiceSettings from './service-settings.vue';
-
     export const instances = new Set();
 
     export default {
@@ -90,9 +86,9 @@
             Layout,
             AccessoryDetails,
 
-            Settings,
-            AccessorySettings,
-            ServiceSettings,
+            Settings: () => import(/* webpackChunkName: 'settings' */ './settings.vue'),
+            AccessorySettings: () => import(/* webpackChunkName: 'settings' */ './accessory-settings.vue'),
+            ServiceSettings: () => import(/* webpackChunkName: 'settings' */ './service-settings.vue'),
         },
         async created() {
             instances.add(this);
