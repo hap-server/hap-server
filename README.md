@@ -305,6 +305,17 @@ cp -r example-config data
 bin/hap-server data/config.json
 ```
 
+To use the [standalone Vue devtools](https://github.com/vuejs/vue-devtools/blob/master/shells/electron/README.md)
+run `npx vue-devtools` and pass the `--vue-devtools-port` flag to `hap-server`.
+
+```
+npx vue-devtools &
+
+bin/hap-server data/config.json --vue-devtools-port 8098
+# Also pass --vue-devtools-host if you want to use the Vue devtools to work on other devices
+bin/hap-server data/config.json --vue-devtools-host samuels-macbook-air.local --vue-devtools-port 8098
+```
+
 Plugins
 ---
 
@@ -448,7 +459,7 @@ authentication_handler.reconnect_handler = async data => {
 };
 
 authentication_handler.disconnect_handler = async (authenticated_user, disconnected) => {
-    log.info(authenticated_user.name, disconnected ? 'disconnected', 'reauthenticated');
+    log.info(authenticated_user.name, disconnected ? 'disconnected' : 'reauthenticated');
 };
 
 hapserver.registerAuthenticationHandler(authentication_handler);

@@ -30,6 +30,8 @@ const message_methods = {
 
 const ws_map = new WeakMap();
 
+const DEVELOPMENT = true;
+
 export default class Connection {
     constructor(server, ws, req) {
         this.server = server;
@@ -604,4 +606,22 @@ export default class Connection {
             data: response,
         });
     }
+}
+
+if (DEVELOPMENT) {
+    const development_data = exports.development_data = {
+        vue_devtools_host: '127.0.0.1',
+        vue_devtools_port: 0,
+    };
+
+    message_methods['development-data'] = 'handleDevelopmentDataMessage';
+
+    Connection.prototype.handleDevelopmentDataMessage = function(messageid) {
+        this.respond(messageid, development_data);
+    };
+
+    exports.enableVueDevtools = function(host, port) {
+        development_data.vue_devtools_host = host;
+        development_data.vue_devtools_port = port;
+    };
 }

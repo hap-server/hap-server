@@ -1,3 +1,7 @@
+if (process.env.NODE_ENV === 'development') {
+    require('@vue/devtools');
+}
+
 import Vue from 'vue';
 
 import MainComponent from './components/main-component.vue';

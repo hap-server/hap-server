@@ -219,6 +219,13 @@
                     await new Promise(r => setTimeout(r, 4000));
                 }
 
+                if (process.env.NODE_ENV === 'development') {
+                    const development_data = await this.connection.send({type: 'development-data'});
+
+                    const devtools = require('@vue/devtools');
+                    devtools.connect(development_data.vue_devtools_host, development_data.vue_devtools_port);
+                }
+
                 const loadAccessoryUIs = this.loadAccessoryUIs();
 
                 await Promise.all([

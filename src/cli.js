@@ -15,6 +15,8 @@ import {Server, PluginManager, Logger, forceColourLogs} from '.';
 
 const log = new Logger();
 
+const DEVELOPMENT = true;
+
 yargs.option('debug', {
     alias: 'D',
     describe: 'Enable debug level logging',
@@ -79,7 +81,24 @@ yargs.command('$0 [config]', 'Run the HAP and web server', yargs => {
         alias: 'g',
         describe: 'Group to run as after starting',
     });
+
+    if (DEVELOPMENT) {
+        yargs.option('vue-devtools-host', {
+            describe: 'Host to connect to Vue.js devtools with',
+            type: 'string',
+            default: '127.0.0.1',
+        });
+        yargs.option('vue-devtools-port', {
+            describe: 'Port to connect to Vue.js devtools with',
+            type: 'number',
+        });
+    }
 }, async argv => {
+    if (DEVELOPMENT && argv.vueDevtoolsPort) {
+        const {enableVueDevtools} = require('./core/connection');
+        enableVueDevtools(argv.vueDevtoolsHost, argv.vueDevtoolsPort);
+    }
+
     /**
      * Read configuration data.
      */
