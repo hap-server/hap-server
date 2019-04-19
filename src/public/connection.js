@@ -254,10 +254,16 @@ export default class Connection extends EventEmitter {
 
 export class AuthenticationHandlerConnection {
     constructor(connection, authentication_handler_id) {
-        this.connection = connection;
-        this.authentication_handler_id = authentication_handler_id;
+        Object.defineProperty(this, 'connection', {value: connection});
+        Object.defineProperty(this, 'authentication_handler_id', {value: authentication_handler_id});
     }
 
+    /**
+     * Send data to an authentication handler on the server.
+     *
+     * @param {} data
+     * @return {Promise<>}
+     */
     async send(data) {
         const response = await this.connection.send({
             type: 'authenticate',
@@ -290,6 +296,6 @@ export class AuthenticationHandlerConnection {
 
 export class AuthenticatedUser {
     constructor(authentication_handler_id) {
-        this.authentication_handler_id = authentication_handler_id;
+        Object.defineProperty(this, 'authentication_handler_id', {value: authentication_handler_id});
     }
 }

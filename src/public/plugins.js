@@ -47,6 +47,16 @@ export class PluginManager {
         return this.import(accessory_ui, undefined, this.getModuleCache(accessory_ui), undefined, script);
     }
 
+    /**
+     * Get the exports of an accessory UI script.
+     *
+     * @param {AccessoryUI} accessory_ui
+     * @param {?string} script The parent module's name
+     * @param {Object} cache The module cache
+     * @param {?Object} module The parent module
+     * @param {string} request The name of the module to return the exports of
+     * @return {}
+     */
     require(accessory_ui, script, cache, module, request) {
         if (request === '.' || request === '..' || request.startsWith('./') || request.startsWith('../')) {
             request = path.resolve(path.dirname(script), request);
@@ -77,8 +87,22 @@ export class PluginManager {
         throw new Error('Unknown module ' + request);
     }
 
+    /**
+     * Imports an accessory UI script.
+     *
+     * @param {AccessoryUI} accessory_ui
+     * @param {?string} script The parent module's name
+     * @param {Object} cache The module cache
+     * @param {?Object} module The parent module
+     * @param {string} request The name of the module to return the exports of
+     * @return {Promise<>}
+     */
     async import(accessory_ui, script, cache, parent, request) {
         if (script) request = path.resolve(path.dirname(script), request);
+
+        if (cache[request]) {
+            return cache[request].exports;
+        }
 
         const js = (await axios.get('./accessory-ui/' + accessory_ui.id + request)).data;
 
@@ -113,6 +137,12 @@ export class PluginManager {
         return module.exports;
     }
 
+    /**
+     * Get the module cache for an accessory UI.
+     *
+     * @param {AccessoryUI} accessory_ui
+     * @return {Object}
+     */
     getModuleCache(accessory_ui) {
         if (this.require_caches.has(accessory_ui)) return this.require_caches.get(accessory_ui);
 
@@ -123,6 +153,12 @@ export class PluginManager {
         return cache;
     }
 
+    /**
+     * Get the plugin API module for an accessory UI.
+     *
+     * @param {AccessoryUI} accessory_ui
+     * @return {Object}
+     */
     getPluginAPI(accessory_ui) {
         if (this.plugin_apis.has(accessory_ui)) return this.plugin_apis.get(accessory_ui);
 
@@ -150,14 +186,19 @@ export default PluginManager.instance;
 
 export class PluginAPI {
     constructor(plugin_manager, accessory_ui) {
-        this.plugin_manager = plugin_manager;
-        this.accessory_ui = accessory_ui;
+        Object.defineProperty(this, 'plugin_manager', {value: plugin_manager});
+        Object.defineProperty(this, 'accessory_ui', {value: accessory_ui});
     }
 
     log(...args) {
         console.log('Accessory UI ' + this.accessory_ui.id, ...args);
     }
 
+    /**
+     * Refreshes display services of existing accessories.
+     * This is automatically called when registering any component that affects display services, so you don't need to
+     * use this directly.
+     */
     refreshDisplayServices() {
         for (const component of main_component_instances) {
             for (const accessory of Object.values(component.accessories)) {
@@ -166,6 +207,12 @@ export class PluginAPI {
         }
     }
 
+    /**
+     * Registers a service component (the small tile).
+     *
+     * @param {string} type The service type UUID
+     * @param {VueComponent} component
+     */
     registerServiceComponent(type, component) {
         if (service_components.has(type)) {
             throw new Error('There is already a service component with the type "' + type + '"');
@@ -180,6 +227,12 @@ export class PluginAPI {
         this.refreshDisplayServices();
     }
 
+    /**
+     * Registers an accessory details component (the full screen view).
+     *
+     * @param {string} type The service type UUID
+     * @param {VueComponent} component
+     */
     registerAccessoryDetailsComponent(type, component) {
         if (accessory_details_components.has(type)) {
             throw new Error('There is already an accessory details component with the type "' + type + '"');
@@ -204,6 +257,12 @@ export class PluginAPI {
         this.refreshDisplayServices();
     }
 
+    /**
+     * Collapse multiple services into a single display service.
+     *
+     * @param {string} type The service type UUID to use for the display service
+     * @param {string[]} collapsed_service_types An array of service type UUIDs to collapse
+     */
     registerCollapsedService(uuid, collapsed_service_types) {
         if (collapsed_services[uuid]) {
             throw new Error('There is already a collapsed service with the UUID "' + uuid + '"');
@@ -227,6 +286,13 @@ export class PluginAPI {
         this.refreshDisplayServices();
     }
 
+    /**
+     * Registers an authentication handler component.
+     *
+     * @param {string} localid The authentication handler ID
+     * @param {VueComponent} component
+     * @param {string} name A display name for the authentication handler (used when multiple authentication handlers are available)
+     */
     registerAuthenticationHandlerComponent(localid, component, name) {
         const id = this.accessory_ui.plugin_authentication_handlers[localid];
 
