@@ -239,7 +239,7 @@ export class PluginManager {
     }
 
     getAccessoryUIs() {
-        return this.plugins.map(plugin => plugin.getAccessoryUIs()).flat();
+        return this.plugins.map(plugin => plugin.getAccessoryUIs()).reduce((acc, val) => acc.concat(val), []);
     }
 
     getAccessoryUI(id) {
@@ -251,7 +251,7 @@ export class PluginManager {
     }
 
     getAuthenticationHandlers() {
-        return this.plugins.map(plugin => plugin.getAuthenticationHandlers()).flat();
+        return this.plugins.map(plugin => plugin.getAuthenticationHandlers()).reduce((acc, val) => acc.concat(val), []);
     }
 
     getAuthenticationHandler(id) {
