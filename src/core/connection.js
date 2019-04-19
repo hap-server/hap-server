@@ -31,7 +31,7 @@ const message_methods = {
 const ws_map = new WeakMap();
 
 export default class Connection {
-    constructor(server, ws) {
+    constructor(server, ws, req) {
         this.server = server;
         this.ws = ws;
         this.id = id++;
@@ -40,9 +40,11 @@ export default class Connection {
         this.enable_proxy_stdout = false;
         this.last_message = null;
         this.closed = false;
+        this.req = req;
 
         this.permissions = new Permissions(this);
 
+        this.log.info('WebSocket connection from', this.req.connection.remoteAddress);
         // this.server.log.debug('WebSocket connection', this.id, this.ws);
 
         ws_map.set(this.ws, this);

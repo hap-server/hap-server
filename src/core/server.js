@@ -63,7 +63,7 @@ export default class Server extends EventEmitter {
         }
 
         this.wss = new WebSocket.Server({noServer: true});
-        this.wss.on('connection', ws => this.handleWebsocketConnection(ws));
+        this.wss.on('connection', (ws, req) => this.handleWebsocketConnection(ws, req));
 
         this.handle = this.handle.bind(this);
         this.upgrade = this.upgrade.bind(this);
@@ -388,8 +388,8 @@ export default class Server extends EventEmitter {
         });
     }
 
-    handleWebsocketConnection(ws) {
-        new Connection(this, ws);
+    handleWebsocketConnection(ws, req) {
+        new Connection(this, ws, req);
     }
 
     /**

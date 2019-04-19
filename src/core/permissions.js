@@ -1,6 +1,8 @@
 
 import Homebridge from './homebridge';
 
+const DEVELOPMENT = true;
+
 export default class Permissions {
     constructor(connection) {
         this.connection = connection;
@@ -17,7 +19,9 @@ export default class Permissions {
      * @return {Promise<Array>}
      */
     getAuthorisedAccessoryUUIDs() {
-        if (!this.user) return [];
+        if (!DEVELOPMENT || !this.__development_allow_local()) {
+            if (!this.user) return [];
+        }
 
         const uuids = [];
 
@@ -51,6 +55,8 @@ export default class Permissions {
      * @return {Promise<boolean>}
      */
     checkCanGetAccessory(accessory_uuid) {
+        if (DEVELOPMENT && this.__development_allow_local()) return true;
+
         if (!this.user) return false;
 
         return true;
@@ -70,6 +76,8 @@ export default class Permissions {
      * @return {Promise<boolean>}
      */
     checkCanSetCharacteristic(accessory_uuid, service_uuid, characteristic_uuid, value) {
+        if (DEVELOPMENT && this.__development_allow_local()) return true;
+
         if (!this.user) return false;
 
         return true;
@@ -86,6 +94,8 @@ export default class Permissions {
      * @return {Promise<boolean>}
      */
     checkCanSetAccessoryData(accessory_uuid) {
+        if (DEVELOPMENT && this.__development_allow_local()) return true;
+
         if (!this.user) return false;
 
         return true;
@@ -101,6 +111,8 @@ export default class Permissions {
      * @return {Promise<boolean>}
      */
     checkCanGetHomeSettings() {
+        if (DEVELOPMENT && this.__development_allow_local()) return true;
+
         if (!this.user) return false;
 
         return true;
@@ -116,6 +128,8 @@ export default class Permissions {
      * @return {Promise<boolean>}
      */
     checkCanSetHomeSettings() {
+        if (DEVELOPMENT && this.__development_allow_local()) return true;
+
         if (!this.user) return false;
 
         return true;
@@ -131,6 +145,8 @@ export default class Permissions {
      * @return {Promise<boolean>}
      */
     checkCanAccessServerRuntimeInfo() {
+        if (DEVELOPMENT && this.__development_allow_local()) return true;
+
         if (!this.user) return false;
 
         return true;
@@ -150,8 +166,20 @@ export default class Permissions {
     checkShouldReceiveBroadcast(data) {
         if (data.type === 'update-characteristic') return this.checkCanGetAccessory(data.accessory_uuid);
 
+        if (DEVELOPMENT && this.__development_allow_local()) return true;
+
         if (!this.user) return false;
 
         return true;
     }
+}
+
+if (DEVELOPMENT) {
+    const local_addresses = ['::1', '::ffff:127.0.0.1', '127.0.0.1'];
+
+    Permissions.prototype.__development_allow_local = function() {
+        if (local_addresses.includes(this.connection.req.connection.remoteAddress) && !this.connection.req.headers['x-forwarded-for']) {
+            return true;
+        }
+    };
 }
