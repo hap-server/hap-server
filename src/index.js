@@ -10,3 +10,15 @@ export {
     Logger,
     forceColourLogs,
 };
+
+export const DEVELOPMENT = true;
+
+export const package_json = (() => {
+    if (DEVELOPMENT) {
+        return require('../package');
+    }
+
+    return require('./package');
+})();
+
+export const version = package_json.version;

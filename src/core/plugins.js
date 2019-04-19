@@ -15,7 +15,7 @@ import {Plugin as HomebridgePluginManager} from 'homebridge/lib/plugin';
 
 import Logger from './logger';
 
-import {version as hap_server_version} from '../../package';
+import {version as hap_server_version} from '..';
 
 const fs_stat = util.promisify(fs.stat);
 const fs_readdir = util.promisify(fs.readdir);

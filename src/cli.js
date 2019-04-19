@@ -245,7 +245,7 @@ yargs.command('$0 [config]', 'Run the HAP and web server', yargs => {
 });
 
 yargs.command('version', 'Show version number', yargs => {}, async argv => {
-    console.log('hap-server version', require('../package').version);
+    console.log('hap-server version', require('.').version, DEVELOPMENT ? chalk.red('development') : chalk.grey('production'));
     console.log('homebridge version', require('homebridge/package').version);
     console.log('hap-nodejs version', require('hap-nodejs/package').version);
 });
