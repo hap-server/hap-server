@@ -424,6 +424,36 @@ hapserver.registerAuthenticationHandler('LocalStorage', async (data, previous_us
 });
 ```
 
+You can also create an authentication handler separately to add a reconnect handler.
+
+```js
+import hapserver, {AuthenticationHandler, AuthenticatedUser, log} from 'hap-server-api';
+
+const authentication_handler = new AuthenticationHandler('LocalStorage');
+
+authentication_handler.handler = async (data, previous_user) => {
+    // Check the credentials from the web interface
+    const user = await checkCredentialsAndGetUser(data);
+
+    // Return an AuthenticatedUser object with a globally unique ID (used for permissions) and a name to display in the web interface
+    return new AuthenticatedUser(user.id, user.name || data.username);
+
+    // You don't have to return an AuthenticatedUser object immediately
+    // You can return plain objects and throw errors and create a multi-step login process
+};
+
+authentication_handler.reconnect_handler = async data => {
+    // Restore the AuthenticatedUser from the saved data object
+    return new AuthenticatedUser(data.id, data.name);
+};
+
+authentication_handler.disconnect_handler = async (authenticated_user, disconnected) => {
+    log.info(authenticated_user.name, disconnected ? 'disconnected', 'reauthenticated');
+};
+
+hapserver.registerAuthenticationHandler(authentication_handler);
+```
+
 ### Accessory UIs
 
 Accessory UIs register components in the web interface. Accessory UI scripts should be registered with
@@ -442,6 +472,14 @@ You can also use [webpack](https://webpack.js.org) to bundle your Accessory UI's
     ],
 ```
 
+Don't include Vue as a dependency of your plugin. The web interface plugin manager exposes Vue and axios through the
+`require` function.
+
+```js
+import Vue from 'vue';
+import axios from 'axios';
+```
+
 #### `accessoryui.registerServiceComponent`
 
 Registers a service component (the small tile). This expects a service type and a
@@ -458,21 +496,15 @@ accessoryui.registerServiceComponent(Service.LightSensor, {
     components: {
         Service: ServiceComponent,
     },
-    props: ['service'],
+    props: {
+        service: Service,
+    },
     computed: {
         light() {
             return this.service.getCharacteristicValueByName('CurrentAmbientLightLevel');
         },
     },
 });
-```
-
-Don't include Vue as a dependency of your plugin. The web interface plugin manager exposes Vue and axios through the
-`require` function.
-
-```js
-import Vue from 'vue';
-import axios from 'axios';
 ```
 
 #### `accessoryui.registerAccessoryDetailsComponent`
@@ -492,7 +524,9 @@ accessoryui.registerAccessoryDetailsComponent(Service.LightSensor, {
     components: {
         AccessoryDetails,
     },
-    props: ['service'],
+    props: {
+        service: Service,
+    },
     computed: {
         light() {
             return this.service.getCharacteristicValueByName('CurrentAmbientLightLevel');
@@ -524,8 +558,7 @@ Registers an authentication handler component.
 See [`hapserver.registerAuthenticationHandler`](#hapserver-registerauthenticationhandler).
 
 ```js
-
-import accessoryui from 'hap-server-api/accessory-ui';
+import accessoryui, {AuthenticationHandlerConnection} from 'hap-server-api/accessory-ui';
 
 const AuthenticationHandlerComponent = {
     template: `<div class="authentication-handler authentication-handler-storage">
@@ -539,13 +572,20 @@ const AuthenticationHandlerComponent = {
             </div>
         </form>
     </div>`,
-    props: ['connection'],
+    props: {
+        connection: AuthenticationHandlerConnection,
+    },
     data() {
         return {
             authenticating: false,
             username: '',
             password: '',
         };
+    },
+    watch: {
+        authenticating(authenticating) {
+            this.$emit('authenticating', authenticating);
+        },
     },
     methods: {
         async authenticate() {
@@ -566,11 +606,6 @@ const AuthenticationHandlerComponent = {
             } finally {
                 this.authenticating = false;
             }
-        },
-    },
-    watch: {
-        authenticating(authenticating) {
-            this.$emit('authenticating', authenticating);
         },
     },
 };

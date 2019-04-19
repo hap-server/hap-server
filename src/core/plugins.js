@@ -397,6 +397,11 @@ export class Plugin {
     }
 
     registerAuthenticationHandler(name, handler, disconnect_handler) {
+        if (name instanceof AuthenticationHandler) {
+            handler = name;
+            name = handler.name;
+        }
+
         name = '' + name;
 
         if (typeof handler !== 'function') {
