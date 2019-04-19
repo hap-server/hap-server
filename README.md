@@ -82,6 +82,15 @@ You can now run hap-server with your configuration. Once you've tested your conf
 set it up as a system service with `systemd` (Debian), `launchd` (macOS) or whatever service manager you have
 installed.
 
+hap-server requires a plugin to authenticate access to the web interface. You can use the
+[authenticate-pam](https://gitlab.fancy.org.uk/samuel/hap-server-authenticate-pam) plugin to allow local users on the
+server to access the web interface. If you don't install an authentication handler you won't be able to access the
+web interface, but you'll still be able to configure hap-server using it's configuration file.
+
+```
+npm install -g https://gitlab.fancy.org.uk/samuel/hap-server-authenticate-pam
+```
+
 Usage
 ---
 

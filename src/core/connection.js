@@ -28,6 +28,10 @@ const message_methods = {
     'authenticate': 'handleAuthenticateMessage',
 };
 
+const hide_authentication_keys = [
+    'password', 'token',
+];
+
 const ws_map = new WeakMap();
 
 const DEVELOPMENT = true;
@@ -535,7 +539,10 @@ export default class Connection {
                 const id = data.authentication_handler_id;
                 const authentication_handler = PluginManager.getAuthenticationHandler(id);
 
-                this.log.info('Received authenticate message', messageid, data, authentication_handler);
+                const logdata = Object.assign({}, data);
+                for (const k of hide_authentication_keys) if (logdata.hasOwnProperty(k)) logdata[k] = null;
+
+                this.log.info('Received authenticate message', messageid, logdata, authentication_handler);
 
                 if (!authentication_handler) {
                     throw new Error('Unknown authentication handler');

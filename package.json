@@ -67,6 +67,9 @@
         "webpack-stream": "^5.2.1",
         "xterm": "^3.11.0"
     },
+    "peerDependencies": {
+        "hap-server-authenticate-pam": "git+ssh://git@gitlab.fancy.org.uk:hap-server-authenticate-pam#semver:^0.1.0"
+    },
     "scripts": {
         "build": "gulp build"
     },
