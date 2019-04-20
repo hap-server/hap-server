@@ -7,6 +7,8 @@ const broadcast_message_methods = {
     'update-characteristic': 'handleUpdateCharacteristicMessage',
     'update-accessory-data': 'handleUpdateAccessoryDataMessage',
     'update-home-settings': 'handleUpdateHomeSettingsMessage',
+    'add-layout': 'handleAddLayoutMessage',
+    'remove-layout': 'handleRemoveLayoutMessage',
     'update-layout': 'handleUpdateLayoutMessage',
     'stdout': 'handleStdout',
     'stderr': 'handleStderr',
@@ -178,6 +180,13 @@ export default class Connection extends EventEmitter {
         });
     }
 
+    createLayouts(...data) {
+        return this.send({
+            type: 'create-layouts',
+            data,
+        });
+    }
+
     getLayouts(...id) {
         return this.send({
             type: 'get-layouts',
@@ -201,6 +210,13 @@ export default class Connection extends EventEmitter {
 
     setLayout(id, data) {
         return this.setLayouts([id, data]);
+    }
+
+    deleteLayouts(...id) {
+        return this.send({
+            type: 'delete-layouts',
+            id,
+        });
     }
 
     getCommandLineFlags() {
@@ -286,6 +302,14 @@ export default class Connection extends EventEmitter {
 
     handleUpdateHomeSettingsMessage(data) {
         this.emit('update-home-settings', data.data);
+    }
+
+    handleAddLayoutMessage(data) {
+        this.emit('add-layout', data.uuid);
+    }
+
+    handleRemoveLayoutMessage(data) {
+        this.emit('remove-layout', data.uuid);
     }
 
     handleUpdateLayoutMessage(data) {

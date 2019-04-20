@@ -1,5 +1,7 @@
 
 import process from 'process';
+import genuuid from 'uuid/v4';
+
 import PluginManager, {AuthenticatedUser} from './plugins';
 import Homebridge from './homebridge';
 import Permissions from './permissions';
@@ -18,6 +20,7 @@ const message_methods = {
     'get-home-permissions': 'handleGetHomePermissionsMessage',
     'set-home-settings': 'handleSetHomeSettingsMessage',
     'list-layouts': 'handleListLayoutsMessage',
+    'create-layouts': 'handleCreateLayoutsMessage',
     'get-layouts': 'handleGetLayoutsMessage',
     'get-layouts-permissions': 'handleGetLayoutsPermissionsMessage',
     'set-layouts': 'handleSetLayoutsMessage',
@@ -436,6 +439,41 @@ export default class Connection {
     }
 
     /**
+     * Creates layouts.
+     */
+    handleCreateLayoutsMessage(messageid, data) {
+        this.respond(messageid, this.createLayouts(...data.data));
+    }
+
+    createLayouts(...data) {
+        return Promise.all(data.map(data => this.createLayout(data)));
+    }
+
+    async createLayout(data) {
+        await this.permissions.assertCanCreateLayouts();
+
+        const uuid = genuuid();
+        const uuid = 'test2';
+
+        this.log.debug('Creating layout', uuid, data);
+
+        await this.server.storage.setItem('Layout.' + uuid, data);
+
+        const layout_uuids = await this.server.storage.getItem('Layouts') || [];
+        if (!layout_uuids.includes(uuid)) {
+            layout_uuids.push(uuid);
+            await this.server.storage.setItem('Layouts', layout_uuids);
+        }
+
+        this.server.sendBroadcast({
+            type: 'new-layout',
+            uuid,
+        }, this.ws);
+
+        return uuid;
+    }
+
+    /**
      * Gets data of layouts.
      */
     handleGetLayoutsMessage(messageid, data) {
@@ -503,6 +541,37 @@ export default class Connection {
             type: 'update-layout',
             uuid,
             data,
+        }, this.ws);
+    }
+
+    /**
+     * Deletes layouts.
+     */
+    handleDeleteLayoutsMessage(messageid, data) {
+        this.respond(messageid, this.deleteLayouts(...data.id));
+    }
+
+    deleteLayouts(...id) {
+        return Promise.all(id.map(id => this.deleteLayout(id)));
+    }
+
+    async deleteLayout(uuid) {
+        await this.permissions.assertCanDeleteLayout(uuid);
+
+        this.log.debug('Deleting layout', uuid);
+
+        const layout_uuids = await this.server.storage.getItem('Layouts') || [];
+        let index;
+        while ((index = layout_uuids.indexOf(uuid)) > -1) {
+            layout_uuids.splice(index, 1);
+        }
+        await this.server.storage.setItem('Layouts', layout_uuids);
+
+        await this.server.storage.removeItem('Layout.' + uuid);
+
+        this.server.sendBroadcast({
+            type: 'remove-layout',
+            uuid,
         }, this.ws);
     }
 

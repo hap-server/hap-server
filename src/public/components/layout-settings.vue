@@ -1,6 +1,8 @@
 <template>
     <panel ref="panel" @close="$emit('close')">
-        <form @submit.prevent="save(true)">
+        <p v-if="deleteLayout">Are you sure you want to delete this layout?</p>
+
+        <form v-else @submit.prevent="save(true)">
             <div class="form-group row">
                 <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-name'">Name</label>
                 <div class="col-sm-9">
@@ -11,10 +13,12 @@
         </form>
 
         <div class="d-flex">
-            <div v-if="saving">Saving</div>
+            <div v-if="saving && deleteLayout">Deleting</div>
+            <div v-else-if="saving">Saving</div>
             <div class="flex-fill"></div>
             <button class="btn btn-default btn-sm" type="button" :disabled="saving" @click="() => $refs.panel.close()">Cancel</button>&nbsp;
-            <button class="btn btn-primary btn-sm" type="button" :disabled="saving" @click="save(true)">Save</button>
+            <button v-if="deleteLayout" class="btn btn-danger btn-sm" type="button" :disabled="saving" @click="save(true)">Delete</button>
+            <button v-else class="btn btn-primary btn-sm" type="button" :disabled="saving" @click="save(true)">{{ create ? 'Create' : 'Save' }}</button>
         </div>
     </panel>
 </template>
@@ -32,7 +36,8 @@
         props: {
             connection: Connection,
             layout: Layout,
-            new: Boolean,
+            create: Boolean,
+            deleteLayout: Boolean,
         },
         data() {
             return {
@@ -52,16 +57,34 @@
                 this.saving = true;
 
                 try {
-                    const data = Object.assign({}, this.new ? null : this.layout.data, {
+                    if (this.deleteLayout) {
+                        await this.connection.deleteLayouts(this.layout.uuid);
+
+                        this.$emit('remove', this.layout);
+                        this.$emit('close');
+
+                        return;
+                    }
+
+                    const data = Object.assign({}, this.create ? {
+                        sections: [],
+                    } : this.layout.data, {
                         name: this.name,
                     });
 
-                    if (!this.new) {
+                    if (!this.create) {
                         await this.layout.updateData(data);
                     } else {
-                        const uuid = await this.connection.createLayout(data);
+                        const [uuid] = await this.connection.createLayouts(data);
 
-                        this.$emit('layout', uuid);
+                        const [[layout_permissions]] = await Promise.all([
+                            // this.connection.getLayouts(uuid),
+                            this.connection.getLayoutsPermissions(uuid),
+                        ]);
+
+                        const layout = new Layout(this.connection, uuid, data, layout_permissions);
+
+                        this.$emit('layout', layout);
                     }
 
                     if (close) this.$emit('close');

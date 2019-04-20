@@ -18,6 +18,7 @@
             <template v-if="value && (value.can_set || value.can_delete)">
                 <a v-if="value.can_set" class="dropdown-item" href="#" @click.prevent="$emit('modal', {type: 'layout-settings', layout: value})">Settings</a>
                 <a v-if="value.can_set" class="dropdown-item" href="#" @click.prevent="$emit('edit-layout')">Edit</a>
+                <a v-if="value.can_delete" class="dropdown-item" href="#" @click.prevent="$emit('modal', {type: 'delete-layout', layout: value})">Delete</a>
 
                 <div v-if="canCreate" class="dropdown-divider"></div>
             </template>

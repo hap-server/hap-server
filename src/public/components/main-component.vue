@@ -45,7 +45,11 @@
                 :connection="connection" :accessories="accessories" :layout="modal.layout"
                 @close="modals.splice(index, 1)" />
             <layout-settings v-else-if="modal.type === 'new-layout'" :key="index" :ref="'modal-' + index"
-                :connection="connection" :accessories="accessories" :new="true" @close="modals.splice(index, 1)" />
+                :connection="connection" :accessories="accessories" :create="true" @layout="addLayout"
+                @close="modals.splice(index, 1)" />
+            <layout-settings v-else-if="modal.type === 'delete-layout'" :key="index" :ref="'modal-' + index"
+                :connection="connection" :accessories="accessories" :layout="modal.layout" :delete-layout="true"
+                @remove="removeLayout" @close="modals.splice(index, 1)" />
 
             <accessory-settings v-else-if="modal.type === 'accessory-settings'" :key="index" :ref="'modal-' + index"
                 :connection="connection" :accessory="modal.accessory" :accessories="accessories"
@@ -136,6 +140,7 @@
 
                         if (modal.type === 'layout-settings') return modal.layout.name + ' Settings';
                         if (modal.type === 'new-layout') return 'New layout';
+                        if (modal.type === 'delete-layout') return 'Delete ' + modal.layout.name + '?';
 
                         if (modal.type === 'accessory-settings') return modal.accessory.name + ' Settings';
                         if (modal.type === 'service-settings') return (modal.service.name || modal.service.accessory.name) + ' Settings';
@@ -305,6 +310,31 @@
                     this.name = data.name;
                 });
 
+                connection.on('add-layout', async uuid => {
+                    const [[layout_data], [layout_permissions]] = await Promise.all([
+                        this.connection.getLayouts(uuid),
+                        this.connection.getLayoutsPermissions(uuid),
+                    ]);
+
+                    const layout = new Layout(this.connection, uuid, layout_data, layout_permissions);
+
+                    this.$set(this.layouts, layout.uuid, layout);
+                    this.$emit('new-layout', layout);
+                    this.$emit('new-layouts', [layout]);
+                    this.$emit('updated-layouts', [layout], []);
+                });
+
+                connection.on('remove-layout', async uuid => {
+                    const layout = this.layouts[uuid];
+
+                    if (!layout) return;
+
+                    this.$delete(this.layouts, layout.uuid);
+                    this.$emit('removed-layout', layout);
+                    this.$emit('removed-layouts', [layout]);
+                    this.$emit('updated-layouts', [], [layout]);
+                });
+
                 connection.on('update-layout', (uuid, data) => {
                     const layout = this.layouts[uuid];
 
@@ -312,12 +342,16 @@
                 });
 
                 connection.on('add-accessory', async accessory_uuid => {
-                    const [accessory_details, accessory_data] = await Promise.all([
+                    if (this.accessories[accessory_uuid]) return;
+
+                    const [[accessory_details], [accessory_data], [accessory_permissions]] = await Promise.all([
                         this.connection.getAccessories(accessory_uuid),
                         this.connection.getAccessoriesData(accessory_uuid),
+                        this.connection.getAccessoriesPermissions(accessory_uuid),
                     ]);
 
-                    const accessory = new Accessory(this.connection, accessory_uuid, accessory_details, accessory_data);
+                    const accessory = new Accessory(this.connection, accessory_uuid, accessory_details, accessory_data,
+                        accessory_permissions);
 
                     this.$set(this.accessories, accessory.uuid, accessory);
                     this.$emit('new-accessory', accessory);
@@ -327,6 +361,8 @@
 
                 connection.on('remove-accessory', accessory_uuid => {
                     const accessory = this.accessories[uuid];
+
+                    if (!accessory) return;
 
                     this.$delete(this.accessories, accessory.uuid);
                     this.$emit('removed-accessory', accessory);
@@ -453,6 +489,20 @@
                 } finally {
                     this.loading_layouts = false;
                 }
+            },
+            addLayout(layout) {
+                this.$set(this.layouts, layout.uuid, layout);
+                this.$emit('new-layout', layout);
+                this.$emit('new-layouts', [layout]);
+                this.$emit('updated-layouts', [layout], []);
+            },
+            removeLayout(layout) {
+                if (this.layout === layout) this.layout = null;
+
+                this.$delete(this.layouts, layout.uuid);
+                this.$emit('remove-layout', layout);
+                this.$emit('remove-layouts', [layout]);
+                this.$emit('updated-layouts', [], [layout]);
             },
             async reloadBridges() {
                 if (this.loading_bridges) throw new Error('Already loading bridges');
