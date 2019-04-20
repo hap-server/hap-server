@@ -12,13 +12,15 @@ export default class Service extends EventEmitter {
      * @param {string} uuid
      * @param {object} details The HAP service data (read only)
      * @param {object} data Configuration data stored by the web UI (read/write)
+     * @param {Array} permissions An array of characteristic UUIDs the user has permission to update
      */
-    constructor(accessory, uuid, details, data) {
+    constructor(accessory, uuid, details, data, permissions) {
         super();
 
         this.accessory = accessory;
         this.uuid = uuid;
         this.characteristics = {};
+        this._setPermissions(permissions || []);
         this._setData(data || {});
         this._setDetails(details || {});
     }
@@ -60,7 +62,7 @@ export default class Service extends EventEmitter {
         }
 
         const added_characteristics = added_characteristic_details.map(cd =>
-            new Characteristic(this, cd.type, cd));
+            new Characteristic(this, cd.type, cd, this._permissions.includes(cd.type)));
 
         for (const characteristic of added_characteristics) {
             // Use Vue.set so Vue updates properly
@@ -117,6 +119,16 @@ export default class Service extends EventEmitter {
 
     get type() {
         return this.details.type;
+    }
+
+    _setPermissions(permissions) {
+        this._permissions = Object.freeze(permissions);
+
+        for (const characteristic of Object.values(this.characteristics)) {
+            characteristic._setPermissions(permissions.includes(characteristic.uuid));
+        }
+
+        this.emit('permissions-updated', permissions);
     }
 
     findCharacteristic(callback) {

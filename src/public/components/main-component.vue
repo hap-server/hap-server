@@ -20,13 +20,14 @@
             <h1>{{ name || 'Home' }}</h1>
             <div class="right">
                 <layout-selector v-model="layout" :layouts="layouts" :name="name" :can-create="can_create_layouts"
-                    @new-layout="modals.push({type: 'new-layout'})" />
+                    @edit-layout="$refs.layout.edit = true" @modal="modal => modals.push(modal)" />
             </div>
         </div>
 
         <div class="main">
-            <layout :connection="connection" :accessories="accessories" :bridge-uuids="bridge_uuids"
+            <layout ref="layout" :key="layout ? layout.uuid : ''" :connection="connection" :accessories="accessories" :bridge-uuids="bridge_uuids"
                 :title="(layout ? layout.name : name) || 'Home'" :sections="layout && layout.sections"
+                :can-edit="layout && layout.can_set" :can-delete="layout && layout.can_delete"
                 @update-accessories="layout.updateData(layout.data)" @modal="modal => modals.push(modal)" @ping="ping" />
         </div>
 
@@ -39,6 +40,13 @@
                 @show-accessory-settings="accessory => modals.push({type: 'accessory-settings', accessory})"
                 @refresh-accessories="refreshAccessories()"
                 @updated-settings="reload" @close="modals.splice(index, 1)" />
+
+            <layout-settings v-else-if="modal.type === 'layout-settings'" :key="index" :ref="'modal-' + index"
+                :connection="connection" :accessories="accessories" :layout="modal.layout"
+                @close="modals.splice(index, 1)" />
+            <layout-settings v-else-if="modal.type === 'new-layout'" :key="index" :ref="'modal-' + index"
+                :connection="connection" :accessories="accessories" :new="true" @close="modals.splice(index, 1)" />
+
             <accessory-settings v-else-if="modal.type === 'accessory-settings'" :key="index" :ref="'modal-' + index"
                 :connection="connection" :accessory="modal.accessory" :accessories="accessories"
                 @show-accessory-settings="accessory => modals.push({type: 'accessory-settings', accessory})"
@@ -85,6 +93,7 @@
             AccessoryDetails,
 
             Settings: () => import(/* webpackChunkName: 'settings' */ './settings.vue'),
+            LayoutSettings: () => import(/* webpackChunkName: 'settings' */ './layout-settings.vue'),
             AccessorySettings: () => import(/* webpackChunkName: 'settings' */ './accessory-settings.vue'),
             ServiceSettings: () => import(/* webpackChunkName: 'settings' */ './service-settings.vue'),
         },
@@ -98,7 +107,11 @@
                 name: null,
                 layouts: {},
                 layout: null,
+
+                can_update_home_settings: false,
+                can_access_server_settings: false,
                 can_create_layouts: false,
+                loading_permissions: false,
 
                 accessories: {},
                 refresh_accessories_timeout: null,
@@ -120,12 +133,14 @@
                         if (modal.type === 'authenticate') return 'Login';
 
                         if (modal.type === 'settings') return 'Settings';
+
+                        if (modal.type === 'layout-settings') return modal.layout.name + ' Settings';
+                        if (modal.type === 'new-layout') return 'New layout';
+
                         if (modal.type === 'accessory-settings') return modal.accessory.name + ' Settings';
                         if (modal.type === 'service-settings') return (modal.service.name || modal.service.accessory.name) + ' Settings';
 
                         if (modal.type === 'accessory-details') return modal.service.name || modal.service.accessory.name;
-
-                        if (modal.type === 'new-layout') return 'New layout';
                     }
 
                     return modal.title;
@@ -162,6 +177,7 @@
 
                 await Promise.all([
                     this.reload(),
+                    this.reloadPermissions(),
                     this.refreshLayouts(true),
                     this.reloadBridges(),
                     this.refreshAccessories(true),
@@ -355,6 +371,20 @@
                     this.loading = false;
                 }
             },
+            async reloadPermissions() {
+                if (this.loading_permissions) throw new Error('Already loading permissions');
+                this.loading_permissions = true;
+
+                try {
+                    const permissions = await this.connection.getHomePermissions();
+
+                    this.can_update_home_settings = !!permissions.set;
+                    this.can_access_server_settings = !!permissions.server;
+                    this.can_create_layouts = !!permissions.create_layouts;
+                } finally {
+                    this.loading_permissions = false;
+                }
+            },
             async loadAccessoryUIs() {
                 if (this.loading_accessory_uis) throw new Error('Already loading accessory UIs');
                 this.loading_accessory_uis = true;
@@ -393,8 +423,13 @@
                         removed_layout_uuids.push(uuid);
                     }
 
-                    const new_layouts = (await this.connection.getLayouts(...new_layout_uuids))
-                        .map((data, index) => new Layout(this.connection, new_layout_uuids[index], data));
+                    const [new_layouts_data, new_layouts_permissions] = await Promise.all([
+                        this.connection.getLayouts(...new_layout_uuids),
+                        this.connection.getLayoutsPermissions(...new_layout_uuids),
+                    ]);
+
+                    const new_layouts = new_layout_uuids.map((uuid, index) =>
+                        new Layout(this.connection, uuid, new_layouts_data[index], new_layouts_permissions[index]));
 
                     for (const layout of new_layouts) {
                         this.$set(this.layouts, layout.uuid, layout);
@@ -455,13 +490,15 @@
                         removed_accessories.push(accessory_uuid);
                     }
 
-                    const [new_accessory_details, new_accessory_data] = await Promise.all([
+                    const [new_accessory_details, new_accessory_data, new_accessory_permissions] = await Promise.all([
                         this.connection.getAccessories(...new_accessories),
                         this.connection.getAccessoriesData(...new_accessories),
+                        this.connection.getAccessoriesPermissions(...new_accessories),
                     ]);
 
                     const added_accessories = new_accessories.map((uuid, index) =>
-                        new Accessory(this.connection, uuid, new_accessory_details[index], new_accessory_data[index]));
+                        new Accessory(this.connection, uuid, new_accessory_details[index], new_accessory_data[index],
+                            new_accessory_permissions[index]));
 
                     for (const accessory of added_accessories) {
                         this.$set(this.accessories, accessory.uuid, accessory);

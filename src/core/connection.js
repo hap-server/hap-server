@@ -9,15 +9,19 @@ let id = 0;
 const message_methods = {
     'list-accessories': 'handleListAccessoriesMessage',
     'get-accessories': 'handleGetAccessoriesMessage',
+    'get-accessories-permissions': 'handleGetAccessoriesPermissionsMessage',
     'get-characteristics': 'handleGetCharacteristicsMessage',
     'set-characteristics': 'handleSetCharacteristicsMessage',
     'get-accessories-data': 'handleGetAccessoriesDataMessage',
     'set-accessories-data': 'handleSetAccessoriesDataMessage',
     'get-home-settings': 'handleGetHomeSettingsMessage',
+    'get-home-permissions': 'handleGetHomePermissionsMessage',
     'set-home-settings': 'handleSetHomeSettingsMessage',
     'list-layouts': 'handleListLayoutsMessage',
     'get-layouts': 'handleGetLayoutsMessage',
+    'get-layouts-permissions': 'handleGetLayoutsPermissionsMessage',
     'set-layouts': 'handleSetLayoutsMessage',
+    'delete-layouts': 'handleDeleteLayoutsMessage',
     'get-command-line-flags': 'handleGetCommandLineFlagsMessage',
     'enable-proxy-stdout': 'handleEnableProxyStdoutMessage',
     'disable-proxy-stdout': 'handleDisableProxyStdoutMessage',
@@ -223,6 +227,35 @@ export default class Connection {
     }
 
     /**
+     * Gets the user's permissions for accessories.
+     */
+    handleGetAccessoriesPermissionsMessage(messageid, data) {
+        this.respond(messageid, this.getAccessoriesPermissions(...data.id));
+    }
+
+    getAccessoriesPermissions(...id) {
+        return Promise.all(id.map(id => this.getAccessoryPermissions(id)));
+    }
+
+    async getAccessoryPermissions(uuid) {
+        const accessory = this.server.getAccessory(uuid);
+
+        if (!accessory) return;
+
+        const [get, set, set_characteristics] = await Promise.all([
+            this.permissions.checkCanGetAccessory(uuid),
+            this.permissions.checkCanSetAccessoryData(uuid),
+
+            Promise.all(accessory.services.map(async s => {
+                return [s.UUID, await Promise.all(s.characteristics.map(c => c.UUID)
+                    .filter(c => this.permissions.checkCanSetCharacteristic(uuid, s.UUID, c)))];
+            })).then(s => s.reduce((services, v) => services[v[0]] = v[1], {})),
+        ]);
+
+        return {get, set, set_characteristics};
+    }
+
+    /**
      * Gets the value of a characteristic.
      */
     handleGetCharacteristicsMessage(messageid, data) {
@@ -351,6 +384,24 @@ export default class Connection {
     }
 
     /**
+     * Gets the user's global permissions.
+     */
+    handleGetHomePermissionsMessage(messageid) {
+        this.respond(messageid, this.getHomePermissions());
+    }
+
+    async getHomePermissions() {
+        const [get, set, create_layouts, server] = await Promise.all([
+            this.permissions.checkCanGetHomeSettings(),
+            this.permissions.checkCanSetHomeSettings(),
+            this.permissions.checkCanCreateLayouts(),
+            this.permissions.checkCanAccessServerRuntimeInfo(),
+        ]);
+
+        return {get, set, create_layouts, server};
+    }
+
+    /**
      * Sets global settings.
      */
     handleSetHomeSettingsMessage(messageid, data) {
@@ -404,6 +455,27 @@ export default class Connection {
     }
 
     /**
+     * Gets the user's permissions for layouts.
+     */
+    handleGetLayoutsPermissionsMessage(messageid, data) {
+        this.respond(messageid, this.getLayoutsPermissions(...data.id));
+    }
+
+    getLayoutsPermissions(...id) {
+        return Promise.all(id.map(id => this.getLayoutPermissions(id)));
+    }
+
+    async getLayoutPermissions(uuid) {
+        const [get, set, del] = await Promise.all([
+            this.permissions.checkCanGetLayout(uuid),
+            this.permissions.checkCanSetLayout(uuid),
+            this.permissions.checkCanDeleteLayout(uuid),
+        ]);
+
+        return {get, set, delete: del};
+    }
+
+    /**
      * Sets data of layouts.
      */
     handleSetLayoutsMessage(messageid, data) {
@@ -428,7 +500,7 @@ export default class Connection {
         }
 
         this.server.sendBroadcast({
-            type: 'update-layout-data',
+            type: 'update-layout',
             uuid,
             data,
         }, this.ws);

@@ -155,6 +155,23 @@ export default class Permissions {
     }
 
     /**
+     * Check if the user can create layouts.
+     *
+     * @return {Promise<boolean>}
+     */
+    checkCanCreateLayouts() {
+        if (DEVELOPMENT && this.__development_allow_local()) return true;
+
+        if (!this.user) return false;
+
+        return true;
+    }
+
+    async assertCanCreateLayouts() {
+        if (!await this.checkCanCreateLayouts()) throw new Error('You don\'t have permission to create layouts');
+    }
+
+    /**
      * Check if the user can see a layout.
      *
      * @param {string} id
@@ -188,6 +205,24 @@ export default class Permissions {
 
     async assertCanSetLayout(id) {
         if (!await this.checkCanSetLayout(id)) throw new Error('You don\'t have permission to update this layout');
+    }
+
+    /**
+     * Check if the user can delete a layout.
+     *
+     * @param {string} id
+     * @return {Promise<boolean>}
+     */
+    checkCanDeleteLayout(id) {
+        if (DEVELOPMENT && this.__development_allow_local()) return true;
+
+        if (!this.user) return false;
+
+        return true;
+    }
+
+    async assertCanDeleteLayout(id) {
+        if (!await this.checkCanDeleteLayout(id)) throw new Error('You don\'t have permission to delete this layout');
     }
 
     /**

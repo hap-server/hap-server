@@ -5,16 +5,24 @@
         </button>
 
         <div ref="menu" class="dropdown-menu dropdown-menu-lg-right" :class="{show: open}" :aria-labelledby="_uid + '-dropdown'">
-            <a class="dropdown-item" :class="{active: !value}" href="#" @click="$emit('input', null)">All accessories</a>
+            <a class="dropdown-item" :class="{active: !value}" href="#" @click.prevent="$emit('input', null)">All accessories</a>
 
             <template v-if="Object.values(layouts).length">
                 <div class="dropdown-divider"></div>
-                <a v-for="layout in layouts" class="dropdown-item" :class="{active: value && value.uuid === layout.uuid}" href="#" @click="$emit('input', layout)">{{ layout.name || layout.uuid }}</a>
+
+                <a v-for="layout in layouts" class="dropdown-item" :class="{active: value && value.uuid === layout.uuid}" href="#" @click.prevent="$emit('input', layout)">{{ layout.name || layout.uuid }}</a>
+
+                <div v-if="canCreate || (value && (value.can_set || value.can_delete))" class="dropdown-divider"></div>
+            </template>
+
+            <template v-if="value && (value.can_set || value.can_delete)">
+                <a v-if="value.can_set" class="dropdown-item" href="#" @click.prevent="$emit('modal', {type: 'layout-settings', layout: value})">Settings</a>
+                <a v-if="value.can_set" class="dropdown-item" href="#" @click.prevent="$emit('edit-layout')">Edit</a>
 
                 <div v-if="canCreate" class="dropdown-divider"></div>
             </template>
 
-            <a v-if="canCreate" class="dropdown-item" href="#" @click="$emit('new-layout')">New</a>
+            <a v-if="canCreate" class="dropdown-item" href="#" @click.prevent="$emit('modal', {type: 'new-layout'})">New</a>
         </div>
     </div>
 </template>

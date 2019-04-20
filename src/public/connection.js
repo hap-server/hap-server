@@ -110,6 +110,13 @@ export default class Connection extends EventEmitter {
         });
     }
 
+    getAccessoriesPermissions(...id) {
+        return this.send({
+            type: 'get-accessories-permissions',
+            id,
+        });
+    }
+
     getCharacteristics(...ids) {
         return this.send({
             type: 'get-characteristics',
@@ -152,6 +159,12 @@ export default class Connection extends EventEmitter {
         });
     }
 
+    getHomePermissions() {
+        return this.send({
+            type: 'get-home-permissions',
+        });
+    }
+
     setHomeSettings(data) {
         return this.send({
             type: 'set-home-settings',
@@ -168,6 +181,13 @@ export default class Connection extends EventEmitter {
     getLayouts(...id) {
         return this.send({
             type: 'get-layouts',
+            id,
+        });
+    }
+
+    getLayoutsPermissions(...id) {
+        return this.send({
+            type: 'get-layouts-permissions',
             id,
         });
     }

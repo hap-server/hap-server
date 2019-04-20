@@ -99,6 +99,8 @@
             sections: {type: Array, default: () => []},
             accessories: Object,
             bridgeUuids: {type: Array, default: () => []},
+            canEdit: Boolean,
+            canDelete: Boolean,
         },
         data() {
             return {

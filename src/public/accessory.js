@@ -15,14 +15,16 @@ export default class Accessory extends EventEmitter {
      * @param {string} uuid
      * @param {object} details The HAP accessory data (read only)
      * @param {object} data Configuration data stored by the web UI (read/write)
+     * @param {object} permissions
      */
-    constructor(connection, uuid, details, data) {
+    constructor(connection, uuid, details, data, permissions) {
         super();
 
         this.connection = connection;
         this.uuid = uuid;
         this.services = {};
         this.display_services = [];
+        this._setPermissions(permissions || {});
         this._setData(data || {});
         this._setDetails(details || {});
     }
@@ -72,7 +74,8 @@ export default class Accessory extends EventEmitter {
 
         const added_services = added_service_details.map(service_details => {
             const uuid = service_details.type + (service_details.subtype ? '.' + service_details.subtype : '');
-            return new Service(this, uuid, service_details, this.data['Service.' + uuid]);
+            const permissions = this._permissions.set_characteristics[uuid];
+            return new Service(this, uuid, service_details, this.data['Service.' + uuid], permissions);
         });
 
         for (const service of added_services) {
@@ -244,6 +247,28 @@ export default class Accessory extends EventEmitter {
     get default_name() {
         return this.getCharacteristicValue(
             '0000003E-0000-1000-8000-0026BB765291', '00000023-0000-1000-8000-0026BB765291');
+    }
+
+    _setPermissions(permissions) {
+        permissions.get = !!permissions.get;
+        permissions.set = !!permissions.set;
+        permissions.set_characteristics = permissions.set_characteristics || {};
+
+        this._permissions = Object.freeze(permissions);
+
+        for (const service of Object.values(this.services)) {
+            service._setPermissions(permissions.set_characteristics[service.uuid] || []);
+        }
+
+        this.emit('permissions-updated', permissions);
+    }
+
+    get can_get() {
+        return this._permissions.get;
+    }
+
+    get can_set() {
+        return this._permissions.set;
     }
 
     findService(callback) {

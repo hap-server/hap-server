@@ -7,13 +7,15 @@ export default class Characteristic extends EventEmitter {
      * @param {Service} service
      * @param {string} uuid
      * @param {object} details The HAP characteristic data (read only)
+     * @param {boolean} permissions Whether the user can set this characteristic
      */
-    constructor(service, uuid, details) {
+    constructor(service, uuid, details, permissions) {
         super();
 
         this.service = service;
         this.uuid = uuid;
         this._setDetails(details || {});
+        this._setPermissions(permissions);
     }
 
     get details() {
@@ -62,6 +64,16 @@ export default class Characteristic extends EventEmitter {
     setValue(value) {
         return this.service.accessory.connection.setCharacteristic(
             this.service.accessory.uuid, this.service.uuid, this.uuid, value);
+    }
+
+    _setPermissions(permissions) {
+        this._permissions = !!permissions;
+
+        this.emit('permissions-updated', !!permissions);
+    }
+
+    get can_set() {
+        return this._permissions;
     }
 
     static get types() {
