@@ -7,6 +7,7 @@ const broadcast_message_methods = {
     'update-characteristic': 'handleUpdateCharacteristicMessage',
     'update-accessory-data': 'handleUpdateAccessoryDataMessage',
     'update-home-settings': 'handleUpdateHomeSettingsMessage',
+    'update-layout': 'handleUpdateLayoutMessage',
     'stdout': 'handleStdout',
     'stderr': 'handleStderr',
 };
@@ -158,6 +159,30 @@ export default class Connection extends EventEmitter {
         });
     }
 
+    listLayouts() {
+        return this.send({
+            type: 'list-layouts',
+        });
+    }
+
+    getLayouts(...id) {
+        return this.send({
+            type: 'get-layouts',
+            id,
+        });
+    }
+
+    setLayouts(...id_data) {
+        return this.send({
+            type: 'set-layouts',
+            id_data,
+        });
+    }
+
+    setLayout(id, data) {
+        return this.setLayouts([id, data]);
+    }
+
     getCommandLineFlags() {
         return this.send({
             type: 'get-command-line-flags',
@@ -241,6 +266,10 @@ export default class Connection extends EventEmitter {
 
     handleUpdateHomeSettingsMessage(data) {
         this.emit('update-home-settings', data.data);
+    }
+
+    handleUpdateLayoutMessage(data) {
+        this.emit('update-layout', data.uuid, data.data);
     }
 
     handleStdout(data) {

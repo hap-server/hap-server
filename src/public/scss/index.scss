@@ -77,8 +77,11 @@ body,
         margin: 0 1rem;
     }
 
+    .right {
+        text-align: right;
+    }
+
     .btn {
-        border-radius: 50%;
         color: $light;
     }
 

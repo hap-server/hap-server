@@ -15,6 +15,9 @@ const message_methods = {
     'set-accessories-data': 'handleSetAccessoriesDataMessage',
     'get-home-settings': 'handleGetHomeSettingsMessage',
     'set-home-settings': 'handleSetHomeSettingsMessage',
+    'list-layouts': 'handleListLayoutsMessage',
+    'get-layouts': 'handleGetLayoutsMessage',
+    'set-layouts': 'handleSetLayoutsMessage',
     'get-command-line-flags': 'handleGetCommandLineFlagsMessage',
     'enable-proxy-stdout': 'handleEnableProxyStdoutMessage',
     'disable-proxy-stdout': 'handleDisableProxyStdoutMessage',
@@ -363,6 +366,70 @@ export default class Connection {
 
         this.server.sendBroadcast({
             type: 'update-home-settings',
+            data,
+        }, this.ws);
+    }
+
+    /**
+     * Gets the UUID of every layout.
+     */
+    handleListLayoutsMessage(messageid, data) {
+        this.respond(messageid, this.listLayouts());
+    }
+
+    async listLayouts() {
+        const uuids = [].concat(await this.server.storage.getItem('Layouts'));
+
+        const authorised_uuids = await this.permissions.getAuthorisedLayoutUUIDs();
+        return uuids.filter(uuid => authorised_uuids.includes(uuid));
+    }
+
+    /**
+     * Gets data of layouts.
+     */
+    handleGetLayoutsMessage(messageid, data) {
+        this.respond(messageid, this.getLayouts(...data.id));
+    }
+
+    getLayouts(...id) {
+        return Promise.all(id.map(id => this.getLayout(id)));
+    }
+
+    async getLayout(id) {
+        await this.permissions.assertCanGetLayout(id);
+
+        this.log.debug('Getting data for layout', id);
+
+        return await this.server.storage.getItem('Layout.' + id) || {};
+    }
+
+    /**
+     * Sets data of layouts.
+     */
+    handleSetLayoutsMessage(messageid, data) {
+        this.respond(messageid, this.setLayouts(...data.id_data));
+    }
+
+    setLayouts(...id_data) {
+        return Promise.all(id_data.map(([id, data]) => this.setLayout(id, data)));
+    }
+
+    async setLayout(uuid, data) {
+        await this.permissions.assertCanSetLayout(uuid);
+
+        this.log.debug('Setting data for layout', uuid, data);
+
+        await this.server.storage.setItem('Layout.' + uuid, data);
+
+        const layout_uuids = await this.server.storage.getItem('Layouts') || [];
+        if (!layout_uuids.includes(uuid)) {
+            layout_uuids.push(uuid);
+            await this.server.storage.setItem('Layouts', layout_uuids);
+        }
+
+        this.server.sendBroadcast({
+            type: 'update-layout-data',
+            uuid,
             data,
         }, this.ws);
     }

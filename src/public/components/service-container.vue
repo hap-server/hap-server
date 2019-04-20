@@ -5,8 +5,16 @@
         </div>
 
         <div class="service-container-contents">
-            <sortable :sorted="sorted" :filter-text="true">
-                <slot />
+            <draggable v-if="edit" :list="sorted" :group="group" @change="sorted => $emit('update-order', sorted)">
+                <template v-for="id in sorted">
+                    <slot :id="id" />
+                </template>
+            </draggable>
+
+            <sortable v-else :sorted="sorted" :filter-text="true">
+                <template v-for="id in sorted">
+                    <slot :id="id" />
+                </template>
             </sortable>
         </div>
     </div>
@@ -14,14 +22,19 @@
 
 <script>
     import Sortable from './sortable.vue';
+    import Draggable from 'vuedraggable';
 
     export default {
         components: {
             Sortable,
+            Draggable,
         },
         props: {
             title: {type: String, default: 'Accessories'},
+            accessories: Object,
             sorted: Array,
+            edit: Boolean,
+            group: Number,
         },
     };
 </script>

@@ -19,14 +19,15 @@
             </div>
             <h1>{{ name || 'Home' }}</h1>
             <div class="right">
+                <layout-selector v-model="layout" :layouts="layouts" :name="name" :can-create="can_create_layouts"
+                    @new-layout="modals.push({type: 'new-layout'})" />
             </div>
         </div>
 
         <div class="main">
-            <h1>{{ name || 'Home' }}</h1>
-
             <layout :connection="connection" :accessories="accessories" :bridge-uuids="bridge_uuids"
-                @modal="modal => modals.push(modal)" @ping="ping" />
+                :title="(layout ? layout.name : name) || 'Home'" :sections="layout && layout.sections"
+                @update-accessories="layout.updateData(layout.data)" @modal="modal => modals.push(modal)" @ping="ping" />
         </div>
 
         <template v-for="(modal, index) in modals">
@@ -63,12 +64,14 @@
 
 <script>
     import Connection, {AuthenticatedUser} from '../connection';
+    import Layout from '../layout';
     import Accessory from '../accessory';
     import PluginManager from '../plugins';
 
     import Authenticate from './authenticate.vue';
 
-    import Layout from './layout.vue';
+    import LayoutComponent from './layout.vue';
+    import LayoutSelector from './layout-selector.vue';
     import AccessoryDetails from './accessory-details.vue';
 
     export const instances = new Set();
@@ -77,7 +80,8 @@
         components: {
             Authenticate,
 
-            Layout,
+            Layout: LayoutComponent,
+            LayoutSelector,
             AccessoryDetails,
 
             Settings: () => import(/* webpackChunkName: 'settings' */ './settings.vue'),
@@ -92,6 +96,9 @@
                 loading: false,
 
                 name: null,
+                layouts: {},
+                layout: null,
+                can_create_layouts: false,
 
                 accessories: {},
                 refresh_accessories_timeout: null,
@@ -117,6 +124,8 @@
                         if (modal.type === 'service-settings') return (modal.service.name || modal.service.accessory.name) + ' Settings';
 
                         if (modal.type === 'accessory-details') return modal.service.name || modal.service.accessory.name;
+
+                        if (modal.type === 'new-layout') return 'New layout';
                     }
 
                     return modal.title;
@@ -125,6 +134,8 @@
                 return this.name || 'Home';
             },
             background_url() {
+                if (this.layout && this.layout.background_url) return this.layout.background_url;
+
                 return require('../../../assets/default-wallpaper.jpg');
             },
             modal_open() {
@@ -151,9 +162,15 @@
 
                 await Promise.all([
                     this.reload(),
+                    this.refreshLayouts(true),
                     this.reloadBridges(),
                     this.refreshAccessories(true),
                 ]);
+            },
+            layout(layout) {
+                // Save the current layout
+                if (layout) localStorage.setItem('layout', layout.uuid);
+                else localStorage.removeItem('layout');
             },
         },
         async created() {
@@ -164,8 +181,12 @@
             document.body.scrollTo(0, 0);
 
             this.$on('updated-accessories', (added, removed) => console.log('Updated accessories', added, removed));
+            this.$on('updated-layouts', (added, removed) => console.log('Updated layouts', added, removed));
 
             await this.tryConnect();
+
+            const layout_uuid = localStorage.getItem('layout');
+            if (layout_uuid && this.layouts[layout_uuid]) this.layout = this.layouts[layout_uuid];
 
             // await Promise.all([
             //     this.reload(),
@@ -268,6 +289,12 @@
                     this.name = data.name;
                 });
 
+                connection.on('update-layout', (uuid, data) => {
+                    const layout = this.layouts[uuid];
+
+                    layout._setData(data);
+                });
+
                 connection.on('add-accessory', async accessory_uuid => {
                     const [accessory_details, accessory_data] = await Promise.all([
                         this.connection.getAccessories(accessory_uuid),
@@ -338,6 +365,58 @@
                     await Promise.all(accessory_uis.map(accessory_ui => PluginManager.loadAccessoryUI(accessory_ui)));
                 } finally {
                     this.loading_accessory_uis = false;
+                }
+            },
+            async refreshLayouts(dont_emit_events) {
+                if (this.loading_layouts) throw new Error('Already loading layouts');
+                this.loading_layouts = true;
+
+                try {
+                    const layout_uuids = await this.connection.listLayouts();
+
+                    const new_layout_uuids = [];
+                    const removed_layout_uuids = [];
+
+                    for (const uuid of layout_uuids) {
+                        // Layout already exists
+                        if (this.layouts[uuid]) continue;
+
+                        // Add this layout to the list of layouts we don't yet know about
+                        new_layout_uuids.push(uuid);
+                    }
+
+                    for (const uuid of Object.keys(this.layouts)) {
+                        // Layout still exists
+                        if (layout_uuids.includes(uuid)) continue;
+
+                        // Add this layout to the list of layouts that have been removed
+                        removed_layout_uuids.push(uuid);
+                    }
+
+                    const new_layouts = (await this.connection.getLayouts(...new_layout_uuids))
+                        .map((data, index) => new Layout(this.connection, new_layout_uuids[index], data));
+
+                    for (const layout of new_layouts) {
+                        this.$set(this.layouts, layout.uuid, layout);
+                        if (!dont_emit_events) this.$emit('new-layout', layout);
+                    }
+
+                    if (new_layouts.length && !dont_emit_events) this.$emit('new-layouts', new_layouts);
+
+                    const removed_layouts = removed_layout_uuids.map(uuid => this.layouts[uuid]);
+
+                    for (const layout of removed_layouts) {
+                        this.$delete(this.layouts, layout.uuid);
+                        if (!dont_emit_events) this.$emit('removed-layout', layout);
+                    }
+
+                    if (removed_layouts.length && !dont_emit_events) this.$emit('removed-layouts', removed_layouts);
+
+                    if (new_layouts.length || removed_layouts.length) {
+                        this.$emit('updated-layouts', new_layouts, removed_layouts);
+                    }
+                } finally {
+                    this.loading_layouts = false;
                 }
             },
             async reloadBridges() {

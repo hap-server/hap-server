@@ -140,6 +140,57 @@ export default class Permissions {
     }
 
     /**
+     * Get the UUID of all layouts the user can see.
+     *
+     * @return {Promise<Array>}
+     */
+    async getAuthorisedLayoutUUIDs() {
+        if (!DEVELOPMENT || !this.__development_allow_local()) {
+            if (!this.user) return [];
+        }
+
+        const uuids = [].concat(await this.connection.server.storage.getItem('Layouts'));
+
+        return uuids;
+    }
+
+    /**
+     * Check if the user can see a layout.
+     *
+     * @param {string} id
+     * @return {Promise<boolean>}
+     */
+    checkCanGetLayout(id) {
+        if (DEVELOPMENT && this.__development_allow_local()) return true;
+
+        if (!this.user) return false;
+
+        return true;
+    }
+
+    async assertCanGetLayout(id) {
+        if (!await this.checkCanGetLayout(id)) throw new Error('You don\'t have permission to access this layout');
+    }
+
+    /**
+     * Check if the user can update a layout.
+     *
+     * @param {string} id
+     * @return {Promise<boolean>}
+     */
+    checkCanSetLayout(id) {
+        if (DEVELOPMENT && this.__development_allow_local()) return true;
+
+        if (!this.user) return false;
+
+        return true;
+    }
+
+    async assertCanSetLayout(id) {
+        if (!await this.checkCanSetLayout(id)) throw new Error('You don\'t have permission to update this layout');
+    }
+
+    /**
      * Check if the user can manage the server.
      *
      * @return {Promise<boolean>}
@@ -165,6 +216,9 @@ export default class Permissions {
      */
     checkShouldReceiveBroadcast(data) {
         if (data.type === 'update-characteristic') return this.checkCanGetAccessory(data.accessory_uuid);
+        if (data.type === 'update-accessory-data') return this.checkCanGetAccessory(data.uuid);
+        if (data.type === 'update-home-settings') return this.checkCanGetHomeSettings();
+        if (data.type === 'update-layout') return this.checkCanGetLayout(data.uuid);
 
         if (DEVELOPMENT && this.__development_allow_local()) return true;
 
