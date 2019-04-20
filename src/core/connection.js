@@ -698,7 +698,10 @@ export default class Connection {
                 const session = await this.server.storage.getItem('Session.' + token);
                 if (!session) throw new Error('Invalid session');
 
-                const authentication_handler = PluginManager.getAuthenticationHandler(session.authentication_handler_id);
+                const plugin = PluginManager.getPlugin(session.authentication_handler_plugin);
+                if (!plugin) throw new Error('Unknown authentication handler');
+
+                const authentication_handler = plugin.getAuthenticationHandler(session.authentication_handler);
                 if (!authentication_handler) throw new Error('Unknown authentication handler');
 
                 const authenticated_user = await authentication_handler.handleResumeSession(token, session.authenticated_user);
@@ -724,7 +727,8 @@ export default class Connection {
             if (response.token) {
                 // Save the authenticated user to the session
                 await this.server.storage.setItem('Session.' + response.token, {
-                    authentication_handler_id: response.authentication_handler.id,
+                    authentication_handler: response.authentication_handler.localid,
+                    authentication_handler_plugin: response.authentication_handler.plugin.name,
                     authenticated_user: response,
                 });
             }
