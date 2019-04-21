@@ -192,6 +192,26 @@
                 // if (changes.removed) section.accessories.splice(1, changes.removed.oldIndex);
 
                 this.$emit('update-accessories', section, changes);
+
+                if (changes.added) {
+                    const service = this.getService(changes.added.element);
+
+                    if (service && !service.data.room_name) {
+                        const data = Object.assign({}, service.data, {
+                            room_name: this.title,
+                        });
+
+                        const accessory_data = Object.assign({}, service.accessory.data, {
+                            ['Service.' + service.uuid]: data,
+                        });
+
+                        if (!service.accessory.data.room_name) {
+                            accessory_data.room_name = this.title;
+                        }
+
+                        service.accessory.updateData(accessory_data);
+                    }
+                }
             },
             getBridgeService(accessory) {
                 // {accessory, type: '--bridge'}
