@@ -7,7 +7,8 @@
                 <span v-if="authenticated_user" class="badge badge-pill badge-dark clickable"
                     @click="modals.push({type: 'authenticate'})"
                 >
-                    Authenticated as {{ authenticated_user.name }}
+                    <span class="d-inline d-sm-none">{{ authenticated_user.name }}</span>
+                    <span class="d-none d-sm-inline">Authenticated as {{ authenticated_user.name }}</span>
                 </span>
                 <span v-else class="badge badge-pill badge-dark clickable" @click="modals.push({type: 'authenticate'})">
                     Login
@@ -17,7 +18,12 @@
                     Settings
                 </span>
             </div>
-            <h1>{{ name || 'Home' }}</h1>
+
+            <h1>
+                <span class="d-inline d-sm-none">{{ (layout ? layout.name : name) || 'Home' }}</span>
+                <span class="d-none d-sm-inline">{{ name || 'Home' }}</span>
+            </h1>
+
             <div class="right">
                 <layout-selector v-model="layout" :layouts="layouts" :name="name" :can-create="can_create_layouts"
                     @edit-layout="$refs.layout.edit = !$refs.layout.edit" @modal="modal => modals.push(modal)" />
