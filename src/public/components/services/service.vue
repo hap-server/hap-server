@@ -42,22 +42,25 @@
             active: Boolean,
             updating: Boolean,
             name: String,
+            roomName: String,
             type: {type: String, default: null},
         },
         inject: ['layout', 'service'],
         computed: {
             show_room_name() {
-                return false;
+                return !this.layout || this.layout.name !== this.room_name;
             },
             room_name() {
-                return this.layout ? this.layout.name : null;
+                if (this.roomName || !this.service) return this.roomName;
+
+                return this.service.data.room_name || this.service.accessory.data.room_name || '';
             },
             service_name() {
                 if (this.name || !this.service) return this.name;
 
                 const name = this.service.name || this.service.accessory.name || '';
 
-                return name.startsWith(this.room_name) ? name.substr(this.room_name.length) : name;
+                return name.startsWith(this.room_name) ? name.substr(this.room_name.length).trim() : name;
             },
         },
     };

@@ -1,7 +1,7 @@
 <template>
     <div class="dropdown" :class="{show: open}">
         <button ref="toggle" :id="_uid + '-dropdown'" class="btn btn-sm btn-dark dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" @click.stop="open = !open">
-            {{ value ? value.name || value.uuid : name }}
+            {{ value ? value.name || value.uuid : 'All accessories' }}
         </button>
 
         <div ref="menu" class="dropdown-menu dropdown-menu-right" :class="{show: open}" :aria-labelledby="_uid + '-dropdown'">

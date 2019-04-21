@@ -15,6 +15,14 @@
                 </div>
             </div>
 
+            <div class="form-group row">
+                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-room-name'">Room</label>
+                <div class="col-sm-9">
+                    <input :id="_uid + '-room-name'" v-model="room_name" type="text" class="form-control form-control-sm"
+                        :disabled="saving" />
+                </div>
+            </div>
+
             <h5 v-if="accessory.findService(service => !service.is_system_service)">Services</h5>
             <list-group class="mb-3">
                 <!-- eslint-disable-next-line vue/no-use-v-if-with-v-for -->
@@ -116,6 +124,7 @@
                 tab: 'general',
 
                 name: null,
+                room_name: null,
 
                 is_bridge: false,
                 accessory_uuids: [],
@@ -162,6 +171,7 @@
         },
         async created() {
             this.name = this.accessory.configured_name;
+            this.room_name = this.accessory.data.room_name;
 
             await Promise.all([
                 this.loadBridge(),
@@ -201,6 +211,7 @@
                 try {
                     const data = Object.assign({}, this.accessory.data, {
                         name: this.name,
+                        room_name: this.room_name,
                     });
 
                     await this.accessory.updateData(data);

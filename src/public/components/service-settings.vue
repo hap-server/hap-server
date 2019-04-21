@@ -8,6 +8,14 @@
                         :placeholder="service.default_name" :disabled="saving" />
                 </div>
             </div>
+
+            <div class="form-group row">
+                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-room-name'">Room</label>
+                <div class="col-sm-9">
+                    <input :id="_uid + '-room-name'" v-model="room_name" type="text" class="form-control form-control-sm"
+                        :placeholder="service.accessory.data.room_name" :disabled="saving" />
+                </div>
+            </div>
         </form>
 
         <div class="d-flex">
@@ -39,10 +47,12 @@
                 saving: false,
 
                 name: null,
+                room_name: null,
             };
         },
         created() {
             this.name = this.service.configured_name;
+            this.room_name = this.service.data.room_name;
         },
         methods: {
             async save(close) {
@@ -52,9 +62,18 @@
                 try {
                     const data = Object.assign({}, this.service.data, {
                         name: this.name,
+                        room_name: this.room_name,
                     });
 
-                    await this.service.updateData(data);
+                    const accessory_data = Object.assign({}, this.service.accessory.data, {
+                        ['Service.' + this.service.uuid]: data,
+                    });
+
+                    if (!this.service.accessory.data.room_name) {
+                        accessory_data.room_name = this.room_name;
+                    }
+
+                    await this.service.accessory.updateData(accessory_data);
 
                     if (close) this.$emit('close');
                 } finally {
