@@ -1,5 +1,5 @@
 <template>
-    <div class="service" :class="{active, updating, clickable: !updating && $listeners.click}" @click="$emit('click')">
+    <div class="service" :class="{active, updating, clickable: !updating && $listeners.click && !editing()}" @click="click">
         <div class="service-top">
             <div class="service-icon">
                 <slot name="icon">
@@ -45,7 +45,7 @@
             roomName: String,
             type: {type: String, default: null},
         },
-        inject: ['layout', 'service'],
+        inject: ['layout', 'service', 'editing'],
         computed: {
             show_room_name() {
                 return !this.layout || this.layout.name !== this.room_name;
@@ -61,6 +61,14 @@
                 const name = this.service.name || this.service.accessory.name || '';
 
                 return name.startsWith(this.room_name) ? name.substr(this.room_name.length).trim() : name;
+            },
+        },
+        methods: {
+            click(event) {
+                // Don't emit click events when editing layouts
+                if (this.editing()) return;
+
+                this.$emit('click', event);
             },
         },
     };

@@ -2,7 +2,7 @@
     <div class="service-wrapper" :class="{'service-wrapper-editing': edit}"
         :data-accessory-uuid="service.accessory.uuid" :data-service-uuid="service.uuid"
         :data-service-type="service.type" @contextmenu.prevent="showDetails"
-        @touchstart="touchstart" @touchend="touchend"
+        @touchstart="touchstart" @touchend="touchend" @click="() => edit ? showSettings() : null"
     >
         <component v-if="component" :is="component" ref="service" :class="{'details-open': details_open}"
             :service="service"
@@ -72,6 +72,9 @@
                     this.$emit('show-details', () => this.details_open = false);
                     this.details_open = true;
                 }
+            },
+            showSettings() {
+                this.$emit('show-settings');
             },
             touchstart() {
                 if (this.edit) return;

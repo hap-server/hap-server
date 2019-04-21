@@ -99,6 +99,7 @@
         provide() {
             return {
                 layout: this.layout,
+                editing: () => this.edit,
             };
         },
         computed: {
