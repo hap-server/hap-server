@@ -303,6 +303,12 @@ export default class Server extends EventEmitter {
         }
     }
 
+    /**
+     * Gets an Accessory.
+     *
+     * @param {string} uuid
+     * @return {Accessory}
+     */
     getAccessory(uuid) {
         const plugin_accessory = this.getPluginAccessory(uuid);
 
@@ -313,17 +319,40 @@ export default class Server extends EventEmitter {
         if (cached_plugin_accessory) return cached_plugin_accessory.accessory;
 
         for (const bridge of this.bridges) {
-            if (!(bridge instanceof Homebridge)) continue;
             if (bridge.uuid === uuid) return bridge.bridge;
 
-            for (const accessory of bridge.bridge.bridgedAccessories) {
+            // eslint-disable-next-line curly
+            if (bridge instanceof Homebridge) for (const accessory of bridge.bridge.bridgedAccessories) {
                 if (accessory.UUID === uuid) return accessory;
             }
         }
     }
 
+    /**
+     * Gets a PluginAccessory.
+     *
+     * @param {string} uuid
+     * @return {PluginAccessory}
+     */
     getPluginAccessory(uuid) {
         return this.accessories.find(accessory => accessory.uuid === uuid);
+    }
+
+    /**
+     * Gets a Service.
+     *
+     * @param {string} uuid
+     * @param {string} [service_uuid]
+     * @return {Service}
+     */
+    getService(uuid, service_uuid) {
+        const accessory_uuid = uuid.split('.')[0];
+        if (!service_uuid) service_uuid = uuid.substr(accessory_uuid.length + 1);
+
+        const accessory = this.getAccessory(accessory_uuid);
+        if (!accessory) return;
+
+        return accessory.services.find(s => s.UUID === service_uuid);
     }
 
     createServer(options) {

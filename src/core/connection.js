@@ -453,7 +453,6 @@ export default class Connection {
         await this.permissions.assertCanCreateLayouts();
 
         const uuid = genuuid();
-        const uuid = 'test2';
 
         this.log.debug('Creating layout', uuid, data);
 
