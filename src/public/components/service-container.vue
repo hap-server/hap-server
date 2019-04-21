@@ -7,13 +7,15 @@
                     @blur="() => $refs.title_edit.value !== title ? $emit('update-name', $refs.title_edit.value) : undefined" />
             </form>
 
-            <h4 v-else class="flex-fill">{{ title || 'Accessories' }}</h4>
+            <div v-else class="flex-fill">
+                <h4>{{ title || 'Accessories' }}</h4>
+            </div>
 
             <slot name="title-right" />
         </div>
 
         <div class="service-container-contents">
-            <draggable v-if="edit" :list="sorted" :group="group" @change="sorted => $emit('update-order', sorted)">
+            <draggable v-if="edit" class="draggable" :list="sorted" :group="group" @change="sorted => $emit('update-order', sorted)">
                 <template v-for="id in sorted">
                     <slot :id="id" />
                 </template>
@@ -42,7 +44,7 @@
             sorted: Array,
             edit: Boolean,
             editTitle: Boolean,
-            group: Number,
+            group: String,
         },
     };
 </script>

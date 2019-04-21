@@ -17,6 +17,8 @@ import accessory_details_components from './components/accessory-details';
 import * as accessory_details_component_module from './components/accessory-details/accessory-details.vue';
 import icon_component_modules from './components/icons';
 import authentication_handler_components from './components/authentication-handlers';
+import layout_section_components from './components/layout-sections';
+import * as layout_section_component_module from './components/layout-section.vue';
 
 let instance;
 
@@ -68,6 +70,8 @@ export class PluginManager {
             return service_component_module;
         } else if (request === 'hap-server-api/accessory-ui/accessory-details') {
             return accessory_details_component_module;
+        } else if (request === 'hap-server-api/accessory-ui/layout-section') {
+            return layout_section_component_module;
         } else if (request.startsWith('hap-server-api/accessory-ui/icons/') && icon_component_modules.has('./' + request.substr(34) + '.vue')) {
             return icon_component_modules.get('./' + request.substr(34) + '.vue');
         } else if (request === 'vue') {
@@ -102,6 +106,10 @@ export class PluginManager {
 
         if (cache[request]) {
             return cache[request].exports;
+        }
+
+        if (request === 'vuedraggable') {
+            return import('vuedraggable');
         }
 
         const js = (await axios.get('./accessory-ui/' + accessory_ui.id + request)).data;
@@ -301,8 +309,8 @@ export class PluginAPI {
         }
 
         if (authentication_handler_components.has(id)) {
-            throw new Error('There is already an authentication handler component with the ID "' + id +
-                '" (global ID of "' + localid + '")');
+            throw new Error('There is already an authentication handler component with the ID "' + localid +
+                '" (global ID of "' + id + '")');
         }
 
         if (!name) name = localid;
@@ -312,5 +320,24 @@ export class PluginAPI {
         }
 
         authentication_handler_components.set(id, {component, name});
+    }
+
+    /**
+     * Registers a layout section component.
+     *
+     * @param {string} type The section type ID
+     * @param {VueComponent} component
+     * @param {string} name A display name for the authentication handler
+     */
+    registerLayoutSectionComponent(type, component, name) {
+        if (layout_section_components.has(type)) {
+            throw new Error('There is already a layout section component with the ID "' + type + '"');
+        }
+
+        if (!component.name) {
+            component.name = 'layout-section-' + type;
+        }
+
+        layout_section_components.set(type, {component, name});
     }
 }

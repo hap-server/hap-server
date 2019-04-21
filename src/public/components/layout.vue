@@ -7,27 +7,20 @@
         </div>
 
         <component :is="edit ? 'draggable' : 'div'" :list="sections" handle=".drag-handle" @change="$emit('update-accessories')">
-            <service-container v-for="(section, index) in edit ? sections : display_sections"
-                :title="section.name" :accessories="accessories" :sorted="section.accessories"
-                :edit="edit" :edit-title="edit" :group="_uid" :key="index"
-                @update-name="name => updateSectionName(section, name)" @update-order="sorted => updateSectionAccessories(section, sorted)"
-            >
-                <template v-slot:title-right v-if="edit">
-                    <button class="btn btn-dark btn-sm ml-3" type="button" @click="addSection(index + 1)">Add section</button>
-                    <button class="btn btn-danger btn-sm ml-3" type="button" @click="deleteSection(index)">Remove section</button>
-                    <button class="btn btn-dark btn-sm ml-3 drag-handle" type="button">Drag</button>
-                    <button class="btn btn-dark btn-sm ml-3" type="button" @click="edit = false">Finish editing</button>
-                </template>
-                <template v-slot:title-right v-else-if="canEdit">
-                    <button class="btn btn-dark btn-sm ml-3" type="button" @click="edit = true">Edit</button>
-                </template>
+            <template v-for="(section, index) in sections">
+                <component v-if="section_components.has(section.type || 'Accessories')"
+                    :is="section_components.get(section.type || 'Accessories').component" :key="getKeyForSection(section)"
+                    :accessories="accessories" :layout="layout" :section="section" :accessories-draggable-group="'' + _uid"
+                    :editing="edit" @edit="e => edit = e" @update-name="name => updateSectionName(section, name)"
+                    @update-data="data => updateSectionData(section, data)" @modal="modal => $emit('modal', modal)" />
 
-                <template v-slot="{id}">
-                    <service v-if="getService(id)" :key="id" :connection="connection" :service="getService(id)" :edit="edit"
-                        @show-details="closing => $emit('modal', {type: 'accessory-details', service: getService(id), closing})"
-                        @show-settings="$emit('modal', {type: 'service-settings', service: getService(id)})" />
-                </template>
-            </service-container>
+                <layout-section v-else-if="edit" class="unknown-layout-section" :layout="layout" :section="section"
+                    :name="section.name" :editing="edit" @edit="$emit('edit', $event)"
+                    @update-name="name => updateSectionName(section, name)"
+                >
+                    <p>Unknown layout section type "{{ section.type }}".</p>
+                </layout-section>
+            </template>
         </component>
 
         <div v-if="(!sections || !sections.length) && !edit && !showAllAccessories" class="section">
@@ -37,8 +30,8 @@
 
         <service-container v-if="edit"
             title="Other accessories" :accessories="accessories"
-            :sorted="getAllServices().filter(uuid => !sections.find(s => s.accessories.includes(uuid)))"
-            :edit="true" :group="_uid"
+            :sorted="getAllServices().filter(uuid => getService(uuid) && !sections.find(s => s.accessories && s.accessories.includes(uuid)))"
+            :edit="true" :group="'' + _uid"
         >
             <template v-slot="{id}">
                 <service :key="id" :connection="connection" :service="getService(id)" :edit="edit"
@@ -71,11 +64,18 @@
     import Layout from '../layout';
     import {BridgeService, UnsupportedService} from '../service';
 
+    import LayoutSection from './layout-section.vue';
+    import section_components from './layout-sections';
+
     import Service from './service.vue';
     import ServiceContainer from './service-container.vue';
 
+    const sectionKeys = new WeakMap();
+    let keysForSections = 0;
+
     export default {
         components: {
+            LayoutSection,
             Service,
             ServiceContainer,
             Draggable: () => import(/* webpackChunkName: 'layout-editor' */ 'vuedraggable'),
@@ -94,12 +94,17 @@
         data() {
             return {
                 edit: false,
+                section_components,
             };
         },
         provide() {
             return {
                 layout: this.layout,
                 editing: () => this.edit,
+                connection: this.connection,
+                addSection: (index, data) => this.addSection(index, data),
+                removeSection: index => this.deleteSection(index),
+                getService: uuid => this.getService(uuid),
             };
         },
         computed: {
@@ -111,6 +116,8 @@
                 const accessories = new Set();
 
                 for (const section of this.sections) {
+                    if (!section.accessories) continue;
+
                     for (const uuid of section.accessories) {
                         const service = this.getService(uuid);
                         if (!service) continue;
@@ -172,19 +179,32 @@
 
                 return section.accessories.map(uuid => this.accessories[uuid]).filter(a => a);
             },
-            addSection(index) {
-                this.sections.splice(index || 0, 0, {name: 'Accessories', accessories: []});
-                this.$emit('update-accessories');
+            addSection(index, data) {
+                this.sections.splice(index || 0, 0, data || {name: 'Accessories', type: 'Accessories', accessories: []});
+                this.layout.updateData(this.layout.data);
             },
             deleteSection(index) {
                 this.sections.splice(index, 1);
-                this.$emit('update-accessories');
+                this.layout.updateData(this.layout.data);
+            },
+            getKeyForSection(section) {
+                if (sectionKeys.has(section)) return sectionKeys.get(section);
+
+                const key = keysForSections++;
+                sectionKeys.set(section, key);
+                return key;
             },
             updateSectionName(section, name) {
                 console.log('Updating section name', section, name);
 
                 section.name = name;
-                this.$emit('update-accessories');
+                this.layout.updateData(this.layout.data);
+            },
+            updateSectionData(section, data) {
+                console.log('Update section data', section, data);
+
+                Object.assign(section, data);
+                this.layout.updateData(this.layout.data);
             },
             updateSectionAccessories(section, changes) {
                 console.log('Updating section accessories', section, changes);
@@ -192,7 +212,8 @@
                 // if (changes.added) section.accessories.splice(0, changes.added.newIndex, changes.added.element);
                 // if (changes.removed) section.accessories.splice(1, changes.removed.oldIndex);
 
-                this.$emit('update-accessories', section, changes);
+                // this.$emit('update-accessories', section, changes);
+                this.layout.updateData(this.layout.data);
 
                 if (changes.added) {
                     const service = this.getService(changes.added.element);
