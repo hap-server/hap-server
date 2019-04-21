@@ -172,7 +172,7 @@ export default class Accessory extends EventEmitter {
 
         for (const service of removed_display_services) {
             let index;
-            while (index = this.display_services.indexOf(service)) this.display_services.splice(index, 1);
+            while ((index = this.display_services.indexOf(service)) > -1) this.display_services.splice(index, 1);
             this.emit('removed-display-service', service);
         }
 
@@ -287,8 +287,8 @@ export default class Accessory extends EventEmitter {
         return services;
     }
 
-    getService(uuid) {
-        return this.services[uuid];
+    getService(uuid, include_display_services) {
+        return this.services[uuid] || include_display_services ? this.display_services.find(s => s.uuid === uuid) : null;
     }
 
     getServiceByName(name) {

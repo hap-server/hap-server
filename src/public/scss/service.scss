@@ -82,4 +82,22 @@
     &.details-open {
         opacity: 0;
     }
+
+    .layout-edit & {
+        animation: shake 0.3s ease infinite;
+    }
+}
+
+@keyframes shake {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    25% {
+        transform: rotate(-3deg);
+    }
+
+    75% {
+        transform: rotate(3deg);
+    }
 }

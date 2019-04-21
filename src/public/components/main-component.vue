@@ -20,14 +20,14 @@
             <h1>{{ name || 'Home' }}</h1>
             <div class="right">
                 <layout-selector v-model="layout" :layouts="layouts" :name="name" :can-create="can_create_layouts"
-                    @edit-layout="$refs.layout.edit = true" @modal="modal => modals.push(modal)" />
+                    @edit-layout="$refs.layout.edit = !$refs.layout.edit" @modal="modal => modals.push(modal)" />
             </div>
         </div>
 
         <div class="main">
             <layout ref="layout" :key="layout ? layout.uuid : ''" :connection="connection" :accessories="accessories" :bridge-uuids="bridge_uuids"
                 :title="(layout ? layout.name : name) || 'Home'" :sections="layout && layout.sections"
-                :can-edit="layout && layout.can_set" :can-delete="layout && layout.can_delete"
+                :can-edit="layout && layout.can_set" :can-delete="layout && layout.can_delete" :show-all-accessories="!layout"
                 @update-accessories="layout.updateData(layout.data)" @modal="modal => modals.push(modal)" @ping="ping" />
         </div>
 
@@ -45,7 +45,7 @@
                 :connection="connection" :accessories="accessories" :layout="modal.layout"
                 @close="modals.splice(index, 1)" />
             <layout-settings v-else-if="modal.type === 'new-layout'" :key="index" :ref="'modal-' + index"
-                :connection="connection" :accessories="accessories" :create="true" @layout="addLayout"
+                :connection="connection" :accessories="accessories" :create="true" @layout="l => addLayout(layout = l)"
                 @close="modals.splice(index, 1)" />
             <layout-settings v-else-if="modal.type === 'delete-layout'" :key="index" :ref="'modal-' + index"
                 :connection="connection" :accessories="accessories" :layout="modal.layout" :delete-layout="true"
@@ -351,7 +351,7 @@
                     ]);
 
                     const accessory = new Accessory(this.connection, accessory_uuid, accessory_details, accessory_data,
-                        accessory_permissions);
+                        accessory_permissions); // eslint-disable-line vue/script-indent
 
                     this.$set(this.accessories, accessory.uuid, accessory);
                     this.$emit('new-accessory', accessory);
@@ -548,7 +548,7 @@
 
                     const added_accessories = new_accessories.map((uuid, index) =>
                         new Accessory(this.connection, uuid, new_accessory_details[index], new_accessory_data[index],
-                            new_accessory_permissions[index]));
+                            new_accessory_permissions[index])); // eslint-disable-line vue/script-indent
 
                     for (const accessory of added_accessories) {
                         this.$set(this.accessories, accessory.uuid, accessory);

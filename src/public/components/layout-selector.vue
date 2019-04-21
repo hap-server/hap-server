@@ -1,5 +1,5 @@
 <template>
-    <div class="dropdown" :class="{show: open}" @show.bs.dropdown="open = true" @hide.bs.dropdown="open = false">
+    <div class="dropdown" :class="{show: open}">
         <button ref="toggle" :id="_uid + '-dropdown'" class="btn btn-sm btn-dark dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" @click.stop="open = !open">
             {{ value ? value.name || value.uuid : name }}
         </button>
@@ -10,7 +10,7 @@
             <template v-if="Object.values(layouts).length">
                 <div class="dropdown-divider"></div>
 
-                <a v-for="layout in layouts" class="dropdown-item" :class="{active: value && value.uuid === layout.uuid}" href="#" @click.prevent="$emit('input', layout)">{{ layout.name || layout.uuid }}</a>
+                <a v-for="layout in layouts" :key="layout.uuid" class="dropdown-item" :class="{active: value && value.uuid === layout.uuid}" href="#" @click.prevent="$emit('input', layout)">{{ layout.name || layout.uuid }}</a>
 
                 <div v-if="canCreate || (value && (value.can_set || value.can_delete))" class="dropdown-divider"></div>
             </template>
@@ -29,18 +29,9 @@
 </template>
 
 <script>
-    import Connection from '../connection';
     import Layout from '../layout';
-    import {BridgeService, UnsupportedService} from '../service';
-
-    import Service from './service.vue';
-    import ServiceContainer from './service-container.vue';
 
     export default {
-        components: {
-            Service,
-            ServiceContainer,
-        },
         props: {
             layouts: Object,
             value: Layout,

@@ -1,7 +1,5 @@
 import EventEmitter from 'events';
 
-import Vue from 'vue';
-
 export default class Layout extends EventEmitter {
     /**
      * Creates a Layout.

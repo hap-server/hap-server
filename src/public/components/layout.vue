@@ -1,62 +1,46 @@
 <template>
-    <div class="layout">
+    <div class="layout" :class="{'layout-edit': edit}">
         <h1>{{ title }}</h1>
 
         <div class="section">
             <button class="btn btn-default btn-sm" @click="$emit('ping')">Ping</button>
         </div>
 
-        <service-container v-for="(section, index) in display_sections"
-            :title="section.name" :accessories="accessories" :sorted="section.accessories || getAllServices()"
-            :edit="edit" :group="_uid" :key="index" @update-order="sorted => updateSectionAccessories(section, sorted)"
-        >
-            <template v-slot="{id}">
-                <!-- <template v-for="accessory in accessories"> -->
-                    <!-- Show a bridge tile -->
-                    <!-- <service v-if="id === accessory.uuid + '.- -bridge' && bridgeUuids.includes(accessory.uuid)" :key="accessory.uuid + '.- -bridge'"
-                        :connection="connection" :service="getBridgeService(accessory)"
-                        @show-details="closing => $emit('modal', {type: 'accessory-details', service: getBridgeService(accessory), closing})" /> -->
+        <component :is="edit ? 'draggable' : 'div'" :list="sections" handle=".drag-handle" @change="$emit('update-accessories')">
+            <service-container v-for="(section, index) in edit ? sections : display_sections"
+                :title="section.name" :accessories="accessories" :sorted="section.accessories"
+                :edit="edit" :edit-title="edit" :group="_uid" :key="index"
+                @update-name="name => updateSectionName(section, name)" @update-order="sorted => updateSectionAccessories(section, sorted)"
+            >
+                <template v-slot:title-right v-if="edit">
+                    <button class="btn btn-dark btn-sm ml-3" type="button" @click="addSection(index + 1)">Add section</button>
+                    <button class="btn btn-danger btn-sm ml-3" type="button" @click="deleteSection(index)">Remove section</button>
+                    <button class="btn btn-dark btn-sm ml-3 drag-handle" type="button">Drag</button>
+                    <button class="btn btn-dark btn-sm ml-3" type="button" @click="edit = false">Finish editing</button>
+                </template>
+                <template v-slot:title-right v-else-if="canEdit">
+                    <button class="btn btn-dark btn-sm ml-3" type="button" @click="edit = true">Edit</button>
+                </template>
 
-                    <!-- Show a not supported tile -->
-                    <!-- <service v-else-if="id === accessory.uuid + '.' && !accessory.display_services.length" :key="accessory.uuid + '.'"
-                        :connection="connection" :service="getUnsupportedService(accessory)"
-                        @show-details="closing => $emit('modal', {type: 'accessory-details', service: getUnsupportedService(accessory), closing})" /> -->
+                <template v-slot="{id}">
+                    <service v-if="getService(id)" :key="id" :connection="connection" :service="getService(id)"
+                        @show-details="closing => $emit('modal', {type: 'accessory-details', service: getService(id), closing})"
+                        @show-settings="$emit('modal', {type: 'service-settings', service: getService(id)})" />
+                </template>
+            </service-container>
+        </component>
 
-                    <!-- <service v-for="service in accessory.display_services" v-if="id === accessory.uuid + '.' + service.uuid" :key="accessory.uuid + '.' + service.uuid"
-                        :connection="connection" :service="service"
-                        @show-details="closing => $emit('modal', {type: 'accessory-details', service, closing})"
-                        @show-settings="$emit('modal', {type: 'service-settings', service})" />
-                </template> -->
-
-                <service v-if="getService(id)" :key="id" :connection="connection" :service="getService(id)"
-                    @show-details="closing => $emit('modal', {type: 'accessory-details', service: getService(id), closing})"
-                    @show-settings="$emit('modal', {type: 'service-settings', service: getService(id)})" />
-            </template>
-        </service-container>
+        <div v-if="(!sections || !sections.length) && !edit && !showAllAccessories" class="section">
+            <p>This layout has no accessories.</p>
+            <button v-if="canEdit" class="btn btn-primary btn-sm" @click="edit = true">Add accessories</button>
+        </div>
 
         <service-container v-if="edit"
             title="Other accessories" :accessories="accessories"
-            :sorted="getAllServices().filter(uuid => !display_sections.find(s => s.accessories.includes(uuid)))"
+            :sorted="getAllServices().filter(uuid => !sections.find(s => s.accessories.includes(uuid)))"
             :edit="true" :group="_uid"
         >
             <template v-slot="{id}">
-                <!-- <template v-for="accessory in accessories"> -->
-                    <!-- Show a bridge tile -->
-                    <!-- <service v-if="id === accessory.uuid + '.- -bridge' && bridgeUuids.includes(accessory.uuid)" :key="accessory.uuid + '.- -bridge'"
-                        :connection="connection" :service="getBridgeService(accessory)"
-                        @show-details="closing => $emit('modal', {type: 'accessory-details', service: getBridgeService(accessory), closing})" /> -->
-
-                    <!-- Show a not supported tile -->
-                    <!-- <service v-else-if="id === accessory.uuid + '.' && !accessory.display_services.length" :key="accessory.uuid + '.'"
-                        :connection="connection" :service="getUnsupportedService(accessory)"
-                        @show-details="closing => $emit('modal', {type: 'accessory-details', service: getUnsupportedService(accessory), closing})" /> -->
-
-                    <!-- <service v-for="service in accessory.display_services" v-if="id === accessory.uuid + '.' + service.uuid" :key="accessory.uuid + '.' + service.uuid"
-                        :connection="connection" :service="service"
-                        @show-details="closing => $emit('modal', {type: 'accessory-details', service, closing})"
-                        @show-settings="$emit('modal', {type: 'service-settings', service})" /> -->
-                <!-- </template> -->
-
                 <service :key="id" :connection="connection" :service="getService(id)"
                     @show-details="closing => $emit('modal', {type: 'accessory-details', service: getService(id), closing})"
                     @show-settings="$emit('modal', {type: 'service-settings', service: getService(id)})" />
@@ -76,7 +60,8 @@
         </service-container> -->
 
         <div class="section">
-            <p>{{ Object.keys(accessories).length }} accessor{{ Object.keys(accessories).length === 1 ? 'y' : 'ies' }}</p>
+            <p v-if="showAllAccessories || accessories_count === total_accessories_count">{{ total_accessories_count }} accessor{{ total_accessories_count === 1 ? 'y' : 'ies' }}</p>
+            <p v-else>{{ accessories_count }} of {{ total_accessories_count }} accessor{{ total_accessories_count === 1 ? 'y' : 'ies' }}</p>
         </div>
     </div>
 </template>
@@ -92,6 +77,7 @@
         components: {
             Service,
             ServiceContainer,
+            Draggable: () => import(/* webpackChunkName: 'layout-editor' */ 'vuedraggable'),
         },
         props: {
             connection: Connection,
@@ -99,6 +85,7 @@
             sections: {type: Array, default: () => []},
             accessories: Object,
             bridgeUuids: {type: Array, default: () => []},
+            showAllAccessories: Boolean,
             canEdit: Boolean,
             canDelete: Boolean,
         },
@@ -109,7 +96,31 @@
         },
         computed: {
             display_sections() {
-                return this.sections && this.sections.length ? this.sections : [{accessories: this.getAllServices()}];
+                if (this.showAllAccessories) return [{accessories: this.getAllServices()}];
+                return this.sections.filter(s => this.edit || s.accessories && s.accessories.length);
+            },
+            accessories_count() {
+                const accessories = new Set();
+
+                for (const section of this.sections) {
+                    for (const uuid of section.accessories) {
+                        const service = this.getService(uuid);
+                        accessories.add(service.accessory);
+                    }
+                }
+
+                return accessories.size;
+            },
+            total_accessories_count() {
+                return Object.keys(this.accessories).length;
+            },
+        },
+        watch: {
+            edit(edit) {
+                if (edit && !this.sections.length) this.addSection(0);
+            },
+            sections(sections) {
+                if (this.edit && !sections.length) this.addSection(0);
             },
         },
         methods: {
@@ -129,11 +140,10 @@
                 return services;
             },
             getService(uuid) {
-                const accessory_uuid = uuid.split('.')[0];
-                const service_uuid = uuid.split('.')[1];
+                const accessory_uuid = uuid.split('.', 1)[0];
+                const service_uuid = uuid.substr(accessory_uuid.length + 1);
 
                 const accessory = this.accessories[accessory_uuid];
-
                 if (!accessory) return;
 
                 if (service_uuid === '--bridge') {
@@ -152,6 +162,20 @@
                 if (!section.accessories) return Object.values(this.accessories);
 
                 return section.accessories.map(uuid => this.accessories[uuid]).filter(a => a);
+            },
+            addSection(index) {
+                this.sections.splice(index || 0, 0, {name: 'Accessories', accessories: []});
+                this.$emit('update-accessories');
+            },
+            deleteSection(index) {
+                this.sections.splice(index, 1);
+                this.$emit('update-accessories');
+            },
+            updateSectionName(section, name) {
+                console.log('Updating section name', section, name);
+
+                section.name = name;
+                this.$emit('update-accessories');
             },
             updateSectionAccessories(section, changes) {
                 console.log('Updating section accessories', section, changes);
