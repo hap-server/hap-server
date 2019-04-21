@@ -68,6 +68,7 @@
 
 <script>
     import Connection from '../connection';
+    import Layout from '../layout';
     import {BridgeService, UnsupportedService} from '../service';
 
     import Service from './service.vue';
@@ -81,6 +82,7 @@
         },
         props: {
             connection: Connection,
+            layout: Layout,
             title: {type: String, default: 'Home'},
             sections: {type: Array, default: () => []},
             accessories: Object,
@@ -92,6 +94,11 @@
         data() {
             return {
                 edit: false,
+            };
+        },
+        provide() {
+            return {
+                layout: this.layout,
             };
         },
         computed: {

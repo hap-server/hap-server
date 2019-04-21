@@ -25,7 +25,8 @@
         </div>
 
         <div class="main">
-            <layout ref="layout" :key="layout ? layout.uuid : ''" :connection="connection" :accessories="accessories" :bridge-uuids="bridge_uuids"
+            <layout ref="layout" :key="layout ? layout.uuid : ''" :layout="layout"
+                :connection="connection" :accessories="accessories" :bridge-uuids="bridge_uuids"
                 :title="(layout ? layout.name : name) || 'Home'" :sections="layout && layout.sections"
                 :can-edit="layout && layout.can_set" :can-delete="layout && layout.can_delete" :show-all-accessories="!layout"
                 @update-accessories="layout.updateData(layout.data)" @modal="modal => modals.push(modal)" @ping="ping" />

@@ -44,13 +44,13 @@
             name: String,
             type: {type: String, default: null},
         },
-        inject: ['service'],
+        inject: ['layout', 'service'],
         computed: {
             show_room_name() {
                 return false;
             },
             room_name() {
-                return null;
+                return this.layout ? this.layout.name : null;
             },
             service_name() {
                 if (this.name || !this.service) return this.name;
