@@ -122,6 +122,11 @@ yargs.command('$0 [config]', 'Run the HAP and web server', yargs => {
         return;
     }
 
+    for (const [plugin_name, plugin_config] of Object.entries(config.plugins || {})) {
+        if (plugin_name === '*') PluginManager.default_plugin_config = plugin_config;
+        else PluginManager.setPluginConfig(plugin_name, plugin_config);
+    }
+
     /**
      * Storage paths.
      */

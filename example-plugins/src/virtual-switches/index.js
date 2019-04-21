@@ -8,6 +8,10 @@ import hapserver, {log} from 'hap-server-api';
 import storage from 'hap-server-api/storage';
 import {Accessory, Service, Characteristic} from 'hap-server-api/hap-async';
 
+import globalconfig from 'hap-server-api/plugin-config';
+
+log.info('Virtual Switches global config', globalconfig);
+
 //
 
 hapserver.registerAccessory('VirtualSwitch', async config => {

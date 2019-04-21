@@ -223,6 +223,110 @@ An array of plugin paths to add or a single plugin path.
 }
 ```
 
+### `plugins`
+
+The `plugins` property can be used to enable/disable features of and configure plugins. Useful if you have are running
+multiple instances.
+
+Keys are plugin names or the special value `"*"` which applies to plugins that aren't listed.
+
+```json
+{
+    "plugins": {
+        "hap-server-authenticate-pam": true,
+        "authentication-handler": {
+            ...
+        }
+    }
+}
+```
+
+#### `plugins[]`
+
+Either a boolean (`true`/`false`) or an object containing plugin configuration and specific features to enable/disable.
+
+If `false` the plugin will be disabled. When a plugin is disabled it will not be loaded.
+
+```json
+{
+    "hap-server-authenticate-pam": false
+}
+```
+
+Valid keys are `"accessory-uis"`, `"accessory-discovery"`, `"accessory-setup"` and `"authentication-handlers"`. Other
+options are passed to plugins.
+
+```json
+{
+    "example-plugin": {
+        "accessory-uis": false
+    }
+}
+```
+
+#### `plugins[]['accessory-uis']`
+
+Either a boolean (`true`/`false`) or an object containing specific Accessory UIs to enable.
+
+Keys are Accessory UI IDs or the special value `"*"` which applies to Accessory UIs that aren't listed. Accessory UIs
+have global numeric IDs so want to use `"*"` as IDs can change when updating plugins, hap-server or your configuration.
+
+```json
+{
+    "accessory-uis": {
+        "*": false
+    }
+}
+```
+
+##### `plugins[]['accessory-uis'][]`
+
+Either a boolean (`true`/`false`) or an object containing specific Accessory UI features to enable.
+
+```json
+{
+    "*": {
+        "service-tiles": false
+    }
+}
+```
+
+##### `plugins[]['accessory-uis'][]['service-tiles']`
+
+Whether [service tile components](#accessoryuiregisterservicecomponent) from this Accessory UI should be enabled.
+
+##### `plugins[]['accessory-uis'][]['accessory-details']`
+
+Whether [accessory details components](#accessoryuiregisteraccessorydetailscomponent) from this Accessory UI should
+be enabled.
+
+##### `plugins[]['accessory-uis'][]['collapsed-services']`
+
+Whether [collapsed services](#accessoryuiregistercollapsedservicescomponent) from this Accessory UI should be enabled.
+
+#### `plugins[]['accessory-discovery']`
+
+TODO
+
+#### `plugins[]['accessory-setup']`
+
+TODO
+
+#### `plugins[]['authentication-handlers']`
+
+Either a boolean (`true`/`false`) or an object containing specific authentication handlers to enable.
+
+Keys are Accessory UI IDs or the special value `"*"` which applies to Accessory UIs that aren't listed. Accessory UIs
+have global numeric IDs so want to use `"*"` as IDs can change when updating plugins, hap-server or your configuration.
+
+```json
+{
+    "authentication-handlers": {
+        "LocalStorage": false
+    }
+}
+```
+
 ### `bridges`
 
 The `bridges` property is an array of bridge configuration objects. Each bridge must have a username property, but

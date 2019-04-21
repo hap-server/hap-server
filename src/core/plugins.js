@@ -31,6 +31,8 @@ export class PluginManager {
         this.plugin_paths = PluginManager.getDefaultPaths();
         this.plugin_apis = new WeakMap();
         this.plugin_storage = new Map();
+        this.plugin_config = new Map();
+        this.default_plugin_config = {};
     }
 
     static get instance() {
@@ -109,6 +111,17 @@ export class PluginManager {
             }));
 
             return plugin_api;
+        } else if (request === 'hap-server-api/plugin-config') {
+            if (!plugin.name) {
+                throw new Error('Plugin configuration is only available for plugins with a name');
+            }
+
+            let plugin_config = PluginManager.instance.plugin_config.get(plugin.name);
+
+            // eslint-disable-next-line curly
+            if (!plugin_config) PluginManager.instance.plugin_config.set(plugin.name, plugin_config = {});
+
+            return plugin_config;
         } else if (request === 'hap-server-api/storage') {
             if (!plugin.name) {
                 throw new Error('Storage is only available for plugins with a name');
@@ -238,25 +251,38 @@ export class PluginManager {
         return this.plugins.find(plugin => plugin.name === plugin_name || plugin.path === plugin_name);
     }
 
-    getAccessoryUIs() {
-        return this.plugins.map(plugin => plugin.getAccessoryUIs()).reduce((acc, val) => acc.concat(val), []);
+    setPluginConfig(plugin_name, config) {
+        this.plugin_config.set(plugin_name, config);
     }
 
-    getAccessoryUI(id) {
-        for (const plugin of this.plugins) {
-            const accessory_ui = plugin.getAccessoryUI(id);
+    getAccessoryUIs(include_disabled) {
+        return this.plugins.map(plugin => plugin.enabled || include_disabled ?
+            plugin.getAccessoryUIs(include_disabled) : []).reduce((acc, val) => acc.concat(val), []);
+    }
 
-            if (accessory_ui) return accessory_ui;
+    getAccessoryUI(id, include_disabled) {
+        for (const plugin of this.plugins) {
+            if (!plugin.enabled && !include_disabled) continue;
+
+            const accessory_ui = plugin.getAccessoryUI(id);
+            if (!accessory_ui || (!accessory_ui.enabled && !include_disabled)) continue;
+
+            return accessory_ui;
         }
     }
 
-    getAuthenticationHandlers() {
-        return this.plugins.map(plugin => plugin.getAuthenticationHandlers()).reduce((acc, val) => acc.concat(val), []);
+    getAuthenticationHandlers(include_disabled) {
+        return this.plugins.map(plugin => plugin.enabled || include_disabled ?
+            plugin.getAuthenticationHandlers() : []).reduce((acc, val) => acc.concat(val), []);
     }
 
-    getAuthenticationHandler(id) {
+    getAuthenticationHandler(id, include_disabled) {
         for (const plugin of this.plugins) {
+            if (!plugin.enabled && !include_disabled) continue;
+
             for (const authentication_handler of plugin.authentication_handlers.values()) {
+                if (!authentication_handler.enabled && !include_disabled) continue;
+
                 if (authentication_handler.id === id) return authentication_handler;
             }
         }
@@ -277,6 +303,18 @@ export class Plugin {
         this.accessory_discovery = new Set();
         this.accessory_setup = new Map();
         this.authentication_handlers = new Map();
+    }
+
+    get config() {
+        return this.plugin_manager.plugin_config.get(this.name) || {};
+    }
+
+    get enabled() {
+        const config = this.plugin_manager.plugin_config.get(this.name);
+
+        if (typeof config !== 'undefined') return !!config;
+
+        return !!this.plugin_manager.default_plugin_config;
     }
 
     getAccessoryHandler(name) {
@@ -326,8 +364,8 @@ export class Plugin {
         return handler;
     }
 
-    getAccessoryUIs() {
-        return [...this.accessory_ui];
+    getAccessoryUIs(include_disabled) {
+        return [...this.accessory_ui].filter(ui => ui.enabled || include_disabled);
     }
 
     getAccessoryUI(id) {
@@ -346,8 +384,8 @@ export class Plugin {
         this.accessory_ui.add(handler);
     }
 
-    getAccessoryDiscoveryHandlers() {
-        return [...this.accessory_discovery];
+    getAccessoryDiscoveryHandlers(include_disabled) {
+        return [...this.accessory_discovery].filter(discovery => discovery.enabled || include_disabled);
     }
 
     registerAccessoryDiscovery(handler) {
@@ -360,8 +398,9 @@ export class Plugin {
         this.accessory_discovery.add(handler);
     }
 
-    getAccessorySetupHandlers() {
-        return [...this.accessory_setup.keys()];
+    getAccessorySetupHandlers(include_disabled) {
+        return [...this.accessory_setup.keys()]
+            .filter(name => this.accessory_setup.get(name).enabled || include_disabled);
     }
 
     getAccessorySetupHandler(name) {
@@ -388,8 +427,9 @@ export class Plugin {
         this.accessory_setup.set(name, handler);
     }
 
-    getAuthenticationHandlers() {
-        return [...this.authentication_handlers.keys()];
+    getAuthenticationHandlers(include_disabled) {
+        return [...this.authentication_handlers.keys()]
+            .filter(name => this.authentication_handlers.get(name).enabled || include_disabled);
     }
 
     getAuthenticationHandler(name) {
@@ -484,6 +524,34 @@ export class AccessoryUI {
         return this.express.use(prefix, express.static(path));
     }
 
+    get enabled() {
+        if (typeof this.plugin.config['accessory-uis'] === 'object' && typeof this.plugin.config['accessory-uis'][this.id] !== 'undefined') {
+            return !!this.plugin.config['accessory-uis'][this.id];
+        }
+        if (typeof this.plugin.config['accessory-uis'] === 'object' && typeof this.plugin.config['accessory-uis']['*'] !== 'undefined') {
+            return !!this.plugin.config['accessory-uis']['*'];
+        }
+
+        if (typeof this.plugin.config['accessory-uis'] !== 'undefined' && typeof this.plugin.config['accessory-uis'] !== 'object') {
+            return !!this.plugin.config['accessory-uis'];
+        }
+
+        const defaults = this.plugin.plugin_manager.default_plugin_config || {};
+
+        if (typeof defaults['accessory-uis'] === 'object' && typeof defaults['accessory-uis'][this.id] !== 'undefined') {
+            return !!defaults['accessory-uis'][this.id];
+        }
+        if (typeof defaults['accessory-uis'] === 'object' && typeof defaults['accessory-uis']['*'] !== 'undefined') {
+            return !!defaults['accessory-uis']['*'];
+        }
+
+        if (typeof defaults['accessory-uis'] !== 'undefined' && typeof defaults['accessory-uis'] !== 'object') {
+            return !!defaults['accessory-uis'];
+        }
+
+        return true;
+    }
+
     handle(req, res, next) {
         this.express.handle(req, res, next);
     }
@@ -516,6 +584,38 @@ export class AuthenticationHandler {
         this.handler = handler;
         this.reconnect_handler = null;
         this.disconnect_handler = disconnect_handler;
+    }
+
+    get enabled() {
+        if (typeof this.plugin.config['authentication-handlers'] === 'object') {
+            if (typeof this.plugin.config['authentication-handlers'][this.localid] !== 'undefined') {
+                return !!this.plugin.config['authentication-handlers'][this.localid];
+            }
+            if (typeof this.plugin.config['authentication-handlers'][this.id] !== 'undefined') {
+                return !!this.plugin.config['authentication-handlers'][this.id];
+            }
+            if (typeof this.plugin.config['authentication-handlers']['*'] !== 'undefined') {
+                return !!this.plugin.config['authentication-handlers']['*'];
+            }
+        } else if (typeof this.plugin.config['authentication-handlers'] !== 'undefined') {
+            return !!this.plugin.config['authentication-handlers'];
+        }
+
+        const defaults = this.plugin.plugin_manager.default_plugin_config &&
+            this.plugin.plugin_manager.default_plugin_config['authentication-handlers'] || {};
+
+        if (typeof defaults === 'object') {
+            if (typeof defaults[this.id] !== 'undefined') {
+                return !!defaults[this.id];
+            }
+            if (typeof defaults['*'] !== 'undefined') {
+                return !!defaults['*'];
+            }
+        } else if (typeof defaults !== 'undefined') {
+            return !!defaults;
+        }
+
+        return true;
     }
 
     async handleMessage(data) {
