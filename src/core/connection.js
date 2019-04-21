@@ -357,7 +357,7 @@ export default class Connection {
     }
 
     async setAccessoryData(uuid, data) {
-        await this.permissions.assertCanSetAccessoryData(accessory_uuid);
+        await this.permissions.assertCanSetAccessoryData(uuid);
 
         //
         this.log.debug('Setting data for accessory', uuid, data);
