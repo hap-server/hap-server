@@ -4,7 +4,7 @@
             {{ value ? value.name || value.uuid : name }}
         </button>
 
-        <div ref="menu" class="dropdown-menu dropdown-menu-lg-right" :class="{show: open}" :aria-labelledby="_uid + '-dropdown'">
+        <div ref="menu" class="dropdown-menu dropdown-menu-right" :class="{show: open}" :aria-labelledby="_uid + '-dropdown'">
             <a class="dropdown-item" :class="{active: !value}" href="#" @click.prevent="$emit('input', null)">All accessories</a>
 
             <template v-if="Object.values(layouts).length">
