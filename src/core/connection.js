@@ -453,6 +453,7 @@ export default class Connection {
         await this.permissions.assertCanCreateLayouts();
 
         const uuid = genuuid();
+        // const uuid = 'test2';
 
         this.log.debug('Creating layout', uuid, data);
 
@@ -797,7 +798,7 @@ export default class Connection {
                 await this.server.storage.setItem('Session.' + response.token, {
                     authentication_handler: response.authentication_handler.localid,
                     authentication_handler_plugin: response.authentication_handler.plugin.name,
-                    authenticated_user: response,
+                    authenticated_user: Object.assign({id: response.id}, response),
                 });
             }
 
