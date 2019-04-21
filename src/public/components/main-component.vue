@@ -207,9 +207,6 @@
 
             await this.tryConnect();
 
-            const layout_uuid = localStorage.getItem('layout');
-            if (layout_uuid && this.layouts[layout_uuid]) this.layout = this.layouts[layout_uuid];
-
             // await Promise.all([
             //     this.reload(),
             //     this.loadAccessoryUIs(),
@@ -490,6 +487,9 @@
                 } finally {
                     this.loading_layouts = false;
                 }
+
+                const layout_uuid = localStorage.getItem('layout');
+                if (layout_uuid && this.layouts[layout_uuid] && !this.layout) this.layout = this.layouts[layout_uuid];
             },
             addLayout(layout) {
                 this.$set(this.layouts, layout.uuid, layout);

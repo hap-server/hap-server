@@ -112,6 +112,7 @@
                 for (const section of this.sections) {
                     for (const uuid of section.accessories) {
                         const service = this.getService(uuid);
+                        if (!service) continue;
                         accessories.add(service.accessory);
                     }
                 }
