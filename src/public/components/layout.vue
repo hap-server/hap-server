@@ -23,7 +23,7 @@
                 </template>
 
                 <template v-slot="{id}">
-                    <service v-if="getService(id)" :key="id" :connection="connection" :service="getService(id)"
+                    <service v-if="getService(id)" :key="id" :connection="connection" :service="getService(id)" :edit="edit"
                         @show-details="closing => $emit('modal', {type: 'accessory-details', service: getService(id), closing})"
                         @show-settings="$emit('modal', {type: 'service-settings', service: getService(id)})" />
                 </template>
@@ -41,7 +41,7 @@
             :edit="true" :group="_uid"
         >
             <template v-slot="{id}">
-                <service :key="id" :connection="connection" :service="getService(id)"
+                <service :key="id" :connection="connection" :service="getService(id)" :edit="edit"
                     @show-details="closing => $emit('modal', {type: 'accessory-details', service: getService(id), closing})"
                     @show-settings="$emit('modal', {type: 'service-settings', service: getService(id)})" />
             </template>

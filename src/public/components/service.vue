@@ -1,5 +1,6 @@
 <template>
-    <div class="service-wrapper" :data-accessory-uuid="service.accessory.uuid" :data-service-uuid="service.uuid"
+    <div class="service-wrapper" :class="{'service-wrapper-editing': edit}"
+        :data-accessory-uuid="service.accessory.uuid" :data-service-uuid="service.uuid"
         :data-service-type="service.type" @contextmenu.prevent="showDetails"
         @touchstart="touchstart" @touchend="touchend"
     >
@@ -35,6 +36,7 @@
         props: {
             connection: Connection,
             service: Service,
+            edit: Boolean,
         },
         data() {
             return {
@@ -55,6 +57,11 @@
                 return type_names[this.service.type];
             },
         },
+        watch: {
+            edit(edit) {
+                if (edit && this.touchstart_timeout) clearTimeout(this.touchstart_timeout);
+            },
+        },
         methods: {
             showDetails() {
                 if (this.$refs.service && this.$refs.service.showDetails) {
@@ -67,7 +74,10 @@
                 }
             },
             touchstart() {
+                if (this.edit) return;
+
                 if (this.touchstart_timeout) clearTimeout(this.touchstart_timeout);
+
                 this.touchstart_timeout = setTimeout(() => {
                     this.touchstart_timeout = null;
                     this.showDetails();
