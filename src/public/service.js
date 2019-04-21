@@ -224,6 +224,10 @@ export class BridgeService extends Service {
         services.set(accessory, service);
         return service;
     }
+
+    get type() {
+        return '--bridge';
+    }
 }
 
 export class UnsupportedService extends Service {
@@ -243,6 +247,10 @@ export class UnsupportedService extends Service {
         const service = new this(accessory);
         services.set(accessory, service);
         return service;
+    }
+
+    get type() {
+        return '--unsupported';
     }
 }
 
