@@ -55,7 +55,6 @@
         created() {
             if (!this.section.accessories) {
                 this.$set(this.section, 'accessories', []);
-                this.$emit('update-data', {});
             }
         },
     };

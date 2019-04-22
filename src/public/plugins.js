@@ -19,6 +19,7 @@ import icon_component_modules from './components/icons';
 import authentication_handler_components from './components/authentication-handlers';
 import layout_section_components from './components/layout-sections';
 import * as layout_section_component_module from './components/layout-section.vue';
+import * as sortable_component_module from './components/sortable.vue';
 
 let instance;
 
@@ -72,6 +73,8 @@ export class PluginManager {
             return accessory_details_component_module;
         } else if (request === 'hap-server-api/accessory-ui/layout-section') {
             return layout_section_component_module;
+        } else if (request === 'hap-server-api/accessory-ui/sortable') {
+            return sortable_component_module;
         } else if (request.startsWith('hap-server-api/accessory-ui/icons/') && icon_component_modules.has('./' + request.substr(34) + '.vue')) {
             return icon_component_modules.get('./' + request.substr(34) + '.vue');
         } else if (request === 'vue') {
@@ -109,7 +112,7 @@ export class PluginManager {
         }
 
         if (request === 'vuedraggable') {
-            return import('vuedraggable');
+            return import(/* webpackChunkName: 'layout-editor' */ 'vuedraggable');
         }
 
         const js = (await axios.get('./accessory-ui/' + accessory_ui.id + request)).data;
