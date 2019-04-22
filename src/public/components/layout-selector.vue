@@ -1,7 +1,7 @@
 <template>
     <div class="dropdown" :class="{show: open}">
         <button ref="toggle" :id="_uid + '-dropdown'" class="btn btn-sm btn-dark dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" @click.stop="open = !open">
-            <span class="d-inline d-sm-none">Layout</span>
+            <span class="d-inline d-sm-none">Menu</span>
             <span class="d-none d-sm-inline">{{ value ? value.name || value.uuid : 'All accessories' }}</span>
         </button>
 
@@ -12,32 +12,49 @@
                 <div class="dropdown-divider"></div>
 
                 <a v-for="layout in layouts" :key="layout.uuid" class="dropdown-item" :class="{active: value && value.uuid === layout.uuid}" href="#" @click.prevent="$emit('input', layout)">{{ layout.name || layout.uuid }}</a>
-
-                <div v-if="canCreate || (value && (value.can_set || value.can_delete))" class="dropdown-divider"></div>
             </template>
 
             <template v-if="value && (value.can_set || value.can_delete)">
+                <div class="dropdown-divider"></div>
+
                 <a v-if="value.can_set" class="dropdown-item" href="#" @click.prevent="$emit('modal', {type: 'layout-settings', layout: value})">Settings</a>
                 <a v-if="value.can_set" class="dropdown-item" href="#" @click.prevent="$emit('edit-layout')">Edit</a>
                 <a v-if="value.can_delete" class="dropdown-item" href="#" @click.prevent="$emit('modal', {type: 'delete-layout', layout: value})">Delete</a>
-
-                <div v-if="canCreate" class="dropdown-divider"></div>
             </template>
 
-            <a v-if="canCreate" class="dropdown-item" href="#" @click.prevent="$emit('modal', {type: 'new-layout'})">New</a>
+            <div class="dropdown-divider"></div>
+
+            <a class="dropdown-item" href="#"
+                @click.prevent="$emit('modal', {type: 'authenticate'})"
+            >
+                <template v-if="authenticatedUser">
+                    <span class="d-inline d-sm-none">{{ authenticatedUser.name }}</span>
+                    <span class="d-none d-sm-inline">Authenticated as {{ authenticatedUser.name }}</span>
+                </template>
+                <template v-else>Login</template>
+            </a>
+
+            <a v-if="canUpdateHomeSettings || canAccessServerSettings" class="dropdown-item" href="#"
+                @click.prevent="$emit('modal', {type: 'settings'})">Settings</a>
+            <a v-if="canCreate" class="dropdown-item" href="#"
+                @click.prevent="$emit('modal', {type: 'new-layout'})">New layout</a>
         </div>
     </div>
 </template>
 
 <script>
     import Layout from '../layout';
+    import {AuthenticatedUser} from '../connection';
 
     export default {
         props: {
             layouts: Object,
             value: Layout,
             name: {type: String, default: 'Home'},
+            authenticatedUser: AuthenticatedUser,
             canCreate: Boolean,
+            canUpdateHomeSettings: Boolean,
+            canAccessServerSettings: Boolean,
         },
         data() {
             return {

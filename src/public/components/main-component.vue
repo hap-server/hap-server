@@ -4,19 +4,6 @@
 
         <div class="header">
             <div class="left">
-                <span v-if="authenticated_user" class="badge badge-pill badge-dark clickable"
-                    @click="modals.push({type: 'authenticate'})"
-                >
-                    <span class="d-inline d-sm-none">{{ authenticated_user.name }}</span>
-                    <span class="d-none d-sm-inline">Authenticated as {{ authenticated_user.name }}</span>
-                </span>
-                <span v-else class="badge badge-pill badge-dark clickable" @click="modals.push({type: 'authenticate'})">
-                    Login
-                </span>
-
-                <span class="badge badge-pill badge-dark clickable" @click="modals.push({type: 'settings'})">
-                    Settings
-                </span>
             </div>
 
             <h1>
@@ -25,7 +12,9 @@
             </h1>
 
             <div class="right">
-                <layout-selector v-model="layout" :layouts="layouts" :name="name" :can-create="can_create_layouts"
+                <layout-selector v-model="layout" :layouts="layouts" :name="name"
+                    :authenticated-user="authenticated_user" :can-create="can_create_layouts"
+                    :can-update-home-settings="can_update_home_settings" :can-access-server-settings="can_access_server_settings"
                     @edit-layout="$refs.layout.edit = !$refs.layout.edit" @modal="modal => modals.push(modal)" />
             </div>
         </div>
