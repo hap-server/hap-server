@@ -7,7 +7,7 @@
         </div>
 
         <component :is="edit ? 'draggable' : 'div'" :list="sections" handle=".drag-handle" @change="$emit('update-accessories')">
-            <template v-for="(section, index) in sections">
+            <template v-for="(section, index) in showAllAccessories && !edit ? [{accessories: getAllServices()}] : sections">
                 <component v-if="section_components.has(section.type || 'Accessories')"
                     :is="section_components.get(section.type || 'Accessories').component" :key="getKeyForSection(section)"
                     :accessories="accessories" :layout="layout" :section="section" :accessories-draggable-group="'' + _uid"
@@ -108,11 +108,9 @@
             };
         },
         computed: {
-            display_sections() {
-                if (this.showAllAccessories) return [{accessories: this.getAllServices()}];
-                return this.sections.filter(s => this.edit || s.accessories && s.accessories.length);
-            },
             accessories_count() {
+                if (!this.sections) return 0;
+
                 const accessories = new Set();
 
                 for (const section of this.sections) {

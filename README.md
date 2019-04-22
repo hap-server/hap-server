@@ -1,45 +1,59 @@
 HomeKit Accessory Server
 ===
 
-Homebridge, but with a web interface for controlling and configuring accessories.
+Home automation system based on HomeKit.
+
+It includes a web interface for controlling accessories. Scenes, custom controls, configuring accessories in the web
+interface, storing historical data and automations are not supported yet.
+
+It includes a plugin system to add accessories, accessory configuration, authentication and options for automations.
+All Homebridge plugins are supported and work with the web interface but cannot be added to additional HAP bridges.
 
 ### TODO
 
 A lot.
 
-- [x] Basic accessory control (on/off)
-    - [x] Switch
-    - [x] Lightbulb
-    - [x] Programmable Switch (shows last action for five seconds)
-    - [x] Outlet
-    - [x] Television
-    - [ ] [All other services supported by hap-nodejs](https://github.com/khaost/hap-nodejs/tree/master/lib/gen)
-- [x] Accessory control
-    - [x] Switch
-    - [ ] Lightbulb
-    - [ ] Programmable Switch
-    - [x] Outlet
-    - [ ] Television
-    - [ ] [All other services supported by hap-nodejs](https://github.com/khaost/hap-nodejs/tree/master/lib/gen)
+- Web interface
+    - [x] Layouts
+        - Customisable by dragging sections and accessories in the web interface.
+        - [ ] Scenes
+        - [x] [Custom sections with plugins](#accessoryuiregisterlayoutsectioncomponent)
+    - [x] Basic accessory control (on/off)
+        - [x] Switch
+        - [x] Lightbulb
+        - [x] Programmable Switch (shows last action for five seconds)
+        - [x] Outlet
+        - [x] Television
+        - [ ] [All other services supported by hap-nodejs](https://github.com/khaost/hap-nodejs/tree/master/lib/gen)
+        - [x] [Other services with plugins](#accessoryuiregisterservicecomponent)
+    - [x] Accessory control
+        - [x] Switch
+        - [ ] Lightbulb
+        - [ ] Programmable Switch
+        - [x] Outlet
+        - [ ] Television
+        - [ ] [All other services supported by hap-nodejs](https://github.com/khaost/hap-nodejs/tree/master/lib/gen)
+        - [x] [Other services with plugins](#accessoryuiregisteraccessorydetailscomponent)
 - [ ] Historical data
     - [ ] Store changes to an accessory's state
     - [ ] Elgato Eve???
 - [ ] Security
-    - [x] Authentication
-        - Completely handled by plugins
+    - [x] Web interface authentication
+        - Completely handled by plugins.
     - [ ] Permissions
     - [ ] Per-user HomeKit bridges
-        - This would allow you to configure all accessories in Homebridge and then allow multiple people to create
+        - This would allow you to configure all accessories in hap-server and then allow multiple people to create
             their own homes with read-only access (or no access) to other people's accessories instead of sharing a
-            single home where everyone has permission to control all accessories
+            single home where everyone has permission to control all accessories.
 - [ ] Automations
-    - [ ] Create automations that can run in Homebridge
-        - Useful if you don't have an Apple TV 4, HomePod or always home iPad
-        - Also could easily allow for more flexible automations than HomeKit allows
+    - [ ] Create automations that can run on the server
+        - Useful if you don't have an Apple TV 4, HomePod or always home iPad.
+        - Also could easily allow for more flexible automations than HomeKit allows.
 - [ ] Configuration
     - [ ] Add + configure accessories in the web interface
         - [x] Set home/accessory/service names
     - [x] Server output
+    - [x] Custom layouts
     - [ ] Manage users/permissions
     - [ ] Manage HomeKit bridges + choose accessories to expose
         - Per-user HomeKit bridges (see above)
@@ -63,8 +77,14 @@ A lot.
         - [ ] Automation conditions
     - [ ] Install + manage plugins in the web interface?
         - Like server output???
+- Internal features
+    - [x] Cached accessories
+        - Accessory configuration can be cached so the server can run immediately and have accessories load in the
+            background.
 - [x] Full compatibility with Homebridge
-    - Run instead of Homebridge and use all Homebridge plugins with the web interface
+    - Run instead of Homebridge and use all Homebridge plugins with the web interface. Homebridge accessories appear
+        and can be controlled in the web interface and by automations on the server and Homebridge's HAP bridge but
+        cannot be added to hap-server's HAP bridges.
 
 Installation
 ---
@@ -223,6 +243,11 @@ An array of plugin paths to add or a single plugin path.
 }
 ```
 
+#### Single file plugins
+
+You can also provide the path to a single JavaScript file and it will be loaded as a plugin, but will not be able to
+use the `hap-server-api/plugin-config` or `hap-server-api/storage` modules.
+
 ### `plugins`
 
 The `plugins` property can be used to enable/disable features of and configure plugins. Useful if you have are running
@@ -254,7 +279,7 @@ If `false` the plugin will be disabled. When a plugin is disabled it will not be
 ```
 
 Valid keys are `"accessory-uis"`, `"accessory-discovery"`, `"accessory-setup"` and `"authentication-handlers"`. Other
-options are passed to plugins.
+options are passed to the plugin.
 
 ```json
 {
@@ -282,6 +307,9 @@ have global numeric IDs so want to use `"*"` as IDs can change when updating plu
 ##### `plugins[]['accessory-uis'][]`
 
 Either a boolean (`true`/`false`) or an object containing specific Accessory UI features to enable.
+
+Valid keys are `"service-tiles"`, `"accessory-details"` and `"collapsed-services"`. Other options are passed to the
+Accessory UI.
 
 ```json
 {
@@ -452,6 +480,8 @@ To make hap-server load a Node.js package as a plugin you need to add the `hap-s
 }
 ```
 
+Plugins can support both hap-server and Homebridge.
+
 hap-server patches `Module._load` to allow plugins to load a virtual `hap-server-api` module.
 
 ```js
@@ -462,8 +492,21 @@ const {default: hapserver, log} = require('hap-server-api');
 
 As well as the `hap-server-api` module that contains the plugin API and logger `hap-server-api/hap` has the
 `hap-nodejs` module, `hap-server-api/hap-async` has the Accessory, Service and Characteristic classes from `hap-nodejs`
-but extended to use Promises instead of callbacks and `hap-server-api/storage` has a `node-persist` object that can be
-used in handlers.
+but extended to use Promises instead of callbacks, `hap-server-api/config` has the plugin configuration,
+`hap-server-api/storage` has a `node-persist` object that can be used in handlers.
+
+The `node-persist` object will be initialised *after* the plugin loads. If you need to do anything with `node-persit`
+when a plugin loads export an `init` function. Errors thrown while loading the module will be ignored (and will
+prevent the `init` function from being exported) but errors thrown from the `init` function will prevent the plugin
+from loading.
+
+```js
+import storage from 'hap-server-api/storage';
+
+export async function init() {
+    // storage will now have been initialised
+}
+```
 
 The `PluginAPI` instance (`hapserver`) has the following functions:
 
@@ -540,8 +583,15 @@ hapserver.registerAuthenticationHandler('LocalStorage', async (data, previous_us
     // Check the credentials from the web interface
     const user = await checkCredentialsAndGetUser(data);
 
-    // Return an AuthenticatedUser object with a globally unique ID (used for permissions) and a name to display in the web interface
-    return new AuthenticatedUser(user.id, user.name || data.username);
+    // Create an AuthenticatedUser object with a globally unique ID (used for permissions) and a name to display in the web interface
+    const authenticated_user = new AuthenticatedUser(user.id, user.name || data.username);
+
+    // Allow the user to automatically reauthenticate
+    // You can do this conditionally (for example a "Remember me" checkbox or only on the local network) or not at all
+    // You must call this before the handler returns otherwise it will have no effect
+    await authenticated_user.enableReauthentication();
+
+    return authenticated_user;
 
     // You don't have to return an AuthenticatedUser object immediately
     // You can return plain objects and throw errors and create a multi-step login process
@@ -559,8 +609,15 @@ authentication_handler.handler = async (data, previous_user) => {
     // Check the credentials from the web interface
     const user = await checkCredentialsAndGetUser(data);
 
-    // Return an AuthenticatedUser object with a globally unique ID (used for permissions) and a name to display in the web interface
-    return new AuthenticatedUser(user.id, user.name || data.username);
+    // Create an AuthenticatedUser object with a globally unique ID (used for permissions) and a name to display in the web interface
+    const authenticated_user = new AuthenticatedUser(user.id, user.name || data.username);
+
+    // Allow the user to automatically reauthenticate
+    // You can do this conditionally (for example a "Remember me" checkbox or only on the local network) or not at all
+    // You must call this before the handler returns otherwise it will have no effect
+    await authenticated_user.enableReauthentication();
+
+    return authenticated_user;
 
     // You don't have to return an AuthenticatedUser object immediately
     // You can return plain objects and throw errors and create a multi-step login process
@@ -585,6 +642,9 @@ Accessory UIs register components in the web interface. Accessory UI scripts sho
 like Node.js modules. `require` can be used to get the exports of any script exposed by the Express server *that have
 already been loaded*. You can load new scripts with `require.import`, which returns a Promise resolving to the script's
 exports. Like plugins running on the server, Accessory UIs use the `require` function to access the plugin API.
+
+> These examples are using Babel so `import Vue from 'vue';` maps to `const Vue = require('vue');`. Don't use the
+> default ES6 `import` provided by the browser for modules provided by hap-server.
 
 You can also use [webpack](https://webpack.js.org) to bundle your Accessory UI's dependencies. Remember to use
 `__non_webpack_require__` to access the Accessory UI API or add the API as
@@ -641,7 +701,9 @@ import accessoryui, {Service} from 'hap-server-api/accessory-ui';
 import AccessoryDetails from 'hap-server-api/accessory-ui/accessory-details';
 
 accessoryui.registerAccessoryDetailsComponent(Service.LightSensor, {
-    template: `<accessory-details class="accessory-details-light-sensor" :name="service.name || service.accessory.name" @show-settings="$emit('show-settings')">
+    template: `<accessory-details class="accessory-details-light-sensor" :name="service.name || service.accessory.name"
+        @show-settings="$emit('show-settings')"
+    >
         <p>Light Sensor</p>
         <p>{{ light }} lux</p>
     </accessory-details>`,
@@ -736,4 +798,46 @@ const AuthenticationHandlerComponent = {
 
 // First argument is the same ID passed to hapserver.registerAuthenticationHandler, second is a Vue component and the third is an optional display name for when multiple authentication handlers are available
 accessoryui.registerAuthenticationHandlerComponent('LocalStorage', AuthenticationHandlerComponent, 'Local Storage');
+```
+
+#### `accessoryui.registerLayoutSectionComponent`
+
+Registers a layout section component. This expects a layout section type and a
+[Vue component](https://vuejs.org/v2/guide/). The Vue component will receive five props, `section`, `layout`,
+`accessories`, `accessories-draggable-group` and `editing`.
+
+To update the layout section's data you should emit the `update-data` event with new values to merge into the section
+object. Don't update the section's data unless the user is editing the layout (`editing` prop).
+
+```js
+this.$emit('update-data', {lights: ...});
+```
+
+```js
+import accessoryui, {LayoutSection} from 'hap-server-api/accessory-ui';
+import AccessoryDetails from 'hap-server-api/accessory-ui/accessory-details';
+
+// Must be globally unique
+const LightsLayoutSectionType = 'FDC60D42-4F6D-4F38-BB3F-E6AB38EC8B87';
+
+accessoryui.registerLayoutSectionComponent(LightsLayoutSectionType, {
+    template: `<layout-section class="accessory-details-light-sensor" :layout="layout" :section="section"
+        :name="section.name" default-name="Lights" :editing="editing"
+        @edit="$emit('edit', $event)" @update-name="$emit('update-name', $event)"
+    >
+        <p>Light Sensor</p>
+        <p>{{ light }} lux</p>
+    </layout-section>`,
+    components: {
+        LayoutSection,
+        Draggable: () => require.import('vuedraggable'),
+    },
+    props: {
+        accessories: Object,
+        layout: Layout,
+        section: Object,
+        accessoriesDraggableGroup: String,
+        editing: Boolean,
+    },
+});
 ```
