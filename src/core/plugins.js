@@ -193,17 +193,26 @@ export class PluginManager {
         this.plugins.push(plugin);
 
         try {
+            const module_path = require.resolve(plugin_path);
             require(plugin_path);
 
-            // If the plugin requires storage, initialise it now
-            const plugin_storage = PluginManager.instance.plugin_storage.get(plugin.name);
-
-            if (plugin_storage) {
-                log.info('Initialising plugin storage for', plugin.name);
-                await plugin_storage.default.init();
-            }
+            plugin.module = require.cache[plugin_path];
         } catch (err) {
             log.error('Error loading plugin', name, err);
+        }
+
+        // If the plugin requires storage, initialise it now
+        const plugin_storage = PluginManager.instance.plugin_storage.get(plugin.name);
+
+        Object.defineProperty(plugin, 'storage_initialised', {value: !!plugin_storage});
+
+        if (plugin_storage) {
+            log.info('Initialising plugin storage for', plugin.name);
+            await plugin_storage.default.init();
+        }
+
+        if (plugin.module && plugin.module.exports.init) {
+            plugin.module.exports.init.call(plugin);
         }
 
         return plugin;
@@ -218,23 +227,25 @@ export class PluginManager {
         return Promise.all(this.plugin_paths.map(plugin_path => this._loadPlugin(plugin_path)));
     }
 
-    async _loadPlugin(plugin_path) {
-        try {
-            const stat = await fs_stat(plugin_path);
+    async _loadPlugin(plugin_path, scoped_packages) {
+        if (!scoped_packages) {
+            try {
+                const stat = await fs_stat(plugin_path);
 
-            if (stat.isFile()) {
-                return this.loadPlugin(plugin_path);
+                if (stat.isFile()) {
+                    return await this.loadPlugin(plugin_path);
+                }
+            } catch (err) {
+                return;
             }
-        } catch (err) {
-            return;
+
+            try {
+                // eslint-disable-next-line no-unused-vars
+                const package_stat = await fs_stat(path.join(plugin_path, 'package.json'));
+
+                return await this.loadPlugin(plugin_path);
+            } catch (err) {}
         }
-
-        try {
-            // eslint-disable-next-line no-unused-vars
-            const package_stat = await fs_stat(path.join(plugin_path, 'package.json'));
-
-            return this.loadPlugin(plugin_path);
-        } catch (err) {}
 
         return Promise.all((await fs_readdir(plugin_path)).map(async dir => {
             const plugin_dir = path.join(plugin_path, dir);
@@ -242,7 +253,8 @@ export class PluginManager {
             if (!stat.isDirectory()) return log.error(plugin_dir, 'is not a directory');
 
             try {
-                await this.loadPlugin(plugin_dir);
+                if (dir.startsWith('@')) return await this._loadPlugin(plugin_dir, true);
+                return await this.loadPlugin(plugin_dir);
             } catch (err) {}
         }));
     }
@@ -306,10 +318,16 @@ export class Plugin {
     }
 
     get config() {
+        if (!this.name) {
+            throw new Error('Plugin configuration is only available for plugins with a name');
+        }
+
         return this.plugin_manager.plugin_config.get(this.name) || {};
     }
 
     get enabled() {
+        if (!this.name) return true;
+
         const config = this.plugin_manager.plugin_config.get(this.name);
 
         if (typeof config !== 'undefined') return !!config;

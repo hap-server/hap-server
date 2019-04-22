@@ -1,0 +1,12 @@
+{
+    "name": "@scope/test-scoped",
+    "private": true,
+    "keywords": [
+        "hap-server-plugin"
+    ],
+    "main": "index.js",
+    "engines": {
+        "hap-server": "^0.1.0",
+        "node": "^8.0.0"
+    }
+}
