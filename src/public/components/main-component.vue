@@ -85,7 +85,10 @@
     import Connection, {AuthenticatedUser} from '../connection';
     import Layout from '../layout';
     import Accessory from '../accessory';
+    import {BridgeService, UnsupportedService} from '../service';
     import PluginManager from '../plugins';
+    import {ConnectionSymbol, AccessoriesSymbol, GetAllDisplayServicesSymbol, GetServiceSymbol, PushModalSymbol}
+        from '../internal-symbols';
 
     import Authenticate from './authenticate.vue';
 
@@ -133,6 +136,15 @@
 
                 modals: [],
                 scrolled: false,
+            };
+        },
+        provide() {
+            return {
+                [ConnectionSymbol]: this.connection,
+                [AccessoriesSymbol]: this.accessories,
+                [GetAllDisplayServicesSymbol]: () => this.getAllServices(),
+                [GetServiceSymbol]: (uuid, service_uuid) => this.getService(uuid, service_uuid),
+                [PushModalSymbol]: modal => this.modals.push(modal),
             };
         },
         computed: {
@@ -591,6 +603,42 @@
                 }
 
                 return services;
+            },
+            getAllServices() {
+                const services = [];
+
+                for (const accessory of Object.values(this.accessories)) {
+                    // Bridge tile
+                    if (this.bridge_uuids.includes(accessory.uuid)) services.push(accessory.uuid + '.--bridge');
+
+                    // Not supported tile
+                    else if (!accessory.display_services.length) services.push(accessory.uuid + '.');
+
+                    for (const service of accessory.display_services) services.push(accessory.uuid + '.' + service.uuid);
+                }
+
+                return services;
+            },
+            getService(uuid, service_uuid) {
+                const accessory_uuid = uuid.split('.', 1)[0];
+                if (!service_uuid) service_uuid = uuid.substr(accessory_uuid.length + 1);
+
+                const accessory = this.accessories[accessory_uuid];
+                if (!accessory) return;
+
+                if (service_uuid === '--bridge') {
+                    if (!this.bridge_uuids.includes(accessory.uuid)) return;
+
+                    // {accessory, type: '--bridge'}
+                    return BridgeService.for(accessory);
+                }
+
+                if (!service_uuid) {
+                    // {accessory}
+                    return UnsupportedService.for(accessory);
+                }
+
+                return accessory.getService(service_uuid);
             },
         },
     };

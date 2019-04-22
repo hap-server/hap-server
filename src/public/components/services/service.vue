@@ -1,5 +1,5 @@
 <template>
-    <div class="service" :class="{active, updating, clickable: !updating && $listeners.click && !editing()}" @click="click">
+    <div class="service" :class="{active, updating, clickable: !updating && $listeners.click && !editing}" @click="click">
         <div class="service-top">
             <div class="service-icon">
                 <slot name="icon">
@@ -32,6 +32,8 @@
 </template>
 
 <script>
+    import {LayoutSymbol, LayoutGetEditingSymbol} from '../../internal-symbols';
+
     import HomeIcon from '../icons/home.vue';
 
     export default {
@@ -45,8 +47,15 @@
             roomName: String,
             type: {type: String, default: null},
         },
-        inject: ['layout', 'service', 'editing'],
+        inject: {
+            layout: {from: LayoutSymbol},
+            service: {},
+            getEditing: {from: LayoutGetEditingSymbol},
+        },
         computed: {
+            editing() {
+                return this.getEditing();
+            },
             show_room_name() {
                 return !this.layout || this.layout.name !== this.room_name;
             },
@@ -66,7 +75,7 @@
         methods: {
             click(event) {
                 // Don't emit click events when editing layouts
-                if (this.editing()) return;
+                if (this.editing) return;
 
                 this.$emit('click', event);
             },

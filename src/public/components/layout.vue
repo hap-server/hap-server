@@ -6,15 +6,17 @@
             <button class="btn btn-default btn-sm" @click="$emit('ping')">Ping</button>
         </div>
 
-        <component :is="edit ? 'draggable' : 'div'" :list="sections" handle=".drag-handle" @change="$emit('update-accessories')">
+        <component :is="edit ? 'draggable' : 'div'" :list="sections" handle=".drag-handle"
+            @change="$emit('update-accessories')"
+        >
             <template v-for="(section, index) in showAllAccessories && !edit ? [{accessories: getAllServices()}] : sections">
                 <component v-if="section_components.has(section.type || 'Accessories')"
-                    :is="section_components.get(section.type || 'Accessories').component" :key="getKeyForSection(section)"
-                    :accessories="accessories" :layout="layout" :section="section" :accessories-draggable-group="'' + _uid"
+                    :is="section_components.get(section.type || 'Accessories').component" :accessories="accessories"
+                    :key="getKeyForSection(section)" :section="section" :accessories-draggable-group="'' + _uid"
                     :editing="edit" @edit="e => edit = e" @update-name="name => updateSectionName(section, name)"
                     @update-data="data => updateSectionData(section, data)" @modal="modal => $emit('modal', modal)" />
 
-                <layout-section v-else-if="edit" class="unknown-layout-section" :layout="layout" :section="section"
+                <layout-section v-else-if="edit" class="unknown-layout-section" :section="section"
                     :name="section.name" :editing="edit" @edit="$emit('edit', $event)"
                     @update-name="name => updateSectionName(section, name)"
                 >
@@ -28,9 +30,7 @@
             <button v-if="canEdit" class="btn btn-primary btn-sm" @click="edit = true">Add accessories</button>
         </div>
 
-        <service-container v-if="edit"
-            title="Other accessories" :accessories="accessories"
-            :sorted="getAllServices().filter(uuid => getService(uuid) && !sections.find(s => s.accessories && s.accessories.includes(uuid)))"
+        <service-container v-if="edit" title="Other accessories" :accessories="accessories" :sorted="other_accessories"
             :edit="true" :group="'' + _uid"
         >
             <template v-slot="{id}">
@@ -62,7 +62,9 @@
 <script>
     import Connection from '../connection';
     import Layout from '../layout';
-    import {BridgeService, UnsupportedService} from '../service';
+    import {GetAllDisplayServicesSymbol, GetServiceSymbol, LayoutSymbol, LayoutAddSectionSymbol,
+        LayoutRemoveSectionSymbol, LayoutGetEditingSymbol, LayoutGetCanEditSymbol, LayoutSetEditingSymbol}
+        from '../internal-symbols';
 
     import LayoutSection from './layout-section.vue';
     import section_components from './layout-sections';
@@ -97,6 +99,10 @@
                 section_components,
             };
         },
+        inject: {
+            getAllServices: {from: GetAllDisplayServicesSymbol},
+            getService: {from: GetServiceSymbol},
+        },
         provide() {
             return {
                 layout: this.layout,
@@ -105,9 +111,20 @@
                 addSection: (index, data) => this.addSection(index, data),
                 removeSection: index => this.deleteSection(index),
                 getService: uuid => this.getService(uuid),
+
+                [LayoutSymbol]: this.layout,
+                [LayoutAddSectionSymbol]: (index, data) => this.addSection(index, data),
+                [LayoutRemoveSectionSymbol]: index => this.deleteSection(index),
+                [LayoutGetEditingSymbol]: () => this.edit,
+                [LayoutGetCanEditSymbol]: () => this.canEdit,
+                [LayoutSetEditingSymbol]: edit => this.edit = edit,
             };
         },
         computed: {
+            other_accessories() {
+                return this.getAllServices().filter(uuid => this.getService(uuid) && !this.sections
+                    .find(s => s.accessories && s.accessories.includes(uuid)));
+            },
             accessories_count() {
                 if (!this.sections) return 0;
 
@@ -138,40 +155,6 @@
             },
         },
         methods: {
-            getAllServices() {
-                const services = [];
-
-                for (const accessory of Object.values(this.accessories)) {
-                    // Bridge tile
-                    if (this.bridgeUuids.includes(accessory.uuid)) services.push(accessory.uuid + '.--bridge');
-
-                    // Not supported tile
-                    else if (!accessory.display_services.length) services.push(accessory.uuid + '.');
-
-                    for (const service of accessory.display_services) services.push(accessory.uuid + '.' + service.uuid);
-                }
-
-                return services;
-            },
-            getService(uuid) {
-                const accessory_uuid = uuid.split('.', 1)[0];
-                const service_uuid = uuid.substr(accessory_uuid.length + 1);
-
-                const accessory = this.accessories[accessory_uuid];
-                if (!accessory) return;
-
-                if (service_uuid === '--bridge') {
-                    if (!this.bridgeUuids.includes(accessory.uuid)) return;
-
-                    return this.getBridgeService(accessory);
-                }
-
-                if (!service_uuid) {
-                    return this.getUnsupportedService(accessory);
-                }
-
-                return accessory.getService(service_uuid);
-            },
             getSectionAccessories(section) {
                 if (!section.accessories) return Object.values(this.accessories);
 
@@ -232,14 +215,6 @@
                         service.accessory.updateData(accessory_data);
                     }
                 }
-            },
-            getBridgeService(accessory) {
-                // {accessory, type: '--bridge'}
-                return BridgeService.for(accessory);
-            },
-            getUnsupportedService(accessory) {
-                // {accessory}
-                return UnsupportedService.for(accessory);
             },
         },
     };

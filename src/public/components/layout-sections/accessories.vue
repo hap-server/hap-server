@@ -7,8 +7,7 @@
             @change="changes => $emit('update-data', {})"
         >
             <template v-for="id in section.accessories">
-                <service v-if="getService(id)" :key="id"
-                    :connection="connection" :service="getService(id)" :edit="editing"
+                <service v-if="getService(id)" :key="id" :service="getService(id)" :edit="editing"
                     @show-details="closing => $emit('modal', {type: 'accessory-details', service: getService(id), closing})"
                     @show-settings="$emit('modal', {type: 'service-settings', service: getService(id)})" />
             </template>
@@ -26,7 +25,7 @@
 </template>
 
 <script>
-    import Layout from '../../layout';
+    import {ConnectionSymbol, GetServiceSymbol, LayoutSymbol} from '../../internal-symbols';
 
     import LayoutSection from '../layout-section.vue';
     import Service from '../service.vue';
@@ -45,13 +44,16 @@
             Draggable: () => import(/* webpackChunkName: 'layout-editor' */ 'vuedraggable'),
         },
         props: {
-            accessories: Object,
-            layout: Layout,
             section: Object,
+            accessories: Object,
             accessoriesDraggableGroup: String,
             editing: Boolean,
         },
-        inject: ['connection', 'getService'],
+        inject: {
+            connection: {from: ConnectionSymbol},
+            layout: {from: LayoutSymbol},
+            getService: {from: GetServiceSymbol},
+        },
         created() {
             if (!this.section.accessories) {
                 this.$set(this.section, 'accessories', []);

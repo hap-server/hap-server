@@ -803,8 +803,8 @@ accessoryui.registerAuthenticationHandlerComponent('LocalStorage', Authenticatio
 #### `accessoryui.registerLayoutSectionComponent`
 
 Registers a layout section component. This expects a layout section type and a
-[Vue component](https://vuejs.org/v2/guide/). The Vue component will receive five props, `section`, `layout`,
-`accessories`, `accessories-draggable-group` and `editing`.
+[Vue component](https://vuejs.org/v2/guide/). The Vue component will receive four props, `section`, `accessories`,
+`accessories-draggable-group` and `editing`.
 
 To update the layout section's data you should emit the `update-data` event with new values to merge into the section
 object. Don't update the section's data unless the user is editing the layout (`editing` prop).
@@ -821,7 +821,7 @@ import AccessoryDetails from 'hap-server-api/accessory-ui/accessory-details';
 const LightsLayoutSectionType = 'FDC60D42-4F6D-4F38-BB3F-E6AB38EC8B87';
 
 accessoryui.registerLayoutSectionComponent(LightsLayoutSectionType, {
-    template: `<layout-section class="accessory-details-light-sensor" :layout="layout" :section="section"
+    template: `<layout-section class="accessory-details-light-sensor" :section="section"
         :name="section.name" default-name="Lights" :editing="editing"
         @edit="$emit('edit', $event)" @update-name="$emit('update-name', $event)"
     >
@@ -833,9 +833,8 @@ accessoryui.registerLayoutSectionComponent(LightsLayoutSectionType, {
         Draggable: () => require.import('vuedraggable'),
     },
     props: {
-        accessories: Object,
-        layout: Layout,
         section: Object,
+        accessories: Object,
         accessoriesDraggableGroup: String,
         editing: Boolean,
     },

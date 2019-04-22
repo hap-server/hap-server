@@ -23,7 +23,6 @@
 </template>
 
 <script>
-    import Connection from '../connection';
     import Service, {type_names} from '../service';
 
     import service_components from './services';
@@ -34,7 +33,6 @@
             Service: ServiceComponent,
         },
         props: {
-            connection: Connection,
             service: Service,
             edit: Boolean,
         },
