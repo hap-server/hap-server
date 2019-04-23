@@ -47,6 +47,7 @@
         provide() {
             return {
                 service: this.service,
+                closeAccessoryDetails: () => this.close(),
             };
         },
         computed: {
