@@ -1,0 +1,66 @@
+.accessory-details-lightbulb {
+    .accessory-details-lightbulb-sections {
+        display: flex;
+        overflow-x: auto;
+    }
+
+    .accessory-details-lightbulb-power,
+    .accessory-details-lightbulb-colour {
+        width: 100%;
+        min-width: 300px;
+        margin: 0 2em;
+
+        @media (max-width: 400px) {
+            min-width: calc(100vw - 4em);
+
+            &:first-child {
+                margin-left: 0;
+            }
+            &:last-child {
+                margin-right: 0;
+            }
+        }
+    }
+
+    .accessory-details-lightbulb-power {
+        background-color: transparentize($gray-800, 0.9);
+        border: 1px solid transparentize($gray-800, 0.6);
+        border-radius: 3px;
+        padding: 1em;
+
+        @supports (backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px)) {
+            background-color: transparentize($gray-800, 0.7);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+        }
+
+        p {
+            margin: 0;
+        }
+
+        @media (min-width: 400px) {
+            input {
+                max-width: 300px;
+                margin: 0 auto;
+            }
+        }
+    }
+
+    .vc-swatches,
+    .vc-chrome {
+        margin-left: auto;
+        margin-right: auto;
+
+        border-radius: 3px;
+    }
+
+    .vc-chrome {
+        .vc-chrome-saturation-wrap {
+            flex: 1;
+        }
+
+        .vc-chrome-body {
+            @include border-bottom-radius(3px);
+        }
+    }
+}

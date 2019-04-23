@@ -20,6 +20,9 @@ import authentication_handler_components from './components/authentication-handl
 import layout_section_components from './components/layout-sections';
 import * as layout_section_component_module from './components/layout-section.vue';
 import * as sortable_component_module from './components/sortable.vue';
+import * as vue_color_chrome_module from 'vue-color/src/components/Chrome.vue';
+import * as vue_color_swatches_module from 'vue-color/src/components/Swatches.vue';
+import * as vue_color_sketch_module from 'vue-color/src/components/Sketch.vue';
 
 let instance;
 
@@ -81,6 +84,12 @@ export class PluginManager {
             return vue_module;
         } else if (request === 'axios') {
             return axios_module;
+        } else if (request === 'vue-color/chrome') {
+            return vue_color_chrome_module;
+        } else if (request === 'vue-color/swatches') {
+            return vue_color_swatches_module;
+        } else if (request === 'vue-color/sketch') {
+            return vue_color_sketch_module;
         }
 
         if (cache[request]) {

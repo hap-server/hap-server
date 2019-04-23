@@ -28,7 +28,7 @@ A lot.
         - [x] [Other services with plugins](#accessoryuiregisterservicecomponent)
     - [x] Accessory control
         - [x] Switch
-        - [ ] Lightbulb
+        - [x] Lightbulb
         - [ ] Programmable Switch
         - [x] Outlet
         - [ ] Television
@@ -662,6 +662,10 @@ Don't include Vue as a dependency of your plugin. The web interface plugin manag
 ```js
 import Vue from 'vue';
 import axios from 'axios';
+
+import ChromeColourPicker from 'vue-color/chrome';
+import SwatchesColourPicker from 'vue-color/swatches';
+import SketchColourPicker from 'vue-color/sketch';
 ```
 
 #### `accessoryui.registerServiceComponent`

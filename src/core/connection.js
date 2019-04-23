@@ -363,7 +363,6 @@ export default class Connection {
         const characteristic = service.characteristics.find(c => c.UUID === characteristic_uuid);
         if (!characteristic) return;
 
-
         return characteristic.setValue(value);
     }
 
