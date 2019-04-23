@@ -34,10 +34,15 @@
 
 .layout-section-contents {
     .unknown-layout-section & {
-        background-color: transparentize($warning, 0.7);
+        background-color: transparentize($warning, 0.9);
         border: 1px solid transparentize($warning, 0.6);
 
-        -webkit-backdrop-filter: blur(10px);
+        @supports (backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px)) {
+            background-color: transparentize($warning, 0.7);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+        }
+
         padding: 2rem;
         margin: 1rem 1rem 0 0;
         text-align: center;

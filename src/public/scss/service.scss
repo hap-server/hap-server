@@ -8,9 +8,14 @@
 }
 
 .service {
-    background-color: rgba(255, 255, 255, 0.5);
-    -webkit-backdrop-filter: blur(20px);
-    backdrop-filter: blur(20px);
+    background-color: rgba(255, 255, 255, 0.9);
+
+    @supports (backdrop-filter: blur(20px)) or (-webkit-backdrop-filter: blur(20px)) {
+        background-color: rgba(255, 255, 255, 0.5);
+        -webkit-backdrop-filter: blur(20px);
+        backdrop-filter: blur(20px);
+    }
+
     border-radius: 0.8em;
 
     width: 100%;

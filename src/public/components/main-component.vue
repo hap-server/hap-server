@@ -1,6 +1,9 @@
 <template>
     <div class="root" :class="{scrolled}">
-        <div class="background" :style="{'background-image': `url(${JSON.stringify(background_url)})`}" />
+        <transition name="fade">
+            <div :key="background_url" class="background"
+                :style="{'background-image': `url(${JSON.stringify(background_url)})`}" />
+        </transition>
 
         <div class="header">
             <div class="left">
@@ -67,6 +70,11 @@
         <div v-if="!connection" class="connecting" :class="{reconnecting: has_connected}">
             <p>{{ has_connected ? 'Reconnecting' : 'Connecting' }}</p>
         </div>
+
+        <template v-for="preload_url in preload_urls">
+            <link rel="preload" :href="preload_url" as="image" />
+            <link rel="prefetch" :href="preload_url" />
+        </template>
     </div>
 </template>
 
@@ -175,6 +183,17 @@
             },
             authenticated_user() {
                 return this.connection ? this.connection.authenticated_user : undefined;
+            },
+            preload_urls() {
+                const preload_urls = [require('../../../assets/default-wallpaper.jpg')];
+
+                for (const layout of Object.values(this.layouts)) {
+                    if (layout.background_url && !preload_urls.includes(layout.background_url)) {
+                        preload_urls.push('assets/' + layout.background_url);
+                    }
+                }
+
+                return preload_urls;
             },
         },
         watch: {

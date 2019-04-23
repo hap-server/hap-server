@@ -32,7 +32,7 @@ body,
 
 body,
 .background {
-    background-color: $purple;
+    background-color: $gray-700;
     background-image: url('../../../assets/default-wallpaper.jpg');
     background-attachment: fixed;
     background-size: cover;
@@ -49,6 +49,13 @@ body,
     height: 100%;
 
     background-attachment: scroll;
+}
+
+.fade-enter-active, .fade-leave-active {
+    transition: opacity 1s;
+}
+.fade-enter {
+    opacity: 0;
 }
 
 .root {
@@ -69,7 +76,11 @@ body,
     .scrolled & {
         background-color: rgba(0, 0, 0, 0.6);
         border-color: rgba(0, 0, 0, 0.6);
-        -webkit-backdrop-filter: blur(20px);
+
+        @supports (backdrop-filter: blur(20px)) or (-webkit-backdrop-filter: blur(20px)) {
+            -webkit-backdrop-filter: blur(20px);
+            backdrop-filter: blur(20px);
+        }
     }
 
     .left, .right {
@@ -134,8 +145,14 @@ body,
     height: 100vh;
     z-index: $connecting-modal-z-index;
 
-    background-color: rgba(0, 0, 0, 0.15);
-    -webkit-backdrop-filter: blur(2px);
+    background-color: rgba(0, 0, 0, 0.5);
+
+    @supports (backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px)) {
+        background-color: rgba(0, 0, 0, 0.15);
+        -webkit-backdrop-filter: blur(2px);
+        backdrop-filter: blur(2px);
+    }
+
     color: #ffffff;
 
     display: flex;
