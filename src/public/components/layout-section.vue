@@ -63,8 +63,8 @@
         },
         inject: {
             layout: {from: LayoutSymbol},
-            [LayoutAddSectionSymbol]: {},
-            [LayoutRemoveSectionSymbol]: {},
+            _addSection: {from: LayoutAddSectionSymbol},
+            _removeSection: {from: LayoutRemoveSectionSymbol},
             getCanEdit: {from: LayoutGetCanEditSymbol},
             setEditing: {from: LayoutSetEditingSymbol},
         },
@@ -95,11 +95,11 @@
                 }
             },
             addSection(type) {
-                this[LayoutAddSectionSymbol](this.layout.sections.indexOf(this.section) + 1, {type});
+                this._addSection(this.layout.sections.indexOf(this.section) + 1, {type});
                 this.addSectionDropdownOpen = false;
             },
             removeSection() {
-                this[LayoutRemoveSectionSymbol](this.layout.sections.indexOf(this.section));
+                this._removeSection(this.layout.sections.indexOf(this.section));
             },
         },
     };
