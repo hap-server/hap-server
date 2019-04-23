@@ -87,6 +87,8 @@
 
     export const instances = new Set();
 
+    document.cookie = 'asset_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+
     export default {
         components: {
             Authenticate,
@@ -162,7 +164,7 @@
                 return this.name || 'Home';
             },
             background_url() {
-                if (this.layout && this.layout.background_url) return this.layout.background_url;
+                if (this.layout && this.layout.background_url) return 'assets/' + this.layout.background_url;
 
                 return require('../../../assets/default-wallpaper.jpg');
             },
@@ -186,6 +188,9 @@
                 }
             },
             async authenticated_user(authenticated_user) {
+                document.cookie = 'asset_token=' + (authenticated_user ?
+                    encodeURIComponent(authenticated_user.asset_token) : '; expires=Thu, 01 Jan 1970 00:00:00 GMT');
+
                 if (!authenticated_user) return;
 
                 await Promise.all([
@@ -269,8 +274,10 @@
                 if (process.env.NODE_ENV === 'development') {
                     const development_data = await this.connection.send({type: 'development-data'});
 
-                    const devtools = require('@vue/devtools');
-                    devtools.connect(development_data.vue_devtools_host, development_data.vue_devtools_port);
+                    if (development_data.vue_devtools_port) {
+                        const devtools = require('@vue/devtools');
+                        devtools.connect(development_data.vue_devtools_host, development_data.vue_devtools_port);
+                    }
                 }
 
                 const loadAccessoryUIs = this.loadAccessoryUIs();
@@ -297,6 +304,7 @@
                 const authenticated_user = new AuthenticatedUser(response.authentication_handler_id);
 
                 Object.defineProperty(authenticated_user, 'token', {value: token});
+                Object.defineProperty(authenticated_user, 'asset_token', {value: response.asset_token});
                 Object.assign(authenticated_user, response.data);
 
                 return this.connection.authenticated_user = authenticated_user;
@@ -305,6 +313,9 @@
                 connection.on('disconnected', event => {
                     if (!event.wasClean) console.error('Disconnected', event);
                     else console.log('Disconnected');
+
+                    // The asset token is only valid while the WebSocket is connected
+                    document.cookie = 'asset_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT';
 
                     this.connection = null;
 

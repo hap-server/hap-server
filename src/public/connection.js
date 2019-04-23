@@ -358,6 +358,7 @@ export class AuthenticationHandlerConnection {
             const authenticated_user = new AuthenticatedUser(response.authentication_handler_id);
 
             Object.defineProperty(authenticated_user, 'token', {value: response.token});
+            Object.defineProperty(authenticated_user, 'asset_token', {value: response.asset_token});
             Object.assign(authenticated_user, response.data);
 
             return authenticated_user;

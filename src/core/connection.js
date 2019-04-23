@@ -1,5 +1,10 @@
 
 import process from 'process';
+import crypto from 'crypto';
+import path from 'path';
+import url from 'url';
+import querystring from 'querystring';
+import fs from 'fs';
 import genuuid from 'uuid/v4';
 
 import PluginManager, {AuthenticatedUser} from './plugins';
@@ -57,6 +62,7 @@ export default class Connection {
         this.last_message = null;
         this.closed = false;
         this.req = req;
+        this.uploads = [];
 
         this.permissions = new Permissions(this);
 
@@ -94,7 +100,7 @@ export default class Connection {
             this.handleMessage(messageid, data);
         });
 
-        ws.on('close', code => {
+        ws.on('close', async code => {
             this.closed = true;
             clearInterval(this.terminateInterval);
 
@@ -107,6 +113,9 @@ export default class Connection {
             } catch (err) {
                 this.log.error('Error in disconnect handler', err);
             }
+
+            await Promise.all(this.uploads.map(file => new Promise((rs, rj) =>
+                fs.unlink(file.filepath, err => err ? rj(err) : rs()))));
         });
 
         // ws.send('ping');
@@ -162,6 +171,41 @@ export default class Connection {
             this[message_methods[data.type]].call(this, messageid, data);
             return;
         }
+    }
+
+    async getAssetToken() {
+        if (this.asset_token) return this.asset_token;
+
+        const bytes = await new Promise((rs, rj) => crypto.randomBytes(48, (err, bytes) => err ? rj(err) : rs(bytes)));
+        const token = bytes.toString('hex');
+
+        this.log.info('Asset token', token);
+
+        return this.asset_token = token;
+    }
+
+    static authoriseAssetRequest(server, req, res, next) {
+        const {search} = url.parse(req.url);
+        const search_params = querystring.parse(search);
+        const asset_token = search_params.token || req.cookies.asset_token;
+
+        const connection = [...server.wss.clients].map(s => this.getConnectionForWebSocket(s))
+            .find(c => c.asset_token === asset_token);
+
+        if (!asset_token || !connection) {
+            server.log('Unauthorised asset request', req.url);
+
+            res.statusCode = 401;
+            res.send('Unauthorised');
+
+            return;
+        }
+
+        connection.log('Authenticated asset request', req.url);
+
+        req.hap_server_connection = connection;
+
+        next();
     }
 
     /**
@@ -452,6 +496,10 @@ export default class Connection {
     async createLayout(data) {
         await this.permissions.assertCanCreateLayouts();
 
+        if (data.background_url && data.background_url.indexOf(path.sep) > -1) {
+            throw new Error('Background filenames cannot have directory separators');
+        }
+
         const uuid = genuuid();
         // const uuid = 'test2';
 
@@ -464,6 +512,9 @@ export default class Connection {
             layout_uuids.push(uuid);
             await this.server.storage.setItem('Layouts', layout_uuids);
         }
+
+        let index;
+        while ((index = this.uploads.findIndex(f => f.filename === data.background_url)) > -1) this.uploads.splice(index, 1);
 
         this.server.sendBroadcast({
             type: 'new-layout',
@@ -527,7 +578,13 @@ export default class Connection {
     async setLayout(uuid, data) {
         await this.permissions.assertCanSetLayout(uuid);
 
+        if (data.background_url && data.background_url.indexOf(path.sep) > -1) {
+            throw new Error('Background filenames cannot have directory separators');
+        }
+
         this.log.debug('Setting data for layout', uuid, data);
+
+        const previous_data = await this.server.storage.getItem('Layout.' + uuid);
 
         await this.server.storage.setItem('Layout.' + uuid, data);
 
@@ -537,11 +594,92 @@ export default class Connection {
             await this.server.storage.setItem('Layouts', layout_uuids);
         }
 
+        let index;
+        while ((index = this.uploads.findIndex(f => f.filename === data.background_url)) > -1) this.uploads.splice(index, 1);
+
         this.server.sendBroadcast({
             type: 'update-layout',
             uuid,
             data,
         }, this.ws);
+
+        if (previous_data && previous_data.background_url && previous_data.background_url !== data.background_url) {
+            for (const layout_uuid of await this.server.storage.getItem('Layouts')) {
+                const layout = await this.server.storage.getItem('Layout.' + layout_uuid);
+
+                if (layout && layout.background_url === previous_data.background_url) return;
+            }
+
+            // Delete the old background image as no other layout is using it
+            await new Promise((rs, rj) => fs.unlink(path.join(this.server.assets_path, previous_data.background_url),
+                err => err ? rj(err) : rs()));
+        }
+    }
+
+    /**
+     * Handle layout background uploads.
+     * This does not happen over the WebSocket.
+     *
+     * The user will have already authenticated with an asset token.
+     */
+    static async handleUploadLayoutBackground(server, req, res) {
+        const connection = req.hap_server_connection;
+
+        try {
+            const response = await connection.handleUploadLayoutBackground(req, res);
+
+            res.writeHead(200, {'Content-Type': 'application/json'});
+            res.end(JSON.stringify(response));
+        } catch (err) {
+            connection.log.error('Error uploading layout background', err);
+
+            await new Promise((rs, rj) => fs.unlink(req.file.path, err => err ? rj(err) : rs()));
+
+            res.writeHead(500, {'Content-Type': 'text/plain'});
+            res.end('Error');
+        }
+    }
+
+    async handleUploadLayoutBackground(req, res) {
+        this.log(req.file);
+
+        const stream = fs.createReadStream(req.file.path);
+        const hash = crypto.createHash('sha1');
+        hash.setEncoding('hex');
+
+        stream.pipe(hash);
+
+        const filehash = await new Promise((resolve, reject) => {
+            stream.on('error', err => reject(err));
+            stream.on('end', () => {
+                hash.end();
+                resolve(hash.read());
+            });
+        });
+
+        const filename = filehash + path.extname(req.file.originalname);
+        const filepath = path.join(this.server.assets_path, filename);
+
+        if (await new Promise((rs, rj) => fs.stat(filepath, (err, stat) => err ? rs(false) : rs(true)))) {
+            await new Promise((rs, rj) => fs.unlink(req.file.path, err => err ? rj(err) : rs()));
+
+            return {
+                name: filename,
+            };
+        }
+
+        await new Promise((rs, rj) => fs.rename(req.file.path, filepath, err => err ? rj(err) : rs()));
+
+        this.uploads.push({
+            filename,
+            filepath,
+            filehash,
+            file: req.file,
+        });
+
+        return {
+            name: filename,
+        };
     }
 
     /**
@@ -560,6 +698,8 @@ export default class Connection {
 
         this.log.debug('Deleting layout', uuid);
 
+        const data = await this.server.storage.getItem('Layout.' + uuid);
+
         const layout_uuids = await this.server.storage.getItem('Layouts') || [];
         let index;
         while ((index = layout_uuids.indexOf(uuid)) > -1) {
@@ -573,6 +713,18 @@ export default class Connection {
             type: 'remove-layout',
             uuid,
         }, this.ws);
+
+        if (data && data.background_url) {
+            for (const layout_uuid of await this.server.storage.getItem('Layouts')) {
+                const layout = await this.server.storage.getItem('Layout.' + layout_uuid);
+
+                if (layout && layout.background_url === data.background_url) return;
+            }
+
+            // Delete the background image as no other layout is using it
+            await new Promise((rs, rj) => fs.unlink(path.join(this.server.assets_path, data.background_url),
+                err => err ? rj(err) : rs()));
+        }
     }
 
     handleGetCommandLineFlagsMessage(messageid) {
@@ -817,6 +969,7 @@ export default class Connection {
                 data: response,
                 token: response.token,
                 authentication_handler_id: response.authentication_handler_id,
+                asset_token: await this.getAssetToken(),
             });
         }
 

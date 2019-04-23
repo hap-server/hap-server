@@ -182,6 +182,12 @@ yargs.command('$0 [config]', 'Run the HAP and web server', yargs => {
         config,
     });
 
+    (async () => {
+        log.info('Cleaning assets directory');
+        const stat = await server.cleanAssets();
+        log.info('Cleaned assets directory, removed', stat.deleted_assets.length, 'unused assets', stat);
+    })().catch(err => log.error('Error cleaning assets directory', err));
+
     PluginManager.storage_path = path.resolve(data_path, 'plugin-storage');
     await PluginManager.loadPlugins();
 

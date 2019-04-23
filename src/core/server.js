@@ -3,11 +3,15 @@ import https from 'https';
 import url from 'url';
 import path from 'path';
 import EventEmitter from 'events';
+import fs from 'fs';
+import os from 'os';
 
 import express from 'express';
 import WebSocket from 'ws';
 import persist from 'node-persist';
 import csp from 'express-csp';
+import cookieParser from 'cookie-parser';
+import multer from 'multer';
 
 import {uuid} from 'hap-nodejs';
 
@@ -24,7 +28,7 @@ export default class Server extends EventEmitter {
     constructor(config, storage, log) {
         super();
 
-        this.config = config;
+        this.config = config.config || {};
         this.storage = storage;
         this.log = log || new Logger();
 
@@ -45,6 +49,16 @@ export default class Server extends EventEmitter {
                 },
             },
         });
+
+        this.assets_path = path.resolve(config.data_path, 'assets');
+
+        this.app.use('/assets', cookieParser());
+        this.app.use('/assets', Connection.authoriseAssetRequest.bind(Connection, this));
+        this.app.use('/assets', express.static(this.assets_path));
+
+        this.multer = multer({dest: os.tmpdir()});
+        this.app.post('/assets/upload-layout-background', this.multer.single('background'),
+            Connection.handleUploadLayoutBackground.bind(Connection, this));
 
         if (!DEVELOPMENT) {
             this.app.use(express.static(path.resolve(__dirname, '..', 'public')));
@@ -110,7 +124,7 @@ export default class Server extends EventEmitter {
 
         await storage.init();
 
-        const server = new this(config.config, storage);
+        const server = new this(config, storage);
 
         return server;
     }
@@ -454,6 +468,25 @@ export default class Server extends EventEmitter {
                 value,
             }),
         });
+    }
+
+    async cleanAssets() {
+        const layouts = await Promise.all((await this.storage.getItem('Layouts') || [])
+            .map(uuid => this.storage.getItem('Layout.' + uuid)));
+        const background_urls = [...new Set(layouts.map(l => l && l.background_url).filter(b => b))];
+
+        const assets = await new Promise((rs, rj) =>
+            fs.readdir(this.assets_path, (err, dir) => err ? rj(err) : rs(dir)));
+        const unused_assets = assets.filter(a => !background_urls.includes(a));
+
+        await Promise.all(unused_assets.map(asset => {
+            return new Promise((rs, rj) => fs.unlink(path.join(this.assets_path, asset), err => err ? rj(err) : rs()));
+        }));
+
+        return {
+            assets,
+            deleted_assets: unused_assets,
+        };
     }
 }
 

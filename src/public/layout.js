@@ -40,6 +40,10 @@ export default class Layout extends EventEmitter {
         return this.data.name;
     }
 
+    get background_url() {
+        return this.data.background_url;
+    }
+
     _setPermissions(permissions) {
         permissions.get = !!permissions.get;
         permissions.set = !!permissions.set;
