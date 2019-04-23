@@ -52,9 +52,11 @@ export default class Server extends EventEmitter {
 
         this.assets_path = path.resolve(config.data_path, 'assets');
 
-        this.app.use('/assets', cookieParser());
-        this.app.use('/assets', Connection.authoriseAssetRequest.bind(Connection, this));
-        this.app.use('/assets', express.static(this.assets_path));
+        this.app.use('/assets', cookieParser(), Connection.authoriseAssetRequest.bind(Connection, this));
+        this.app.use('/assets', (req, res, next) => {
+            res.setHeader('Cache-Control', 'private, max-age=31536000');
+            next();
+        }, express.static(this.assets_path));
 
         this.multer = multer({dest: os.tmpdir()});
         this.app.post('/assets/upload-layout-background', this.multer.single('background'),
