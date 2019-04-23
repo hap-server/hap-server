@@ -28,10 +28,12 @@
 
                     <button class="btn btn-danger btn-sm ml-3" type="button" @click="removeSection">Remove section</button>
                     <button class="btn btn-dark btn-sm ml-3 drag-handle" type="button">Drag</button>
-                    <button class="btn btn-dark btn-sm ml-3" type="button" @click="setEditing(false)">Finish editing</button>
+                    <button class="btn btn-dark btn-sm ml-3" type="button"
+                        @click="() => $listeners.edit ? $emit('edit', false) : setEditing(false)">Finish editing</button>
                 </template>
                 <template v-else-if="can_edit">
-                    <button class="btn btn-dark btn-sm ml-3" type="button" @click="setEditing(true)">Edit</button>
+                    <button class="btn btn-dark btn-sm ml-3 layout-section-edit-button" type="button"
+                        @click="() => $listeners.edit ? $emit('edit', true) : setEditing(true)">Edit</button>
                 </template>
             </slot>
         </div>

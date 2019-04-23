@@ -30,6 +30,19 @@
             font-size: 1em;
         }
     }
+
+    .layout-section-edit-button {
+        opacity: 0;
+        transition: opacity 0.2s ease;
+
+        .layout-section:hover & {
+            opacity: 0.6;
+        }
+
+        &:hover {
+            opacity: 1 !important;
+        }
+    }
 }
 
 .layout-section-contents {

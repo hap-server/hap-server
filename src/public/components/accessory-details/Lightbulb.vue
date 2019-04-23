@@ -8,25 +8,31 @@
 
         <div style="flex: 1 1 10%;" />
 
-        <div class="d-flex accessory-details-lightbulb-sections">
-            <div class="accessory-details-lightbulb-power d-flex flex-column clickable" @click.stop="setOn(!on)">
-                <div class="flex-fill"></div>
+        <div class="accessory-details-lightbulb-sections">
+            <div class="accessory-details-lightbulb-sections-scroll-wrapper">
+                <div class="accessory-details-lightbulb-power d-flex flex-column clickable" @click.stop="setOn(!on)">
+                    <div class="flex-fill"></div>
 
-                <p @click.stop="setOn(!on)">{{ on ? 'On' : 'Off' }}</p>
+                    <p @click.stop="setOn(!on)">{{ on ? 'On' : 'Off' }}</p>
 
-                <div v-if="service.getCharacteristicByName('Brightness')" style="flex: 1 1 10%;" />
+                    <div v-if="service.getCharacteristicByName('Brightness')" style="flex: 1 1 10%;" />
 
-                <div v-if="service.getCharacteristicByName('Brightness')" @click.stop>
-                    <input v-model="brightness" type="range" class="form-control-range" :id="_uid + '-brightness'" />
+                    <div v-if="service.getCharacteristicByName('Brightness')" @click.stop>
+                        <input v-model="brightness" type="range" class="form-control-range" :id="_uid + '-brightness'" />
+                    </div>
+
+                    <div class="flex-fill"></div>
                 </div>
 
-                <div class="flex-fill"></div>
-            </div>
-
-            <div v-if="colour" class="accessory-details-lightbulb-colour d-flex" @click.stop>
-                <swatches-colour-picker v-model="colour" :palette="swatches" />
-                <chrome-colour-picker v-model="colour" disable-alpha disable-fields
-                    class="d-none d-md-flex flex-column" />
+                <div v-if="colour" class="accessory-details-lightbulb-colour d-flex" @click.stop>
+                    <div class="accessory-details-lightbulb-swatches">
+                        <swatches-colour-picker v-model="colour" :palette="swatches" />
+                    </div>
+                    <div class="accessory-details-lightbulb-chrome">
+                        <chrome-colour-picker v-model="colour" disable-alpha disable-fields
+                            class="d-none d-md-flex flex-column" />
+                    </div>
+                </div>
             </div>
         </div>
     </accessory-details>

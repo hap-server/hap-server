@@ -1,33 +1,35 @@
 <template>
     <div class="accessory-details" :class="{active: active, updating}">
-        <div class="accessory-details-container">
-            <slot name="container">
-                <div class="accessory-details-icon">
-                    <slot name="icon">
-                        <home-icon />
-                    </slot>
-                </div>
+        <div class="accessory-details-scroll-wrapper">
+            <div class="accessory-details-container">
+                <slot name="container">
+                    <div class="accessory-details-icon">
+                        <slot name="icon">
+                            <home-icon />
+                        </slot>
+                    </div>
 
-                <h4>{{ name || service.name || service.accessory.name }}</h4>
+                    <h4>{{ name || service.name || service.accessory.name }}</h4>
 
-                <slot name="status" />
+                    <slot name="status" />
 
-                <slot />
-            </slot>
-        </div>
-
-        <div class="accessory-details-footer">
-            <div class="left">
-                <slot name="footer-left" />
+                    <slot />
+                </slot>
             </div>
 
-            <div class="right">
-                <slot name="footer-right">
-                    <div v-if="$listeners['show-settings']" class="btn btn-dark btn-sm clickable"
-                        @click.stop="$emit('show-settings')">Settings</div>
-                    <div class="btn btn-dark btn-sm clickable"
-                        @click.stop="() => $listeners.close ? $emit('close') : closeAccessoryDetails()">Close</div>
-                </slot>
+            <div class="accessory-details-footer">
+                <div class="left">
+                    <slot name="footer-left" />
+                </div>
+
+                <div class="right">
+                    <slot name="footer-right">
+                        <div v-if="$listeners['show-settings']" class="btn btn-dark btn-sm clickable"
+                            @click.stop="$emit('show-settings')">Settings</div>
+                        <div class="btn btn-dark btn-sm clickable"
+                            @click.stop="() => $listeners.close ? $emit('close') : closeAccessoryDetails()">Close</div>
+                    </slot>
+                </div>
             </div>
         </div>
     </div>

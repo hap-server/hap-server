@@ -1,7 +1,16 @@
 .accessory-details-lightbulb {
     .accessory-details-lightbulb-sections {
         display: flex;
+        margin: 1em -2em 0;
         overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .accessory-details-lightbulb-sections-scroll-wrapper {
+        display: flex;
+        flex-direction: row;
+        padding: 0 2em;
+        min-width: 100%;
     }
 
     .accessory-details-lightbulb-power,
@@ -23,7 +32,7 @@
     }
 
     .accessory-details-lightbulb-power {
-        background-color: transparentize($gray-800, 0.9);
+        background-color: transparentize($gray-800, 0.5);
         border: 1px solid transparentize($gray-800, 0.6);
         border-radius: 3px;
         padding: 1em;
@@ -48,13 +57,17 @@
 
     .vc-swatches,
     .vc-chrome {
-        margin-left: auto;
-        margin-right: auto;
-
         border-radius: 3px;
     }
 
+    .vc-swatches {
+        width: auto;
+    }
+
     .vc-chrome {
+        height: 100%;
+        margin-left: 2em;
+
         .vc-chrome-saturation-wrap {
             flex: 1;
         }
