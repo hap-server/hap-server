@@ -72,8 +72,8 @@
         </div>
 
         <template v-for="preload_url in preload_urls">
-            <link rel="preload" :href="preload_url" as="image" />
-            <link rel="prefetch" :href="preload_url" />
+            <link :key="'1-' + preload_url" rel="preload" :href="preload_url" as="image" />
+            <link :key="'2-' + preload_url" rel="prefetch" :href="preload_url" />
         </template>
     </div>
 </template>

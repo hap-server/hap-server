@@ -196,7 +196,7 @@ export class PluginManager {
             const module_path = require.resolve(plugin_path);
             require(plugin_path);
 
-            plugin.module = require.cache[plugin_path];
+            plugin.module = require.cache[module_path];
         } catch (err) {
             log.error('Error loading plugin', name, err);
         }

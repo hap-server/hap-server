@@ -29,7 +29,6 @@
 
     import LayoutSection from '../layout-section.vue';
     import Service from '../service.vue';
-    import ServiceContainer from '../service-container.vue';
     import Sortable from '../sortable.vue';
 
     export const type = 'Accessories';
@@ -39,7 +38,6 @@
         components: {
             LayoutSection,
             Service,
-            ServiceContainer,
             Sortable,
             Draggable: () => import(/* webpackChunkName: 'layout-editor' */ 'vuedraggable'),
         },

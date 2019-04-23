@@ -9,15 +9,15 @@
         <component :is="edit ? 'draggable' : 'div'" :list="sections" handle=".drag-handle"
             @change="$emit('update-accessories')"
         >
-            <template v-for="(section, index) in showAllAccessories && !edit ? [{accessories: getAllServices()}] : sections">
+            <template v-for="section in showAllAccessories && !edit ? [{accessories: getAllServices()}] : sections">
                 <component v-if="section_components.has(section.type || 'Accessories')"
                     :is="section_components.get(section.type || 'Accessories').component" :accessories="accessories"
                     :key="getKeyForSection(section)" :section="section" :accessories-draggable-group="'' + _uid"
                     :editing="edit" @edit="e => edit = e" @update-name="name => updateSectionName(section, name)"
                     @update-data="data => updateSectionData(section, data)" @modal="modal => $emit('modal', modal)" />
 
-                <layout-section v-else-if="edit" class="unknown-layout-section" :section="section"
-                    :name="section.name" :editing="edit" @edit="$emit('edit', $event)"
+                <layout-section v-else-if="edit" class="unknown-layout-section" :key="getKeyForSection(section)"
+                    :section="section" :name="section.name" :editing="edit" @edit="$emit('edit', $event)"
                     @update-name="name => updateSectionName(section, name)"
                 >
                     <p>Unknown layout section type "{{ section.type }}".</p>
@@ -62,9 +62,10 @@
 <script>
     import Connection from '../connection';
     import Layout from '../layout';
-    import {GetAllDisplayServicesSymbol, GetServiceSymbol, LayoutSymbol, LayoutAddSectionSymbol,
-        LayoutRemoveSectionSymbol, LayoutGetEditingSymbol, LayoutGetCanEditSymbol, LayoutSetEditingSymbol}
-        from '../internal-symbols';
+    import {
+        GetAllDisplayServicesSymbol, GetServiceSymbol, LayoutSymbol, LayoutAddSectionSymbol,
+        LayoutRemoveSectionSymbol, LayoutGetEditingSymbol, LayoutGetCanEditSymbol, LayoutSetEditingSymbol,
+    } from '../internal-symbols';
 
     import LayoutSection from './layout-section.vue';
     import section_components from './layout-sections';

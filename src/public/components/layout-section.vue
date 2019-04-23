@@ -44,7 +44,7 @@
 
 <script>
     import {LayoutSymbol, LayoutAddSectionSymbol, LayoutRemoveSectionSymbol, LayoutGetCanEditSymbol,
-        LayoutSetEditingSymbol} from '../internal-symbols';
+        LayoutSetEditingSymbol} from '../internal-symbols'; // eslint-disable-line vue/script-indent
 
     import layout_section_components from './layout-sections';
 
