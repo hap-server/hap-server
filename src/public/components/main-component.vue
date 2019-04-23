@@ -110,6 +110,7 @@
                 loading: false,
 
                 name: null,
+                default_background_url: null,
                 layouts: {},
                 layout: null,
 
@@ -165,6 +166,7 @@
             },
             background_url() {
                 if (this.layout && this.layout.background_url) return 'assets/' + this.layout.background_url;
+                if (this.default_background_url) return 'assets/' + this.default_background_url;
 
                 return require('../../../assets/default-wallpaper.jpg');
             },
@@ -324,6 +326,7 @@
 
                 connection.on('update-home-settings', data => {
                     this.name = data.name;
+                    this.default_background_url = data.background_url;
                 });
 
                 connection.on('add-layout', async uuid => {
@@ -419,6 +422,7 @@
                     const data = await this.connection.getHomeSettings();
 
                     this.name = data.name || 'Home';
+                    this.default_background_url = data.background_url;
                 } finally {
                     this.loading = false;
                 }

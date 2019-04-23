@@ -471,13 +471,16 @@ export default class Server extends EventEmitter {
     }
 
     async cleanAssets() {
+        const home_settings = await this.storage.getItem('Home');
+
         const layouts = await Promise.all((await this.storage.getItem('Layouts') || [])
             .map(uuid => this.storage.getItem('Layout.' + uuid)));
         const background_urls = [...new Set(layouts.map(l => l && l.background_url).filter(b => b))];
 
         const assets = await new Promise((rs, rj) =>
             fs.readdir(this.assets_path, (err, dir) => err ? rj(err) : rs(dir)));
-        const unused_assets = assets.filter(a => !background_urls.includes(a));
+        const unused_assets = assets.filter(a => !(home_settings && home_settings.background_url === a) &&
+            !background_urls.includes(a));
 
         await Promise.all(unused_assets.map(asset => {
             return new Promise((rs, rj) => fs.unlink(path.join(this.assets_path, asset), err => err ? rj(err) : rs()));

@@ -15,6 +15,28 @@
                         placeholder="Home" :disabled="loading || saving" />
                 </div>
             </div>
+
+            <div class="form-group row">
+                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-wallpaper'">Wallpaper</label>
+                <div class="col-sm-9">
+                    <div class="custom-file form-control-sm">
+                        <input ref="file" type="file" class="custom-file-input" :id="_uid + '-wallpaper'"
+                            :disabled="saving || uploading" @change="upload" />
+                        <label class="custom-file-label" :for="_uid + '-wallpaper'">Choose file</label>
+                    </div>
+                    <div v-if="uploading" class="progress mt-3">
+                        <div class="progress-bar" :class="{'progress-bar-striped': typeof upload_progress !== 'number'}"
+                            :style="{width: typeof upload_progress !== 'number' ? '100%' : upload_progress * 100 + 'px'}"
+                            role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+
+                    <input v-if="background_url" :id="_uid + '-wallpaper'" :value="background_url" type="text"
+                        class="form-control form-control-sm mt-3" disabled />
+
+                    <img v-if="background_url" class="mt-3" :src="'assets/' + background_url"
+                        :style="{maxHeight: '300px', maxWidth: '100%'}" />
+                </div>
+            </div>
         </form>
 
         <list-group v-if="tab === 'accessories'" class="mb-3">
@@ -57,7 +79,7 @@
                     @click="$emit('refresh-accessories')">Refresh accessories</button>&nbsp;
             </template>
             <template v-if="tab === 'general'">
-                <button class="btn btn-default btn-sm" type="button" :disabled="saving"
+                <button class="btn btn-default btn-sm" type="button" :disabled="saving || uploading"
                     @click="() => $refs.panel.close()">Cancel</button>&nbsp;
                 <button key="primary" class="btn btn-primary btn-sm" type="button" :disabled="loading || saving"
                     @click="save(true)">Save</button>
@@ -69,6 +91,7 @@
 </template>
 
 <script>
+    import axios from 'axios';
     import {Terminal} from 'xterm';
 
     import Connection from '../connection';
@@ -94,6 +117,8 @@
             return {
                 loading: false,
                 saving: false,
+                uploading: false,
+                upload_progress: null,
 
                 command_line_flags: [],
 
@@ -103,6 +128,7 @@
 
                 data: null,
                 name: null,
+                background_url: null,
                 bridges: [],
             };
         },
@@ -165,6 +191,7 @@
 
                     this.data = data;
                     this.name = data.name;
+                    this.background_url = data.background_url;
                 } finally {
                     this.loading = false;
                 }
@@ -189,6 +216,7 @@
                 try {
                     const data = Object.assign({}, this.data, {
                         name: this.name,
+                        background_url: this.background_url,
                     });
 
                     await this.connection.setHomeSettings(data);
@@ -197,6 +225,29 @@
                     if (close) this.$emit('close');
                 } finally {
                     this.saving = false;
+                }
+            },
+            async upload() {
+                if (this.uploading) throw new Error('Already uploading');
+                this.uploading = true;
+                this.upload_progress = null;
+
+                try {
+                    const form_data = new FormData();
+                    form_data.append('background', this.$refs.file.files[0]);
+
+                    const response = await axios.post('/assets/upload-layout-background', form_data, {
+                        headers: {
+                            'Content-Type': 'multipart/form-data',
+                        },
+                        onUploadProgress: event => {
+                            this.upload_progress = event.loaded / event.total;
+                        },
+                    });
+
+                    this.background_url = response.data.name;
+                } finally {
+                    this.uploading = false;
                 }
             },
             stdout(data) {

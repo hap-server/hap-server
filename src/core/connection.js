@@ -458,14 +458,35 @@ export default class Connection {
     async setHomeSettings(data) {
         await this.permissions.assertCanSetHomeSettings();
 
+        if (data.background_url && data.background_url.indexOf(path.sep) > -1) {
+            throw new Error('Background filenames cannot have directory separators');
+        }
+
         this.log.debug('Setting global settings', data);
 
+        const previous_data = await this.server.storage.getItem('Home');
+
         await this.server.storage.setItem('Home', data);
+
+        let index;
+        while ((index = this.uploads.findIndex(f => f.filename === data.background_url)) > -1) this.uploads.splice(index, 1);
 
         this.server.sendBroadcast({
             type: 'update-home-settings',
             data,
         }, this.ws);
+
+        if (previous_data && previous_data.background_url && previous_data.background_url !== data.background_url) {
+            for (const layout_uuid of await this.server.storage.getItem('Layouts')) {
+                const layout = await this.server.storage.getItem('Layout.' + layout_uuid);
+
+                if (layout && layout.background_url === previous_data.background_url) return;
+            }
+
+            // Delete the old background image as no other layout is using it
+            await new Promise((rs, rj) => fs.unlink(path.join(this.server.assets_path, previous_data.background_url),
+                err => err ? rj(err) : rs()));
+        }
     }
 
     /**
@@ -604,6 +625,10 @@ export default class Connection {
         }, this.ws);
 
         if (previous_data && previous_data.background_url && previous_data.background_url !== data.background_url) {
+            const home_settings = await this.server.storage.getItem('Home');
+
+            if (home_settings && home_settings.background_url === previous_data.background_url) return;
+
             for (const layout_uuid of await this.server.storage.getItem('Layouts')) {
                 const layout = await this.server.storage.getItem('Layout.' + layout_uuid);
 
@@ -715,6 +740,10 @@ export default class Connection {
         }, this.ws);
 
         if (data && data.background_url) {
+            const home_settings = await this.server.storage.getItem('Home');
+
+            if (home_settings && home_settings.background_url === previous_data.background_url) return;
+
             for (const layout_uuid of await this.server.storage.getItem('Layouts')) {
                 const layout = await this.server.storage.getItem('Layout.' + layout_uuid);
 
