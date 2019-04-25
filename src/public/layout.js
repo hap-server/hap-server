@@ -20,6 +20,7 @@ export default class Layout extends EventEmitter {
     }
 
     _setData(data) {
+        if (!data.sections) data.sections;
         this.data = Object.freeze(data);
 
         this._updateSectionsFrom(data);
@@ -28,7 +29,7 @@ export default class Layout extends EventEmitter {
     }
 
     _updateSectionsFrom(data) {
-        this.sections = data.sections || [];
+        this.sections = data.sections;
     }
 
     async updateData(data) {
