@@ -661,7 +661,7 @@
                     return UnsupportedService.for(accessory);
                 }
 
-                return accessory.getService(service_uuid);
+                return accessory.display_services.find(s => s.uuid === service_uuid);
             },
         },
     };
