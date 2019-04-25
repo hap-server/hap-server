@@ -55,7 +55,7 @@
                 }
             },
             getButtonName(button, index) {
-                if (!button.name) return 'Button #' + index;
+                if (!button.name) return 'Button #' + (index + 1);
 
                 if (button.name.startsWith(this.service.name)) return button.name.substr(this.service.name.length).trim();
                 if (button.name.startsWith(this.service.default_name)) return button.name.substr(this.service.default_name.length).trim();

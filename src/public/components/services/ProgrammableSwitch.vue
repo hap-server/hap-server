@@ -2,9 +2,10 @@
     <service class="service-programmable-switch" :service="service" type="Programmable Switch" :active="active">
         <button-icon slot="icon" />
 
-        <p v-if="last_event === 0">Single Press</p>
-        <p v-else-if="last_event === 1">Double Press</p>
-        <p v-else-if="last_event === 2">Long Press</p>
+        <p v-if="last_event_name">
+            <span v-if="service.services.length >= 2">{{ getButtonName(last_characteristic.service) }}</span>
+            {{ last_event_name }}
+        </p>
     </service>
 </template>
 
@@ -25,46 +26,67 @@
         },
         data() {
             return {
-                last_event: null,
                 active: false,
+                last_characteristic: null,
+                last_event: null,
+
+                active_timeout: null,
+                event_timeout: null,
             };
         },
         computed: {
-            programmable_switch_event() {
-                return this.service.getCharacteristicByName('ProgrammableSwitchEvent');
+            programmable_switch_events() {
+                return this.service.services.map(s => s.getCharacteristicByName('ProgrammableSwitchEvent'));
+            },
+            last_event_name() {
+                if (this.last_event === 0) return 'Single Press';
+                if (this.last_event === 1) return 'Double Press';
+                if (this.last_event === 2) return 'Long Press';
             },
         },
         watch: {
-            programmable_switch_event(programmable_switch_event, old_programmable_switch_event) {
-                if (old_programmable_switch_event) {
-                    this.programmable_switch_event.removeListener('value-updated', this.handleSwitchEvent);
+            programmable_switch_events(programmable_switch_events, old_programmable_switch_events) {
+                for (const programmable_switch_event of old_programmable_switch_events) {
+                    programmable_switch_event.removeListener('value-updated', this.handleSwitchEvent.bind(null, programmable_switch_event));
                 }
 
-                if (programmable_switch_event) {
-                    programmable_switch_event.on('value-updated', this.handleSwitchEvent);
+                for (const programmable_switch_event of programmable_switch_events) {
+                    programmable_switch_event.on('value-updated', this.handleSwitchEvent.bind(null, programmable_switch_event));
                 }
             },
         },
         created() {
-            if (this.programmable_switch_event) {
-                this.programmable_switch_event.on('value-updated', this.handleSwitchEvent);
+            for (const programmable_switch_event of this.programmable_switch_events) {
+                programmable_switch_event.on('value-updated', this.handleSwitchEvent.bind(null, programmable_switch_event));
             }
         },
         destroy() {
-            if (this.programmable_switch_event) {
-                this.programmable_switch_event.removeListener('value-updated', this.handleSwitchEvent);
+            for (const programmable_switch_event of this.programmable_switch_events) {
+                programmable_switch_event.removeListener('value-updated', this.handleSwitchEvent.bind(null, programmable_switch_event));
             }
         },
         methods: {
-            handleSwitchEvent(value) {
+            handleSwitchEvent(characteristic, value) {
+                clearTimeout(this.active_timeout);
+                clearTimeout(this.event_timeout);
+
                 //
-                console.log('Programmable Switch event', value);
+                console.log('Programmable Switch event', characteristic, value);
 
-                this.last_event = value;
                 this.active = true;
+                this.last_characteristic = characteristic;
+                this.last_event = value;
 
-                setTimeout(() => this.active = false, 1000);
-                setTimeout(() => this.last_event = null, 5000);
+                this.active_timeout = setTimeout(() => this.active = false, 1000);
+                this.event_timeout = setTimeout(() => this.last_characteristic = this.last_event = null, 5000);
+            },
+            getButtonName(service) {
+                if (!service.name || true) return 'Button #' + (this.service.services.indexOf(service) + 1);
+
+                if (service.name.startsWith(this.service.name)) return service.name.substr(this.service.name.length).trim();
+                if (service.name.startsWith(this.service.default_name)) return service.name.substr(this.service.default_name.length).trim();
+
+                return service.name;
             },
         },
     };
