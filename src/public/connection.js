@@ -355,7 +355,7 @@ export class AuthenticationHandlerConnection {
         }
 
         if (response.success) {
-            const authenticated_user = new AuthenticatedUser(response.authentication_handler_id);
+            const authenticated_user = new AuthenticatedUser(response.authentication_handler_id, response.user_id);
 
             Object.defineProperty(authenticated_user, 'token', {value: response.token});
             Object.defineProperty(authenticated_user, 'asset_token', {value: response.asset_token});
@@ -369,7 +369,8 @@ export class AuthenticationHandlerConnection {
 }
 
 export class AuthenticatedUser {
-    constructor(authentication_handler_id) {
+    constructor(authentication_handler_id, id) {
         Object.defineProperty(this, 'authentication_handler_id', {value: authentication_handler_id});
+        Object.defineProperty(this, 'id', {value: id});
     }
 }

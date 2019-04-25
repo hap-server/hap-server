@@ -322,7 +322,7 @@
 
                 if (response.reject || !response.success) throw new Error('Error restoring session');
 
-                const authenticated_user = new AuthenticatedUser(response.authentication_handler_id);
+                const authenticated_user = new AuthenticatedUser(response.authentication_handler_id, response.user_id);
 
                 Object.defineProperty(authenticated_user, 'token', {value: token});
                 Object.defineProperty(authenticated_user, 'asset_token', {value: response.asset_token});

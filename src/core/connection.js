@@ -978,7 +978,7 @@ export default class Connection {
                 await this.server.storage.setItem('Session.' + response.token, {
                     authentication_handler: response.authentication_handler.localid,
                     authentication_handler_plugin: response.authentication_handler.plugin.name,
-                    authenticated_user: Object.assign({id: response.id}, response),
+                    authenticated_user: Object.assign({}, response, {id: response.id}),
                 });
             }
 
@@ -995,6 +995,7 @@ export default class Connection {
             return this.respond(messageid, {
                 success: true,
                 data: response,
+                user_id: response.id,
                 token: response.token,
                 authentication_handler_id: response.authentication_handler_id,
                 asset_token: await this.getAssetToken(),
