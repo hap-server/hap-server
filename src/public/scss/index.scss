@@ -92,6 +92,12 @@ body,
         text-align: right;
     }
 
+    .dropdown-menu {
+        max-height: calc(100vh - 50px);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
     .btn {
         color: $light;
         margin-top: -2px;
