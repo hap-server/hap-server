@@ -10,7 +10,7 @@
             </div>
 
             <h1>
-                <span class="d-inline d-sm-none">{{ (layout ? layout.name : name) || 'Home' }}</span>
+                <span class="d-inline d-sm-none">{{ (layout ? authenticated_user && layout.uuid === 'Overview.' + authenticated_user.id ? name : layout.name : name) || 'Home' }}</span>
                 <span class="d-none d-sm-inline">{{ name || 'Home' }}</span>
             </h1>
 
@@ -25,7 +25,7 @@
         <div class="main">
             <layout ref="layout" :key="layout ? layout.uuid : ''" :layout="layout"
                 :connection="connection" :accessories="accessories" :bridge-uuids="bridge_uuids"
-                :title="(layout ? layout.name : name) || 'Home'" :sections="layout && layout.sections"
+                :title="(layout ? authenticated_user && layout.uuid === 'Overview.' + authenticated_user.id ? name : layout.name : name) || 'Home'" :sections="layout && layout.sections"
                 :can-edit="layout && layout.can_set" :can-delete="layout && layout.can_delete" :show-all-accessories="!layout"
                 @modal="modal => modals.push(modal)" @ping="ping" />
         </div>
@@ -529,7 +529,7 @@
                     this.loading_layouts = false;
                 }
 
-                const layout_uuid = localStorage.getItem('layout');
+                const layout_uuid = localStorage.getItem('layout') || this.authenticated_user ? 'Overview.' + this.authenticated_user.id : null;
                 if (layout_uuid && this.layouts[layout_uuid] && !this.layout) this.layout = this.layouts[layout_uuid];
             },
             addLayout(layout) {

@@ -149,7 +149,10 @@ export default class Permissions {
             if (!this.user) return [];
         }
 
-        const uuids = [].concat(await this.connection.server.storage.getItem('Layouts'));
+        const uuids = [].concat(await this.connection.server.storage.getItem('Layouts'))
+            .filter(u => !u.startsWith('Overview.'));
+
+        if (this.user) uuids.push('Overview.' + this.user.id);
 
         return uuids;
     }
@@ -182,6 +185,9 @@ export default class Permissions {
 
         if (!this.user) return false;
 
+        if (id === 'Overview.' + this.user.id) return true;
+        if (id.startsWith('Overview.')) return false;
+
         return true;
     }
 
@@ -200,6 +206,9 @@ export default class Permissions {
 
         if (!this.user) return false;
 
+        if (id === 'Overview.' + this.user.id) return true;
+        if (id.startsWith('Overview.')) return false;
+
         return true;
     }
 
@@ -217,6 +226,9 @@ export default class Permissions {
         if (DEVELOPMENT && this.__development_allow_local()) return true;
 
         if (!this.user) return false;
+
+        if (id === 'Overview.' + this.user.id) return true;
+        if (id.startsWith('Overview.')) return false;
 
         return true;
     }

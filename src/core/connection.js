@@ -498,6 +498,10 @@ export default class Connection {
     async listLayouts() {
         const uuids = [].concat(await this.server.storage.getItem('Layouts'));
 
+        if (this.authenticated_user && !uuids.includes('Overview.' + this.authenticated_user.id)) {
+            uuids.push('Overview.' + this.authenticated_user.id);
+        }
+
         const authorised_uuids = await this.permissions.getAuthorisedLayoutUUIDs();
         return uuids.filter(uuid => authorised_uuids.includes(uuid));
     }
