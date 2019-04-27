@@ -158,7 +158,7 @@
                             }
                         }
 
-                        if (service.type === Service.Television) {
+                        if (service.type === 'CollapsedService.' + Service.Television) {
                             if (!status.tv_services.includes(service)) status.tv_services.push(service);
                             if (!status.tv_rooms.includes(service.data.room_name || service.accessory.data.room_name))
                                 status.tv_rooms.push(service.data.room_name || service.accessory.data.room_name);
@@ -219,16 +219,15 @@
 
                 // TVs
                 if (status.tv_on && status.active_tv_rooms.length === 1 && status.active_tv_rooms[0] &&
-                    !status.tv_services.find(s => ((s.data.room_name || s.accessory.room_name) !== status.active_tv_rooms[0] && status.active_tv_services.includes(s)) ||
-                        ((s.data.room_name || s.accessory.room_name) === status.active_tv_rooms[0] && !status.active_tv_services.includes(s))) &&
-                    status.tv_rooms.length !== 1)
+                    !status.tv_services.find(s => ((s.data.room_name || s.accessory.data.room_name) !== status.active_tv_rooms[0] && status.active_tv_services.includes(s)) ||
+                        ((s.data.room_name || s.accessory.data.room_name) === status.active_tv_rooms[0] && !status.active_tv_services.includes(s))))
                     status_messages.tv = `${status.active_tv_rooms[0]} TV on.`;
                 else if (status.tv_on) status_messages.tv = `TV on.`;
 
                 // Outlets/power points
                 if (status.active_outlets_count && status.active_outlet_rooms.length === 1 && status.active_outlet_rooms[0] &&
-                    !status.outlet_services.find(s => ((s.data.room_name || s.accessory.room_name) !== status.active_outlet_rooms[0] && status.active_outlet_services.includes(s)) ||
-                        ((s.data.room_name || s.accessory.room_name) === status.active_outlet_rooms[0] && !status.active_outlet_services.includes(s))) &&
+                    !status.outlet_services.find(s => ((s.data.room_name || s.accessory.data.room_name) !== status.active_outlet_rooms[0] && status.active_outlet_services.includes(s)) ||
+                        ((s.data.room_name || s.accessory.data.room_name) === status.active_outlet_rooms[0] && !status.active_outlet_services.includes(s))) &&
                     status.outlet_rooms.length !== 1)
                     status_messages.outlets = `${status.active_outlet_rooms[0]} power point${status.active_outlets_count === 1 ? '' : 's'} on.`;
                 else if (status.active_outlets_count && status.outlets_count === status.active_outlets_count)
@@ -237,8 +236,8 @@
 
                 // Switches
                 if (status.active_switches_count && status.active_switch_rooms.length === 1 && status.active_switch_rooms[0] &&
-                    !status.switch_services.find(s => ((s.data.room_name || s.accessory.room_name) !== status.active_switch_rooms[0] && status.active_switch_services.includes(s)) ||
-                        ((s.data.room_name || s.accessory.room_name) === status.active_switch_rooms[0] && !status.active_switch_services.includes(s))) &&
+                    !status.switch_services.find(s => ((s.data.room_name || s.accessory.data.room_name) !== status.active_switch_rooms[0] && status.active_switch_services.includes(s)) ||
+                        ((s.data.room_name || s.accessory.data.room_name) === status.active_switch_rooms[0] && !status.active_switch_services.includes(s))) &&
                     status.switch_rooms.length !== 1)
                     status_messages.switches = `${status.active_switch_rooms[0]} switch${status.active_switches_count === 1 ? '' : 'es'} on.`;
                 else if (status.active_switches_count && status.switches_count === status.active_switches_count)
