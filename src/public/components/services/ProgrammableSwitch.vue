@@ -42,6 +42,8 @@
                 if (this.last_event === 0) return 'Single Press';
                 if (this.last_event === 1) return 'Double Press';
                 if (this.last_event === 2) return 'Long Press';
+
+                return null;
             },
         },
         watch: {

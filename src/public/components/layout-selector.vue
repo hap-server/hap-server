@@ -13,6 +13,7 @@
             <template v-if="Object.values(layouts).length">
                 <div class="dropdown-divider"></div>
 
+                <!-- eslint-disable-next-line vue/no-use-v-if-with-v-for -->
                 <a v-for="layout in layouts" v-if="layout.uuid !== 'Overview.' + authenticatedUser.id" :key="layout.uuid"
                     class="dropdown-item" :class="{active: value && value.uuid === layout.uuid}" href="#"
                     @click.prevent="$emit('input', layout)">{{ layout.name || layout.uuid }}</a>
