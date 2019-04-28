@@ -173,7 +173,7 @@ const release_webpack_config = Object.assign({}, webpack_config, {
             // Options similar to the same options in webpackOptions.output
             // both options are optional
             filename: '[hash].css',
-            chunkFilename: '[id].css',
+            chunkFilename: '[id].[hash].css',
         }),
     ]),
     output: undefined,

@@ -80,5 +80,8 @@
     },
     "bin": {
         "hap-server": "bin/hap-server"
-    }
+    },
+    "man": [
+        "man/hap-server.1"
+    ]
 }

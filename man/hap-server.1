@@ -1,0 +1,86 @@
+.TH hap-server 1 "28 April 2019" "0.1.0" "hap-server man page"
+
+.SH NAME
+hap-server \- run the HAP and web server
+
+.SH SYNOPSIS
+.B hap-server
+.RB [ --[no-]debug ]
+.RB [ --[no-]timestamps ]
+.RB [ --force-colour ]
+.I config
+.RB [ --data-path
+.IR data_path ]
+.RB [ --plugin-path
+.IR plugin_path ]
+.RB [ --[no-]print-setup ]
+.RB [ --[no-]allow-unauthenticated ]
+.RB [ --user
+.IR uid ]
+.RB [ --group
+.IR gid ]
+
+.SH DESCRIPTION
+Run the HAP and web server.
+
+.SH OPTIONS
+
+.TP
+.B --debug
+.BR -D " or " --debug
+Enable debug level logging.
+.TP
+.B --no-debug
+Disable debug level logging.
+
+.TP
+.BR --T " or " --timestamps
+Add timestamps to logs.
+.TP
+.B --no-timestamps
+Don't add timestamps to logs.
+
+.TP
+.BR -C " or " --force-colour " or " --color
+Force colour output.
+.TP
+.B --no-force-colour
+Don't force colour output.
+
+.TP
+.B config
+Specify the configuration file to use; the default is
+.BR ~/.homebridge/config.json .
+
+.TP
+.BR "-U data" " or " "--data-path data"
+Path to store data.
+
+.TP
+.BR "-P plugin" " or " "--plugin-path plugin"
+Additional paths to look for plugins. This option can be used multiple times.
+
+.TP
+.BR -Q " or " --print-setup
+Print setup information.
+.TP
+.B --no-print-setup
+Don't print setup information.
+
+.TP
+.BR -I " or " --allow-unauthenticated
+Allow unauthenticated requests.
+.TP
+.B --no-allow-unauthenticated
+Don't allow unauthenticated requests.
+
+.TP
+.B --user uid
+User to run as after starting.
+
+.TP
+.B --group gid
+Group to run as after starting.
+
+.SH AUTHOR
+Samuel Elliott
