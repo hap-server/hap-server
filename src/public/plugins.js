@@ -8,7 +8,7 @@ import * as axios_module from 'axios';
 import Service, {type_names as service_type_names, system_types as system_service_types, collapsed_services} from './service';
 import Characteristic from './characteristic';
 
-import {AuthenticationHandlerConnection, AuthenticatedUser} from './connection';
+import {AuthenticationHandlerConnection, AuthenticatedUser} from '../common/connection';
 
 import {instances as main_component_instances} from './components/main-component.vue';
 import service_components from './components/services';

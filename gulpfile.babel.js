@@ -105,8 +105,7 @@ export const webpack_hot_config = Object.assign({}, webpack_config, {
 
 gulp.task('build-backend', function () {
     return pump([
-        gulp.src('src/*.js'),
-        gulp.src('src/core/**/*.js', {base: 'src'}),
+        gulp.src(['src/**/*.js', '!src/public/**/*.js']),
         babel(),
         gulp.dest('dist'),
     ]);
@@ -137,7 +136,7 @@ gulp.task('build-example-plugins', gulp.parallel(function () {
 gulp.task('build', gulp.parallel('build-backend', 'build-frontend', 'build-example-plugins'));
 
 gulp.task('watch-backend', gulp.series('build-backend', function () {
-    return gulp.watch(['src/*.js', 'src/core/**/*.js'], gulp.series('build-backend'));
+    return gulp.watch(['src', '!src/public'], gulp.series('build-backend'));
 }));
 
 gulp.task('watch-frontend', function () {
@@ -187,9 +186,7 @@ const release_webpack_config = Object.assign({}, webpack_config, {
 
 gulp.task('build-backend-release', function () {
     return pump([
-        gulp.src('src/index.js'),
-        gulp.src('src/cli.js'),
-        gulp.src('src/core/**/*.js', {base: 'src'}),
+        gulp.src(['src/**/*.js', '!src/public/**/*.js']),
         replace(/\bDEVELOPMENT\s*=\s*true\b/gi, 'DEVELOPMENT = false'),
         replace(/\bDEVELOPMENT(?!\s*=)\b/gi, 'false'),
         babel(),

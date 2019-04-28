@@ -62,7 +62,7 @@
 </template>
 
 <script>
-    import Connection from '../connection';
+    import Connection from '../../common/connection';
     import Layout from '../layout';
     import Service from '../service';
     import {

@@ -107,7 +107,7 @@ export default class Connection {
             this.log.info('Connection closed with code', code);
 
             try {
-                if (this.authenticated_user) {
+                if (this.authenticated_user && this.authenticated_user.authentication_handler) {
                     this.authenticated_user.authentication_handler.handleDisconnect(this.authenticated_user);
                 }
             } catch (err) {
@@ -960,6 +960,22 @@ export default class Connection {
                 const authenticated_user = await authentication_handler.handleResumeSession(token, session.authenticated_user);
 
                 await this.sendAuthenticateResponse(messageid, authenticated_user);
+            } else if (data.cli_token) {
+                const token = data.cli_token;
+
+                this.log.info('Authenticating with CLI token');
+
+                if (!this.server.cli_auth_token || this.server.cli_auth_token !== token) {
+                    throw new Error('Invalid token');
+                }
+
+                this.authenticated_user = new AuthenticatedUser('cli-token', 'Admin');
+
+                return this.respond(messageid, {
+                    success: true,
+                    data: this.authenticated_user,
+                    user_id: this.authenticated_user.id,
+                });
             } else {
                 throw new Error('Unknown authentication handler');
             }

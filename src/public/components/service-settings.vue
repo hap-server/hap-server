@@ -29,7 +29,7 @@
 </template>
 
 <script>
-    import Connection from '../connection';
+    import Connection from '../../common/connection';
     import Service from '../service';
 
     import Panel from './panel.vue';

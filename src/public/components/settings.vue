@@ -94,7 +94,7 @@
     import axios from 'axios';
     import {Terminal} from 'xterm';
 
-    import Connection from '../connection';
+    import Connection from '../../common/connection';
 
     import Panel from './panel.vue';
     import TerminalComponent from './terminal.vue';

@@ -24,7 +24,7 @@
 </template>
 
 <script>
-    import Connection from '../connection';
+    import Connection from '../../common/connection';
     import Service, {type_names} from '../service';
 
     import service_components from './accessory-details';

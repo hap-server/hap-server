@@ -49,7 +49,7 @@
 
 <script>
     import Layout from '../layout';
-    import {AuthenticatedUser} from '../connection';
+    import {AuthenticatedUser} from '../../common/connection';
 
     export default {
         props: {

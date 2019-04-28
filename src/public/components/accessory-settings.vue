@@ -97,7 +97,7 @@
 </template>
 
 <script>
-    import Connection from '../connection';
+    import Connection from '../../common/connection';
     import Accessory from '../accessory';
 
     import Panel from './panel.vue';

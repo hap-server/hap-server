@@ -15,7 +15,7 @@ const broadcast_message_methods = {
 };
 
 export default class Connection extends EventEmitter {
-    constructor(ws) {
+    constructor(ws, is_ws) {
         super();
 
         this.ws = ws;
@@ -25,68 +25,73 @@ export default class Connection extends EventEmitter {
 
         // this.ws.send('something');
 
-        this.ws.onmessage = message => {
-            // console.log('Received', message);
-
-            if (message.data === 'ping') {
-                console.log('Received ping request, sending ping response');
-                this.ws.send('pong');
-                return;
-            }
-
-            const match = message.data.match(/^\*([0-9]+)\:(.*)$/);
-
-            if (match) {
-                const messageid = parseInt(match[1]);
-                const data = match[2] !== 'undefined' ? JSON.parse(match[2]) : undefined;
-
-                if (!this.callbacks.has(messageid)) {
-                    console.error('Unknown messageid');
-                    return;
-                }
-
-                const callback = this.callbacks.get(messageid);
-
-                callback.call(this, data);
-
-                return;
-            }
-
-            const match_broadcast = message.data.match(/^\*\*\:(.*)$/);
-
-            if (match_broadcast) {
-                const data = match_broadcast[1] !== 'undefined' ? JSON.parse(match_broadcast[1]) : undefined;
-
-                this.emit('received-broadcast', data);
-
-                this.handleBroadcastMessage(data);
-
-                return;
-            }
-
-            console.error('Invalid message');
-        };
-
-        this.ws.onclose = event => {
-            this.emit('disconnected', event);
-        };
+        if (is_ws) {
+            this.ws.on('message', this.handleData.bind(this));
+            this.ws.on('close', event => this.emit('disconnected', event));
+        } else {
+            this.ws.onmessage = message => this.handleData(message.data);
+            this.ws.onclose = event => this.emit('disconnected', event);
+        }
     }
 
-    static connect(url) {
+    static connect(url, _WebSocket) {
         return new Promise((resolve, reject) => {
-            const default_url = location.protocol.replace('http', 'ws') + '//' + location.host + '/websocket';
+            const ws = new (_WebSocket || WebSocket)(url || this.getDefaultURL());
 
-            const ws = new WebSocket(url || default_url);
-
-            ws.onopen = () => {
-                const connection = new Connection(ws);
-                resolve(connection);
-            };
-
-            ws.onerror = event => {
-                reject(event);
-            };
+            if (_WebSocket) {
+                ws.on('open', () => resolve(new Connection(ws, true)));
+                ws.on('error', event => reject(event));
+            } else {
+                ws.onopen = () => resolve(new Connection(ws, false));
+                ws.onerror = event => reject(event);
+            }
         });
+    }
+
+    static getDefaultURL() {
+        return location.protocol.replace('http', 'ws') + '//' + location.host + '/websocket';
+    }
+
+    handleData(data) {
+        // console.log('Received', message);
+
+        if (data === 'ping') {
+            console.log('Received ping request, sending ping response');
+            this.ws.send('pong');
+            return;
+        }
+
+        const match = data.match(/^\*([0-9]+)\:(.*)$/);
+
+        if (match) {
+            const messageid = parseInt(match[1]);
+            const data = match[2] !== 'undefined' ? JSON.parse(match[2]) : undefined;
+
+            if (!this.callbacks.has(messageid)) {
+                console.error('Unknown messageid');
+                return;
+            }
+
+            const callback = this.callbacks.get(messageid);
+
+            callback.call(this, data);
+
+            return;
+        }
+
+        const match_broadcast = data.match(/^\*\*\:(.*)$/);
+
+        if (match_broadcast) {
+            const data = match_broadcast[1] !== 'undefined' ? JSON.parse(match_broadcast[1]) : undefined;
+
+            this.emit('received-broadcast', data);
+
+            this.handleBroadcastMessage(data);
+
+            return;
+        }
+
+        console.error('Invalid message');
     }
 
     send(data) {
@@ -97,6 +102,35 @@ export default class Connection extends EventEmitter {
 
             this.callbacks.set(messageid, resolve);
         });
+    }
+
+    async authenticateWithCliToken(cli_token) {
+        const response = await this.send({
+            type: 'authenticate',
+            cli_token,
+        });
+
+        if (response.reject) {
+            if (response.error) {
+                const error = new (global[response.constructor] || Error)(response.data.message);
+                error.code = response.data.code;
+                throw error;
+            }
+
+            throw response.data;
+        }
+
+        if (response.success) {
+            const authenticated_user = new AuthenticatedUser(response.authentication_handler_id, response.user_id);
+
+            Object.defineProperty(authenticated_user, 'token', {value: response.token});
+            Object.defineProperty(authenticated_user, 'asset_token', {value: response.asset_token});
+            Object.assign(authenticated_user, response.data);
+
+            return authenticated_user;
+        }
+
+        throw new Error('CLI authenticate did not return an AuthenticatedUser');
     }
 
     listAccessories() {

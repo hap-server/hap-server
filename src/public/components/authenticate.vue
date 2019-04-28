@@ -41,7 +41,7 @@
 </template>
 
 <script>
-    import Connection, {AuthenticationHandlerConnection, AuthenticatedUser} from '../connection';
+    import Connection, {AuthenticationHandlerConnection, AuthenticatedUser} from '../../common/connection';
 
     import authentication_handler_components from './authentication-handlers';
     import Panel from './panel.vue';

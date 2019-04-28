@@ -29,6 +29,7 @@ export default class Server extends EventEmitter {
         super();
 
         this.config = config.config || {};
+        this.cli_auth_token = config.cli_auth_token;
         this.storage = storage;
         this.log = log || new Logger();
 
@@ -369,6 +370,25 @@ export default class Server extends EventEmitter {
         if (!accessory) return;
 
         return accessory.services.find(s => s.UUID === service_uuid);
+    }
+
+    /**
+     * Gets a Characteristic.
+     *
+     * @param {string} uuid
+     * @param {string} [service_uuid]
+     * @param {string} [characteristic_uuid]
+     * @return {Characteristic}
+     */
+    getCharacteristic(uuid, service_uuid, characteristic_uuid) {
+        const accessory_uuid = uuid.split('.')[0];
+        if (!service_uuid) service_uuid = uuid.substr(accessory_uuid.length + 1);
+        if (!characteristic_uuid) characteristic_uuid = service_uuid.substr(service_uuid.lastIndexOf('.') + 1), service_uuid = service_uuid.substr(0, service_uuid.lastIndexOf('.'));
+
+        const service = this.getService(accessory_uuid, service_uuid);
+        if (!service) return;
+
+        return service.characteristics.find(s => s.UUID === characteristic_uuid);
     }
 
     createServer(options) {

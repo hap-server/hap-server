@@ -79,7 +79,7 @@
 </template>
 
 <script>
-    import Connection, {AuthenticatedUser} from '../connection';
+    import Connection, {AuthenticatedUser} from '../../common/connection';
     import Layout from '../layout';
     import Accessory from '../accessory';
     import {BridgeService, UnsupportedService} from '../service';
