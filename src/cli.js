@@ -132,6 +132,11 @@ yargs.command('$0 [config]', 'Run the HAP and web server', yargs => {
             describe: 'Port to connect to Vue.js devtools with',
             type: 'number',
         });
+        yargs.option('webpack-hot', {
+            describe: 'Enable webpack hot module replacement',
+            type: 'boolean',
+            default: true,
+        });
     }
 }, async argv => {
     if (DEVELOPMENT && argv.vueDevtoolsPort) {
@@ -192,6 +197,7 @@ yargs.command('$0 [config]', 'Run the HAP and web server', yargs => {
         config_path,
         config,
         cli_auth_token,
+        webpack_hot: DEVELOPMENT && argv.webpackHot,
     });
 
     (async () => {
@@ -243,6 +249,11 @@ yargs.command('$0 [config]', 'Run the HAP and web server', yargs => {
 
     log.info('Saving cached accessories');
     await server.saveCachedAccessories();
+
+    log.info('Starting automations');
+    await server.loadAutomationsFromConfig();
+    // await server.loadAutomationsFromStorage();
+    await server.automations.start();
 
     if (argv.group) process.setgid(argv.group);
     if (argv.user) process.setuid(argv.user);

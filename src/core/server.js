@@ -22,6 +22,11 @@ import Homebridge from './homebridge';
 import Logger from './logger';
 import {Accessory, Service, Characteristic} from './hap-async';
 
+import Automations from '../automations';
+import AutomationTrigger from '../automations/trigger';
+// import AutomationCondition from '../automation/condition';
+// import AutomationAction from '../automation/action';
+
 const DEVELOPMENT = true;
 
 export default class Server extends EventEmitter {
@@ -63,11 +68,11 @@ export default class Server extends EventEmitter {
         this.app.post('/assets/upload-layout-background', this.multer.single('background'),
             Connection.handleUploadLayoutBackground.bind(Connection, this));
 
-        if (!DEVELOPMENT) {
+        if (!DEVELOPMENT || !config.webpack_hot) {
             this.app.use(express.static(path.resolve(__dirname, '..', 'public')));
         }
 
-        if (DEVELOPMENT) {
+        if (DEVELOPMENT && config.webpack_hot) {
             const webpack = require('webpack');
             const devmiddleware = require('webpack-dev-middleware');
             const hotmiddleware = require('webpack-hot-middleware');
@@ -306,6 +311,60 @@ export default class Server extends EventEmitter {
 
     async loadAccessoryPlatform(config) {
         throw new Error('Not implemented');
+    }
+
+    get automations() {
+        return Object.defineProperty(this, 'automations', {value: new Automations(this)}).automations;
+    }
+
+    async loadAutomationTriggersFromConfig(dont_throw) {
+        const triggers = {};
+
+        await Promise.all(Object.entries(this.config['automation-triggers'] || {}).map(([key, config]) =>
+            this.automations.loadAutomationTrigger(config).then(t => triggers[key] = t).catch(err => {
+                if (!dont_throw) throw err;
+
+                this.log.warn('Error loading automation trigger', config.plugin, config.trigger, err);
+            })));
+
+        return triggers;
+    }
+
+    async loadAutomationsFromConfig(dont_throw) {
+        const [triggers, conditions, actions] = await Promise.all([
+            this.loadAutomationTriggersFromConfig(dont_throw),
+            // this.loadAutomationConditionsFromConfig(dont_throw),
+            // this.loadAutomationActionsFromConfig(dont_throw),
+        ]);
+
+        const automations = await Promise.all((this.config.automations || []).map(config =>
+            this.automations.loadAutomation(config).then(automation => {
+                automation.addTrigger(...(automation.config.triggers || []).map(key => triggers[key]));
+                // automation.addCondition(...(automation.config.conditions || []).map(key => conditions[key]));
+                // automation.addAction(...(automation.config.actions || []).map(key => actions[key]));
+
+                return automation;
+            }).catch(err => {
+                if (!dont_throw) throw err;
+
+                this.log.warn('Error loading automation', config, err);
+            })));
+
+        this.log.info('Loaded automations', automations);
+
+        return {automations, triggers, conditions, actions};
+    }
+
+    /**
+     * Gets an Automation.
+     *
+     * @param {number} id
+     * @return {Automation}
+     */
+    getAutomation(id) {
+        if (!this.hasOwnProperty('automations')) return null;
+
+        return this.automations.getAutomation(id);
     }
 
     publish() {
