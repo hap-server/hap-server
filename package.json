@@ -79,7 +79,8 @@
         "build": "gulp build"
     },
     "bin": {
-        "hap-server": "bin/hap-server"
+        "hap-server": "bin/hap-server",
+        "hap-server-completion": "bin/hap-server-completion"
     },
     "man": [
         "man/hap-server.1"

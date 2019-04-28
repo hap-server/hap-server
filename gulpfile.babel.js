@@ -209,7 +209,10 @@ gulp.task('copy-release-executables', function () {
         file('hap-server',
             `#!/usr/bin/env node\n` +
             `process.title = 'hap-server';\n` +
-            `require('../cli');\n`, {src: true}),
+            `require('../cli').default.argv;\n`, {src: true}),
+        file('hap-server-completion',
+            `#!/usr/bin/env node\n` +
+            `require('../cli').default.showCompletionScript();\n`, {src: true}),
 
         gulp.dest('release/bin', {
             mode: 0o755,

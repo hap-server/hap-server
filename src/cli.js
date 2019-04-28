@@ -391,5 +391,4 @@ yargs.command('version', 'Show version number', yargs => {}, async argv => {
 
 yargs.scriptName('hap-server').help().version(false).showHelpOnFail(false, 'Specify --help for available options');
 
-// eslint-disable-next-line no-unused-vars
-const _argv = yargs.argv;
+export default yargs;

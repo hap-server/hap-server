@@ -2,4 +2,4 @@
 
 process.title = 'hap-server';
 
-require('../dist/cli');
+require('../dist/cli').default.argv;
