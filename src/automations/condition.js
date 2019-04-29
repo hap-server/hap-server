@@ -93,23 +93,36 @@ export class AnyCondition extends AutomationCondition {
                 ' (' + (AutomationCondition.id + 1) + ')'))));
     }
 
-    async check(runner) {
+    async check(runner, setProgress, ...parent_conditions) {
         this.log('Running any condition', runner);
 
-        for (const condition of this.conditions) {
+        for (const index in this.conditions) {
+            const condition = this.conditions[index];
+
             try {
                 this.log.debug('Running condition #%d child #%d', this.id, condition.id);
-                const result = await condition.check(runner);
+
+                let finished = false;
+
+                const result = await condition.check(runner, progress => {
+                    if (finished) throw new Error('Cannot update progress after the condition has finished running');
+                    if (progress < 0 || progress > 1) throw new Error('progress must be between 0 and 1');
+                    setProgress((index + 1) * progress / this.conditions.length);
+                }, this, ...parent_conditions);
+
+                finished = true;
 
                 if (result) {
-                    this.log.info('Condition #%d passing as child #%d passed', this.id, condition.id);
+                    this.log.debug('Condition #%d passing as child #%d passed', this.id, condition.id);
                     return true;
                 }
 
-                this.log.info('Condition #%d child #%d failed', this.id, condition.id);
+                this.log.debug('Condition #%d child #%d failed', this.id, condition.id);
             } catch (err) {
                 this.log.error('Error in automation condition', err);
             }
+
+            setProgress((index + 1) / this.conditions.length);
         }
 
         return false;
@@ -128,23 +141,35 @@ export class AllCondition extends AutomationCondition {
                 ' (' + (AutomationCondition.id + 1) + ')'))));
     }
 
-    async check(runner) {
+    async check(runner, setProgress, ...parent_conditions) {
         this.log('Running all condition', runner);
 
-        for (const condition of this.conditions) {
+        for (const index in this.conditions) {
+            const condition = this.conditions[index];
+
             try {
                 this.log.debug('Running condition #%d child #%d', this.id, condition.id);
-                const result = await condition.check(runner);
+
+                let finished = false;
+
+                const result = await condition.check(runner, progress => {
+                    if (finished) throw new Error('Cannot update progress after the condition has finished running');
+                    if (progress < 0 || progress > 1) throw new Error('progress must be between 0 and 1');
+                    setProgress((index + 1) * progress / this.conditions.length);
+                }, this, ...parent_conditions);
+
+                finished = true;
+                setProgress((index + 1) / this.conditions.length);
 
                 if (!result) {
-                    this.log.info('Failing condition #%d as child #%d failed', this.id, condition.id);
+                    this.log.debug('Failing condition #%d as child #%d failed', this.id, condition.id);
                     return false;
                 }
 
-                this.log.info('Condition #%d child #%n passed', this.id, condition.id);
+                this.log.debug('Condition #%d child #%n passed', this.id, condition.id);
             } catch (err) {
                 this.log.error('Error in automation condition', err);
-                return false;
+                throw err;
             }
         }
 
