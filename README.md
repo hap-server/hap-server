@@ -103,10 +103,10 @@ Installation
 ---
 
 ```
-npm install -g hap-server
+npm install -g @hap-server/hap-server
 
 # Or if that doesn't work
-sudo npm install -g hap-server
+sudo npm install -g @hap-server/hap-server
 ```
 
 This will install hap-server and link the `hap-server` executable.
@@ -116,12 +116,12 @@ set it up as a system service with `systemd` (Debian), `launchd` (macOS) or what
 installed.
 
 hap-server requires a plugin to authenticate access to the web interface. You can use the
-[authenticate-pam](https://gitlab.fancy.org.uk/samuel/hap-server-authenticate-pam) plugin to allow local users on the
+[authenticate-pam](https://gitlab.fancy.org.uk/hap-server/authenticate-pam) plugin to allow local users on the
 server to access the web interface. If you don't install an authentication handler you won't be able to access the
 web interface, but you'll still be able to configure hap-server using it's configuration file.
 
 ```
-npm install -g https://gitlab.fancy.org.uk/samuel/hap-server-authenticate-pam
+npm install -g @hap-server/authenticate-pam
 ```
 
 Usage
@@ -251,3 +251,15 @@ hap-server supports all Homebridge plugins, but also has it's own plugin API tha
 features.
 
 [See docs/plugins.md.](docs/plugins.md)
+
+Credits + License
+---
+
+hap-server is built on [Apple HomeKit/HAP](https://apple.com/uk/homekit/),
+[HAP-NodeJS](https://github.com/KhaosT/HAP-NodeJS) and [Homebridge](https://github.com/nfarina/homebridge).
+
+hap-server is released under [the MIT license](LICENSE).
+
+If you'd like to contribute to hap-server please
+[create an account on my GitLab server](https://gitlab.fancy.org.uk/hap-server) and
+[contact me](https://samuelthomas2774.github.io/#contact) ([Tor](http://selliottuzpeu4ry.onion/#contact)).

@@ -187,6 +187,9 @@ yargs.command('$0 [config]', 'Run the HAP and web server', yargs => {
     log.debug('Homebridge plugin paths:', HomebridgePluginManager.paths);
     log.debug('Homebridge accessory cache path:', HomebridgeUser.cachedAccessoryPath());
 
+    PluginManager.storage_path = path.resolve(data_path, 'plugin-storage');
+    await PluginManager.loadPlugins();
+
     const cli_auth_token_bytes = await new Promise((rs, rj) => crypto.randomBytes(48, (err, bytes) => err ? rj(err) : rs(bytes)));
     const cli_auth_token = cli_auth_token_bytes.toString('hex');
 
@@ -205,9 +208,6 @@ yargs.command('$0 [config]', 'Run the HAP and web server', yargs => {
         const stat = await server.cleanAssets();
         log.info('Cleaned assets directory, removed', stat.deleted_assets.length, 'unused assets', stat);
     })().catch(err => log.error('Error cleaning assets directory', err));
-
-    PluginManager.storage_path = path.resolve(data_path, 'plugin-storage');
-    await PluginManager.loadPlugins();
 
     log.info('Starting web server');
     const http_server = server.createServer();
@@ -327,7 +327,7 @@ async function connect(argv) {
     const authenticated_user = await connection.authenticateWithCliToken(cli_auth_token);
     log.debug('Authenticated user', authenticated_user);
 
-    return [connection, authenticated_user, config, config_path, data_path];
+    return [connection, authenticated_user, config, config_path, data_path, server_pid];
 }
 
 yargs.command('get-characteristics <config> <characteristics>', 'Get characteristics', yargs => {
@@ -341,7 +341,8 @@ yargs.command('get-characteristics <config> <characteristics>', 'Get characteris
         type: 'array',
     });
 }, async argv => {
-    const [connection, authenticated_user, config, config_path, data_path] = await connect(argv);
+    // eslint-disable-next-line no-unused-vars
+    const [connection, authenticated_user, config, config_path, data_path, server_pid] = await connect(argv);
 
     const characteristic_uuids = [argv.characteristics].concat(argv._.slice(1));
 
@@ -354,6 +355,7 @@ yargs.command('get-characteristics <config> <characteristics>', 'Get characteris
         return [accessory_uuid, service_uuid, characteristic_uuid];
     }));
 
+    // eslint-disable-next-line guard-for-in
     for (const index in characteristics) {
         const characteristic = characteristics[index];
 
@@ -379,7 +381,8 @@ yargs.command('set-characteristic <config> <characteristic> <value>', 'Set a cha
         type: 'string',
     });
 }, async argv => {
-    const [connection, authenticated_user, config, config_path, data_path] = await connect(argv);
+    // eslint-disable-next-line no-unused-vars
+    const [connection, authenticated_user, config, config_path, data_path, server_pid] = await connect(argv);
 
     const uuid = argv.characteristic;
     const accessory_uuid = uuid.substr(0, uuid.indexOf('.'));

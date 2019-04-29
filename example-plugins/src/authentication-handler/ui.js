@@ -1,5 +1,5 @@
 
-import accessoryui, {AuthenticatedUser} from 'hap-server-api/accessory-ui';
+import accessoryui, {AuthenticatedUser} from '@hap-server/api/accessory-ui';
 
 const AuthenticationHandlerComponent = {
     template: `<div class="authentication-handler authentication-handler-storage">

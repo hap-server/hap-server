@@ -1,5 +1,5 @@
 
-import {Accessory, Service, Characteristic} from 'hap-server-api/hap-async';
+import {Accessory, Service, Characteristic} from '@hap-server/api/hap-async';
 
 export default function createAccessory(name, uuid, log) {
     // This is the Accessory that we'll return to HAP-NodeJS

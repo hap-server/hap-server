@@ -1,5 +1,5 @@
 
-import hapserver, {AccessoryUI} from 'hap-server-api';
+import hapserver, {AccessoryUI} from '@hap-server/api';
 
 const switch_ui = new AccessoryUI();
 

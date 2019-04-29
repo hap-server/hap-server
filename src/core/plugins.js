@@ -78,6 +78,19 @@ export class PluginManager {
                 const plugin = PluginManager.instance.getPluginByModule(parent);
 
                 if (plugin) {
+                    log.withPrefix(plugin.name)
+                        .warn('Using deprecated hap-server-api/* module. Use @hap-server/api/* instead.');
+
+                    const module = PluginManager.requireApi('@hap-server/api' + request.substr(14), plugin, parent);
+
+                    if (module) return module;
+                }
+            }
+
+            if (request === '@hap-server/api' || request.startsWith('@hap-server/api/')) {
+                const plugin = PluginManager.instance.getPluginByModule(parent);
+
+                if (plugin) {
                     const module = PluginManager.requireApi(request, plugin, parent);
 
                     if (module) return module;
@@ -95,7 +108,7 @@ export class PluginManager {
     }
 
     static requireApi(request, plugin, parent) {
-        if (request === 'hap-server-api') {
+        if (request === '@hap-server/api') {
             let plugin_api = PluginManager.instance.plugin_apis.get(plugin);
 
             // eslint-disable-next-line curly
@@ -117,7 +130,7 @@ export class PluginManager {
             }));
 
             return plugin_api;
-        } else if (request === 'hap-server-api/plugin-config') {
+        } else if (request === '@hap-server/api/plugin-config') {
             if (!plugin.name) {
                 throw new Error('Plugin configuration is only available for plugins with a name');
             }
@@ -128,7 +141,7 @@ export class PluginManager {
             if (!plugin_config) PluginManager.instance.plugin_config.set(plugin.name, plugin_config = {});
 
             return plugin_config;
-        } else if (request === 'hap-server-api/storage') {
+        } else if (request === '@hap-server/api/storage') {
             if (!plugin.name) {
                 throw new Error('Storage is only available for plugins with a name');
             }
@@ -145,11 +158,11 @@ export class PluginManager {
             }));
 
             return plugin_storage;
-        } else if (request === 'hap-server-api/hap') {
+        } else if (request === '@hap-server/api/hap') {
             return hap;
-        } else if (request === 'hap-server-api/hap-async') {
+        } else if (request === '@hap-server/api/hap-async') {
             return HapAsync;
-        } else if (request === 'hap-server-api/express') {
+        } else if (request === '@hap-server/api/express') {
             return express;
         }
 

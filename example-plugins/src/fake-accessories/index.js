@@ -1,5 +1,5 @@
 
-import hapserver, {log} from 'hap-server-api';
+import hapserver, {log} from '@hap-server/api';
 
 import createTelevisionAccessory from './television';
 

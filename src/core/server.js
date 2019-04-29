@@ -139,7 +139,7 @@ export default class Server extends EventEmitter {
 
         console.log = (data, ...args) => {
             for (const server of Server.instances) {
-                for (const ws of this.wss.clients) {
+                for (const ws of server.wss.clients) {
                     const connection = Connection.getConnectionForWebSocket(ws);
                     if (connection && connection.enable_proxy_stdout) {
                         ws.send('**:' + JSON.stringify({type: 'stdout', data: data + '\n'}));
@@ -151,7 +151,7 @@ export default class Server extends EventEmitter {
         };
         console.error = (data, ...args) => {
             for (const server of Server.instances) {
-                for (const ws of this.wss.clients) {
+                for (const ws of server.wss.clients) {
                     const connection = Connection.getConnectionForWebSocket(ws);
                     if (connection && connection.enable_proxy_stdout) {
                         ws.send('**:' + JSON.stringify({type: 'stderr', data: data + '\n'}));

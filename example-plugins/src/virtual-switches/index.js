@@ -4,11 +4,11 @@
 // "homebridge-api/hap" is hap-nodejs
 // "homebridge-api/hap-async" has the Accessory, Service and Characteristic classes from hap-nodejs but uses Promises instead of callbacks
 
-import hapserver, {log} from 'hap-server-api';
-import storage from 'hap-server-api/storage';
-import {Accessory, Service, Characteristic} from 'hap-server-api/hap-async';
+import hapserver, {log} from '@hap-server/api';
+import storage from '@hap-server/api/storage';
+import {Accessory, Service, Characteristic} from '@hap-server/api/hap-async';
 
-import globalconfig from 'hap-server-api/plugin-config';
+import globalconfig from '@hap-server/api/plugin-config';
 
 log.info('Virtual Switches global config', globalconfig);
 

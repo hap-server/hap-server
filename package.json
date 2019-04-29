@@ -1,5 +1,5 @@
 {
-    "name": "hap-server",
+    "name": "@hap-server/hap-server",
     "version": "0.1.0",
     "description": "",
     "keywords": [
@@ -9,6 +9,7 @@
         "hap",
         "hap-nodejs"
     ],
+    "license": "MIT",
     "author": {
         "name": "Samuel Elliott",
         "url": "https://samuelthomas2774.github.io"
@@ -16,9 +17,8 @@
     "main": "dist/index.js",
     "repository": {
         "type": "git",
-        "url": "https://gitlab.fancy.org.uk/samuel/hap-server"
+        "url": "https://gitlab.fancy.org.uk/hap-server/hap-server.git"
     },
-    "private": true,
     "dependencies": {
         "chalk": "^2.4.2",
         "cookie-parser": "^1.4.4",
@@ -74,7 +74,7 @@
         "xterm": "^3.12.2"
     },
     "peerDependencies": {
-        "hap-server-authenticate-pam": "git+https://gitlab.fancy.org.uk/samuel/hap-server-authenticate-pam.git#semver:^0.1.0"
+        "@hap-server/authenticate-pam": "^0.2.3"
     },
     "scripts": {
         "build": "gulp build"
@@ -85,5 +85,8 @@
     },
     "man": [
         "man/hap-server.1"
-    ]
+    ],
+    "publishConfig": {
+        "access": "public"
+    }
 }

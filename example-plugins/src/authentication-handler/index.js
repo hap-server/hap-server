@@ -1,7 +1,7 @@
 /* eslint no-throw-literal: 'off' */
 
-import hapserver, {AuthenticatedUser, AccessoryUI, log} from 'hap-server-api';
-import storage from 'hap-server-api/storage';
+import hapserver, {AuthenticatedUser, AccessoryUI, log} from '@hap-server/api';
+import storage from '@hap-server/api/storage';
 
 import bcrypt from 'bcrypt';
 
