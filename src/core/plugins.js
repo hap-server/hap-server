@@ -14,6 +14,9 @@ import * as HapAsync from './hap-async';
 import {Plugin as HomebridgePluginManager} from 'homebridge/lib/plugin';
 
 import Logger from './logger';
+import AutomationTrigger from '../automations/trigger';
+import AutomationCondition from '../automations/condition';
+import AutomationAction from '../automations/action';
 
 import {version as hap_server_version} from '..';
 
@@ -108,6 +111,9 @@ export class PluginManager {
                 AccessorySetup: AccessorySetup.bind(AccessorySetup, plugin),
                 AuthenticationHandler: AuthenticationHandler.bind(AuthenticationHandler, plugin),
                 AuthenticatedUser: AuthenticatedUser.bind(AuthenticatedUser, plugin),
+                AutomationTrigger,
+                AutomationCondition,
+                AutomationAction,
             }));
 
             return plugin_api;
@@ -315,6 +321,9 @@ export class Plugin {
         this.accessory_discovery = new Set();
         this.accessory_setup = new Map();
         this.authentication_handlers = new Map();
+        this.automation_triggers = new Map();
+        this.automation_conditions = new Map();
+        this.automation_actions = new Map();
     }
 
     get config() {
@@ -478,6 +487,63 @@ export class Plugin {
         log.info('Registering authentication handler', name, 'from plugin', this.name);
 
         this.authentication_handlers.set(name, handler);
+    }
+
+    registerAutomationTrigger(name, handler) {
+        if (name instanceof AutomationTrigger.prototype && !handler) {
+            handler = name;
+            name = handler.name;
+        }
+
+        if (!(handler instanceof AutomationTrigger.prototype)) {
+            throw new Error('handler must be a class that extends AutomationTrigger');
+        }
+
+        if (this.automation_triggers.has(name)) {
+            throw new Error(this.name + ' has already registered an automation trigger with the name "' + name + '".');
+        }
+
+        log.info('Registering automation trigger', name, 'from plugin', this.name);
+
+        this.automation_triggers.set(name, handler);
+    }
+
+    registerAutomationCondition(name, handler) {
+        if (name instanceof AutomationCondition.prototype && !handler) {
+            handler = name;
+            name = handler.name;
+        }
+
+        if (!(handler instanceof AutomationCondition.prototype)) {
+            throw new Error('handler must be a class that extends AutomationCondition');
+        }
+
+        if (this.automation_conditions.has(name)) {
+            throw new Error(this.name + ' has already registered an automation condition with the name "' + name + '".');
+        }
+
+        log.info('Registering automation condition', name, 'from plugin', this.name);
+
+        this.automation_conditions.set(name, handler);
+    }
+
+    registerAutomationAction(name, handler) {
+        if (name instanceof AutomationAction.prototype && !handler) {
+            handler = name;
+            name = handler.name;
+        }
+
+        if (!(handler instanceof AutomationAction.prototype)) {
+            throw new Error('handler must be a class that extends AutomationAction');
+        }
+
+        if (this.automation_actions.has(name)) {
+            throw new Error(this.name + ' has already registered an automation action with the name "' + name + '".');
+        }
+
+        log.info('Registering automation action', name, 'from plugin', this.name);
+
+        this.automation_actions.set(name, handler);
     }
 }
 
@@ -744,6 +810,18 @@ export class PluginAPI {
 
     registerAuthenticationHandler(name, handler, disconnect_handler) {
         return this.plugin.registerAuthenticationHandler(name, handler, disconnect_handler);
+    }
+
+    registerAutomationTrigger(name, handler) {
+        return this.plugin.registerAutomationTrigger(name, handler);
+    }
+
+    registerAutomationCondition(name, handler) {
+        return this.plugin.registerAutomationCondition(name, handler);
+    }
+
+    registerAutomationAction(name, handler) {
+        return this.plugin.registerAutomationAction(name, handler);
     }
 }
 

@@ -23,18 +23,26 @@ import Logger from './logger';
 import {Accessory, Service, Characteristic} from './hap-async';
 
 import Automations from '../automations';
-import AutomationTrigger from '../automations/trigger';
-// import AutomationCondition from '../automation/condition';
-// import AutomationAction from '../automation/action';
 
 const DEVELOPMENT = true;
 
 export default class Server extends EventEmitter {
-    constructor(config, storage, log) {
+    /**
+     * Creates a Server.
+     *
+     * @param {object} options
+     * @param {string} options.data_path
+     * @param {string} options.config_path
+     * @param {object} options.config
+     * @param {string} options.cli_auth_token
+     * @param {node-persist} storage
+     * @param {Logger} [log]
+     */
+    constructor(options, storage, log) {
         super();
 
-        this.config = config.config || {};
-        this.cli_auth_token = config.cli_auth_token;
+        this.config = options.config || {};
+        this.cli_auth_token = options.cli_auth_token;
         this.storage = storage;
         this.log = log || new Logger();
 
@@ -56,7 +64,7 @@ export default class Server extends EventEmitter {
             },
         });
 
-        this.assets_path = path.resolve(config.data_path, 'assets');
+        this.assets_path = path.resolve(options.data_path, 'assets');
 
         this.app.use('/assets', cookieParser(), Connection.authoriseAssetRequest.bind(Connection, this));
         this.app.use('/assets', (req, res, next) => {
@@ -68,11 +76,11 @@ export default class Server extends EventEmitter {
         this.app.post('/assets/upload-layout-background', this.multer.single('background'),
             Connection.handleUploadLayoutBackground.bind(Connection, this));
 
-        if (!DEVELOPMENT || !config.webpack_hot) {
+        if (!DEVELOPMENT || !options.webpack_hot) {
             this.app.use(express.static(path.resolve(__dirname, '..', 'public')));
         }
 
-        if (DEVELOPMENT && config.webpack_hot) {
+        if (DEVELOPMENT && options.webpack_hot) {
             const webpack = require('webpack');
             const devmiddleware = require('webpack-dev-middleware');
             const hotmiddleware = require('webpack-hot-middleware');
@@ -95,35 +103,23 @@ export default class Server extends EventEmitter {
                 event.characteristic, event.newValue, event.oldValue, event.context);
         };
 
-        const console_log = console.log;
-        const console_error = console.error;
-
-        console.log = (data, ...args) => {
-            for (const ws of this.wss.clients) {
-                const connection = Connection.getConnectionForWebSocket(ws);
-                if (connection && connection.enable_proxy_stdout) {
-                    ws.send('**:' + JSON.stringify({type: 'stdout', data: data + '\n'}));
-                }
-            }
-
-            console_log(data, ...args);
-        };
-        console.error = (data, ...args) => {
-            for (const ws of this.wss.clients) {
-                const connection = Connection.getConnectionForWebSocket(ws);
-                if (connection && connection.enable_proxy_stdout) {
-                    ws.send('**:' + JSON.stringify({type: 'stderr', data: data + '\n'}));
-                }
-            }
-
-            console_error(data, ...args);
-        };
+        Server.instances.add(this);
     }
 
-    static async createServer(config) {
-        if (!config) config = {};
+    /**
+     * Creates a Server.
+     *
+     * @param {object} options
+     * @param {string} options.data_path
+     * @param {string} options.config_path
+     * @param {object} options.config
+     * @param {string} options.cli_auth_token
+     * @return {Server}
+     */
+    static async createServer(options) {
+        if (!options) options = {};
 
-        const ui_storage_path = path.resolve(config.data_path, 'ui-storage');
+        const ui_storage_path = path.resolve(options.data_path, 'ui-storage');
 
         const storage = persist.create({
             dir: ui_storage_path,
@@ -132,9 +128,39 @@ export default class Server extends EventEmitter {
 
         await storage.init();
 
-        const server = new this(config, storage);
+        const server = new this(options, storage);
 
         return server;
+    }
+
+    static patchStdout() {
+        const console_log = console.log;
+        const console_error = console.error;
+
+        console.log = (data, ...args) => {
+            for (const server of Server.instances) {
+                for (const ws of this.wss.clients) {
+                    const connection = Connection.getConnectionForWebSocket(ws);
+                    if (connection && connection.enable_proxy_stdout) {
+                        ws.send('**:' + JSON.stringify({type: 'stdout', data: data + '\n'}));
+                    }
+                }
+            }
+
+            console_log(data, ...args);
+        };
+        console.error = (data, ...args) => {
+            for (const server of Server.instances) {
+                for (const ws of this.wss.clients) {
+                    const connection = Connection.getConnectionForWebSocket(ws);
+                    if (connection && connection.enable_proxy_stdout) {
+                        ws.send('**:' + JSON.stringify({type: 'stderr', data: data + '\n'}));
+                    }
+                }
+            }
+
+            console_error(data, ...args);
+        };
     }
 
     loadBridgesFromConfig() {
@@ -318,30 +344,59 @@ export default class Server extends EventEmitter {
     }
 
     async loadAutomationTriggersFromConfig(dont_throw) {
-        const triggers = {};
+        if (this.config_automation_triggers) return this.config_automation_triggers;
+        this.config_automation_triggers = {};
 
         await Promise.all(Object.entries(this.config['automation-triggers'] || {}).map(([key, config]) =>
-            this.automations.loadAutomationTrigger(config).then(t => triggers[key] = t).catch(err => {
+            this.automations.loadAutomationTrigger(config).then(t => this.config_automation_triggers[key] = t).catch(err => {
                 if (!dont_throw) throw err;
 
                 this.log.warn('Error loading automation trigger', config.plugin, config.trigger, err);
             })));
 
-        return triggers;
+        return this.config_automation_triggers;
+    }
+
+    async loadAutomationConditionsFromConfig(dont_throw) {
+        if (this.config_automation_conditions) return this.config_automation_conditions;
+        this.config_automation_conditions = {};
+
+        await Promise.all(Object.entries(this.config['automation-conditions'] || {}).map(([key, config]) =>
+            this.automations.loadAutomationCondition(config).then(t => this.config_automation_conditions[key] = t).catch(err => {
+                if (!dont_throw) throw err;
+
+                this.log.warn('Error loading automation condition', config.plugin, config.condition, err);
+            })));
+
+        return this.config_automation_conditions;
+    }
+
+    async loadAutomationActionsFromConfig(dont_throw) {
+        if (this.config_automation_actions) return this.config_automation_actions;
+        this.config_automation_actions = {};
+
+        await Promise.all(Object.entries(this.config['automation-actions'] || {}).map(([key, config]) =>
+            this.automations.loadAutomationAction(config).then(t => this.config_automation_actions[key] = t).catch(err => {
+                if (!dont_throw) throw err;
+
+                this.log.warn('Error loading automation action', config.plugin, config.action, err);
+            })));
+
+        return this.config_automation_actions;
     }
 
     async loadAutomationsFromConfig(dont_throw) {
         const [triggers, conditions, actions] = await Promise.all([
             this.loadAutomationTriggersFromConfig(dont_throw),
-            // this.loadAutomationConditionsFromConfig(dont_throw),
-            // this.loadAutomationActionsFromConfig(dont_throw),
+            this.loadAutomationConditionsFromConfig(dont_throw),
+            this.loadAutomationActionsFromConfig(dont_throw),
         ]);
 
         const automations = await Promise.all((this.config.automations || []).map(config =>
             this.automations.loadAutomation(config).then(automation => {
                 automation.addTrigger(...(automation.config.triggers || []).map(key => triggers[key]));
-                // automation.addCondition(...(automation.config.conditions || []).map(key => conditions[key]));
-                // automation.addAction(...(automation.config.actions || []).map(key => actions[key]));
+                automation.addCondition(...(automation.config.conditions || []).map(key => conditions[key]));
+                automation.addAction(...(automation.config.actions || []).map(key => actions[key]));
 
                 return automation;
             }).catch(err => {
@@ -367,12 +422,18 @@ export default class Server extends EventEmitter {
         return this.automations.getAutomation(id);
     }
 
+    /**
+     * Publishes all HAP bridges.
+     */
     publish() {
         for (const bridge of this.bridges) {
             bridge.publish();
         }
     }
 
+    /**
+     * Unpublishes all HAP bridges.
+     */
     unpublish() {
         for (const bridge of this.bridges) {
             bridge.unpublish();
@@ -450,6 +511,12 @@ export default class Server extends EventEmitter {
         return service.characteristics.find(s => s.UUID === characteristic_uuid);
     }
 
+    /**
+     * Creates a HTTP server.
+     *
+     * @param {object} options
+     * @return {http.Server}
+     */
     createServer(options) {
         const server = http.createServer(this.handle, options);
 
@@ -458,6 +525,12 @@ export default class Server extends EventEmitter {
         return server;
     }
 
+    /**
+     * Creates a HTTPS server.
+     *
+     * @param {object} options
+     * @return {https.Server}
+     */
     createSecureServer(options) {
         const server = https.createServer(this.handle, options);
 
@@ -466,6 +539,13 @@ export default class Server extends EventEmitter {
         return server;
     }
 
+    /**
+     * Handles a HTTP request.
+     *
+     * @param {http.IncomingRequest} req
+     * @param {http.ServerResponse} res
+     * @param {function} next
+     */
     handle(req, res, next) {
         res.setHeader('X-Content-Type-Options', 'nosniff');
         res.setHeader('X-Frame-Options', 'deny');
@@ -502,6 +582,13 @@ export default class Server extends EventEmitter {
         }
     }
 
+    /**
+     * Handles a HTTP upgrade.
+     *
+     * @param {http.IncomingRequest} request
+     * @param {net.Socket} socket
+     * @param {} head
+     */
     upgrade(request, socket, head) {
         if (url.parse(request.url).pathname !== '/websocket') {
             socket.destroy();
@@ -538,7 +625,21 @@ export default class Server extends EventEmitter {
         }
     }
 
+    /**
+     * Handle a characteristic update.
+     *
+     * @param {Accessory} accessory
+     * @param {Service} service
+     * @param {Characteristic} characteristic
+     * @param {} value
+     * @param {} old_value
+     * @param {object} context
+     */
     handleCharacteristicUpdate(accessory, service, characteristic, value, old_value, context) {
+        if (this.hasOwnProperty('automations')) {
+            this.automations.handleCharacteristicUpdate(accessory, service, characteristic, value, old_value, context);
+        }
+
         this.sendBroadcast({
             type: 'update-characteristic',
             accessory_uuid: accessory.UUID,
@@ -551,6 +652,11 @@ export default class Server extends EventEmitter {
         });
     }
 
+    /**
+     * Deletes all unused assets.
+     *
+     * @return {Promise<object>}
+     */
     async cleanAssets() {
         const home_settings = await this.storage.getItem('Home');
 
@@ -573,6 +679,8 @@ export default class Server extends EventEmitter {
         };
     }
 }
+
+Server.instances = new Set();
 
 export class PluginAccessory {
     constructor(server, accessory, plugin, accessory_type, data) {

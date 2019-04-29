@@ -30,6 +30,7 @@ export default class Logger {
 
     write(level, ...args) {
         let func = console.log;
+        let format = typeof args[0] === 'string' ? args.shift() : '';
 
         if (level === 'debug') {
             args = args.map(arg => typeof arg === 'string' ? chalk.gray(arg) : arg);
@@ -41,13 +42,13 @@ export default class Logger {
             func = console.error;
         }
 
-        if (this.prefix.length) args.unshift(chalk.cyan('[' + this.prefix.join(' ') + ']'));
+        if (this.prefix.length) format = (chalk.cyan('[' + this.prefix.join(' ') + ']')) + ' ' + format;
 
         if (this.enable_timestamps && this.constructor.enable_timestamps) {
-            args.unshift(chalk.white('[' + (new Date()).toLocaleString() + ']'));
+            format = chalk.white('[' + (new Date()).toLocaleString() + ']') + ' ' + format;
         }
 
-        func.apply(console, args);
+        func.call(console, format, ...args);
     }
 
     debug(...args) {

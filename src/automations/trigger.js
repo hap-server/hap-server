@@ -1,6 +1,8 @@
 import EventEmitter from 'events';
 import cron from 'node-cron';
 
+import PluginManager from '../core/plugins';
+
 export default class AutomationTrigger extends EventEmitter {
     /**
      * Creates an AutomationTrigger.
@@ -10,8 +12,9 @@ export default class AutomationTrigger extends EventEmitter {
      * @param {Automations} automations
      * @param {object} config
      * @param {string} [uuid]
+     * @param {Logger} [log]
      */
-    constructor(automations, config, uuid) {
+    constructor(automations, config, uuid, log) {
         super();
 
         Object.defineProperty(this, 'automations', {value: automations});
@@ -20,23 +23,29 @@ export default class AutomationTrigger extends EventEmitter {
         Object.defineProperty(this, 'uuid', {value: uuid});
         Object.defineProperty(this, 'config', {value: config});
 
-        Object.defineProperty(this, 'log', {value: automations.log.withPrefix('Trigger #' + this.id)});
+        Object.defineProperty(this, 'log', {value: log || automations.log.withPrefix('Trigger #' + this.id)});
 
         this.running = false;
         this.starting = null;
         this.stopping = null;
     }
 
-    static load(automations, config, uuid) {
+    static load(automations, config, uuid, log) {
         const Trigger = this.getTriggerClass(config.trigger, config.plugin);
-        const trigger = new Trigger(automations, config, uuid);
+        const trigger = new Trigger(automations, config, uuid, log);
 
         return trigger;
     }
 
     static getTriggerClass(type, plugin_name) {
         if (plugin_name) {
-            //
+            const plugin = PluginManager.getPlugin(plugin_name);
+
+            if (!plugin) throw new Error('Unknown plugin "' + plugin_name + '"');
+            if (!plugin.automation_triggers.has(type)) throw new Error('Unknown automation trigger "' + type + // eslint-disable-line curly
+                '" from plugin "' + plugin_name + '"');
+
+            return plugin.automation_triggers.get(type);
         }
 
         const Trigger = AutomationTrigger.types[type];
@@ -86,6 +95,8 @@ export default class AutomationTrigger extends EventEmitter {
      * @return {TriggerEvent}
      */
     trigger(context) {
+        if (!this.running) throw new Error('Cannot trigger when not running');
+
         const event = new TriggerEvent(this, context);
 
         this.log.info('Triggered', event);

@@ -635,6 +635,73 @@ authentication_handler.disconnect_handler = async (authenticated_user, disconnec
 hapserver.registerAuthenticationHandler(authentication_handler);
 ```
 
+#### `hapserver.registerAutomationTrigger`
+
+Registers an automation trigger.
+
+``js
+import hapserver, {AutomationTrigger} from 'hap-server-api';
+
+class LocationTrigger extends AutomationTrigger {
+    async onstart() {
+        this.location_service = await LocationService.connect(this.config.token);
+        this.location_service.on('update', this.handleLocationUpdate.bind(this));
+    }
+
+    async onstop() {
+        this.location_service.removeListener('update', this.handleLocationUpdate.bind(this));
+        await this.location_service.close();
+        this.location_service = null;
+    }
+
+    handleLocationUpdate(event) {
+        // Emit a "trigger" event
+        this.trigger({person: event.person});
+    }
+}
+
+hapserver.registerAutomationTrigger('Location', LocationTrigger);
+```
+
+#### `hapserver.registerAutomationCondition`
+
+Registers an automation condition.
+
+``js
+import hapserver, {AutomationCondition} from 'hap-server-api';
+
+class LocationCondition extends AutomationCondition {
+    async check(event) {
+        const location_service = await LocationService.connect(this.config.token);
+
+        const result = await location_service.checkPersonIsInArea(this.config.person, this.config.area);
+
+        await location_service.close();
+
+        return result;
+    }
+}
+
+hapserver.registerAutomationCondition('Location', LocationCondition);
+```
+
+#### `hapserver.registerAutomationAction`
+
+Registers an automation action.
+
+``js
+import hapserver, {AutomationAction} from 'hap-server-api';
+import axios from 'axios';
+
+class WebhookAction extends AutomationAction {
+    async run(event) {
+        await axios.post(this.config.url);
+    }
+}
+
+hapserver.registerAutomationTrigger('Webhook', WebhookAction);
+```
+
 ### Accessory UIs
 
 Accessory UIs register components in the web interface. Accessory UI scripts should be registered with
