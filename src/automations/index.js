@@ -327,7 +327,8 @@ export class AutomationRunner extends EventEmitter {
      * @return {number} 0-1
      */
     get progress() {
-        return (this.conditions_progress + this.actions_progress) / 2;
+        return this.finished ? 1 : [...this.conditions.values(), ...this.actions.values()]
+            .reduce((cur, acc) => acc + cur) / (this.conditions.size + this.actions.size);
     }
 
     get conditions_progress() {

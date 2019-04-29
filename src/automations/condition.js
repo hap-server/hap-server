@@ -60,9 +60,10 @@ export default class AutomationCondition extends EventEmitter {
      *
      * @param {AutomationRunner} runner
      * @param {function} setProgress
+     * @param {AutomationCondition} ...parent_conditions
      * @return {Promise<boolean>}
      */
-    async check(runner) {
+    async check(runner, setProgress) {
         throw new Error('AutomationCondition did not override the check function');
     }
 }
@@ -96,7 +97,7 @@ export class AnyCondition extends AutomationCondition {
     async check(runner, setProgress, ...parent_conditions) {
         this.log('Running any condition', runner);
 
-        for (const index in this.conditions) {
+        for (const index in this.conditions) { // eslint-disable-line guard-for-in
             const condition = this.conditions[index];
 
             try {
@@ -144,7 +145,7 @@ export class AllCondition extends AutomationCondition {
     async check(runner, setProgress, ...parent_conditions) {
         this.log('Running all condition', runner);
 
-        for (const index in this.conditions) {
+        for (const index in this.conditions) { // eslint-disable-line guard-for-in
             const condition = this.conditions[index];
 
             try {
