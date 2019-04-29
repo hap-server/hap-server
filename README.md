@@ -671,7 +671,7 @@ Registers an automation condition.
 import hapserver, {AutomationCondition} from 'hap-server-api';
 
 class LocationCondition extends AutomationCondition {
-    async check(event) {
+    async check(runner) {
         const location_service = await LocationService.connect(this.config.token);
 
         const result = await location_service.checkPersonIsInArea(this.config.person, this.config.area);
@@ -694,7 +694,7 @@ import hapserver, {AutomationAction} from 'hap-server-api';
 import axios from 'axios';
 
 class WebhookAction extends AutomationAction {
-    async run(event) {
+    async run(runner) {
         await axios.post(this.config.url);
     }
 }

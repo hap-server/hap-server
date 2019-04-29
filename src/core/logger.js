@@ -33,11 +33,14 @@ export default class Logger {
         let format = typeof args[0] === 'string' ? args.shift() : '';
 
         if (level === 'debug') {
+            format = chalk.gray(format);
             args = args.map(arg => typeof arg === 'string' ? chalk.gray(arg) : arg);
         } else if (level === 'warning') {
+            format = chalk.yellow(format);
             args = args.map(arg => typeof arg === 'string' ? chalk.yellow(arg) : arg);
             func = console.error;
         } else if (level === 'error') {
+            format = chalk.red(format);
             args = args.map(arg => typeof arg === 'string' ? chalk.red(arg) : arg);
             func = console.error;
         }

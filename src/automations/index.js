@@ -1,3 +1,5 @@
+import EventEmitter from 'events';
+
 import AutomationTrigger from './trigger';
 import AutomationCondition from './condition';
 import AutomationAction from './action';
@@ -182,6 +184,8 @@ export class Automation {
         this.conditions = [];
         this.actions = [];
 
+        this.running = [];
+
         this.handleTrigger = this.handleTrigger.bind(this);
     }
 
@@ -189,37 +193,17 @@ export class Automation {
      * Handles an event from a trigger.
      *
      * @param {TriggerEvent} event
-     * @return {Promise}
      */
-    async handleTrigger(event) {
+    handleTrigger(event) {
         this.log.info('Received automation trigger event', event);
 
-        for (const condition of this.conditions) {
-            try {
-                this.log.debug('Running automation #%d condition #%d', this.id, condition.id);
-                const result = await condition.check(event);
+        const runner = new AutomationRunner(this, event);
 
-                if (!result) {
-                    this.log.info('Not running automation #%d as condition #%d failed', this.id, condition.id);
-                    return;
-                }
+        this.running.push(runner);
 
-                this.log.info('Automation #%d condition #%d passed', this.id, condition.id);
-            } catch (err) {
-                this.log.error('Error in automation condition', err);
-                return;
-            }
-        }
+        runner.on('finished', () => this.running.splice(this.running.indexOf(runner), 1));
 
-        await Promise.all(this.actions.map(async action => {
-            try {
-                this.log.debug('Running automation #%d action #%d', this.id, action.id);
-                await action.run(event);
-                this.log.debug('Finished running automation #%d action #%d', this.id, action.id);
-            } catch (err) {
-                this.log.error('Error in automation action', err);
-            }
-        }));
+        runner.run();
     }
 
     /**
@@ -315,3 +299,138 @@ export class Automation {
 }
 
 Automation.id = 0;
+
+export class AutomationRunner extends EventEmitter {
+    /**
+     * Creates an AutomationRunner.
+     *
+     * @param {Automation} automation
+     * @param {TriggerEvent} event
+     */
+    constructor(automation, event) {
+        super();
+
+        Object.defineProperty(this, 'automation', {value: automation});
+        Object.defineProperty(this, 'id', {value: Automation.id++});
+        Object.defineProperty(this, 'event', {enumerable: true, value: event});
+
+        Object.defineProperty(this, 'log', {value: automation.log.withPrefix('Runner #' + this.id)});
+
+        Object.defineProperty(this, 'conditions', {value: new Map(automation.conditions.map(c => [c, 0]))});
+        Object.defineProperty(this, 'actions', {value: new Map(automation.actions.map(a => [a, 0]))});
+
+        this.running = null;
+        this.finished = false;
+    }
+
+    /**
+     * @return {number} 0-1
+     */
+    get progress() {
+        return (this.conditions_progress + this.actions_progress) / 2;
+    }
+
+    get conditions_progress() {
+        return this.finished ? 1 : [...this.conditions.values()].reduce((cur, acc) => acc + cur) / this.conditions.size;
+    }
+
+    get actions_progress() {
+        return this.finished ? 1 : [...this.actions.values()].reduce((cur, acc) => acc + cur) / this.actions.size;
+    }
+
+    /**
+     * Run an automation.
+     */
+    run() {
+        if (this.running) return this.running;
+
+        this.running = this._run();
+    }
+
+    async _run() {
+        if (this.running) return;
+        if (this.finished) throw new Error('This automation has already run');
+
+        this.log.info('Running automation #%d', this.automation.id);
+        this.emit('running');
+
+        for (const condition of this.conditions.keys()) {
+            try {
+                this.log.debug('Running automation #%d condition #%d', this.automation.id, condition.id);
+
+                let finished = false;
+
+                const result = await condition.check(this, progress => {
+                    if (finished) throw new Error('Cannot update progress after the condition has finished running');
+                    if (progress < 0 || progress > 1) throw new Error('progress must be between 0 and 1');
+                    this.conditions.set(condition, progress);
+                    this.emit('condition-progress', condition, progress);
+                    this.emit('conditions-progress', this.conditions_progress);
+                    this.emit('progress', this.progress);
+                });
+
+                finished = true;
+
+                this.conditions.set(condition, 1);
+                this.emit('condition-progress', condition, 1);
+                this.emit('conditions-progress', this.conditions_progress);
+                this.emit('progress', this.progress);
+                this.emit('condition-finished', condition, result);
+
+                if (!result) {
+                    this.log.info('Not running automation #%d as condition #%d failed', this.automation.id, condition.id);
+                    this.emit('condition-failed', condition);
+                    this.finished = true;
+                    this.emit('finished', false);
+                    return;
+                }
+
+                this.log.debug('Automation #%d condition #%d passed', this.automation.id, condition.id);
+                this.emit('condition-passed', condition);
+            } catch (err) {
+                this.log.error('Error in automation condition', err);
+                this.emit('condition-error', condition, err);
+                this.emit('condition-failed', condition, err);
+
+                this.finished = true;
+                this.emit('error', err);
+                this.emit('finished', false);
+                throw err;
+            }
+        }
+
+        await Promise.all([...this.actions.keys()].map(async action => {
+            try {
+                this.log.debug('Running automation #%d action #%d', this.automation.id, action.id, this);
+
+                let finished = false;
+
+                const result = await action.run(this, progress => {
+                    if (finished) throw new Error('Cannot update progress after the action has finished running');
+                    if (progress < 0 || progress > 1) throw new Error('progress must be between 0 and 1');
+                    this.actions.set(action, progress);
+                    this.emit('action-progress', action, progress);
+                    this.emit('actions-progress', this.actions_progress);
+                    this.emit('progress', this.progress);
+                });
+
+                finished = true;
+                this.actions.set(action, 1);
+                this.emit('action-progress', action, 1);
+                this.emit('action-finished', action, result);
+                this.emit('actions-progress', this.actions_progress);
+                this.emit('progress', this.progress);
+
+                this.log.debug('Finished running automation #%d action #%d', this.automation.id, action.id, this);
+            } catch (err) {
+                this.log.error('Error in automation action', err);
+                this.emit('action-error', action, err);
+            }
+        }));
+
+        this.finished = true;
+        this.emit('finished', true);
+    }
+}
+
+AutomationRunner.id = 0;

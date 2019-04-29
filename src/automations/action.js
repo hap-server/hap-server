@@ -52,10 +52,11 @@ export default class AutomationAction extends EventEmitter {
     /**
      * Runs this action.
      *
-     * @param {TriggerEvent} event
+     * @param {AutomationRunner} runner
+     * @param {function} setProgress
      * @return {Promise}
      */
-    async run(event) {
+    async run(runner, setProgress) {
         throw new Error('AutomationAction did not override the check function');
     }
 }
@@ -67,8 +68,8 @@ AutomationAction.types = {};
  * An AutomationAction that does nothing.
  */
 export class TestAction extends AutomationAction {
-    run(event) {
-        this.log('Running test action', event);
+    run(runner) {
+        this.log('Running test action', runner);
     }
 }
 

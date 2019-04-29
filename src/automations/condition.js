@@ -58,10 +58,11 @@ export default class AutomationCondition extends EventEmitter {
     /**
      * Checks if an automation using this condition should trigger.
      *
-     * @param {TriggerEvent} event
+     * @param {AutomationRunner} runner
+     * @param {function} setProgress
      * @return {Promise<boolean>}
      */
-    async check(event) {
+    async check(runner) {
         throw new Error('AutomationCondition did not override the check function');
     }
 }
@@ -73,8 +74,8 @@ AutomationCondition.types = {};
  * An AutomationCondition that always passes.
  */
 export class TestCondition extends AutomationCondition {
-    check(event) {
-        this.log('Running test condition', event);
+    check(runner) {
+        this.log('Running test condition', runner);
 
         return true;
     }
@@ -92,13 +93,13 @@ export class AnyCondition extends AutomationCondition {
                 ' (' + (AutomationCondition.id + 1) + ')'))));
     }
 
-    async check(event) {
-        this.log('Running any condition', event);
+    async check(runner) {
+        this.log('Running any condition', runner);
 
         for (const condition of this.conditions) {
             try {
                 this.log.debug('Running condition #%d child #%d', this.id, condition.id);
-                const result = await condition.check(event);
+                const result = await condition.check(runner);
 
                 if (result) {
                     this.log.info('Condition #%d passing as child #%d passed', this.id, condition.id);
@@ -127,13 +128,13 @@ export class AllCondition extends AutomationCondition {
                 ' (' + (AutomationCondition.id + 1) + ')'))));
     }
 
-    async check(event) {
-        this.log('Running all condition', event);
+    async check(runner) {
+        this.log('Running all condition', runner);
 
         for (const condition of this.conditions) {
             try {
                 this.log.debug('Running condition #%d child #%d', this.id, condition.id);
-                const result = await condition.check(event);
+                const result = await condition.check(runner);
 
                 if (!result) {
                     this.log.info('Failing condition #%d as child #%d failed', this.id, condition.id);
