@@ -1,6 +1,7 @@
-import EventEmitter from 'events';
-
 import PluginManager from '../core/plugins';
+
+import EventEmitter from 'events';
+import vm from 'vm';
 
 export default class AutomationCondition extends EventEmitter {
     /**
@@ -76,13 +77,13 @@ AutomationCondition.types = {};
  */
 export class TestCondition extends AutomationCondition {
     check(runner) {
-        this.log('Running test condition', runner);
+        this.log.info('Running test condition with runner #%d', runner.id);
 
         return true;
     }
 }
 
-AutomationCondition.types.test = TestCondition;
+AutomationCondition.types.Test = TestCondition;
 
 /**
  * An AutomationCondition that passes if any of it's child conditions passes.
@@ -95,9 +96,10 @@ export class AnyCondition extends AutomationCondition {
     }
 
     async check(runner, setProgress, ...parent_conditions) {
-        this.log('Running any condition', runner);
+        this.log.info('Running any condition with runner #%d', runner.id);
 
-        for (const index in this.conditions) { // eslint-disable-line guard-for-in
+        for (let index in this.conditions) { // eslint-disable-line guard-for-in
+            index = parseInt(index);
             const condition = this.conditions[index];
 
             try {
@@ -130,7 +132,7 @@ export class AnyCondition extends AutomationCondition {
     }
 }
 
-AutomationCondition.types.any = AnyCondition;
+AutomationCondition.types.Any = AnyCondition;
 
 /**
  * An AutomationCondition that passed if all of it's child conditions pass.
@@ -143,9 +145,10 @@ export class AllCondition extends AutomationCondition {
     }
 
     async check(runner, setProgress, ...parent_conditions) {
-        this.log('Running all condition', runner);
+        this.log('Running all condition with runner #%d', runner.id);
 
-        for (const index in this.conditions) { // eslint-disable-line guard-for-in
+        for (let index in this.conditions) { // eslint-disable-line guard-for-in
+            index = parseInt(index);
             const condition = this.conditions[index];
 
             try {
@@ -178,4 +181,42 @@ export class AllCondition extends AutomationCondition {
     }
 }
 
-AutomationCondition.types.all = AllCondition;
+AutomationCondition.types.All = AllCondition;
+
+/**
+ * An AutomationCondition that runs a JavaScript VM.
+ */
+export class ScriptCondition extends AutomationCondition {
+    load() {
+        this.sandbox = Object.freeze({
+            server: this.automations.server,
+            getAccessory: this.automations.server.getAccessory.bind(this.automations.server),
+            getService: this.automations.server.getService.bind(this.automations.server),
+            getCharacteristic: this.automations.server.getCharacteristic.bind(this.automations.server),
+
+            automations: this.automations,
+            automation_condition: this,
+            log: this.log.withPrefix('Script'),
+        });
+
+        this.script = new vm.Script('(async function () { ' + (this.config.script instanceof Array ? this.config.script.join('\n') : this.config.script) + '\n})()');
+    }
+
+    async check(runner, setProgress, ...parent_conditions) {
+        this.log.debug('Running script condition #%d', this.id);
+
+        const sandbox = Object.create(this.sandbox);
+
+        sandbox.automation = runner.automation;
+        sandbox.automation_runner = runner;
+        sandbox.setAutomationProgress = setProgress;
+        sandbox.parent_automation_conditions = parent_conditions;
+
+        Object.freeze(sandbox);
+
+        const sandbox_context = vm.createContext(sandbox);
+        return await this.script.runInContext(sandbox_context);
+    }
+}
+
+AutomationCondition.types.Script = ScriptCondition;

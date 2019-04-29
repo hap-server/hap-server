@@ -81,7 +81,7 @@ export default class AutomationTrigger extends EventEmitter {
         if (!this.running) return;
         if (this.stopping) return this.stopping;
 
-        return this.stopping = Promise.all(this.onstart()).then(() => this.running = false).then(() => true);
+        return this.stopping = Promise.all([this.onstop()]).then(() => this.running = false).then(() => true);
     }
 
     onstop() {
@@ -151,4 +151,4 @@ export class CronTrigger extends AutomationTrigger {
     }
 }
 
-AutomationTrigger.types.cron = CronTrigger;
+AutomationTrigger.types.Cron = CronTrigger;

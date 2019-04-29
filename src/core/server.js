@@ -478,29 +478,36 @@ export default class Server extends EventEmitter {
     /**
      * Gets a Service.
      *
-     * @param {string} uuid
+     * @param {(string|Array)} uuid
      * @param {string} [service_uuid]
      * @return {Service}
      */
     getService(uuid, service_uuid) {
+        if (uuid instanceof Array) [uuid, service_uuid] = uuid;
+
         const accessory_uuid = uuid.split('.')[0];
         if (!service_uuid) service_uuid = uuid.substr(accessory_uuid.length + 1);
+
+        const service_type = service_uuid.split('.')[0];
+        const service_subtype = service_uuid.substr(service_type.length + 1);
 
         const accessory = this.getAccessory(accessory_uuid);
         if (!accessory) return;
 
-        return accessory.services.find(s => s.UUID === service_uuid);
+        return accessory.services.find(s => s.UUID === service_type && s.subtype === service_subtype);
     }
 
     /**
      * Gets a Characteristic.
      *
-     * @param {string} uuid
+     * @param {(string|Array)} uuid
      * @param {string} [service_uuid]
      * @param {string} [characteristic_uuid]
      * @return {Characteristic}
      */
     getCharacteristic(uuid, service_uuid, characteristic_uuid) {
+        if (uuid instanceof Array) [uuid, service_uuid, characteristic_uuid] = uuid;
+
         const accessory_uuid = uuid.split('.')[0];
         if (!service_uuid) service_uuid = uuid.substr(accessory_uuid.length + 1);
         if (!characteristic_uuid) characteristic_uuid = service_uuid.substr(service_uuid.lastIndexOf('.') + 1), service_uuid = service_uuid.substr(0, service_uuid.lastIndexOf('.'));

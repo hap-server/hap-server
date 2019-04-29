@@ -271,15 +271,26 @@ yargs.command('$0 [config]', 'Run the HAP and web server', yargs => {
         if (argv.printSetup) bridge.printSetupInfo();
     }
 
+    let exit_attempts = 0;
+
     for (const [signal, code] of Object.entries({'SIGINT': 2, 'SIGTERM': 15})) {
         process.on(signal, async () => {
-            log.info(`Got ${signal}, shutting down...`);
+            exit_attempts++;
+
+            if (exit_attempts >= 3) {
+                log.info(`Got ${signal} (x${exit_attempts}), exiting...`);
+                throw process.exit(128 + code);
+            } else if (exit_attempts > 1) {
+                log.info(`Got ${signal} (x${exit_attempts} - ${3 - exit_attempts} left to force exit), shutting down...`);
+            } else log.info(`Got ${signal}, shutting down...`);
 
             await Promise.all([
                 new Promise((rs, rj) => fs.unlink(path.join(data_path, 'hap-server.pid'), err => err ? rj(err) : rs())),
                 new Promise((rs, rj) => fs.unlink(path.join(data_path, 'hap-server-port'), err => err ? rj(err) : rs())),
                 new Promise((rs, rj) => fs.unlink(path.join(data_path, 'cli-token'), err => err ? rj(err) : rs())),
             ]);
+
+            await server.automations.stop();
 
             server.unpublish();
             http_server.close();
