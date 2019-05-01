@@ -221,10 +221,14 @@ export default class Server extends EventEmitter {
         this.bridges.push(this.homebridge);
     }
 
-    async loadCachedAccessories() {
+    async loadCachedAccessories(dont_throw) {
         const cached_accessories = await this.storage.getItem('CachedAccessories') || [];
 
-        await Promise.all(cached_accessories.map(cache => this.loadCachedAccessory(cache)));
+        await Promise.all(cached_accessories.map(cache => this.loadCachedAccessory(cache).catch(err => {
+            if (!dont_throw && typeof dont_throw !== 'undefined') throw err;
+
+            this.log.warn('Error restoring cached accessory', cache.plugin, cache.accessory.displayName, err); 
+        })));
     }
 
     async loadCachedAccessory(cache) {
@@ -747,6 +751,9 @@ export class PluginAccessory {
      */
     static restore(server, cache) {
         const plugin = PluginManager.getPlugin(cache.plugin);
+
+        if (!plugin) throw new Error('Unknown plugin "' + cache.plugin + '"');
+
         const accessory = new Accessory(cache.accessory.displayName, cache.accessory.UUID);
 
         accessory.services = cache.accessory.services.map(service_cache => {

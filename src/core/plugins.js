@@ -74,19 +74,6 @@ export class PluginManager {
         const module_load = Module._load;
 
         Module._load = function(request, parent, isMain) {
-            if (request === 'hap-server-api' || request.startsWith('hap-server-api/')) {
-                const plugin = PluginManager.instance.getPluginByModule(parent);
-
-                if (plugin) {
-                    log.withPrefix(plugin.name)
-                        .warn('Using deprecated hap-server-api/* module. Use @hap-server/api/* instead.');
-
-                    const module = PluginManager.requireApi('@hap-server/api' + request.substr(14), plugin, parent);
-
-                    if (module) return module;
-                }
-            }
-
             if (request === '@hap-server/api' || request.startsWith('@hap-server/api/')) {
                 const plugin = PluginManager.instance.getPluginByModule(parent);
 

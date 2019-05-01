@@ -68,11 +68,6 @@ export class PluginManager {
             request = path.resolve(path.dirname(script), request);
         }
 
-        if (request === 'hap-server-api/accessory-ui' || request.startsWith('hap-server-api/accessory-ui')) {
-            console.warn('Using deprecated hap-server-api/* module. Use @hap-server/api/* instead.');
-            request = '@hap-server/accessory-ui-api' + request.substr(26);
-        }
-
         if (request === '@hap-server/accessory-ui-api') {
             return this.getPluginAPI(accessory_ui);
         } else if (request === '@hap-server/accessory-ui-api/service') {
