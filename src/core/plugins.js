@@ -651,8 +651,6 @@ export class AccessoryPlatform {
 
             let index;
             while ((index = this.accessories.findIndex(a => a.uuid === accessory.UUID)) !== -1) this.accessories.splice(index, 1);
-
-            let index;
             while ((index = this.server.accessories.findIndex(a => a.uuid === accessory.UUID)) !== -1) this.server.accessories.splice(index, 1);
 
             for (const bridge of this.server.bridges) {

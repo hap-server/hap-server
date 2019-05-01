@@ -6,6 +6,7 @@ import url from 'url';
 import querystring from 'querystring';
 import fs from 'fs';
 import genuuid from 'uuid/v4';
+import mkdirp from 'mkdirp';
 
 import PluginManager, {AuthenticatedUser} from './plugins';
 import Homebridge from './homebridge';
