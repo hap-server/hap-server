@@ -348,7 +348,8 @@ export default class Server extends EventEmitter {
         if (this.accessories.find(a => a.uuid === accessory.UUID)) throw new Error('Already have an accessory with' +
             ' the UUID "' + accessory.UUID + '"');
 
-        const plugin_accessory = new PluginAccessory(this, accessory, plugin, accessory_type, accessory_config.uuid);
+        const plugin_accessory = new PluginStandaloneAccessory(this, accessory, plugin, accessory_type,
+            accessory_config.uuid);
 
         this.removeCachedAccessory(accessory.UUID);
 
@@ -839,7 +840,7 @@ export class PluginAccessory {
 
         const accessory_platform_handler = cache.accessory_platform ?
             plugin.getAccessoryPlatformHandler(cache.accessory_platform) : undefined;
-        if (cache.accessory_platform && !accessory_platform) throw new Error('Unknown accessory platform "' + // eslint-disable-line curly
+        if (cache.accessory_platform && !accessory_platform_handler) throw new Error('Unknown accessory platform "' + // eslint-disable-line curly
             cache.accessory_platform + '"');
 
         if (!accessory_handler && !accessory_platform_handler) throw new Error('Invalid cache data');
@@ -863,7 +864,7 @@ export class PluginAccessory {
             return service;
         });
 
-        const plugin_accessory = accessory_platform ?
+        const plugin_accessory = accessory_platform_handler ?
             new PluginAccessoryPlatformAccessory(server, accessory, plugin, cache.accessory_platform, cache.base_uuid) :
             new PluginStandaloneAccessory(server, accessory, plugin, cache.accessory_type, cache.uuid);
 
