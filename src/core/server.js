@@ -394,7 +394,7 @@ export default class Server extends EventEmitter {
         if (!plugin) throw new Error('No plugin with the name "' + plugin_name + '"');
 
         const AccessoryPlatformHandler = plugin.getAccessoryPlatformHandler(accessory_platform_name);
-        if (!AccessoryPlatformHandler) throw new Error('No accessory platform handler with the name "' +
+        if (!AccessoryPlatformHandler) throw new Error('No accessory platform handler with the name "' + // eslint-disable-line curly
             accessory_platform_name + '"');
 
         if (!config.uuid) config.uuid = 'accessoryplatform:' + plugin_name + ':' + accessory_platform_name + ':' + name;
@@ -834,12 +834,12 @@ export class PluginAccessory {
 
         const accessory_handler = cache.accessory_type ?
             plugin.getAccessoryHandler(cache.accessory_type) : undefined;
-        if (cache.accessory_type && !accessory_handler) throw new Error('Unknown accessory "' +
+        if (cache.accessory_type && !accessory_handler) throw new Error('Unknown accessory "' + // eslint-disable-line curly
             cache.accessory_type + '"');
 
         const accessory_platform_handler = cache.accessory_platform ?
             plugin.getAccessoryPlatformHandler(cache.accessory_platform) : undefined;
-        if (cache.accessory_platform && !accessory_platform) throw new Error('Unknown accessory platform "' +
+        if (cache.accessory_platform && !accessory_platform) throw new Error('Unknown accessory platform "' + // eslint-disable-line curly
             cache.accessory_platform + '"');
 
         if (!accessory_handler && !accessory_platform_handler) throw new Error('Invalid cache data');
