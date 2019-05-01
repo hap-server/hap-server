@@ -561,7 +561,7 @@ export class AccessoryPlatform {
         Object.defineProperty(this, 'plugin', {value: plugin});
         Object.defineProperty(this, 'server', {value: server});
         Object.defineProperty(this, 'config', {value: Object.freeze(config)});
-        Object.defineProperty(this, 'accessories', {value: new Set()});
+        Object.defineProperty(this, 'accessories', {value: []});
         Object.defineProperty(this, 'cached_accessories', {value: cached_accessories});
         Object.defineProperty(this, 'characteristic_change_handlers', {value: new WeakMap()});
     }
@@ -624,7 +624,7 @@ export class AccessoryPlatform {
 
             this.removeCachedAccessory(accessory.UUID);
 
-            this.accessories.add(plugin_accessory);
+            this.accessories.push(plugin_accessory);
             this.server.accessories.push(plugin_accessory);
 
             for (const bridge of this.server.bridges.filter(bridge => bridge.accessory_uuids.find(accessory_uuid =>
@@ -649,7 +649,17 @@ export class AccessoryPlatform {
                 accessory.removeListener('service-characteristic-change', this.server.__handleCharacteristicUpdate);
             }
 
-            this.accessories.remove(accessory);
+            let index;
+            while ((index = this.accessories.findIndex(a => a.uuid === accessory.UUID)) !== -1) this.accessories.splice(index, 1);
+
+            let index;
+            while ((index = this.server.accessories.findIndex(a => a.uuid === accessory.UUID)) !== -1) this.server.accessories.splice(index, 1);
+
+            for (const bridge of this.server.bridges) {
+                if (!bridge.bridge.bridgedAccessories.find(a => a.UUID === accessory.UUID)) continue;
+
+                bridge.removeAccessory(accessory);
+            }
         }
     }
 
