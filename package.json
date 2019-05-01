@@ -78,7 +78,7 @@
         "xterm": "^3.12.2"
     },
     "peerDependencies": {
-        "@hap-server/authenticate-pam": "^0.2.3"
+        "@hap-server/authenticate-pam": "^0.3.0"
     },
     "scripts": {
         "build": "gulp build"

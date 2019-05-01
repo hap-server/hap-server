@@ -61,6 +61,9 @@ A lot.
         - [x] JavaScript
         - [x] Set characteristic
             - [x] Increment/decrement
+            - [ ] Transitions
+- [ ] Temporary scheduled actions
+    - "Turn the lights off in 10 minutes."
 - [ ] Configuration
     - [ ] Add + configure accessories in the web interface
         - [x] Set home/accessory/service names
@@ -76,15 +79,19 @@ A lot.
     - [ ] Accessory platforms
     - [x] All current Homebridge accessories + accessory platforms
     - [x] Web interface plugins
+        - [x] Layout sections
         - [x] Basic accessory control
         - [x] Accessory control
         - [ ] Accessory + accessory platform discovery + setup
         - [ ] Accessory + accessory platform configuration
         - [x] Authentication
         - [ ] User management
+        - [ ] Automation trigger configuration
+        - [ ] Automation condition configuration
+        - [ ] Automation action configuration
     - [ ] Web interface themes?
-    - [ ] Automation plugins
-        - Automation plugins can run other automation checks
+    - [x] Automation plugins
+        - Automation plugins can run other automation conditions/actions.
         - [x] Automation triggers
         - [x] Automation conditions
         - [x] Automation actions
