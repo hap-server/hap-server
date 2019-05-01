@@ -563,6 +563,7 @@ export class AccessoryPlatform {
         Object.defineProperty(this, 'config', {value: Object.freeze(config)});
         Object.defineProperty(this, 'accessories', {value: new Set()});
         Object.defineProperty(this, 'cached_accessories', {value: cached_accessories});
+        Object.defineProperty(this, 'characteristic_change_handlers', {value: new WeakMap()});
     }
 
     static withHandler(handler) {
@@ -609,7 +610,14 @@ export class AccessoryPlatform {
             if (this.server.accessories.find(a => a.uuid === accessory.UUID)) throw new Error('Already have an' +
                 ' accessory with the UUID "' + accessory.UUID + '"');
 
-            accessory.on('service-characteristic-change', this.server.__handleCharacteristicUpdate);
+            const prev_characteristic_change_handler = this.characteristic_change_handlers.get(accessory);
+            if (prev_characteristic_change_handler) {
+                accessory.removeListener('service-characteristic-change', prev_characteristic_change_handler);
+            }
+
+            const characteristic_change_handler = this.server._handleCharacteristicUpdate.bind(this.server, accessory);
+            this.characteristic_change_handlers.set(accessory, characteristic_change_handler);
+            accessory.on('service-characteristic-change', characteristic_change_handler);
 
             const plugin_accessory = new PluginAccessoryPlatformAccessory(this.server, accessory, this.plugin,
                 this.constructor.name, this.config.uuid);
@@ -636,7 +644,10 @@ export class AccessoryPlatform {
      */
     removeAccessory(...accessories) {
         for (const accessory of accessories) {
-            accessory.removeListener('service-characteristic-change', this.server.__handleCharacteristicUpdate);
+            const characteristic_change_handler = this.characteristic_change_handlers.get(accessory);
+            if (characteristic_change_handler) {
+                accessory.removeListener('service-characteristic-change', this.server.__handleCharacteristicUpdate);
+            }
 
             this.accessories.remove(accessory);
         }

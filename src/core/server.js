@@ -103,7 +103,6 @@ export default class Server extends EventEmitter {
             this.handleCharacteristicUpdate(event.accessory || default_accessory, event.service,
                 event.characteristic, event.newValue, event.oldValue, event.context);
         };
-        this.__handleCharacteristicUpdate = this._handleCharacteristicUpdate.bind(this, undefined);
 
         Server.instances.add(this);
     }
