@@ -466,14 +466,10 @@ export class Plugin {
     registerAuthenticationHandler(name, handler, disconnect_handler) {
         if (name instanceof AuthenticationHandler) {
             handler = name;
-            name = handler.name;
+            name = handler.localid;
         }
 
         name = '' + name;
-
-        if (typeof handler !== 'function') {
-            throw new Error('handler must be a function');
-        }
 
         if (this.authentication_handlers.has(name)) {
             throw new Error(this.name + ' has already registered an authentication handler with the name "' +
@@ -481,6 +477,10 @@ export class Plugin {
         }
 
         if (!(handler instanceof AuthenticationHandler)) {
+            if (typeof handler !== 'function') {
+                throw new Error('handler must be a function or an AuthenticationHandler object');
+            }
+
             handler = new AuthenticationHandler(this, name, handler, disconnect_handler);
         }
 
