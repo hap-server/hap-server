@@ -4,7 +4,7 @@ HomeKit Accessory Server
 Home automation system based on HomeKit.
 
 It includes a web interface for controlling accessories. Scenes, custom controls, configuring accessories in the web
-interface, storing historical data and automations are not supported yet.
+interface, storing historical data and configuring automations in the web interface are not supported yet.
 
 It includes a plugin system to add accessories, accessory configuration, authentication and options for automations.
 All Homebridge plugins are supported and work with the web interface but cannot be added to additional HAP bridges.
@@ -76,7 +76,7 @@ A lot.
     - [ ] Manage + name HomeKit pairings
 - [x] Plugins
     - [x] Accessories
-    - [ ] Accessory platforms
+    - [x] Accessory platforms
     - [x] All current Homebridge accessories + accessory platforms
     - [x] Web interface plugins
         - [x] Layout sections

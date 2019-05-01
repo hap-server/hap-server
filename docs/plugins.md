@@ -72,11 +72,114 @@ hapserver.registerAccessory('AccessoryType', config => {
 
 #### `hapserver.registerAccessoryPlatform`
 
-TODO
+Registers an accessory platform. An accessory platform is similar to a HomeKit bridge as it provides multiple
+accessories. An accessory platform can work in three ways:
+
+- A function that returns [a Promise resolving to] an array of accessories
+- A class that extends AccessoryPlatform
+- A function that returns [a Promise resolving to] an array of accessories and has access to the AccessoryPlatform
+    instance
+
+```js
+import hapserver from '@hap-server/api';
+import {uuid} from '@hap-server/api/hap';
+
+hapserver.registerAccessoryPlatform('AccessoryBridge', async (config, cached_accessories) => {
+    // This accessory platform connects to a bridge and returns an array of accessories exposed by the bridge
+    // This shouldn't be used in most cases as the accessory platform cannot register any new accessories added to
+    // the bridge
+
+    const bridge = await Bridge.connect(config.host);
+    const lights = await bridge.getLights();
+
+    return Promise.all(lights.map(light => {
+        const accessory = new Accessory(light.name, uuid.generate(config.uuid + ':' + light.uuid));
+
+        // ...
+
+        return accessory;
+    }));
+});
+```
+
+Most accessory platforms should either use `hapserver.registerDynamicAccessoryPlatform` or extend `AccessoryPlatform`.
+
+```js
+import hapserver, {AccessoryPlatform} from '@hap-server/api';
+import {uuid} from '@hap-server/api/hap';
+
+const light_accessories = new WeakMap();
+
+class AccessoryBridge extends AccessoryPlatform {
+    async init(cached_accessories) {
+        this.bridge = await Bridge.connect(this.config.host);
+        const lights = await this.bridge.getLights();
+
+        this.bridge.on('added-light', async light => this.addAccessory(await this.createAccessoryFromLight(light)));
+        this.bridge.on('removed-light', light => {
+            this.removeAccessory(light_accessories.get(light));
+            light_accessories.delete(light);
+        });
+
+        this.registerAccessories(await Promise.all(lights.map(this.createAccessoryFromLight.bind(this))));
+
+        // Once we've registered all accessories from the bridge we can clear any remaining cached accessories
+        this.removeAllCachedAccessories();
+    }
+
+    async createAccessoryFromLight(light) {
+        const accessory = new Accessory(light.name, uuid.generate(this.config.uuid + ':' + light.uuid));
+
+        light_accessories.set(light, accessory);
+
+        // ...
+
+        return accessory;
+    }
+}
+
+// The class' name will be used if one is not provided explicitly
+hapserver.registerAccessoryPlatform(AccessoryBridge);
+```
 
 #### `hapserver.registerDynamicAccessoryPlatform`
 
-TODO
+Registers an accessory platform and provides the AccessoryPlatform instance. This allows the accessory platform to
+register new accessories and use the
+
+```js
+import hapserver from '@hap-server/api';
+import {uuid} from '@hap-server/api/hap';
+
+const light_accessories = new WeakMap();
+
+async function createAccessoryFromLight(accessory_platform, config, bridge, light) {
+    const accessory = new Accessory(light.name, uuid.generate(config.uuid + ':' + light.uuid));
+
+    light_accessories.set(light, accessory);
+
+    // ...
+
+    return accessory;
+}
+
+hapserver.registerDynamicAccessoryPlatform('AccessoryBridge', async (accessory_platform, config, cached_accessories) => {
+    // This accessory platform connects to a bridge and returns an array of accessories exposed by the bridge and
+    // subscribes to "added-light" and "removed-light" events
+
+    const bridge = await Bridge.connect(config.host);
+    const lights = await bridge.getLights();
+
+    bridge.on('added-light', async light => accessory_platform.addAccessory(
+        await createAccessoryFromLight(accessory_platform, config, bridge, light)));
+    bridge.on('removed-light', light => {
+        accessory_platform.removeAccessory(light_accessories.get(light));
+        light_accessories.delete(light);
+    });
+
+    return Promise.all(lights.map(createAccessoryFromLight.bind(null, accessory_platform, config, bridge)));
+});
+```
 
 #### `hapserver.registerAccessoryUI`
 

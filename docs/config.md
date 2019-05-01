@@ -244,13 +244,33 @@ The type of accessory.
 
 The name to display in HomeKit (can be changed in both HomeKit and the web interface separately).
 
-#### `accessories[2].uuid`
+#### `accessories2[].uuid`
 
 Optional. If not provided a UUID will be generated from the plugin name, accessory type and accessory name.
 
 ### `platforms2`
 
-TODO
+The `platforms2` property is an array of accessory platform configuration objects. Plugins can use any additional
+properties.
+
+`platforms2` works exactly the same as `platforms`, but uses hap-server plugins instead of Homebridge plugins.
+
+#### `platforms2[].plugin`
+
+The name of the plugin providing this accessory platform.
+
+#### `platforms2[].platform`
+
+The name of the accessory platform.
+
+#### `platforms2[].name`
+
+A name used to identify this accessory platform instance.
+
+#### `platforms2[].uuid`
+
+Optional. If not provided a UUID will be generated from the plugin name, accessory platform type and accessory
+platform name. This isn't a real UUID, it's used to generate UUIDs for individual accessories.
 
 ### `automation-triggers`
 
