@@ -227,7 +227,7 @@ export default class Server extends EventEmitter {
         await Promise.all(cached_accessories.map(cache => this.loadCachedAccessory(cache).catch(err => {
             if (!dont_throw && typeof dont_throw !== 'undefined') throw err;
 
-            this.log.warn('Error restoring cached accessory', cache.plugin, cache.accessory.displayName, err); 
+            this.log.warn('Error restoring cached accessory', cache.plugin, cache.accessory.displayName, err);
         })));
     }
 
@@ -514,8 +514,10 @@ export default class Server extends EventEmitter {
 
         const accessory_uuid = uuid.split('.')[0];
         if (!service_uuid) service_uuid = uuid.substr(accessory_uuid.length + 1);
-        if (!characteristic_uuid) characteristic_uuid = service_uuid.substr(service_uuid.lastIndexOf('.') + 1),
+        if (!characteristic_uuid) {
+            characteristic_uuid = service_uuid.substr(service_uuid.lastIndexOf('.') + 1);
             service_uuid = service_uuid.substr(0, service_uuid.lastIndexOf('.'));
+        }
 
         const service = this.getService(accessory_uuid, service_uuid);
         if (!service) return;
