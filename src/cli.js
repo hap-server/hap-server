@@ -113,6 +113,12 @@ yargs.command('$0 [config]', 'Run the HAP and web server', yargs => {
         default: false,
     });
 
+    yargs.option('enable-homebridge', {
+        describe: 'Whether to enable Homebridge plugins (can be disabled for development for faster startup)',
+        type: 'boolean',
+        default: true,
+    });
+
     yargs.option('user', {
         alias: 'u',
         describe: 'User to run as after starting',
@@ -229,7 +235,9 @@ yargs.command('$0 [config]', 'Run the HAP and web server', yargs => {
     log.info('Loading HAP bridges');
     await server.loadBridgesFromConfig();
 
-    if (config.bridge || config.accessories || config.platforms) {
+    if (!argv.enableHomebridge) {
+        log.info('Not loading Homebridge as it was disabled on the command line');
+    } else if (config.bridge || config.accessories || config.platforms) {
         log.info('Loading Homebridge');
         await server.loadHomebridge();
     }

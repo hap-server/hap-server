@@ -13,6 +13,7 @@ import * as HapAsync from './hap-async';
 
 import {Plugin as HomebridgePluginManager} from 'homebridge/lib/plugin';
 
+import {PluginAccessoryPlatformAccessory} from './server';
 import Logger from './logger';
 import AutomationTrigger from '../automations/trigger';
 import AutomationCondition from '../automations/condition';
@@ -367,12 +368,12 @@ export class Plugin {
     }
 
     registerAccessoryPlatform(name, handler) {
-        if ((name instanceof AccessoryPlatform.prototype || typeof name === 'function') && !handler) {
+        if ((name.prototype instanceof AccessoryPlatform || typeof name === 'function') && !handler) {
             handler = name;
             name = handler.name;
         }
 
-        if (!(handler instanceof AccessoryPlatform.prototype) && typeof handler !== 'function') {
+        if (!(handler.prototype instanceof AccessoryPlatform) && typeof handler !== 'function') {
             throw new Error('handler must be a class that extends AccessoryPlatform or a function');
         }
 
@@ -380,7 +381,7 @@ export class Plugin {
             throw new Error(this.name + ' has already registered an accessory platform with the name "' + name + '".');
         }
 
-        if (!(handler instanceof AccessoryPlatform.prototype)) {
+        if (!(handler.prototype instanceof AccessoryPlatform)) {
             handler = AccessoryPlatform.withHandler(handler);
         }
 
@@ -435,12 +436,12 @@ export class Plugin {
     }
 
     registerAccessorySetup(name, handler) {
-        if (name instanceof AccessorySetup.prototype && !handler) {
+        if (name.prototype instanceof AccessorySetup && !handler) {
             handler = name;
             name = handler.name;
         }
 
-        if (!(handler instanceof AccessorySetup.prototype)) {
+        if (!(handler.prototype instanceof AccessorySetup)) {
             throw new Error('handler must be a class that extends AccessorySetup');
         }
 
@@ -490,12 +491,12 @@ export class Plugin {
     }
 
     registerAutomationTrigger(name, handler) {
-        if (name instanceof AutomationTrigger.prototype && !handler) {
+        if (name.prototype instanceof AutomationTrigger && !handler) {
             handler = name;
             name = handler.name;
         }
 
-        if (!(handler instanceof AutomationTrigger.prototype)) {
+        if (!(handler.prototype instanceof AutomationTrigger)) {
             throw new Error('handler must be a class that extends AutomationTrigger');
         }
 
@@ -509,12 +510,12 @@ export class Plugin {
     }
 
     registerAutomationCondition(name, handler) {
-        if (name instanceof AutomationCondition.prototype && !handler) {
+        if (name.prototype instanceof AutomationCondition && !handler) {
             handler = name;
             name = handler.name;
         }
 
-        if (!(handler instanceof AutomationCondition.prototype)) {
+        if (!(handler.prototype instanceof AutomationCondition)) {
             throw new Error('handler must be a class that extends AutomationCondition');
         }
 
@@ -528,12 +529,12 @@ export class Plugin {
     }
 
     registerAutomationAction(name, handler) {
-        if (name instanceof AutomationAction.prototype && !handler) {
+        if (name.prototype instanceof AutomationAction && !handler) {
             handler = name;
             name = handler.name;
         }
 
-        if (!(handler instanceof AutomationAction.prototype)) {
+        if (!(handler.prototype instanceof AutomationAction)) {
             throw new Error('handler must be a class that extends AutomationAction');
         }
 
@@ -548,10 +549,20 @@ export class Plugin {
 }
 
 export class AccessoryPlatform {
-    constructor(plugin, config) {
+    /**
+     * Creates an AccessoryPlatform.
+     *
+     * @param {Plugin} plugin
+     * @param {Server} server
+     * @param {object} config
+     * @param {Array} cached_accessories
+     */
+    constructor(plugin, server, config, cached_accessories) {
         Object.defineProperty(this, 'plugin', {value: plugin});
-        Object.defineProperty(this, 'accessories', {value: new Set()});
+        Object.defineProperty(this, 'server', {value: server});
         Object.defineProperty(this, 'config', {value: Object.freeze(config)});
+        Object.defineProperty(this, 'accessories', {value: new Set()});
+        Object.defineProperty(this, 'cached_accessories', {value: cached_accessories});
     }
 
     static withHandler(handler) {
@@ -559,7 +570,8 @@ export class AccessoryPlatform {
             async init(cached_accessories) {
                 const accessories = await handler.call(this.plugin, this.config, cached_accessories);
 
-                this.accessories = accessories;
+                this.addAccessory(...accessories);
+                this.removeAllCachedAccessories();
             }
         };
     }
@@ -569,23 +581,88 @@ export class AccessoryPlatform {
             async init(cached_accessories) {
                 const accessories = await handler.call(this.plugin, this, this.config, cached_accessories);
 
-                this.accessories = accessories;
+                this.addAccessory(...accessories);
+                this.removeAllCachedAccessories();
             }
         };
     }
 
+    /**
+     * Initialise the accessory platform.
+     * Plugins should override this method.
+     *
+     * @param {Array} cached_accessories
+     */
     async init(cached_accessories) {
-        for (const cached_accessory of cached_accessories) {
-            this.accessories.add(cached_accessory);
+        this.addAccessory(...accessories);
+    }
+
+    /**
+     * Adds an accessory.
+     * This will automatically remove it from the cached accessories.
+     *
+     * @param {Accessory} accessory
+     */
+    addAccessory(...accessories) {
+        for (const accessory of accessories) {
+            // eslint-disable-next-line curly
+            if (this.server.accessories.find(a => a.uuid === accessory.UUID)) throw new Error('Already have an' +
+                ' accessory with the UUID "' + accessory.UUID + '"');
+
+            accessory.on('service-characteristic-change', this.server.__handleCharacteristicUpdate);
+
+            const plugin_accessory = new PluginAccessoryPlatformAccessory(this.server, accessory, this.plugin,
+                this.constructor.name, this.config.uuid);
+
+            this.removeCachedAccessory(accessory.UUID);
+
+            this.accessories.add(plugin_accessory);
+            this.server.accessories.push(plugin_accessory);
+
+            for (const bridge of this.server.bridges.filter(bridge => bridge.accessory_uuids.find(accessory_uuid =>
+                accessory_uuid instanceof Array ? accessory_uuid[0] === this.plugin.name &&
+                    accessory_uuid[1] === this.constructor.name && accessory_uuid[2] === accessory.displayName :
+                    accessory_uuid === accessory.UUID
+            ))) {
+                bridge.addAccessory(accessory);
+            }
         }
     }
 
-    addAccessory(accessory) {
-        this.accessories.add(accessory);
+    /**
+     * Removes an accessory.
+     *
+     * @param {Accessory} accessory
+     */
+    removeAccessory(...accessories) {
+        for (const accessory of accessories) {
+            accessory.removeListener('service-characteristic-change', this.server.__handleCharacteristicUpdate);
+
+            this.accessories.remove(accessory);
+        }
     }
 
-    removeAccessory(accessory) {
-        this.accessories.remove(accessory);
+    /**
+     * Removes a cached accessory.
+     *
+     * @param {string} uuid
+     */
+    removeCachedAccessory(uuid) {
+        this.server.removeCachedAccessory(uuid);
+
+        let index;
+        while ((index = this.cached_accessories.findIndex(accessory => accessory.uuid === uuid)) !== -1) {
+            this.cached_accessories.splice(index, 1);
+        }
+    }
+
+    /**
+     * Removes all cached accessories.
+     */
+    removeAllCachedAccessories() {
+        for (const accessory of this.cached_accessories) {
+            this.removeCachedAccessory(accessory.UUID);
+        }
     }
 }
 
