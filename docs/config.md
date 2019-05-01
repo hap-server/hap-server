@@ -71,7 +71,7 @@ An array of plugin paths to add or a single plugin path.
 #### Single file plugins
 
 You can also provide the path to a single JavaScript file and it will be loaded as a plugin, but will not be able to
-use the `hap-server-api/plugin-config` or `hap-server-api/storage` modules.
+use the `@hap-server/api/plugin-config` or `@hap-server/api/storage` modules.
 
 ### `plugins`
 

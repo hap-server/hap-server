@@ -4,7 +4,7 @@ Plugins
 hap-server supports all Homebridge plugins, but also has it's own plugin API that allows plugins to use hap-server
 features.
 
-To make hap-server load a Node.js package as a plugin you need to add the `hap-server` version it supports to the
+To make hap-server load a Node.js package as a plugin you need to add the hap-server version it supports to the
 `engines` property and `hap-server-plugin` to the `keywords` property of it's `package.json` file.
 
 ```json
@@ -15,7 +15,7 @@ To make hap-server load a Node.js package as a plugin you need to add the `hap-s
     ],
     "main": "index.js",
     "engines": {
-        "hap-server": "^0.1.0",
+        "@hap-server/hap-server": "^0.1.0",
         "node": "^8.0.0"
     }
 }
@@ -23,18 +23,18 @@ To make hap-server load a Node.js package as a plugin you need to add the `hap-s
 
 Plugins can support both hap-server and Homebridge.
 
-hap-server patches `Module._load` to allow plugins to load a virtual `hap-server-api` module.
+hap-server patches `Module._load` to allow plugins to load a virtual `@hap-server/api` module.
 
 ```js
-import hapserver, {log} from 'hap-server-api';
+import hapserver, {log} from '@hap-server/api';
 // or
-const {default: hapserver, log} = require('hap-server-api');
+const {default: hapserver, log} = require('@hap-server/api');
 ```
 
-As well as the `hap-server-api` module that contains the plugin API and logger `hap-server-api/hap` has the
-`hap-nodejs` module, `hap-server-api/hap-async` has the Accessory, Service and Characteristic classes from `hap-nodejs`
-but extended to use Promises instead of callbacks, `hap-server-api/config` has the plugin configuration,
-`hap-server-api/storage` has a `node-persist` object that can be used in handlers.
+As well as the `@hap-server/api` module that contains the plugin API and logger `@hap-server/api/hap` has the
+`hap-nodejs` module, `@hap-server/api/hap-async` has the Accessory, Service and Characteristic classes from `hap-nodejs`
+but extended to use Promises instead of callbacks, `@hap-server/api/config` has the plugin configuration,
+`@hap-server/api/storage` has a `node-persist` object that can be used in handlers.
 
 The `node-persist` object will be initialised *after* the plugin loads. If you need to do anything with `node-persit`
 when a plugin loads export an `init` function. Errors thrown while loading the module will be ignored (and will
@@ -42,7 +42,7 @@ prevent the `init` function from being exported) but errors thrown from the `ini
 from loading.
 
 ```js
-import storage from 'hap-server-api/storage';
+import storage from '@hap-server/api/storage';
 
 export async function init() {
     // storage will now have been initialised
@@ -58,8 +58,8 @@ accessories. The handler function is passed the configuration object including t
 return either an Accessory or a Promise which resolves to an Accessory.
 
 ```js
-import hapserver from 'hap-server-api';
-import {Accessory} from 'hap-server-api/hap-async';
+import hapserver from '@hap-server/api';
+import {Accessory} from '@hap-server/api/hap-async';
 
 hapserver.registerAccessory('AccessoryType', config => {
     const accessory = new Accessory(config.name, config.uuid);
@@ -85,7 +85,7 @@ register UI components. In this example the `ui` directory will be available at 
 the web interface will try to load `/accessory-ui/{accessory_ui.id}/index.js`.
 
 ```js
-import hapserver, {AccessoryUI} from 'hap-server-api';
+import hapserver, {AccessoryUI} from '@hap-server/api';
 import path from 'path';
 
 const accessory_ui = new AccessoryUI();
@@ -118,7 +118,7 @@ and should register an accessory UI with an authentication handler component in 
 See [`accessoryui.registerAuthenticationHandlerComponent`](#accessoryui-registerauthenticationhandlercomponent).
 
 ```js
-import hapserver, {AuthenticatedUser} from 'hap-server-api';
+import hapserver, {AuthenticatedUser} from '@hap-server/api';
 
 hapserver.registerAuthenticationHandler('LocalStorage', async (data, previous_user) => {
     // Check the credentials from the web interface
@@ -142,7 +142,7 @@ hapserver.registerAuthenticationHandler('LocalStorage', async (data, previous_us
 You can also create an authentication handler separately to add a reconnect handler.
 
 ```js
-import hapserver, {AuthenticationHandler, AuthenticatedUser, log} from 'hap-server-api';
+import hapserver, {AuthenticationHandler, AuthenticatedUser, log} from '@hap-server/api';
 
 const authentication_handler = new AuthenticationHandler('LocalStorage');
 
@@ -180,8 +180,8 @@ hapserver.registerAuthenticationHandler(authentication_handler);
 
 Registers an automation trigger.
 
-``js
-import hapserver, {AutomationTrigger} from 'hap-server-api';
+```js
+import hapserver, {AutomationTrigger} from '@hap-server/api';
 
 class LocationTrigger extends AutomationTrigger {
     async onstart() {
@@ -208,8 +208,8 @@ hapserver.registerAutomationTrigger('Location', LocationTrigger);
 
 Registers an automation condition.
 
-``js
-import hapserver, {AutomationCondition} from 'hap-server-api';
+```js
+import hapserver, {AutomationCondition} from '@hap-server/api';
 
 class LocationCondition extends AutomationCondition {
     async check(runner) {
@@ -230,8 +230,8 @@ hapserver.registerAutomationCondition('Location', LocationCondition);
 
 Registers an automation action.
 
-``js
-import hapserver, {AutomationAction} from 'hap-server-api';
+```js
+import hapserver, {AutomationAction} from '@hap-server/api';
 import axios from 'axios';
 
 class WebhookAction extends AutomationAction {
@@ -260,7 +260,8 @@ You can also use [webpack](https://webpack.js.org) to bundle your Accessory UI's
 
 ```js
     externals: [
-        (context, request, callback) => request.match(/^(hap-server-api\/.*|vue|axios)$/g) ? callback(null, `require(${JSON.stringify(request)})`) : callback(),
+        (context, request, callback) => request.match(/^(@hap-server/accessory-ui-api(\/.+)|vue|axios|vue-color\/.+)$/g)
+            ? callback(null, `require(${JSON.stringify(request)})`) : callback(),
     ],
 ```
 
@@ -282,8 +283,8 @@ Registers a service component (the small tile). This expects a service type and 
 [Vue component](https://vuejs.org/v2/guide/). The Vue component will receive one prop, `service`.
 
 ```js
-import accessoryui, {Service} from 'hap-server-api/accessory-ui';
-import ServiceComponent from 'hap-server-api/accessory-ui/service';
+import accessoryui, {Service} from '@hap-server/accessory-ui-api';
+import ServiceComponent from '@hap-server/accessory-ui-api/service';
 
 accessoryui.registerServiceComponent(Service.LightSensor, {
     template: `<service class="service-light-sensor" :name="service.name || service.accessory.name">
@@ -309,8 +310,8 @@ Registers an accessory details component (the full screen view). This expects a 
 [Vue component](https://vuejs.org/v2/guide/). The Vue component will receive one prop, `service`.
 
 ```js
-import accessoryui, {Service} from 'hap-server-api/accessory-ui';
-import AccessoryDetails from 'hap-server-api/accessory-ui/accessory-details';
+import accessoryui, {Service} from '@hap-server/accessory-ui-api';
+import AccessoryDetails from '@hap-server/accessory-ui-api/accessory-details';
 
 accessoryui.registerAccessoryDetailsComponent(Service.LightSensor, {
     template: `<accessory-details class="accessory-details-light-sensor" :name="service.name || service.accessory.name"
@@ -340,7 +341,7 @@ registered types will be collapsed into a single service. The first argument doe
 collapsed services don't have to collapse multiple services.
 
 ```js
-import accessoryui, {Service} from 'hap-server-api/accessory-ui';
+import accessoryui, {Service} from '@hap-server/accessory-ui-api';
 
 accessoryui.registerCollapsedService(Service.Television, [
     Service.Television,
@@ -356,7 +357,7 @@ Registers an authentication handler component.
 See [`hapserver.registerAuthenticationHandler`](#hapserver-registerauthenticationhandler).
 
 ```js
-import accessoryui, {AuthenticationHandlerConnection} from 'hap-server-api/accessory-ui';
+import accessoryui, {AuthenticationHandlerConnection} from '@hap-server/accessory-ui-api';
 
 const AuthenticationHandlerComponent = {
     template: `<div class="authentication-handler authentication-handler-storage">
@@ -426,8 +427,8 @@ this.$emit('update-data', {lights: ...});
 ```
 
 ```js
-import accessoryui from 'hap-server-api/accessory-ui';
-import LayoutSection from 'hap-server-api/accessory-ui/layout-section';
+import accessoryui from '@hap-server/accessory-ui-api';
+import LayoutSection from '@hap-server/accessory-ui-api/layout-section';
 
 // Must be globally unique
 const LightsLayoutSectionType = 'FDC60D42-4F6D-4F38-BB3F-E6AB38EC8B87';

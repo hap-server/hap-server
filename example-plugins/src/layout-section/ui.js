@@ -1,7 +1,7 @@
 
-import pluginapi, {Layout} from '@hap-server/api/accessory-ui';
-import LayoutSection from '@hap-server/api/accessory-ui/layout-section';
-import Sortable from '@hap-server/api/accessory-ui/sortable';
+import pluginapi, {Layout} from '@hap-server/accessory-ui-api';
+import LayoutSection from '@hap-server/accessory-ui-api/layout-section';
+import Sortable from '@hap-server/accessory-ui-api/sortable';
 
 // Must be globally unique
 const LightsLayoutSectionType = 'FDC60D42-4F6D-4F38-BB3F-E6AB38EC8B87';

@@ -510,7 +510,8 @@ export default class Server extends EventEmitter {
 
         const accessory_uuid = uuid.split('.')[0];
         if (!service_uuid) service_uuid = uuid.substr(accessory_uuid.length + 1);
-        if (!characteristic_uuid) characteristic_uuid = service_uuid.substr(service_uuid.lastIndexOf('.') + 1), service_uuid = service_uuid.substr(0, service_uuid.lastIndexOf('.'));
+        if (!characteristic_uuid) characteristic_uuid = service_uuid.substr(service_uuid.lastIndexOf('.') + 1),
+            service_uuid = service_uuid.substr(0, service_uuid.lastIndexOf('.'));
 
         const service = this.getService(accessory_uuid, service_uuid);
         if (!service) return;
@@ -691,11 +692,13 @@ Server.instances = new Set();
 
 export class PluginAccessory {
     constructor(server, accessory, plugin, accessory_type, data) {
-        this.server = server;
-        this.accessory = accessory;
-        this.plugin = plugin;
+        Object.defineProperty(this, 'server', {value: server});
+        Object.defineProperty(this, 'accessory', {value: accessory});
+        Object.defineProperty(this, 'plugin', {value: plugin});
         this.accessory_type = accessory_type;
         this.data = data;
+
+        Object.defineProperty(this.accessory, 'plugin_accessory', {value: this});
     }
 
     get uuid() {
@@ -750,7 +753,8 @@ export class PluginAccessory {
             const service = new Service(service_cache.displayName, service_cache.UUID, service_cache.subtype);
 
             service.characteristics = service_cache.characteristics.map(characteristic_cache => {
-                const characteristic = new Characteristic(characteristic_cache.displayName, characteristic_cache.UUID, characteristic_cache.props);
+                const characteristic = new Characteristic(characteristic_cache.displayName, characteristic_cache.UUID,
+                    characteristic_cache.props);
 
                 characteristic.value = characteristic_cache.value;
                 characteristic.status = characteristic_cache.status;

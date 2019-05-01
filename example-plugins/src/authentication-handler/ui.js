@@ -1,5 +1,5 @@
 
-import accessoryui, {AuthenticatedUser} from '@hap-server/api/accessory-ui';
+import accessoryui, {AuthenticatedUser} from '@hap-server/accessory-ui-api';
 
 const AuthenticationHandlerComponent = {
     template: `<div class="authentication-handler authentication-handler-storage">
@@ -88,4 +88,4 @@ const AuthenticationHandlerComponent = {
     },
 };
 
-accessoryui.registerAuthenticationHandlerComponent('LocalStorage', AuthenticationHandlerComponent, 'Local Storage');
+accessoryui.registerAuthenticationHandlerComponent('LocalStorage', AuthenticationHandlerComponent, 'Local users');

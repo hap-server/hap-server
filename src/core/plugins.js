@@ -166,7 +166,7 @@ export class PluginManager {
             return express;
         }
 
-        log.warn(plugin.name, 'tried to load an unknown virtual hap-server-api/* module');
+        log.warn(plugin.name, 'tried to load an unknown virtual @hap-server/api/* module');
     }
 
     async loadPlugin(plugin_path) {
@@ -182,14 +182,14 @@ export class PluginManager {
                 throw new Error('"' + plugin_path + '" doesn\'t have a name in it\'s package.json');
             }
 
-            if (!package_json.engines || !package_json.engines['hap-server'] ||
+            if (!package_json.engines || !package_json.engines['@hap-server/hap-server'] ||
                 !package_json.keywords || !package_json.keywords.includes('hap-server-plugin')) {
                 throw new Error('"' + package_json.name + '" is not a hap-server plugin');
             }
 
-            if (!semver.satisfies(hap_server_version, package_json.engines['hap-server'])) {
+            if (!semver.satisfies(hap_server_version, package_json.engines['@hap-server/hap-server'])) {
                 throw new Error('"' + package_json.name + '" requires a hap-server version of '
-                    + package_json.engines['hap-server'] + ' - you have version ' + hap_server_version);
+                    + package_json.engines['@hap-server/hap-server'] + ' - you have version ' + hap_server_version);
             }
 
             if (package_json.engines.node && !semver.satisfies(process.version, package_json.engines.node)) {
@@ -570,7 +570,7 @@ export class AccessoryPlatform {
     static withHandler(handler) {
         return class extends AccessoryPlatform {
             async init(cached_accessories) {
-                const accessories = await handler.call(this, this.config, cached_accessories);
+                const accessories = await handler.call(this.plugin, this.config, cached_accessories);
 
                 this.accessories = accessories;
             }
@@ -580,7 +580,7 @@ export class AccessoryPlatform {
     static withDynamicHandler(handler) {
         return class extends AccessoryPlatform {
             async init(cached_accessories) {
-                const accessories = await handler.call(this, this, this.config, cached_accessories);
+                const accessories = await handler.call(this.plugin, this, this.config, cached_accessories);
 
                 this.accessories = accessories;
             }

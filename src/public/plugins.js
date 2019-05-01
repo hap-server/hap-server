@@ -68,24 +68,22 @@ export class PluginManager {
             request = path.resolve(path.dirname(script), request);
         }
 
-        if (request === 'hap-server-api' || request.startsWith('hap-server-api/')) {
+        if (request === 'hap-server-api/accessory-ui' || request.startsWith('hap-server-api/accessory-ui')) {
             console.warn('Using deprecated hap-server-api/* module. Use @hap-server/api/* instead.');
-            request = '@hap-server/api' + request.substr(14);
+            request = '@hap-server/accessory-ui-api' + request.substr(26);
         }
 
-        console.log(accessory_ui, request);
-
-        if (request === '@hap-server/api/accessory-ui') {
+        if (request === '@hap-server/accessory-ui-api') {
             return this.getPluginAPI(accessory_ui);
-        } else if (request === '@hap-server/api/accessory-ui/service') {
+        } else if (request === '@hap-server/accessory-ui-api/service') {
             return service_component_module;
-        } else if (request === '@hap-server/api/accessory-ui/accessory-details') {
+        } else if (request === '@hap-server/accessory-ui-api/accessory-details') {
             return accessory_details_component_module;
-        } else if (request === '@hap-server/api/accessory-ui/layout-section') {
+        } else if (request === '@hap-server/accessory-ui-api/layout-section') {
             return layout_section_component_module;
-        } else if (request === '@hap-server/api/accessory-ui/sortable') {
+        } else if (request === '@hap-server/accessory-ui-api/sortable') {
             return sortable_component_module;
-        } else if (request.startsWith('@hap-server/api/accessory-ui/icons/') && icon_component_modules.has('./' + request.substr(35) + '.vue')) {
+        } else if (request.startsWith('@hap-server/accessory-ui-api/icons/') && icon_component_modules.has('./' + request.substr(35) + '.vue')) {
             return icon_component_modules.get('./' + request.substr(35) + '.vue');
         } else if (request === 'vue') {
             return vue_module;
