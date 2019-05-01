@@ -696,6 +696,7 @@ export default class Connection {
             };
         }
 
+        await new Promise((rs, rj) => mkdirp(this.server.assets_path, err => err ? rj(err) : rs()));
         await new Promise((rs, rj) => fs.rename(req.file.path, filepath, err => err ? rj(err) : rs()));
 
         this.uploads.push({
