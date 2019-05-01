@@ -9,6 +9,8 @@ interface, storing historical data and configuring automations in the web interf
 It includes a plugin system to add accessories, accessory configuration, authentication and options for automations.
 All Homebridge plugins are supported and work with the web interface but cannot be added to additional HAP bridges.
 
+![Screenshot](assets/screenshot-layout-1.png)
+
 ### TODO
 
 A lot.
