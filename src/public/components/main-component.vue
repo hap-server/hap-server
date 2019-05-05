@@ -2,7 +2,7 @@
     <div class="root" :class="{scrolled}">
         <transition name="fade">
             <div :key="background_url" class="background"
-                :style="{'background-image': `url(${JSON.stringify(background_url)})`}" />
+                :style="{'background-image': background_url ? `url(${JSON.stringify(background_url)})` : 'none'}" />
         </transition>
 
         <div class="header">
@@ -10,7 +10,7 @@
             </div>
 
             <h1>
-                <span class="d-inline d-sm-none">{{ (layout ? authenticated_user && layout.uuid === 'Overview.' + authenticated_user.id ? name : layout.name : name) || 'Home' }}</span>
+                <span class="d-inline d-sm-none">{{ show_automations ? 'Automations' : (layout ? authenticated_user && layout.uuid === 'Overview.' + authenticated_user.id ? name : layout.name : name) || 'Home' }}</span>
                 <span class="d-none d-sm-inline">{{ name || 'Home' }}</span>
             </h1>
 
@@ -18,12 +18,16 @@
                 <layout-selector v-model="layout" :layouts="layouts" :name="name"
                     :authenticated-user="authenticated_user" :can-create="can_create_layouts"
                     :can-update-home-settings="can_update_home_settings" :can-access-server-settings="can_access_server_settings"
-                    @edit-layout="$refs.layout.edit = !$refs.layout.edit" @modal="modal => modals.push(modal)" />
+                    :show-automations="show_automations" :can-access-automations="can_access_automations"
+                    @edit-layout="$refs.layout.edit = !$refs.layout.edit" @show-automations="show_automations = $event"
+                    @modal="modal => modals.push(modal)" />
             </div>
         </div>
 
         <div class="main">
-            <layout ref="layout" :key="layout ? layout.uuid : ''" :layout="layout"
+            <automations v-if="show_automations" :connection="connection" />
+
+            <layout v-else ref="layout" :key="layout ? layout.uuid : ''" :layout="layout"
                 :connection="connection" :accessories="accessories" :bridge-uuids="bridge_uuids"
                 :title="(layout ? authenticated_user && layout.uuid === 'Overview.' + authenticated_user.id ? name : layout.name : name) || 'Home'" :sections="layout && layout.sections"
                 :can-edit="layout && layout.can_set" :can-delete="layout && layout.can_delete" :show-all-accessories="!layout"
@@ -44,7 +48,8 @@
                 :connection="connection" :accessories="accessories" :layout="modal.layout"
                 @close="modals.splice(index, 1)" />
             <layout-settings v-else-if="modal.type === 'new-layout'" :key="index" :ref="'modal-' + index"
-                :connection="connection" :accessories="accessories" :create="true" @layout="l => addLayout(layout = l)"
+                :connection="connection" :accessories="accessories" :create="true"
+                @layout="l => (addLayout(layout = l), show_automations = false)"
                 @close="modals.splice(index, 1)" />
             <layout-settings v-else-if="modal.type === 'delete-layout'" :key="index" :ref="'modal-' + index"
                 :connection="connection" :accessories="accessories" :layout="modal.layout" :delete-layout="true"
@@ -105,6 +110,8 @@
             LayoutSelector,
             AccessoryDetails,
 
+            Automations: () => import(/* webpackChunkName: 'automations' */ './automations.vue'),
+
             Settings: () => import(/* webpackChunkName: 'settings' */ './settings.vue'),
             LayoutSettings: () => import(/* webpackChunkName: 'settings' */ './layout-settings.vue'),
             AccessorySettings: () => import(/* webpackChunkName: 'settings' */ './accessory-settings.vue'),
@@ -121,6 +128,9 @@
                 default_background_url: null,
                 layouts: {},
                 layout: null,
+
+                show_automations: false,
+                can_access_automations: true, // TODO
 
                 can_update_home_settings: false,
                 can_access_server_settings: false,
@@ -173,6 +183,8 @@
                 return this.name || 'Home';
             },
             background_url() {
+                if (this.show_automations) return;
+
                 if (this.layout && this.layout.background_url) return 'assets/' + this.layout.background_url;
                 if (this.default_background_url) return 'assets/' + this.default_background_url;
 
