@@ -10,6 +10,9 @@ const broadcast_message_methods = {
     'add-layout': 'handleAddLayoutMessage',
     'remove-layout': 'handleRemoveLayoutMessage',
     'update-layout': 'handleUpdateLayoutMessage',
+    'add-layout-section': 'handleAddLayoutSectionMessage',
+    'remove-layout-section': 'handleRemoveLayoutSectionMessage',
+    'update-layout-section': 'handleUpdateLayoutSectionMessage',
     'stdout': 'handleStdout',
     'stderr': 'handleStderr',
 };
@@ -253,6 +256,57 @@ export default class Connection extends EventEmitter {
         });
     }
 
+    listLayoutSections(...id) {
+        return this.send({
+            type: 'list-layout-sections',
+            id,
+        });
+    }
+
+    createLayoutSections(...id_data) {
+        return this.send({
+            type: 'create-layout-sections',
+            id_data,
+        });
+    }
+
+    createLayoutSection(layout_uuid, data) {
+        return this.createLayoutSections([layout_uuid, data]);
+    }
+
+    getLayoutSections(...ids) {
+        return this.send({
+            type: 'get-layout-sections',
+            ids,
+        });
+    }
+
+    getLayoutSection(layout_uuid, section_id) {
+        return this.getLayoutSection([layout_uuid, section_id]);
+    }
+
+    setLayoutSections(...ids_data) {
+        return this.send({
+            type: 'set-layout-sections',
+            ids_data,
+        });
+    }
+
+    setLayoutSection(layout_uuid, section_id, data) {
+        return this.setLayoutSections([layout_uuid, section_id, data]);
+    }
+
+    deleteLayoutSections(...ids) {
+        return this.send({
+            type: 'delete-layout-sections',
+            ids,
+        });
+    }
+
+    deleteLayoutSection(layout_uuid, section_id) {
+        return this.deleteLayoutSections([layout_uuid, section_id]);
+    }
+
     getCommandLineFlags() {
         return this.send({
             type: 'get-command-line-flags',
@@ -348,6 +402,18 @@ export default class Connection extends EventEmitter {
 
     handleUpdateLayoutMessage(data) {
         this.emit('update-layout', data.uuid, data.data);
+    }
+
+    handleAddLayoutSectionMessage(data) {
+        this.emit('add-layout-section', data.layout_uuid, data.uuid);
+    }
+
+    handleRemoveLayoutSectionMessage(data) {
+        this.emit('remove-layout-section', data.layout_uuid, data.uuid);
+    }
+
+    handleUpdateLayoutSectionMessage(data) {
+        this.emit('update-layout-section', data.layout_uuid, data.uuid, data.data);
     }
 
     handleStdout(data) {

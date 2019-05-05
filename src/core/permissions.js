@@ -265,7 +265,8 @@ export default class Permissions {
         if (data.type === 'update-characteristic') return this.checkCanGetAccessory(data.accessory_uuid);
         if (data.type === 'update-accessory-data') return this.checkCanGetAccessory(data.uuid);
         if (data.type === 'update-home-settings') return this.checkCanGetHomeSettings();
-        if (data.type === 'update-layout') return this.checkCanGetLayout(data.uuid);
+        if (['new-layout', 'update-layout', 'remove-layout'].includes(data.type)) return this.checkCanGetLayout(data.uuid);
+        if (['new-layout-section', 'update-layout-section', 'remove-layout-section'].includes(data.type)) return this.checkCanGetLayout(data.layout_uuid);
 
         if (DEVELOPMENT && this.__development_allow_local()) return true;
 

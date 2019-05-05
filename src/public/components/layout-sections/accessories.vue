@@ -3,19 +3,19 @@
         :layout="layout" :section="section" :name="section.name" default-name="Accessories"
         :editing="editing" @edit="edit => $emit('edit', edit)" @update-name="name => $emit('update-name', name)"
     >
-        <draggable v-if="editing" class="draggable" :list="section.accessories" :group="accessoriesDraggableGroup"
-            @change="changes => $emit('update-data', {})"
+        <draggable v-if="editing" class="draggable" v-model="effective_accessories_order"
+            :group="accessoriesDraggableGroup" :disabled="staged_accessories_order"
         >
-            <template v-for="id in section.accessories">
+            <template v-for="id in effective_accessories_order">
                 <service v-if="getService(id)" :key="id" :service="getService(id)" :edit="editing"
                     @show-details="closing => $emit('modal', {type: 'accessory-details', service: getService(id), closing})"
                     @show-settings="$emit('modal', {type: 'service-settings', service: getService(id)})" />
             </template>
         </draggable>
 
-        <sortable v-else :sorted="section.accessories" :filter-text="true">
-            <template v-for="service in section.accessories.map(id => getService(id)).filter(s => s)">
-                <service :key="service.accessory.uuid + '.' + service.uuid"
+        <sortable v-else :sorted="effective_accessories_order" :filter-text="true">
+            <template v-for="service in effective_accessories_order.map(id => getService(id))">
+                <service v-if="service" :key="service.accessory.uuid + '.' + service.uuid"
                     :connection="connection" :service="service" :edit="editing"
                     @show-details="closing => $emit('modal', {type: 'accessory-details', service, closing})"
                     @show-settings="$emit('modal', {type: 'service-settings', service})" />
@@ -47,15 +47,45 @@
             accessoriesDraggableGroup: String,
             editing: Boolean,
         },
+        data() {
+            return {
+                updating_accessories_order: null,
+                staged_accessories_order: null,
+            };
+        },
         inject: {
             connection: {from: ConnectionSymbol},
             layout: {from: LayoutSymbol},
             getService: {from: GetServiceSymbol},
         },
-        created() {
-            if (!this.section.accessories) {
-                this.$set(this.section, 'accessories', []);
-            }
+        computed: {
+            effective_accessories_order: {
+                get() {
+                    return this.staged_accessories_order || this.accessories_order;
+                },
+                set(accessories_order) {
+                    this.accessories_order = accessories_order;
+                },
+            },
+            accessories_order: {
+                get() {
+                    return this.section.accessories || [];
+                },
+                set(accessories_order) {
+                    if (!this.updating_accessories_order) this.updating_accessories_order = Promise.resolve();
+
+                    const updating_accessories_order = this.updating_accessories_order = this.updating_accessories_order.then(() => {
+                        this.staged_accessories_order = accessories_order;
+                        return this.section.updateData(Object.assign({}, this.section.data, {accessories: accessories_order}));
+                    }).catch(() => null).then(() => {
+                        if (updating_accessories_order !== this.updating_accessories_order) return;
+                        this.updating_accessories_order = null;
+                        this.staged_accessories_order = null;
+                    });
+
+                    return updating_accessories_order;
+                },
+            },
         },
     };
 </script>

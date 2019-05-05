@@ -8,17 +8,15 @@
             <button class="btn btn-default btn-sm mt-3" @click="$emit('ping')">Ping</button>
         </div>
 
-        <component :is="edit ? 'draggable' : 'div'" :list="sections" handle=".drag-handle"
-            @change="$emit('update-accessories')"
-        >
-            <template v-for="section in showAllAccessories && !edit ? [{accessories: getAllServices()}] : sections">
+        <component :is="edit ? 'draggable' : 'div'" v-model="effective_sections" handle=".drag-handle" :disabled="staged_sections_order">
+            <template v-for="section in effective_sections">
                 <component v-if="section_components.has(section.type || 'Accessories')"
                     :is="section_components.get(section.type || 'Accessories').component" :accessories="accessories"
-                    :key="getKeyForSection(section)" :section="section" :accessories-draggable-group="'' + _uid"
+                    :key="section.uuid" :section="section" :accessories-draggable-group="'' + _uid"
                     :editing="edit" @edit="e => edit = e" @update-name="name => updateSectionName(section, name)"
                     @update-data="data => updateSectionData(section, data)" @modal="modal => $emit('modal', modal)" />
 
-                <layout-section v-else-if="edit" class="unknown-layout-section" :key="getKeyForSection(section)"
+                <layout-section v-else-if="edit" class="unknown-layout-section" :key="section.uuid"
                     :section="section" :name="section.name" :editing="edit" @edit="$emit('edit', $event)"
                     @update-name="name => updateSectionName(section, name)"
                 >
@@ -27,7 +25,7 @@
             </template>
         </component>
 
-        <div v-if="(!sections || !sections.length) && !edit && !showAllAccessories" class="section">
+        <div v-if="(!sections || !Object.keys(sections).length) && !edit && !showAllAccessories" class="section">
             <p>This layout has no accessories.</p>
             <button v-if="canEdit" class="btn btn-primary btn-sm" @click="edit = true">Add accessories</button>
         </div>
@@ -63,25 +61,22 @@
 
 <script>
     import Connection from '../../common/connection';
-    import Layout from '../layout';
+    import Layout, {LayoutSection} from '../layout';
     import Service from '../service';
     import {
         GetAllDisplayServicesSymbol, GetServiceSymbol, LayoutSymbol, LayoutAddSectionSymbol,
         LayoutRemoveSectionSymbol, LayoutGetEditingSymbol, LayoutGetCanEditSymbol, LayoutSetEditingSymbol,
     } from '../internal-symbols';
 
-    import LayoutSection from './layout-section.vue';
+    import LayoutSectionComponent from './layout-section.vue';
     import section_components from './layout-sections';
 
     import ServiceComponent from './service.vue';
     import ServiceContainer from './service-container.vue';
 
-    const sectionKeys = new WeakMap();
-    let keysForSections = 0;
-
     export default {
         components: {
-            LayoutSection,
+            LayoutSection: LayoutSectionComponent,
             Service: ServiceComponent,
             ServiceContainer,
             Draggable: () => import(/* webpackChunkName: 'layout-editor' */ 'vuedraggable'),
@@ -90,7 +85,7 @@
             connection: Connection,
             layout: Layout,
             title: {type: String, default: 'Home'},
-            sections: {type: Array, default: () => []},
+            sections: Object,
             accessories: Object,
             bridgeUuids: {type: Array, default: () => []},
             showAllAccessories: Boolean,
@@ -101,6 +96,9 @@
             return {
                 edit: false,
                 section_components,
+
+                updating_sections_order: null,
+                staged_sections_order: null,
             };
         },
         inject: {
@@ -125,8 +123,45 @@
             };
         },
         computed: {
+            effective_sections: {
+                get() {
+                    if (this.showAllAccessories && !this.edit) return [this.all_accessories_section];
+
+                    return (this.staged_sections_order || this.sections_order).map(uuid => this.sections[uuid]);
+                },
+                set(effective_sections) {
+                    this.sections_order = effective_sections.map(section => section.uuid);
+                },
+            },
+            sections_order: {
+                get() {
+                    const sections_order = this.layout && this.layout.sections_order || [];
+
+                    return sections_order.concat(Object.values(this.sections || {})
+                        .filter(section => !sections_order.includes(section.uuid)).map(section => section.uuid));
+                },
+                set(sections_order) {
+                    if (!this.updating_sections_order) this.updating_sections_order = Promise.resolve();
+
+                    const updating_sections_order = this.updating_sections_order = this.updating_sections_order.then(() => {
+                        this.staged_sections_order = sections_order;
+                        this.$set(this.layout, 'staged_sections_order', sections_order);
+                        return this.layout.updateData(Object.assign({}, this.layout.data, {sections_order}));
+                    }).catch(() => null).then(() => {
+                        if (updating_sections_order !== this.updating_sections_order) return;
+                        this.updating_sections_order = null;
+                        this.staged_sections_order = null;
+                        this.$delete(this.layout, 'staged_sections_order');
+                    });
+
+                    return updating_sections_order;
+                },
+            },
+            all_accessories_section() {
+                return new LayoutSection(this.layout, 'AllAccessories', {accessories: this.getAllServices()});
+            },
             other_accessories() {
-                return this.getAllServices().filter(uuid => this.getService(uuid) && !this.sections
+                return this.getAllServices().filter(uuid => this.getService(uuid) && !Object.values(this.sections)
                     .find(s => s.accessories && s.accessories.includes(uuid)));
             },
             status() {
@@ -137,7 +172,7 @@
                     switch_services: [], switch_rooms: [], active_switch_services: [], active_switch_rooms: [], switches_count: 0, active_switches_count: 0,
                 };
 
-                for (const section of this.sections || []) {
+                for (const section of Object.values(this.sections || {})) {
                     if (!section.accessories) continue;
 
                     for (const uuid of section.accessories) {
@@ -263,7 +298,7 @@
 
                 const accessories = new Set();
 
-                for (const section of this.sections) {
+                for (const section of Object.values(this.sections || {})) {
                     if (!section.accessories) continue;
 
                     for (const uuid of section.accessories) {
@@ -281,10 +316,10 @@
         },
         watch: {
             edit(edit) {
-                if (edit && !this.sections.length) this.addSection(0);
+                if (edit && !Object.keys(this.sections).length) this.addSection(0);
             },
             sections(sections) {
-                if (this.edit && !sections.length) this.addSection(0);
+                if (this.edit && !Object.keys(sections).length) this.addSection(0);
             },
         },
         methods: {
@@ -294,40 +329,25 @@
                 return section.accessories.map(uuid => this.accessories[uuid]).filter(a => a);
             },
             addSection(index, data) {
-                this.sections.splice(index || 0, 0, data || {name: 'Accessories', type: 'Accessories', accessories: []});
-                this.layout.updateData(this.layout.data);
+                this.layout.addSection(data, index);
             },
-            deleteSection(index) {
-                this.sections.splice(index, 1);
-                this.layout.updateData(this.layout.data);
-            },
-            getKeyForSection(section) {
-                if (sectionKeys.has(section)) return sectionKeys.get(section);
-
-                const key = keysForSections++;
-                sectionKeys.set(section, key);
-                return key;
+            deleteSection(section) {
+                this.layout.deleteSection(section);
             },
             updateSectionName(section, name) {
                 console.log('Updating section name', section, name);
 
-                section.name = name;
-                this.layout.updateData(this.layout.data);
+                return this.updateSectionData(section, {name});
             },
             updateSectionData(section, data) {
                 console.log('Update section data', section, data);
 
-                Object.assign(section, data);
-                this.layout.updateData(this.layout.data);
+                return section.updateData(Object.assign({}, section.data, data));
             },
             updateSectionAccessories(section, changes) {
                 console.log('Updating section accessories', section, changes);
 
-                // if (changes.added) section.accessories.splice(0, changes.added.newIndex, changes.added.element);
-                // if (changes.removed) section.accessories.splice(1, changes.removed.oldIndex);
-
-                // this.$emit('update-accessories', section, changes);
-                this.layout.updateData(this.layout.data);
+                section.updateData(section.data);
 
                 if (changes.added) {
                     const service = this.getService(changes.added.element);

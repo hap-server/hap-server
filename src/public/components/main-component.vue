@@ -379,6 +379,26 @@
                     layout._setData(data);
                 });
 
+                connection.on('add-layout-section', async (layout_uuid, uuid) => {
+                    const layout = this.layouts[layout_uuid];
+                    const [data] = await this.connection.getLayoutSection(layout_uuid, uuid);
+
+                    layout._handleNewLayoutSection(uuid, data);
+                });
+
+                connection.on('remove-layout-section', (layout_uuid, uuid) => {
+                    const layout = this.layouts[layout_uuid];
+
+                    layout._handleRemoveLayoutSection(uuid);
+                });
+
+                connection.on('update-layout-section', (layout_uuid, uuid, data) => {
+                    const layout = this.layouts[layout_uuid];
+                    const section = layout.sections[uuid];
+
+                    section._setData(data);
+                });
+
                 connection.on('add-accessory', async accessory_uuid => {
                     if (this.accessories[accessory_uuid]) return;
 
@@ -498,13 +518,34 @@
                         removed_layout_uuids.push(uuid);
                     }
 
-                    const [new_layouts_data, new_layouts_permissions] = await Promise.all([
+                    const [new_layouts_data, new_layouts_sections, new_layouts_permissions] = await Promise.all([
                         this.connection.getLayouts(...new_layout_uuids),
+                        this.connection.listLayoutSections(...new_layout_uuids).then(section_uuids => {
+                            const flat_section_uuids = section_uuids.map((section_uuids, index) => {
+                                return section_uuids.map(section_uuid => [new_layout_uuids[index], section_uuid, index]);
+                            }).flat();
+
+                            return this.connection.getLayoutSections(...flat_section_uuids.map(([layout_uuid, section_uuid, index]) => [layout_uuid, section_uuid])).then(section_data => {
+                                const all_layout_sections = {};
+
+                                for (const index in section_data) {
+                                    const layout_uuid = flat_section_uuids[index][0];
+                                    const layout_index = flat_section_uuids[index][2];
+                                    const section_uuid = flat_section_uuids[index][1];
+                                    const data = section_data[index];
+
+                                    const layout_sections = all_layout_sections[layout_uuid] || (all_layout_sections[layout_uuid] = {});
+                                    layout_sections[section_uuid] = data;
+                                }
+
+                                return new_layout_uuids.map(uuid => all_layout_sections[uuid]);
+                            });
+                        }),
                         this.connection.getLayoutsPermissions(...new_layout_uuids),
                     ]);
 
-                    const new_layouts = new_layout_uuids.map((uuid, index) =>
-                        new Layout(this.connection, uuid, new_layouts_data[index], new_layouts_permissions[index]));
+                    const new_layouts = new_layout_uuids.map((uuid, index) => new Layout(this.connection, uuid,
+                        new_layouts_data[index], new_layouts_sections[index], new_layouts_permissions[index]));
 
                     for (const layout of new_layouts) {
                         this.$set(this.layouts, layout.uuid, layout);
@@ -529,7 +570,7 @@
                     this.loading_layouts = false;
                 }
 
-                const layout_uuid = localStorage.getItem('layout') || this.authenticated_user ? 'Overview.' + this.authenticated_user.id : null;
+                const layout_uuid = localStorage.getItem('layout') || (this.authenticated_user ? 'Overview.' + this.authenticated_user.id : null);
                 if (layout_uuid && this.layouts[layout_uuid] && !this.layout) this.layout = this.layouts[layout_uuid];
             },
             addLayout(layout) {

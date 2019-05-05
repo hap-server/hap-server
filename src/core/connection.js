@@ -31,6 +31,11 @@ const message_methods = {
     'get-layouts-permissions': 'handleGetLayoutsPermissionsMessage',
     'set-layouts': 'handleSetLayoutsMessage',
     'delete-layouts': 'handleDeleteLayoutsMessage',
+    'list-layout-sections': 'handleListLayoutSectionsMessage',
+    'create-layout-sections': 'handleCreateLayoutSectionsMessage',
+    'get-layout-sections': 'handleGetLayoutSectionsMessage',
+    'set-layout-sections': 'handleSetLayoutSectionsMessage',
+    'delete-layout-sections': 'handleDeleteLayoutSectionsMessage',
     'get-command-line-flags': 'handleGetCommandLineFlagsMessage',
     'enable-proxy-stdout': 'handleEnableProxyStdoutMessage',
     'disable-proxy-stdout': 'handleDisableProxyStdoutMessage',
@@ -146,7 +151,7 @@ export default class Connection {
             try {
                 data = await data;
             } catch (err) {
-                this.log.error('Error in message handler', err);
+                this.log.error('Error in message handler', data.type, err);
 
                 data = {
                     reject: true,
@@ -169,8 +174,11 @@ export default class Connection {
         }
 
         if (data && data.type && message_methods[data.type]) {
-            this[message_methods[data.type]].call(this, messageid, data);
-            return;
+            try {
+                this[message_methods[data.type]].call(this, messageid, data);
+            } catch (err) {
+                this.log.error('Error in message handler', data.type, err);
+            }
         }
     }
 
@@ -730,14 +738,20 @@ export default class Connection {
 
         const data = await this.server.storage.getItem('Layout.' + uuid);
 
+        const section_uuids = await this.server.storage.getItem('LayoutSections.' + uuid) || [];
+        for (const section_uuid of section_uuids) {
+            await this.server.storage.removeItem('LayoutSection.' + uuid + '.' + section_uuid);
+        }
+
+        await this.server.storage.removeItem('LayoutSections.' + uuid);
+        await this.server.storage.removeItem('Layout.' + uuid);
+
         const layout_uuids = await this.server.storage.getItem('Layouts') || [];
         let index;
         while ((index = layout_uuids.indexOf(uuid)) > -1) {
             layout_uuids.splice(index, 1);
         }
         await this.server.storage.setItem('Layouts', layout_uuids);
-
-        await this.server.storage.removeItem('Layout.' + uuid);
 
         this.server.sendBroadcast({
             type: 'remove-layout',
@@ -759,6 +773,137 @@ export default class Connection {
             await new Promise((rs, rj) => fs.unlink(path.join(this.server.assets_path, data.background_url),
                 err => err ? rj(err) : rs()));
         }
+    }
+
+    /**
+     * Gets the UUID of every layout section.
+     */
+    handleListLayoutSectionsMessage(messageid, data) {
+        this.respond(messageid, Promise.all(data.id.map(id => this.listLayoutSections(id))));
+    }
+
+    async listLayoutSections(uuid) {
+        await this.permissions.assertCanGetLayout(uuid);
+
+        return await this.server.storage.getItem('LayoutSections.' + uuid) || [];
+    }
+
+    /**
+     * Creates layout sections.
+     */
+    handleCreateLayoutSectionsMessage(messageid, data) {
+        this.respond(messageid, this.createLayoutSections(...data.id_data));
+    }
+
+    createLayoutSections(...id_data) {
+        return Promise.all(id_data.map(([layout_uuid, data]) => this.createLayoutSection(layout_uuid, data)));
+    }
+
+    async createLayoutSection(layout_uuid, data) {
+        await this.permissions.assertCanSetLayout(layout_uuid);
+
+        const uuid = genuuid();
+
+        this.log.debug('Creating layout section', uuid, data);
+
+        await this.server.storage.setItem('LayoutSection.' + layout_uuid + '.' + uuid, data);
+
+        const section_uuids = await this.server.storage.getItem('LayoutSections.' + layout_uuid) || [];
+        if (!section_uuids.includes(uuid)) {
+            section_uuids.push(uuid);
+            await this.server.storage.setItem('LayoutSections.' + layout_uuid, section_uuids);
+        }
+
+        this.server.sendBroadcast({
+            type: 'new-layout-section',
+            layout_uuid,
+            uuid,
+        }, this.ws);
+
+        return uuid;
+    }
+
+    /**
+     * Gets data of layouts.
+     */
+    handleGetLayoutSectionsMessage(messageid, data) {
+        this.respond(messageid, this.getLayoutSections(...data.ids));
+    }
+
+    getLayoutSections(...ids) {
+        return Promise.all(ids.map(([layout_uuid, id]) => this.getLayoutSection(layout_uuid, id)));
+    }
+
+    async getLayoutSection(layout_uuid, uuid) {
+        await this.permissions.assertCanGetLayout(layout_uuid);
+
+        this.log.debug('Getting data for layout section', layout_uuid, uuid);
+
+        return await this.server.storage.getItem('LayoutSection.' + layout_uuid + '.' + uuid) || {};
+    }
+
+    /**
+     * Sets data of layout sections.
+     */
+    handleSetLayoutSectionsMessage(messageid, data) {
+        this.respond(messageid, this.setLayoutSections(...data.ids_data));
+    }
+
+    setLayoutSections(...ids_data) {
+        return Promise.all(ids_data.map(([layout_uuid, id, data]) => this.setLayoutSection(layout_uuid, id, data)));
+    }
+
+    async setLayoutSection(layout_uuid, uuid, data) {
+        await this.permissions.assertCanSetLayout(layout_uuid);
+
+        this.log.debug('Setting data for layout section', layout_uuid, uuid, data);
+
+        await this.server.storage.setItem('LayoutSection.' + layout_uuid + '.' + uuid, data);
+
+        const section_uuids = await this.server.storage.getItem('LayoutSections.' + layout_uuid) || [];
+        if (!section_uuids.includes(uuid)) {
+            section_uuids.push(uuid);
+            await this.server.storage.setItem('LayoutSections.' + layout_uuid, section_uuids);
+        }
+
+        this.server.sendBroadcast({
+            type: 'update-layout-section',
+            layout_uuid,
+            uuid,
+            data,
+        }, this.ws);
+    }
+
+    /**
+     * Deletes layout sections.
+     */
+    handleDeleteLayoutSectionsMessage(messageid, data) {
+        this.respond(messageid, this.deleteLayoutSections(...data.ids));
+    }
+
+    deleteLayoutSections(...ids) {
+        return Promise.all(ids.map(([layout_uuid, id]) => this.deleteLayoutSection(layout_uuid, id)));
+    }
+
+    async deleteLayoutSection(layout_uuid, uuid) {
+        await this.permissions.assertCanSetLayout(layout_uuid);
+
+        this.log.debug('Deleting layout section', layout_uuid, uuid);
+
+        const section_uuids = await this.server.storage.getItem('LayoutSections.' + layout_uuid) || [];
+        let index;
+        while ((index = section_uuids.indexOf(uuid)) > -1) {
+            section_uuids.splice(index, 1);
+        }
+        await this.server.storage.setItem('LayoutSections.' + layout_uuid, section_uuids);
+
+        await this.server.storage.removeItem('LayoutSection.' + layout_uuid + '.' + uuid);
+
+        this.server.sendBroadcast({
+            type: 'remove-layout-section',
+            layout_uuid,
+            uuid,
+        }, this.ws);
     }
 
     handleGetCommandLineFlagsMessage(messageid) {

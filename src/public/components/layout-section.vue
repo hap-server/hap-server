@@ -15,6 +15,7 @@
                     <div class="dropdown ml-3" :class="{show: addSectionDropdownOpen}">
                         <button :id="_uid + '-dropdown'" class="btn btn-sm btn-dark dropdown-toggle" type="button"
                             data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+                            :disabled="layout.staged_sections_order"
                             @click.stop="addSectionDropdownOpen = !addSectionDropdownOpen">Add section</button>
 
                         <div class="dropdown-menu dropdown-menu-right" :class="{show: addSectionDropdownOpen}"
@@ -27,7 +28,8 @@
                     </div>
 
                     <button class="btn btn-danger btn-sm ml-3" type="button" @click="removeSection">Remove section</button>
-                    <button class="btn btn-dark btn-sm ml-3 drag-handle" type="button">Drag</button>
+                    <button class="btn btn-dark btn-sm ml-3 drag-handle" type="button"
+                        :disabled="layout.staged_sections_order">Drag</button>
                     <button class="btn btn-dark btn-sm ml-3" type="button"
                         @click="() => $listeners.edit ? $emit('edit', false) : setEditing(false)">Finish editing</button>
                 </template>
@@ -45,6 +47,7 @@
 </template>
 
 <script>
+    import {LayoutSection} from '../layout';
     import {LayoutSymbol, LayoutAddSectionSymbol, LayoutRemoveSectionSymbol, LayoutGetCanEditSymbol,
         LayoutSetEditingSymbol} from '../internal-symbols'; // eslint-disable-line vue/script-indent
 
@@ -52,7 +55,7 @@
 
     export default {
         props: {
-            section: Object,
+            section: LayoutSection,
             name: String,
             defaultName: {type: String, default: 'Accessories'},
             editing: Boolean,
@@ -97,11 +100,12 @@
                 }
             },
             addSection(type) {
-                this._addSection(this.layout.sections.indexOf(this.section) + 1, {type});
+                if (!this.layout.staged_sections_order) return;
+                this._addSection(this.layout.sections_order.indexOf(this.section.uuid) + 1, {type});
                 this.addSectionDropdownOpen = false;
             },
             removeSection() {
-                this._removeSection(this.layout.sections.indexOf(this.section));
+                this._removeSection(this.section);
             },
         },
     };
