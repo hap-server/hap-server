@@ -385,6 +385,8 @@ export class Plugin {
             handler = AccessoryPlatform.withHandler(handler);
         }
 
+        Object.defineProperty(handler, 'name', {value: name});
+
         log.info('Registering accessory platform', name, 'from plugin', this.name);
 
         this.accessory_platforms.set(name, handler);
