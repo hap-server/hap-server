@@ -15,12 +15,12 @@
 
                     <div class="automation-row-contents">
                         <p>
-                            {{ Object.keys(automation.triggers || {}).length === 0 ? 'No' : Object.keys(automation.triggers || {}).length }}
-                                trigger{{ Object.keys(automation.triggers || {}).length === 1 ? '' : 's' }},
-                            {{ Object.keys(automation.conditions || {}).length === 0 ? 'no' : Object.keys(automation.conditions || {}).length }}
-                                condition{{ Object.keys(automation.conditions || {}).length === 1 ? '' : 's' }},
-                            {{ Object.keys(automation.actions || {}).length === 0 ? 'no' : Object.keys(automation.actions || {}).length }}
-                                action{{ Object.keys(automation.actions || {}).length === 1 ? '' : 's' }}.
+                            {{ Object.keys(automation.data.triggers || {}).length === 0 ? 'No' : Object.keys(automation.data.triggers || {}).length }}
+                                trigger{{ Object.keys(automation.data.triggers || {}).length === 1 ? '' : 's' }},
+                            {{ Object.keys(automation.data.conditions || {}).length === 0 ? 'no' : Object.keys(automation.data.conditions || {}).length }}
+                                condition{{ Object.keys(automation.data.conditions || {}).length === 1 ? '' : 's' }},
+                            {{ Object.keys(automation.data.actions || {}).length === 0 ? 'no' : Object.keys(automation.data.actions || {}).length }}
+                                action{{ Object.keys(automation.data.actions || {}).length === 1 ? '' : 's' }}.
                         </p>
                     </div>
                 </div>
