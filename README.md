@@ -51,7 +51,11 @@ A lot.
     - [x] Create automations that can run on the server
         - Useful if you don't have an Apple TV 4, HomePod or always home iPad.
         - Also could easily allow for more flexible automations than HomeKit allows.
-    - [ ] Manage automations in the web interface
+    - [x] Manage automations in the web interface
+        - TODO:
+            - [ ] Better error handling
+            - [ ] Handle triggers/conditions/actions that don't have an editor component
+            - [ ] Set characteristic action editor
     - [x] Triggers
         - [x] Cron expressions
     - [x] Conditions
@@ -88,9 +92,9 @@ A lot.
         - [ ] Accessory + accessory platform configuration
         - [x] Authentication
         - [ ] User management
-        - [ ] Automation trigger configuration
-        - [ ] Automation condition configuration
-        - [ ] Automation action configuration
+        - [x] Automation trigger configuration
+        - [x] Automation condition configuration
+        - [x] Automation action configuration
     - [ ] Web interface themes?
     - [x] Automation plugins
         - Automation plugins can run other automation conditions/actions.

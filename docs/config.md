@@ -407,6 +407,8 @@ A number to decrease the characteristic by when running.
 
 An array of automation configuration objects.
 
+Automations can also be configured in the web interface.
+
 #### `automations[].triggers`
 
 An array of keys of automation triggers to add to this automation.

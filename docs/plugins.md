@@ -518,9 +518,9 @@ accessoryui.registerAuthenticationHandlerComponent('LocalStorage', Authenticatio
 
 #### `accessoryui.registerLayoutSectionComponent`
 
-Registers a layout section component. This expects a layout section type and a
-[Vue component](https://vuejs.org/v2/guide/). The Vue component will receive four props, `section`, `accessories`,
-`accessories-draggable-group` and `editing`.
+Registers a layout section component. This expects a layout section type, a
+[Vue component](https://vuejs.org/v2/guide/) and a name to display in the add section dropdown. The Vue component
+will receive four props, `section`, `accessories`, `accessories-draggable-group` and `editing`.
 
 To update the layout section's data you should emit the `update-data` event with new values to merge into the section
 object. Don't update the section's data unless the user is editing the layout (`editing` prop).
@@ -554,5 +554,118 @@ accessoryui.registerLayoutSectionComponent(LightsLayoutSectionType, {
         accessoriesDraggableGroup: String,
         editing: Boolean,
     },
-});
+}, 'Lights');
+```
+
+#### `accessoryui.registerAutomationTriggerComponent`
+
+Registers an automation trigger editor component. This expects an automation trigger type, a
+[Vue component](https://vuejs.org/v2/guide/) and a name to display in the add trigger dropdown. The Vue component
+will receive four props, `id`, `trigger`, `editable` and `saving`.
+
+To update the trigger's configuration update the `trigger` configuration object directly. Don't update the trigger's
+configuration unless the user is allowed to edit the trigger (`editable` prop).
+
+```js
+import accessoryui from '@hap-server/accessory-ui-api';
+
+accessoryui.registerAutomationTriggerComponent('Location', {
+    template: `<automation-trigger class="automation-trigger-locationservice" :id="id" :trigger="trigger"
+        :editable="editable" :saving="saving" @delete="$emit('delete')"
+    >
+        Token: <input v-model="trigger.token" type="text" />
+    </automation-trigger>`,
+    components: {
+        AutomationTrigger: () => require.import('@hap-server/accessory-ui-api/automation-trigger'),
+    },
+    props: {
+        id: String,
+        trigger: Object,
+        editable: Boolean,
+        saving: Boolean,
+    },
+}, 'Location service');
+```
+
+You can also pass the name of the plugin that registered the automation trigger if it's not the same as the plugin
+that registered the accessory UI.
+
+```js
+accessoryui.registerAutomationTriggerComponent('Location', ..., 'Location service', 'location-service-plugin');
+```
+
+#### `accessoryui.registerAutomationConditionComponent`
+
+Registers an automation condition editor component. This expects an automation condition type, a
+[Vue component](https://vuejs.org/v2/guide/) and a name to display in the add condition dropdown. The Vue component
+will receive four props, `id`, `condition`, `editable` and `saving`.
+
+To update the condition's configuration update the `condition` configuration object directly. Don't update the
+condition's configuration unless the user is allowed to edit the condition (`editable` prop).
+
+```js
+import accessoryui from '@hap-server/accessory-ui-api';
+
+accessoryui.registerAutomationConditionComponent('Location', {
+    template: `<automation-condition class="automation-condition-locationservice" :id="id" :condition="condition"
+        :editable="editable" :saving="saving" @delete="$emit('delete')"
+    >
+        Token: <input v-model="condition.token" type="text" />
+        Person ID: <input v-model="condition.person" type="text" />
+        Area: <input v-model="condition.area" type="text" />
+    </automation-condition>`,
+    components: {
+        AutomationCondition: () => require.import('@hap-server/accessory-ui-api/automation-condition'),
+    },
+    props: {
+        id: String,
+        condition: Object,
+        editable: Boolean,
+        saving: Boolean,
+    },
+}, 'Location service');
+```
+
+You can also pass the name of the plugin that registered the automation condition if it's not the same as the plugin
+that registered the accessory UI.
+
+```js
+accessoryui.registerAutomationConditionComponent('Location', ..., 'Location service', 'location-service-plugin');
+```
+
+#### `accessoryui.registerAutomationActionComponent`
+
+Registers an automation action editor component. This expects an automation action type, a
+[Vue component](https://vuejs.org/v2/guide/) and a name to display in the add action dropdown. The Vue component will
+receive four props, `id`, `action`, `editable` and `saving`.
+
+To update the action's configuration update the `action` configuration object directly. Don't update the action's
+configuration unless the user is allowed to edit the action (`editable` prop).
+
+```js
+import accessoryui from '@hap-server/accessory-ui-api';
+
+accessoryui.registerAutomationActionComponent('Webhook', {
+    template: `<automation-action class="automation-action-webhook" :id="id" :action="action"
+        :editable="editable" :saving="saving" @delete="$emit('delete')"
+    >
+        URL: <input v-model="action.url" type="text" />
+    </automation-action>`,
+    components: {
+        AutomationAction: () => require.import('@hap-server/accessory-ui-api/automation-action'),
+    },
+    props: {
+        id: String,
+        action: Object,
+        editable: Boolean,
+        saving: Boolean,
+    },
+}); // If a display name is not passed the trigger/condition/action type will be used
+```
+
+You can also pass the name of the plugin that registered the automation action if it's not the same as the plugin
+that registered the accessory UI.
+
+```js
+accessoryui.registerAutomationActionComponent('Webhook', ..., 'Webhook', 'webhook-plugin');
 ```
