@@ -144,6 +144,9 @@ export class PluginManager {
         if (request === '@hap-server/accessory-ui-api/automation-trigger') {
             return import(/* webpackChunkName: 'automations' */ './automations/trigger.vue')
                 .then(m => automation_trigger_component_module = m);
+        } else if (request === '@hap-server/accessory-ui-api/automation-condition') {
+            return import(/* webpackChunkName: 'automations' */ './automations/condition.vue')
+                .then(m => automation_condition_component_module = m);
         } else if (request === 'vuedraggable') {
             return import(/* webpackChunkName: 'layout-editor' */ 'vuedraggable').then(m => vuedraggable_module = m);
         }

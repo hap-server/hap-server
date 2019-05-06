@@ -2,7 +2,12 @@
     <panel class="automation-settings" ref="panel" @close="$emit('close')">
         <ul class="nav nav-tabs nav-sm mb-3">
             <li class="nav-item"><a class="nav-link" :class="{active: tab === 'general'}" href="#" @click.prevent="tab = 'general'">General</a></li>
-            <li class="nav-item"><a class="nav-link" :class="{active: tab === 'triggers'}" href="#" @click.prevent="tab = 'triggers'">Triggers</a></li>
+            <li class="nav-item"><a class="nav-link" :class="{active: tab === 'triggers'}" href="#" @click.prevent="tab = 'triggers'">Triggers
+                <span v-if="Object.keys(automation.data.triggers || {}).length" class="badge badge-default">
+                    {{ Object.keys(automation.data.triggers || {}).length }}</span></a></li>
+            <li class="nav-item"><a class="nav-link" :class="{active: tab === 'conditions'}" href="#" @click.prevent="tab = 'conditions'">Conditions
+                <span v-if="Object.keys(automation.data.conditions || {}).length" class="badge badge-default">
+                    {{ Object.keys(automation.data.conditions || {}).length }}</span></a></li>
         </ul>
 
         <form v-if="tab === 'general'" @submit.prevent="$emit('save', true)">
@@ -27,6 +32,18 @@
             </template>
         </div>
 
+        <div v-if="tab === 'conditions'" class="automation-conditions">
+            <p>All of these conditions must be met for the automation's actions to run.</p>
+
+            <template v-for="(condition, id) in automation.data.conditions || {}">
+                <component
+                    v-if="condition_components.find(c => c.plugin === condition.plugin && c.type === condition.condition)"
+                    :is="condition_components.find(c => c.plugin === condition.plugin && c.type === condition.condition).component"
+                    :key="id" :id="id" :condition="condition" :editable="editable" :saving="saving || deleting"
+                    @delete="$delete(automation.data.conditions, id); $forceUpdate()" />
+            </template>
+        </div>
+
         <div class="d-flex">
             <div v-if="tab === 'triggers' && editable" class="dropdown dropup" :class="{show: add_trigger_dropdown_open}">
                 <button :id="_uid + '-dropdown'" class="btn btn-sm btn-default dropdown-toggle" type="button"
@@ -39,6 +56,36 @@
                 >
                     <a v-for="{plugin, type, name} in trigger_components" :key="type"
                         class="dropdown-item" href="#" @click.prevent="addTrigger({plugin, trigger: type})"
+                    >{{ name }}</a>
+                </div>
+            </div>
+
+            <div v-if="tab === 'conditions' && editable" class="dropdown dropup" :class="{show: add_condition_dropdown_open}">
+                <button :id="_uid + '-dropdown'" class="btn btn-sm btn-default dropdown-toggle" type="button"
+                    data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+                    :disabled="saving || deleting"
+                    @click.stop="add_condition_dropdown_open = !add_condition_dropdown_open">Add condition</button>
+
+                <div class="dropdown-menu" :class="{show: add_condition_dropdown_open}"
+                    :aria-labelledby="_uid + '-dropdown'"
+                >
+                    <a v-for="{plugin, type, name} in condition_components" :key="type"
+                        class="dropdown-item" href="#" @click.prevent="addCondition({plugin, condition: type})"
+                    >{{ name }}</a>
+                </div>
+            </div>
+
+            <div v-if="tab === 'actions' && editable" class="dropdown dropup" :class="{show: add_action_dropdown_open}">
+                <button :id="_uid + '-dropdown'" class="btn btn-sm btn-default dropdown-toggle" type="button"
+                    data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+                    :disabled="saving || deleting"
+                    @click.stop="add_action_dropdown_open = !add_action_dropdown_open">Add action</button>
+
+                <div class="dropdown-menu" :class="{show: add_action_dropdown_open}"
+                    :aria-labelledby="_uid + '-dropdown'"
+                >
+                    <a v-for="{plugin, type, name} in action_components" :key="type"
+                        class="dropdown-item" href="#" @click.prevent="addAction({plugin, action: type})"
                     >{{ name }}</a>
                 </div>
             </div>
@@ -63,8 +110,9 @@
 
     import Trigger from './trigger.vue';
 
-    import {trigger_components} from '.';
+    import {trigger_components, condition_components, action_components} from '.';
     import './triggers';
+    import './conditions';
 
     export default {
         components: {
@@ -86,7 +134,11 @@
                 tab: 'general',
 
                 trigger_components,
+                condition_components,
+                action_components,
                 add_trigger_dropdown_open: false,
+                add_condition_dropdown_open: false,
+                add_action_dropdown_open: false,
             };
         },
         methods: {
@@ -97,6 +149,24 @@
                 while (this.automation.data.triggers[id]) id++;
 
                 this.$set(this.automation.data.triggers, id, data || {});
+                this.$forceUpdate();
+            },
+            addCondition(data) {
+                if (!this.automation.data.conditions) this.$set(this.automation.data, 'conditions', {});
+
+                let id = 0;
+                while (this.automation.data.conditions[id]) id++;
+
+                this.$set(this.automation.data.conditions, id, data || {});
+                this.$forceUpdate();
+            },
+            addAction(data) {
+                if (!this.automation.data.actions) this.$set(this.automation.data, 'actions', {});
+
+                let id = 0;
+                while (this.automation.data.actions[id]) id++;
+
+                this.$set(this.automation.data.actions, id, data || {});
                 this.$forceUpdate();
             },
         },

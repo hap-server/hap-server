@@ -31,17 +31,24 @@
     }
 }
 
-.automation-trigger {
+.automation-trigger,
+.automation-condition {
     padding-bottom: 1rem;
     margin-bottom: 1rem;
     border-bottom: 1px solid #dee2e6;
 
-    .automation-trigger-header {
+    .automation-trigger-header,
+    .automation-condition-header {
         display: flex;
         margin-bottom: 1rem;
 
         h4 {
             font-size: 1.1rem;
         }
+    }
+
+    & & {
+        padding-left: 1rem;
+        border-left: 1px solid #dee2e6;
     }
 }
