@@ -55,18 +55,27 @@ export default class Automations {
      * Adds an automation.
      *
      * @param {Automation} automation
+     * @return {Promise}
      */
-    addAutomation(...automations) {
+    async addAutomation(...automations) {
         for (const automation of automations) {
+            this.log.debug('Adding automation', automation);
+
             if (automation.automations !== this) {
                 throw new Error('Cannot add an automation from a different automations group');
+            }
+
+            if (this.automations.includes(automation)) continue;
+
+            if (automation.uuid && this.automations.find(a => a.uuid === automation.uuid)) {
+                throw new Error('There is already an automation with this UUID');
             }
 
             this.automations.push(automation);
 
             if (this.running) {
                 for (const trigger of automation.triggers) {
-                    trigger.start();
+                    await trigger.start();
                 }
             }
         }
@@ -76,15 +85,18 @@ export default class Automations {
      * Removes an automation.
      *
      * @param {Automation} automation
+     * @return {Promise}
      */
-    removeAutomation(...automations) {
+    async removeAutomation(...automations) {
         for (const automation of automations) {
+            this.log.debug('Removing automation', automation);
+
             let index;
             while ((index = this.automations.indexOf(automation)) > -1) this.automations.splice(index, 1);
 
             try {
                 for (const trigger of automation.triggers) {
-                    if (this.automations.find(a => a.triggers.find(t => t === trigger))) trigger.stop();
+                    if (this.automations.find(a => a.triggers.find(t => t === trigger))) await trigger.stop();
                 }
             } catch (err) {
                 this.automations.push(automation);
@@ -210,17 +222,24 @@ export class Automation {
      * Adds a trigger.
      *
      * @param {AutomationTrigger} trigger
+     * @return {Promise}
      */
-    addTrigger(...triggers) {
+    async addTrigger(...triggers) {
         for (const trigger of triggers) {
             if (trigger.automations !== this.automations) {
                 throw new Error('Cannot add a trigger from a different automations group');
             }
 
+            if (this.triggers.includes(trigger)) continue;
+
+            if (trigger.uuid && this.triggers.find(t => t.uuid === trigger.uuid)) {
+                throw new Error('There is already a trigger with this UUID');
+            }
+
             trigger.on('trigger', this.handleTrigger);
             this.triggers.push(trigger);
 
-            if (this.automations.running && this.automations.automations.find(a => a === this)) trigger.start();
+            if (this.automations.running && this.automations.automations.find(a => a === this)) await trigger.start();
         }
     }
 
@@ -228,14 +247,15 @@ export class Automation {
      * Removes a trigger.
      *
      * @param {AutomationTrigger} trigger
+     * @return {Promise}
      */
-    removeTrigger(...triggers) {
+    async removeTrigger(...triggers) {
         for (const trigger of triggers) {
             trigger.removeListener('trigger', this.handleTrigger);
             this.triggers.splice(this.triggers.indexOf(trigger), 1);
 
             try {
-                if (!trigger.automations.automations.find(a => a.triggers.find(t => t === trigger))) trigger.stop();
+                if (!trigger.automations.automations.find(a => a.triggers.find(t => t === trigger))) await trigger.stop();
             } catch (err) {
                 this.triggers.push(automation);
                 throw err;
@@ -252,6 +272,12 @@ export class Automation {
         for (const condition of conditions) {
             if (condition.automations !== this.automations) {
                 throw new Error('Cannot add a condition from a different automations group');
+            }
+
+            if (this.conditions.includes(condition)) continue;
+
+            if (condition.uuid && this.conditions.find(c => c.uuid === condition.uuid)) {
+                throw new Error('There is already a condition with this UUID');
             }
 
             this.conditions.push(condition);
@@ -279,6 +305,12 @@ export class Automation {
         for (const action of actions) {
             if (action.automations !== this.automations) {
                 throw new Error('Cannot add an action from a different automations group');
+            }
+
+            if (this.actions.includes(action)) continue;
+
+            if (action.uuid && this.actions.find(a => a.uuid === action.uuid)) {
+                throw new Error('There is already an action with this UUID');
             }
 
             this.actions.push(action);

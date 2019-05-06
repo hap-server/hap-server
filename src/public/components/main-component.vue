@@ -25,9 +25,9 @@
         </div>
 
         <div class="main">
-            <automations v-if="show_automations" :connection="connection" />
+            <keep-alive><automations v-if="show_automations" :connection="connection" /></keep-alive>
 
-            <layout v-else ref="layout" :key="layout ? layout.uuid : ''" :layout="layout"
+            <layout v-if="!show_automations" ref="layout" :key="layout ? layout.uuid : ''" :layout="layout"
                 :connection="connection" :accessories="accessories" :bridge-uuids="bridge_uuids"
                 :title="(layout ? authenticated_user && layout.uuid === 'Overview.' + authenticated_user.id ? name : layout.name : name) || 'Home'" :sections="layout && layout.sections"
                 :can-edit="layout && layout.can_set" :can-delete="layout && layout.can_delete" :show-all-accessories="!layout"
@@ -110,7 +110,7 @@
             LayoutSelector,
             AccessoryDetails,
 
-            Automations: () => import(/* webpackChunkName: 'automations' */ './automations.vue'),
+            Automations: () => import(/* webpackChunkName: 'automations' */ '../automations/automations.vue'),
 
             Settings: () => import(/* webpackChunkName: 'settings' */ './settings.vue'),
             LayoutSettings: () => import(/* webpackChunkName: 'settings' */ './layout-settings.vue'),
@@ -130,7 +130,7 @@
                 layout: null,
 
                 show_automations: false,
-                can_access_automations: true, // TODO
+                can_access_automations: false,
 
                 can_update_home_settings: false,
                 can_access_server_settings: false,
@@ -218,6 +218,10 @@
             connection(connection, old_connection) {
                 for (const accessory of Object.values(this.accessories)) {
                     accessory.connection = connection;
+                }
+
+                for (const layout of Object.values(this.layouts)) {
+                    layout.connection = connection;
                 }
             },
             async authenticated_user(authenticated_user) {
@@ -411,6 +415,10 @@
                     section._setData(data);
                 });
 
+                connection.on('add-automation', () => {
+                    this.can_access_automations = true;
+                });
+
                 connection.on('add-accessory', async accessory_uuid => {
                     if (this.accessories[accessory_uuid]) return;
 
@@ -488,6 +496,7 @@
                     this.can_update_home_settings = !!permissions.set;
                     this.can_access_server_settings = !!permissions.server;
                     this.can_create_layouts = !!permissions.create_layouts;
+                    this.can_access_automations = permissions.has_automations || permissions.create_automations;
                 } finally {
                     this.loading_permissions = false;
                 }

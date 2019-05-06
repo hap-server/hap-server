@@ -13,6 +13,9 @@ const broadcast_message_methods = {
     'add-layout-section': 'handleAddLayoutSectionMessage',
     'remove-layout-section': 'handleRemoveLayoutSectionMessage',
     'update-layout-section': 'handleUpdateLayoutSectionMessage',
+    'add-automation': 'handleAddAutomationMessage',
+    'remove-automation': 'handleRemoveAutomationMessage',
+    'update-automation': 'handleUpdateAutomationMessage',
     'stdout': 'handleStdout',
     'stderr': 'handleStderr',
 };
@@ -307,6 +310,51 @@ export default class Connection extends EventEmitter {
         return this.deleteLayoutSections([layout_uuid, section_id]);
     }
 
+    listAutomations() {
+        return this.send({
+            type: 'list-automations',
+        });
+    }
+
+    createAutomations(...data) {
+        return this.send({
+            type: 'create-automations',
+            data,
+        });
+    }
+
+    getAutomations(...id) {
+        return this.send({
+            type: 'get-automations',
+            id,
+        });
+    }
+
+    getAutomationsPermissions(...id) {
+        return this.send({
+            type: 'get-automations-permissions',
+            id,
+        });
+    }
+
+    setAutomations(...id_data) {
+        return this.send({
+            type: 'set-automations',
+            id_data,
+        });
+    }
+
+    setAutomation(uuid, data) {
+        return this.setAutomations([uuid, data]);
+    }
+
+    deleteAutomations(...id) {
+        return this.send({
+            type: 'delete-automations',
+            id,
+        });
+    }
+
     getCommandLineFlags() {
         return this.send({
             type: 'get-command-line-flags',
@@ -414,6 +462,18 @@ export default class Connection extends EventEmitter {
 
     handleUpdateLayoutSectionMessage(data) {
         this.emit('update-layout-section', data.layout_uuid, data.uuid, data.data);
+    }
+
+    handleAddAutomationMessage(data) {
+        this.emit('add-automation', data.uuid);
+    }
+
+    handleRemoveAutomationMessage(data) {
+        this.emit('remove-automation', data.uuid);
+    }
+
+    handleUpdateAutomationMessage(data) {
+        this.emit('update-automation', data.uuid, data.data);
     }
 
     handleStdout(data) {

@@ -260,7 +260,7 @@ yargs.command('$0 [config]', 'Run the HAP and web server', yargs => {
 
     log.info('Starting automations');
     await server.loadAutomationsFromConfig();
-    // await server.loadAutomationsFromStorage();
+    await server.loadAutomationsFromStorage();
     await server.automations.start();
 
     if (argv.group) process.setgid(argv.group);

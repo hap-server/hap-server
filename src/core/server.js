@@ -15,6 +15,8 @@ import multer from 'multer';
 
 import {uuid} from 'hap-nodejs';
 
+import isEqual from 'lodash.isequal';
+
 import Connection from './connection';
 import PluginManager from './plugins';
 import Bridge from './bridge';
@@ -483,6 +485,163 @@ export default class Server extends EventEmitter {
         this.log.info('Loaded automations', automations);
 
         return {automations, triggers, conditions, actions};
+    }
+
+    async loadAutomationsFromStorage(dont_throw) {
+        const automation_uuids = await this.storage.getItem('Automations') || [];
+
+        return Promise.all(automation_uuids.map(async uuid => {
+            const data = await this.storage.getItem('Automation.' + uuid) || {};
+            return this.loadAutomation(uuid, data);
+        }));
+    }
+
+    /**
+     * Loads or reloads an automation.
+     *
+     * @param {string} uuid
+     * @param {object} data
+     * @return {Promise<(Automation|object)>}
+     */
+    loadOrUpdateAutomation(uuid, data) {
+        if (this.automations.automations.find(automation => automation.uuid === uuid)) {
+            return this.updateAutomation(uuid, data);
+        }
+
+        return this.loadAutomation(uuid, data);
+    }
+
+    /**
+     * Loads an automation.
+     *
+     * @param {string} uuid
+     * @param {object} data
+     * @return {Promise<Automation>}
+     */
+    async loadAutomation(uuid, data) {
+        const automation = this.automations.loadAutomation(data, uuid);
+
+        for (const [trigger_id, trigger_config] of Object.entries(data.triggers || {})) {
+            const trigger = await this.automations.loadAutomationTrigger(trigger_config, trigger_id);
+            await automation.addTrigger(trigger);
+        }
+
+        for (const [condition_id, condition_config] of Object.entries(data.conditions || {})) {
+            const condition = await this.automations.loadAutomationCondition(condition_config, condition_id);
+            automation.addCondition(condition);
+        }
+
+        for (const [action_id, action_config] of Object.entries(data.actions || {})) {
+            const action = await this.automations.loadAutomationAction(action_config, action_id);
+            await automation.addAction(action);
+        }
+
+        return automation;
+    }
+
+    /**
+     * Reloads an automation.
+     *
+     * @param {string} uuid
+     * @param {object} data
+     * @return {Promise<(Automation|object)>}
+     */
+    async updateAutomation(uuid, data) {
+        const automation = this.automations.automations.find(automation => automation.uuid === uuid);
+        if (!automation) throw new Error('Unknown automation "' + uuid + '"');
+
+        const nullchildren = {triggers: undefined, conditions: undefined, actions: undefined};
+
+        if (!isEqual(
+            Object.assign({}, nullchildren, data, nullchildren),
+            Object.assign({}, nullchildren, automation.config, nullchildren)
+        )) {
+            // Top level configuration has changed
+            // This isn't actually used for anything yet
+            const automation = this.server.automations.automations.find(automation => automation.uuid === uuid);
+            await this.server.automations.removeAutomation(automation);
+            return this.loadAutomation(uuid, data);
+        }
+
+        const added_triggers = [];
+        const removed_triggers = [];
+
+        for (const [trigger_id, trigger_config] of Object.entries(data.triggers || {})) {
+            const trigger = automation.triggers.find(trigger => trigger.uuid === trigger_id);
+            if (trigger && isEqual(trigger_config, trigger.config)) continue;
+
+            if (trigger) {
+                // Trigger configuration has changed
+                await automation.removeTrigger(trigger);
+                removed_triggers.push(trigger);
+            }
+
+            const new_trigger = await this.automations.loadAutomationTrigger(trigger_config, trigger_id);
+            await automation.addTrigger(new_trigger);
+            added_triggers.push(new_trigger);
+        }
+
+        for (const trigger of automation.triggers) {
+            if ((data.triggers || {})[trigger.uuid]) continue;
+
+            // Trigger has been removed
+            await automation.removeTrigger(trigger);
+            removed_triggers.push(trigger);
+        }
+
+        const added_conditions = [];
+        const removed_conditions = [];
+
+        for (const [condition_id, condition_config] of Object.entries(data.conditions || {})) {
+            const condition = automation.conditions.find(condition => condition.uuid === condition_id);
+            if (condition && isEqual(condition_config, condition.config)) continue;
+
+            if (condition) {
+                // Condition configuration has changed
+                await automation.removeCondition(condition);
+                removed_conditions.push(condition);
+            }
+
+            const new_condition = await this.automations.loadAutomationCondition(condition_config, condition_id);
+            automation.addCondition(new_condition);
+            added_conditions.push(new_condition);
+        }
+
+        for (const condition of automation.conditions) {
+            if ((data.conditions || {})[condition.uuid]) continue;
+
+            // Condition has been removed
+            await automation.removeCondition(condition);
+            removed_conditions.push(condition);
+        }
+
+        const added_actions = [];
+        const removed_actions = [];
+
+        for (const [action_id, action_config] of Object.entries(data.actions || {})) {
+            const action = automation.actions.find(action => action.uuid === action_id);
+            if (action && isEqual(action_config, action.config)) continue;
+
+            if (action) {
+                // Action configuration has changed
+                await automation.removeAction(action);
+                removed_actions.push(action);
+            }
+
+            const new_action = await this.automations.loadAutomationAction(action_config, action_id);
+            await automation.addAction(new_action);
+            added_actions.push(new_action);
+        }
+
+        for (const action of automation.actions) {
+            if ((data.actions || {})[action.uuid]) continue;
+
+            // Action has been removed
+            await automation.removeAction(action);
+            removed_actions.push(action);
+        }
+
+        return {added_triggers, removed_triggers, added_conditions, removed_conditions, added_actions, removed_actions};
     }
 
     /**

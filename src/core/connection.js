@@ -36,6 +36,12 @@ const message_methods = {
     'get-layout-sections': 'handleGetLayoutSectionsMessage',
     'set-layout-sections': 'handleSetLayoutSectionsMessage',
     'delete-layout-sections': 'handleDeleteLayoutSectionsMessage',
+    'list-automations': 'handleListAutomationsMessage',
+    'create-automations': 'handleCreateAutomationsMessage',
+    'get-automations': 'handleGetAutomationsMessage',
+    'get-automations-permissions': 'handleGetAutomationsPermissionsMessage',
+    'set-automations': 'handleSetAutomationsMessage',
+    'delete-automations': 'handleDeleteAutomationsMessage',
     'get-command-line-flags': 'handleGetCommandLineFlagsMessage',
     'enable-proxy-stdout': 'handleEnableProxyStdoutMessage',
     'disable-proxy-stdout': 'handleDisableProxyStdoutMessage',
@@ -446,14 +452,16 @@ export default class Connection {
     }
 
     async getHomePermissions() {
-        const [get, set, create_layouts, server] = await Promise.all([
+        const [get, set, create_layouts, has_automations, create_automations, server] = await Promise.all([
             this.permissions.checkCanGetHomeSettings(),
             this.permissions.checkCanSetHomeSettings(),
             this.permissions.checkCanCreateLayouts(),
+            this.permissions.getAuthorisedAutomationUUIDs().then(uuids => !!uuids.length),
+            this.permissions.checkCanCreateAutomations(),
             this.permissions.checkCanAccessServerRuntimeInfo(),
         ]);
 
-        return {get, set, create_layouts, server};
+        return {get, set, create_layouts, has_automations, create_automations, server};
     }
 
     /**
@@ -902,6 +910,168 @@ export default class Connection {
         this.server.sendBroadcast({
             type: 'remove-layout-section',
             layout_uuid,
+            uuid,
+        }, this.ws);
+    }
+
+    /**
+     * Gets the UUID of every automation.
+     */
+    handleListAutomationsMessage(messageid, data) {
+        this.respond(messageid, this.listAutomations());
+    }
+
+    async listAutomations() {
+        const uuids = await this.server.storage.getItem('Automations') || [];
+
+        const authorised_uuids = await this.permissions.getAuthorisedAutomationUUIDs();
+        return uuids.filter(uuid => authorised_uuids.includes(uuid));
+    }
+
+    /**
+     * Creates automations.
+     */
+    handleCreateAutomationsMessage(messageid, data) {
+        this.respond(messageid, this.createAutomations(...data.data));
+    }
+
+    createAutomations(...data) {
+        return Promise.all(data.map(data => this.createAutomation(data)));
+    }
+
+    async createAutomation(data) {
+        await this.permissions.assertCanCreateAutomations();
+
+        // const uuid = genuuid();
+        const uuid = 'testautomation';
+
+        this.log.debug('Creating automation', uuid, data);
+
+        await this.server.storage.setItem('Automation.' + uuid, data);
+
+        await this.server.loadAutomation(uuid, data);
+
+        const automation_uuids = await this.server.storage.getItem('Automations') || [];
+        if (!automation_uuids.includes(uuid)) {
+            automation_uuids.push(uuid);
+            await this.server.storage.setItem('Automations', automation_uuids);
+        }
+
+        this.server.sendBroadcast({
+            type: 'new-automation',
+            uuid,
+        }, this.ws);
+
+        return uuid;
+    }
+
+    /**
+     * Gets data of automations.
+     */
+    handleGetAutomationsMessage(messageid, data) {
+        this.respond(messageid, this.getAutomations(...data.id));
+    }
+
+    getAutomations(...id) {
+        return Promise.all(id.map(id => this.getAutomation(id)));
+    }
+
+    async getAutomation(uuid) {
+        await this.permissions.assertCanGetAutomation(uuid);
+
+        this.log.debug('Getting data for automation', uuid);
+
+        return await this.server.storage.getItem('Automation.' + uuid) || {};
+    }
+
+    /**
+     * Gets the user's permissions for automations.
+     */
+    handleGetAutomationsPermissionsMessage(messageid, data) {
+        this.respond(messageid, this.getAutomationsPermissions(...data.id));
+    }
+
+    getAutomationsPermissions(...id) {
+        return Promise.all(id.map(id => this.getAutomationPermissions(id)));
+    }
+
+    async getAutomationPermissions(uuid) {
+        const [get, set, del] = await Promise.all([
+            this.permissions.checkCanGetAutomation(uuid),
+            this.permissions.checkCanSetAutomation(uuid),
+            this.permissions.checkCanDeleteAutomation(uuid),
+        ]);
+
+        return {get, set, delete: del};
+    }
+
+    /**
+     * Sets data of automations.
+     */
+    handleSetAutomationsMessage(messageid, data) {
+        this.respond(messageid, this.setAutomations(...data.id_data));
+    }
+
+    setAutomations(...id_data) {
+        return Promise.all(id_data.map(([id, data]) => this.setAutomation(id, data)));
+    }
+
+    async setAutomation(uuid, data) {
+        await this.permissions.assertCanSetAutomation(uuid);
+
+        this.log.debug('Setting data for automation', uuid, data);
+
+        await this.server.storage.setItem('Automation.' + uuid, data);
+
+        await this.server.updateAutomation(uuid, data);
+
+        const automation_uuids = await this.server.storage.getItem('Automations') || [];
+        if (!automation_uuids.includes(uuid)) {
+            automation_uuids.push(uuid);
+            await this.server.storage.setItem('Automations', automation_uuids);
+        }
+
+        this.server.sendBroadcast({
+            type: 'update-automation',
+            uuid,
+            data,
+        }, this.ws);
+    }
+
+    /**
+     * Deletes automations.
+     */
+    handleDeleteAutomationsMessage(messageid, data) {
+        this.respond(messageid, this.deleteAutomations(...data.id));
+    }
+
+    deleteAutomations(...id) {
+        return Promise.all(id.map(id => this.deleteAutomation(id)));
+    }
+
+    async deleteAutomation(uuid) {
+        await this.permissions.assertCanDeleteAutomation(uuid);
+
+        this.log.debug('Stopping automation', uuid);
+
+        const automation = this.server.automations.automations.find(automation => automation.uuid === uuid);
+        await this.server.automations.removeAutomation(automation);
+
+        this.log.debug('Deleting automation', uuid);
+
+        const data = await this.server.storage.getItem('Automation.' + uuid);
+
+        await this.server.storage.removeItem('Automation.' + uuid);
+
+        const automation_uuids = await this.server.storage.getItem('Automations') || [];
+        let index;
+        while ((index = automation_uuids.indexOf(uuid)) > -1) {
+            automation_uuids.splice(index, 1);
+        }
+        await this.server.storage.setItem('Automations', automation_uuids);
+
+        this.server.sendBroadcast({
+            type: 'remove-automation',
             uuid,
         }, this.ws);
     }

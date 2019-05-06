@@ -238,6 +238,92 @@ export default class Permissions {
     }
 
     /**
+     * Get the UUID of all automations the user can see.
+     *
+     * @return {Promise<Array>}
+     */
+    async getAuthorisedAutomationUUIDs() {
+        if (!DEVELOPMENT || !this.__development_allow_local()) {
+            if (!this.user) return [];
+        }
+
+        const uuids = await this.connection.server.storage.getItem('Automations') || [];
+
+        return uuids;
+    }
+
+    /**
+     * Check if the user can create automations.
+     *
+     * @return {Promise<boolean>}
+     */
+    checkCanCreateAutomations() {
+        if (DEVELOPMENT && this.__development_allow_local()) return true;
+
+        if (!this.user) return false;
+
+        return true;
+    }
+
+    async assertCanCreateAutomations() {
+        if (!await this.checkCanCreateAutomations()) throw new Error('You don\'t have permission to create automations');
+    }
+
+    /**
+     * Check if the user can see an automation.
+     *
+     * @param {string} uuid
+     * @return {Promise<boolean>}
+     */
+    checkCanGetAutomation(uuid) {
+        if (DEVELOPMENT && this.__development_allow_local()) return true;
+
+        if (!this.user) return false;
+
+        return true;
+    }
+
+    async assertCanGetAutomation(uuid) {
+        if (!await this.checkCanGetAutomation(uuid)) throw new Error('You don\'t have permission to access this automation');
+    }
+
+    /**
+     * Check if the user can update an automation.
+     *
+     * @param {string} uuid
+     * @return {Promise<boolean>}
+     */
+    checkCanSetAutomation(uuid) {
+        if (DEVELOPMENT && this.__development_allow_local()) return true;
+
+        if (!this.user) return false;
+
+        return true;
+    }
+
+    async assertCanSetAutomation(uuid) {
+        if (!await this.checkCanSetAutomation(uuid)) throw new Error('You don\'t have permission to update this automation');
+    }
+
+    /**
+     * Check if the user can delete an automation.
+     *
+     * @param {string} uuid
+     * @return {Promise<boolean>}
+     */
+    checkCanDeleteAutomation(uuid) {
+        if (DEVELOPMENT && this.__development_allow_local()) return true;
+
+        if (!this.user) return false;
+
+        return true;
+    }
+
+    async assertCanDeleteAutomation(uuid) {
+        if (!await this.checkCanDeleteAutomation(uuid)) throw new Error('You don\'t have permission to delete this automation');
+    }
+
+    /**
      * Check if the user can manage the server.
      *
      * @return {Promise<boolean>}
