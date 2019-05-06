@@ -1,6 +1,8 @@
 import EventEmitter from 'events';
 import isEqual from 'lodash.isequal';
 
+let id = 0;
+
 export default class Automation extends EventEmitter {
     /**
      * Creates an Automation.
@@ -12,6 +14,8 @@ export default class Automation extends EventEmitter {
      */
     constructor(connection, uuid, data, permissions) {
         super();
+
+        this.id = id++;
 
         this.connection = connection;
         this.uuid = uuid;
@@ -31,10 +35,22 @@ export default class Automation extends EventEmitter {
         return isEqual(this.live.data, this.staged.data);
     }
 
-    _setData(data) {
-        if (!this.changed) this.staged._setData(data);
+    get data() {
+        return this._data;
+    }
 
-        this.data = Object.freeze(data);
+    get live_data() {
+        return this.live.data;
+    }
+
+    get staged_data() {
+        return this.staged.data;
+    }
+
+    _setData(data) {
+        if (!this.changed) this.staged._setData(Object.assign({}, data));
+
+        this._data = Object.freeze(data);
 
         this.emit('data-updated');
     }
@@ -68,10 +84,16 @@ export default class Automation extends EventEmitter {
 }
 
 export class StagedAutomation extends Automation {
+    /**
+     * Create a mutable automation.
+     *
+     * @param {Automation} automation
+     */
     constructor(automation) {
-        super(automation.connection, automation.uuid, automation.data);
+        super(automation.connection, automation.uuid);
 
         this.automation = automation;
+        this._data = Object.assign({}, automation.data);
     }
 
     get live() {
@@ -81,6 +103,9 @@ export class StagedAutomation extends Automation {
     get staged() {
         return this;
     }
+
+    get id() { return this.automation.id; }
+    set id(id) {}
 
     get connection() { return this.automation.connection; }
     set connection(connection) {}
@@ -92,14 +117,16 @@ export class StagedAutomation extends Automation {
     set _permissions(_permissions) {}
 
     _setData(data) {
-        this.data = data;
+        this._data = data;
     }
 
     updateData(data) {
-        //
+        this._setData(data);
     }
 
     save() {
+        if (!this.uuid) throw new Error('This automation doesn\'t exist');
+
         return this.automation.updateData(this.data);
     }
 }

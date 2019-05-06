@@ -24,10 +24,12 @@
             </div>
         </div>
 
-        <div class="main">
-            <keep-alive><automations v-if="show_automations" :connection="connection" /></keep-alive>
+        <keep-alive>
+            <automations v-if="show_automations" ref="automations" :connection="connection" />
+        </keep-alive>
 
-            <layout v-if="!show_automations" ref="layout" :key="layout ? layout.uuid : ''" :layout="layout"
+        <div v-if="!show_automations" class="main">
+            <layout ref="layout" :key="layout ? layout.uuid : ''" :layout="layout"
                 :connection="connection" :accessories="accessories" :bridge-uuids="bridge_uuids"
                 :title="(layout ? authenticated_user && layout.uuid === 'Overview.' + authenticated_user.id ? name : layout.name : name) || 'Home'" :sections="layout && layout.sections"
                 :can-edit="layout && layout.can_set" :can-delete="layout && layout.can_delete" :show-all-accessories="!layout"
@@ -191,7 +193,8 @@
                 return require('../../../assets/default-wallpaper.jpg');
             },
             modal_open() {
-                return this.connecting || !!this.modals.length;
+                return this.connecting || !!this.modals.length ||
+                    (this.show_automations && this.$refs.automations && this.$refs.automations.open_automation);
             },
             authenticated_user() {
                 return this.connection ? this.connection.authenticated_user : undefined;
