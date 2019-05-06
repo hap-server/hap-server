@@ -30,10 +30,12 @@ import {
     action_components as automation_action_components,
 } from './automations';
 
-let vuedraggable_module;
 let automation_trigger_component_module;
 let automation_condition_component_module;
 let automation_action_component_module;
+let vuedraggable_module;
+let codemirror_module;
+let vue_codemirror_module;
 
 let instance;
 
@@ -111,6 +113,10 @@ export class PluginManager {
             return automation_action_component_module;
         } else if (request === 'vuedraggable' && vuedraggable_module) {
             return vuedraggable_module;
+        } else if (request === 'codemirror' && codemirror_module) {
+            return codemirror_module;
+        } else if (request === 'vue-codemirror' && vue_codemirror_module) {
+            return vue_codemirror_module;
         }
 
         if (cache[request]) {
@@ -149,6 +155,10 @@ export class PluginManager {
                 .then(m => automation_condition_component_module = m);
         } else if (request === 'vuedraggable') {
             return import(/* webpackChunkName: 'layout-editor' */ 'vuedraggable').then(m => vuedraggable_module = m);
+        } else if (request === 'codemirror') {
+            return import(/* webpackChunkName: 'codemirror' */ 'codemirror').then(m => codemirror_module = m);
+        } else if (request === 'vue-codemirror') {
+            return import(/* webpackChunkName: 'codemirror' */ 'vue-codemirror').then(m => vue_codemirror_module = m);
         }
 
         const js = (await axios.get('./accessory-ui/' + accessory_ui.id + request)).data;
