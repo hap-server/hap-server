@@ -558,8 +558,8 @@ export default class Server extends EventEmitter {
         )) {
             // Top level configuration has changed
             // This isn't actually used for anything yet
-            const automation = this.server.automations.automations.find(automation => automation.uuid === uuid);
-            await this.server.automations.removeAutomation(automation);
+            const automation = this.automations.automations.find(automation => automation.uuid === uuid);
+            await this.automations.removeAutomation(automation);
             return this.loadAutomation(uuid, data);
         }
 

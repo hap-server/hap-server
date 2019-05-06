@@ -11,7 +11,7 @@
                 <div v-for="automation in automations" :key="automation.uuid" class="automation-row clickable"
                     @click="open_automation = automation"
                 >
-                    <h3>Automation {{ automation.uuid }}</h3>
+                    <h3>{{ automation.data.name.trim() || automation.uuid }}</h3>
 
                     <div class="automation-row-contents">
                         <p>
