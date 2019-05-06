@@ -8,6 +8,9 @@
             <li class="nav-item"><a class="nav-link" :class="{active: tab === 'conditions'}" href="#" @click.prevent="tab = 'conditions'">Conditions
                 <span v-if="Object.keys(automation.data.conditions || {}).length" class="badge badge-default">
                     {{ Object.keys(automation.data.conditions || {}).length }}</span></a></li>
+            <li class="nav-item"><a class="nav-link" :class="{active: tab === 'actions'}" href="#" @click.prevent="tab = 'actions'">Actions
+                <span v-if="Object.keys(automation.data.actions || {}).length" class="badge badge-default">
+                    {{ Object.keys(automation.data.actions || {}).length }}</span></a></li>
         </ul>
 
         <form v-if="tab === 'general'" @submit.prevent="$emit('save', true)">
@@ -44,15 +47,28 @@
             </template>
         </div>
 
+        <div v-if="tab === 'actions'" class="automation-actions">
+            <condition v-for="(action, id) in automation.data.actions || {}" :key="id" :id="id"
+                :action="action" :editable="editable" :saving="saving || deleting" />
+
+            <template v-for="(action, id) in automation.data.actions || {}">
+                <component
+                    v-if="action_components.find(c => c.plugin === action.plugin && c.type === action.action)"
+                    :is="action_components.find(c => c.plugin === action.plugin && c.type === action.action).component"
+                    :key="id" :id="id" :action="action" :editable="editable" :saving="saving || deleting"
+                    @delete="$delete(automation.data.actions, id); $forceUpdate()" />
+            </template>
+        </div>
+
         <div class="d-flex">
             <div v-if="tab === 'triggers' && editable" class="dropdown dropup" :class="{show: add_trigger_dropdown_open}">
-                <button :id="_uid + '-dropdown'" class="btn btn-sm btn-default dropdown-toggle" type="button"
+                <button :id="_uid + '-triggers-dropdown'" class="btn btn-sm btn-default dropdown-toggle" type="button"
                     data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
                     :disabled="saving || deleting"
                     @click.stop="add_trigger_dropdown_open = !add_trigger_dropdown_open">Add trigger</button>
 
                 <div class="dropdown-menu" :class="{show: add_trigger_dropdown_open}"
-                    :aria-labelledby="_uid + '-dropdown'"
+                    :aria-labelledby="_uid + '-triggers-dropdown'"
                 >
                     <a v-for="{plugin, type, name} in trigger_components" :key="type"
                         class="dropdown-item" href="#" @click.prevent="addTrigger({plugin, trigger: type})"
@@ -61,13 +77,13 @@
             </div>
 
             <div v-if="tab === 'conditions' && editable" class="dropdown dropup" :class="{show: add_condition_dropdown_open}">
-                <button :id="_uid + '-dropdown'" class="btn btn-sm btn-default dropdown-toggle" type="button"
+                <button :id="_uid + '-conditions-dropdown'" class="btn btn-sm btn-default dropdown-toggle" type="button"
                     data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
                     :disabled="saving || deleting"
                     @click.stop="add_condition_dropdown_open = !add_condition_dropdown_open">Add condition</button>
 
                 <div class="dropdown-menu" :class="{show: add_condition_dropdown_open}"
-                    :aria-labelledby="_uid + '-dropdown'"
+                    :aria-labelledby="_uid + '-conditions-dropdown'"
                 >
                     <a v-for="{plugin, type, name} in condition_components" :key="type"
                         class="dropdown-item" href="#" @click.prevent="addCondition({plugin, condition: type})"
@@ -76,13 +92,13 @@
             </div>
 
             <div v-if="tab === 'actions' && editable" class="dropdown dropup" :class="{show: add_action_dropdown_open}">
-                <button :id="_uid + '-dropdown'" class="btn btn-sm btn-default dropdown-toggle" type="button"
+                <button :id="_uid + '-actions-dropdown'" class="btn btn-sm btn-default dropdown-toggle" type="button"
                     data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
                     :disabled="saving || deleting"
                     @click.stop="add_action_dropdown_open = !add_action_dropdown_open">Add action</button>
 
                 <div class="dropdown-menu" :class="{show: add_action_dropdown_open}"
-                    :aria-labelledby="_uid + '-dropdown'"
+                    :aria-labelledby="_uid + '-actions-dropdown'"
                 >
                     <a v-for="{plugin, type, name} in action_components" :key="type"
                         class="dropdown-item" href="#" @click.prevent="addAction({plugin, action: type})"
@@ -113,6 +129,7 @@
     import {trigger_components, condition_components, action_components} from '.';
     import './triggers';
     import './conditions';
+    import './actions';
 
     export default {
         components: {

@@ -127,6 +127,6 @@ export class StagedAutomation extends Automation {
     save() {
         if (!this.uuid) throw new Error('This automation doesn\'t exist');
 
-        return this.automation.updateData(this.data);
+        return this.automation.updateData(JSON.parse(JSON.stringify(this.data)));
     }
 }

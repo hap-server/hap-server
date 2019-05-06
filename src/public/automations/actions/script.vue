@@ -1,28 +1,26 @@
 <template>
-    <automation-condition class="automation-condition-script"
-        :id="id" :condition="condition" :editable="editable" :saving="saving" @delete="$emit('delete')"
+    <automation-action class="automation-action-script"
+        :id="id" :action="action" :editable="editable" :saving="saving" @delete="$emit('delete')"
     >
-        <p>This script must return <code>true</code> for this condition to pass.</p>
-
-        <codemirror v-model="condition.script" :options="options" />
-    </automation-condition>
+        <codemirror v-model="action.script" :options="options" />
+    </automation-action>
 </template>
 
 <script>
-    import AutomationCondition from '../condition.vue';
+    import AutomationAction from '../action.vue';
 
     export const type = 'Script';
     export const name = 'Script';
 
     export default {
         components: {
-            AutomationCondition,
+            AutomationAction,
             Codemirror: () => import(/* webpackChunkName: 'codemirror' */ 'codemirror/mode/javascript/javascript')
                 .then(() => import(/* webpackChunkName: 'codemirror' */ 'vue-codemirror')).then(c => c.codemirror),
         },
         props: {
             id: String,
-            condition: Object,
+            action: Object,
             editable: Boolean,
             saving: Boolean,
         },

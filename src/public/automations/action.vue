@@ -1,16 +1,16 @@
 <template>
-    <div class="automation-trigger">
-        <div class="automation-trigger-header">
+    <div class="automation-action">
+        <div class="automation-action-header">
             <div class="flex-fill">
-                <h4>Trigger #{{ id }}</h4>
+                <h4>Action #{{ id }}</h4>
             </div>
 
             <slot name="header-right" />
             <button v-if="editable" class="btn btn-danger btn-sm ml-3" type="button" :disabled="saving"
-                @click="$emit('delete')">Remove trigger</button>
+                @click="$emit('delete')">Remove action</button>
         </div>
 
-        <div class="automation-trigger-contents">
+        <div class="automation-action-contents">
             <slot />
         </div>
     </div>
@@ -20,7 +20,7 @@
     export default {
         props: {
             id: String,
-            trigger: Object,
+            action: Object,
             editable: Boolean,
             saving: Boolean,
         },

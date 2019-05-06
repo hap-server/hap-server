@@ -27,18 +27,26 @@
 
 .automation-settings {
     .settings-window {
-        max-width: 626px;
+        max-width: 900px;
+    }
+
+    .automation-triggers,
+    .automation-conditions,
+    .automation-actions {
+        min-height: 200px;
     }
 }
 
 .automation-trigger,
-.automation-condition {
+.automation-condition,
+.automation-action {
     padding-bottom: 1rem;
     margin-bottom: 1rem;
     border-bottom: 1px solid #dee2e6;
 
     .automation-trigger-header,
-    .automation-condition-header {
+    .automation-condition-header,
+    .automation-action-header {
         display: flex;
         margin-bottom: 1rem;
 
