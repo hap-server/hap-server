@@ -24,6 +24,17 @@ import * as vue_color_chrome_module from 'vue-color/src/components/Chrome.vue';
 import * as vue_color_swatches_module from 'vue-color/src/components/Swatches.vue';
 import * as vue_color_sketch_module from 'vue-color/src/components/Sketch.vue';
 
+import {
+    trigger_components as automation_trigger_components,
+    condition_components as automation_condition_components,
+    action_components as automation_action_components,
+} from './automations';
+
+let vuedraggable_module;
+let automation_trigger_component_module;
+let automation_condition_component_module;
+let automation_action_component_module;
+
 let instance;
 
 export class PluginManager {
@@ -92,6 +103,16 @@ export class PluginManager {
             return vue_color_sketch_module;
         }
 
+        if (request === '@hap-server/accessory-ui-api/automation-trigger' && automation_trigger_component_module) {
+            return automation_trigger_component_module;
+        } else if (request === '@hap-server/accessory-ui-api/automation-condition' && automation_condition_component_module) {
+            return automation_condition_component_module;
+        } else if (request === '@hap-server/accessory-ui-api/automation-action' && automation_action_component_module) {
+            return automation_action_component_module;
+        } else if (request === 'vuedraggable' && vuedraggable_module) {
+            return vuedraggable_module;
+        }
+
         if (cache[request]) {
             return cache[request].exports;
         } else if (cache[request + '.js']) {
@@ -120,8 +141,11 @@ export class PluginManager {
             return cache[request].exports;
         }
 
-        if (request === 'vuedraggable') {
-            return import(/* webpackChunkName: 'layout-editor' */ 'vuedraggable');
+        if (request === '@hap-server/accessory-ui-api/automation-trigger') {
+            return import(/* webpackChunkName: 'automations' */ './automations/trigger.vue')
+                .then(m => automation_trigger_component_module = m);
+        } else if (request === 'vuedraggable') {
+            return import(/* webpackChunkName: 'layout-editor' */ 'vuedraggable').then(m => vuedraggable_module = m);
         }
 
         const js = (await axios.get('./accessory-ui/' + accessory_ui.id + request)).data;
@@ -351,5 +375,77 @@ export class PluginAPI {
         }
 
         layout_section_components.set(type, {component, name});
+    }
+
+    /**
+     * Registers an automation trigger editor component.
+     *
+     * @param {string} type
+     * @param {VueComponent} component
+     * @param {string} name A display name for the automation trigger
+     * @param {string} [plugin] The name of the plugin that registered the automation trigger
+     */
+    registerAutomationTriggerComponent(type, component, name, plugin) {
+        if (!plugin) plugin = this.plugin;
+        if (!plugin) throw new Error('Unknown plugin');
+
+        if (automation_trigger_components.find(c => c.plugin === plugin && c.type === type)) {
+            throw new Error('There is already an automation trigger component with the ID "' + type +
+                '" for the plugin "' + plugin + '"');
+        }
+
+        if (!name) name = type + ' (' + plugin + ')';
+
+        if (!component.name) component.name = 'automation-trigger-' + plugin + '-' + type;
+
+        automation_trigger_components.push({component, plugin, type, name});
+    }
+
+    /**
+     * Registers an automation condition editor component.
+     *
+     * @param {string} type
+     * @param {VueComponent} component
+     * @param {string} name A display name for the automation condition
+     * @param {string} [plugin] The name of the plugin that registered the automation condition
+     */
+    registerAutomationConditionComponent(type, component, name, plugin) {
+        if (!plugin) plugin = this.plugin;
+        if (!plugin) throw new Error('Unknown plugin');
+
+        if (automation_condition_components.find(c => c.plugin === plugin && c.type === type)) {
+            throw new Error('There is already an automation condition component with the ID "' + type +
+                '" for the plugin "' + plugin + '"');
+        }
+
+        if (!name) name = type + ' (' + plugin + ')';
+
+        if (!component.name) component.name = 'automation-condition-' + plugin + '-' + type;
+
+        automation_condition_components.push({component, plugin, type, name});
+    }
+
+    /**
+     * Registers an automation action editor component.
+     *
+     * @param {string} type
+     * @param {VueComponent} component
+     * @param {string} name A display name for the automation action
+     * @param {string} [plugin] The name of the plugin that registered the automation action
+     */
+    registerAutomationActionComponent(type, component, name, plugin) {
+        if (!plugin) plugin = this.accessory_ui.plugin;
+        if (!plugin) throw new Error('Unknown plugin');
+
+        if (automation_action_components.find(c => c.plugin === plugin && c.type === type)) {
+            throw new Error('There is already an automation action component with the ID "' + type +
+                '" for the plugin "' + plugin + '"');
+        }
+
+        if (!name) name = type + ' (' + plugin + ')';
+
+        if (!component.name) component.name = 'automation-action-' + plugin + '-' + type;
+
+        automation_action_components.push({component, plugin, type, name});
     }
 }

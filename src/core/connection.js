@@ -1237,6 +1237,7 @@ export default class Connection {
                 id: accessory_ui.id,
                 scripts: accessory_ui.scripts,
 
+                plugin: accessory_ui.plugin.name,
                 plugin_authentication_handlers,
             };
         });

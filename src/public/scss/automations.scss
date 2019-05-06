@@ -24,3 +24,24 @@
         }
     }
 }
+
+.automation-settings {
+    .settings-window {
+        max-width: 626px;
+    }
+}
+
+.automation-trigger {
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid #dee2e6;
+
+    .automation-trigger-header {
+        display: flex;
+        margin-bottom: 1rem;
+
+        h4 {
+            font-size: 1.1rem;
+        }
+    }
+}
