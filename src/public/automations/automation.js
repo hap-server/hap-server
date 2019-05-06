@@ -104,16 +104,24 @@ export class StagedAutomation extends Automation {
         return this;
     }
 
-    get id() { return this.automation.id; }
+    get id() {
+        return this.automation.id;
+    }
     set id(id) {}
 
-    get connection() { return this.automation.connection; }
+    get connection() {
+        return this.automation.connection;
+    }
     set connection(connection) {}
 
-    get uuid() { return this.automation.uuid; }
+    get uuid() {
+        return this.automation.uuid;
+    }
     set uuid(uuid) {}
 
-    get _permissions() { return this.automation._permissions; }
+    get _permissions() {
+        return this.automation._permissions;
+    }
     set _permissions(_permissions) {}
 
     _setData(data) {

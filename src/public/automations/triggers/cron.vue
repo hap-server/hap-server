@@ -14,8 +14,10 @@
                 <select :id="_uid + '-timezone'" v-model="trigger.timezone"
                     class="form-control form-control-sm" :disabled="saving"
                 >
-                    <option v-for="timezone in timezones.filter(t => t.startsWith('Etc/'))" :value="timezone">{{ timezone.substr(4) }}</option>
-                    <option v-for="timezone in timezones.filter(t => !t.startsWith('Etc/'))" :value="timezone">{{ timezone }}</option>
+                    <option v-for="timezone in timezones.filter(t => t.startsWith('Etc/'))" :key="timezone"
+                        :value="timezone">{{ timezone.substr(4) }}</option>
+                    <option v-for="timezone in timezones.filter(t => !t.startsWith('Etc/'))" :key="timezone"
+                        :value="timezone">{{ timezone }}</option>
                 </select>
             </div>
         </div>

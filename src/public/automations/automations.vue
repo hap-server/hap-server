@@ -16,11 +16,11 @@
                     <div class="automation-row-contents">
                         <p>
                             {{ Object.keys(automation.data.triggers || {}).length === 0 ? 'No' : Object.keys(automation.data.triggers || {}).length }}
-                                trigger{{ Object.keys(automation.data.triggers || {}).length === 1 ? '' : 's' }},
+                            trigger{{ Object.keys(automation.data.triggers || {}).length === 1 ? '' : 's' }},
                             {{ Object.keys(automation.data.conditions || {}).length === 0 ? 'no' : Object.keys(automation.data.conditions || {}).length }}
-                                condition{{ Object.keys(automation.data.conditions || {}).length === 1 ? '' : 's' }},
+                            condition{{ Object.keys(automation.data.conditions || {}).length === 1 ? '' : 's' }},
                             {{ Object.keys(automation.data.actions || {}).length === 0 ? 'no' : Object.keys(automation.data.actions || {}).length }}
-                                action{{ Object.keys(automation.data.actions || {}).length === 1 ? '' : 's' }}.
+                            action{{ Object.keys(automation.data.actions || {}).length === 1 ? '' : 's' }}.
                         </p>
                     </div>
                 </div>
@@ -117,7 +117,7 @@
                     ]);
 
                     const new_automations = new_automation_uuids.map((uuid, index) => new Automation(this.connection,
-                        uuid, new_automations_data[index], new_automations_permissions[index]));
+                        uuid, new_automations_data[index], new_automations_permissions[index])); // eslint-disable-line vue/script-indent
 
                     for (const automation of new_automations) {
                         this.$set(this.automations, automation.uuid, automation);

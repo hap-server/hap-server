@@ -552,9 +552,9 @@
                             return this.connection.getLayoutSections(...flat_section_uuids.map(([layout_uuid, section_uuid, index]) => [layout_uuid, section_uuid])).then(section_data => {
                                 const all_layout_sections = {};
 
+                                // eslint-disable-next-line guard-for-in
                                 for (const index in section_data) {
                                     const layout_uuid = flat_section_uuids[index][0];
-                                    const layout_index = flat_section_uuids[index][2];
                                     const section_uuid = flat_section_uuids[index][1];
                                     const data = section_data[index];
 
@@ -569,7 +569,7 @@
                     ]);
 
                     const new_layouts = new_layout_uuids.map((uuid, index) => new Layout(this.connection, uuid,
-                        new_layouts_data[index], new_layouts_sections[index], new_layouts_permissions[index]));
+                        new_layouts_data[index], new_layouts_sections[index], new_layouts_permissions[index])); // eslint-disable-line vue/script-indent
 
                     for (const layout of new_layouts) {
                         this.$set(this.layouts, layout.uuid, layout);

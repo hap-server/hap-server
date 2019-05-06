@@ -1061,8 +1061,6 @@ export default class Connection {
 
         this.log.debug('Deleting automation', uuid);
 
-        const data = await this.server.storage.getItem('Automation.' + uuid);
-
         await this.server.storage.removeItem('Automation.' + uuid);
 
         const automation_uuids = await this.server.storage.getItem('Automations') || [];
