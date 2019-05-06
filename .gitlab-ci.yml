@@ -19,6 +19,13 @@ build:
         paths:
             - dist
             - release
+    only:
+        changes:
+            - .gitlab-ci.yml
+            - package-lock.json
+            - gulpfile.babel.js
+            - .babelrc
+            - src
 
 lint:
     script:
@@ -26,6 +33,13 @@ lint:
         - npx eslint --ext .js src example-plugins/src
         - npx eslint --ext .vue src
         - npx sass-lint -v
+    only:
+        changes:
+            - .gitlab-ci.yml
+            - package-lock.json
+            - .eslintrc.js
+            - .sass-lint.yml
+            - src
     cache:
         paths:
             - node_modules/
