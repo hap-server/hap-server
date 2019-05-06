@@ -519,7 +519,7 @@ export default class Server extends EventEmitter {
      * @return {Promise<Automation>}
      */
     async loadAutomation(uuid, data) {
-        const automation = this.automations.loadAutomation(data, uuid);
+        const automation = await this.automations.loadAutomation(data, uuid);
 
         for (const [trigger_id, trigger_config] of Object.entries(data.triggers || {})) {
             const trigger = await this.automations.loadAutomationTrigger(trigger_config, trigger_id);

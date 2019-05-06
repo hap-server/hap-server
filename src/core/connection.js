@@ -949,7 +949,8 @@ export default class Connection {
 
         await this.server.storage.setItem('Automation.' + uuid, data);
 
-        await this.server.loadAutomation(uuid, data);
+        // Don't wait for the automation to load
+        this.server.loadAutomation(uuid, data).catch(() => {});
 
         const automation_uuids = await this.server.storage.getItem('Automations') || [];
         if (!automation_uuids.includes(uuid)) {
@@ -1023,7 +1024,8 @@ export default class Connection {
 
         await this.server.storage.setItem('Automation.' + uuid, data);
 
-        await this.server.updateAutomation(uuid, data);
+        // Don't wait for the automation to load
+        this.server.updateAutomation(uuid, data).catch(() => {});
 
         const automation_uuids = await this.server.storage.getItem('Automations') || [];
         if (!automation_uuids.includes(uuid)) {
