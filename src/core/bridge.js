@@ -4,6 +4,11 @@ import chalk from 'chalk';
 import qrcode from 'qrcode-terminal';
 import {Bridge as HAPBridge, Accessory, Service, Characteristic} from './hap-async';
 import AccessoryProxy from './accessoryproxy';
+import HAPServer from './hap-server';
+
+import {AccessoryInfo} from 'hap-nodejs/lib/model/AccessoryInfo';
+import {IdentifierCache} from 'hap-nodejs/lib/model/IdentifierCache';
+import {clone} from 'hap-nodejs/lib/util/clone';
 
 export default class Bridge {
     constructor(server, log, config) {
@@ -23,7 +28,6 @@ export default class Bridge {
 
         this.accessory_uuids = config.accessory_uuids || [];
         this.cached_accessories = [];
-        this.accessory_proxy_map = new WeakMap();
 
         this.bridge = this._createBridge(config);
 
@@ -39,9 +43,8 @@ export default class Bridge {
     _createBridge(config) {
         const bridge = new HAPBridge(this.name, this.uuid);
 
-        bridge._assignIDs = this.assignIDs.bind(this);
-
-        bridge._handleAccessories = callback => this.handleAccessories().then(v => callback(null, v), callback);
+        bridge.addBridgedAccessory = this._addBridgedAccessory.bind(this, bridge);
+        bridge.removeBridgeAccessory = this._removeBridgedAccessory.bind(this, bridge);
 
         bridge.getService(Service.AccessoryInformation)
             .setCharacteristic(Characteristic.Manufacturer, 'Samuel Elliott')
@@ -53,119 +56,141 @@ export default class Bridge {
         return bridge;
     }
 
-    publish() {
-        if (this.cached_accessories.length) this.bridge.disableUnusedIDPurge();
+    _addBridgedAccessory(bridge, accessory, defer_update) {
+        if (accessory._isBridge) throw new Error('Cannot Bridge another Bridge!');
 
-        return this.bridge.publish({
-            username: this.username,
-            port: this.port,
-            pincode: this.pincode,
-            category: Accessory.Categories.BRIDGE,
-            // setupID: this.setup_id && this.setup_id.length === 3 ? this.setup_id : undefined,
-        }, this.unauthenticated_access);
+        // Check for UUID conflict
+        for (const existing of bridge.bridgedAccessories) {
+            if (existing.UUID === accessory.UUID) throw new Error('Cannot add a bridged Accessory with the same UUID as another bridged Accessory: ' + existing.UUID);
+        }
+
+        const _eventhandlers = bridge.__hap_server_eventhandlers || (bridge.__hap_server_eventhandlers = new WeakMap());
+        let eventhandlers = _eventhandlers.get(accessory);
+        if (!eventhandlers) _eventhandlers.set(accessory, eventhandlers = {});
+
+        if (!eventhandlers.characteristic_change) eventhandlers.characteristic_change = change => {
+            bridge._handleCharacteristicChange(clone(change, {accessory:accessory}));
+        };
+        if (!eventhandlers.configuration_change) eventhandlers.configuration_change = change => {
+            bridge._updateConfiguration();
+        };
+
+        accessory.on('service-characteristic-change', eventhandlers.characteristic_change);
+        accessory.on('service-configurationChange', eventhandlers.configuration_change);
+
+        accessory.bridged = true;
+        bridge.bridgedAccessories.push(accessory);
+
+        if (!defer_update) bridge._updateConfiguration();
+
+        return accessory;
+    }
+
+    _removeBridgedAccessory(bridge, accessory, defer_update) {
+        const existing = bridge.bridgedAccessories.findIndex(a => a.UUID === accessory.UUID);
+        if (existing <= -1) throw new Error('Cannot find the bridged Accessory to remove.');
+
+        bridge.bridgedAccessories.splice(index, 1);
+
+        this._removeBridgedAccessoryEventListeners(bridge, accessory);
+
+        if (!defer_update) this._updateConfiguration();
+    }
+
+    _removeBridgedAccessoryEventListeners(bridge, accessory) {
+        if (!bridge.__hap_server_eventhandlers) return;
+        const eventhandlers = bridge.__hap_server_eventhandlers.get(accessory);
+        if (!eventhandlers) return;
+
+        if (eventhandlers.characteristic_change) {
+            accessory.removeListener('service-characteristic-change', eventhandlers.characteristic_change);
+            delete eventhandlers.characteristic_change;
+        }
+        if (eventhandlers.configuration_change) {
+            accessory.removeListener('service-configurationChange', eventhandlers.configuration_change);
+            delete eventhandlers.configuration_change;
+        }
+    }
+
+    publish() {
+        this.hap_server.start();
     }
 
     unpublish() {
-        this.bridge.unpublish();
+        if (this.hasOwnProperty('hap_server')) this.hap_server.stop();
     }
 
-    /**
-     * Assigns aid/iid to ourselves, any Accessories we are bridging, and all associated Services+Characteristics. Uses
-     * the provided identifierCache to keep IDs stable.
-     */
-    assignIDs(identifier_cache) {
-        // If we are responsible for our own identifierCache, start the expiration process
-        // also check weather we want to have an expiration process
-        if (this.bridge._identifierCache && this.bridge.shouldPurgeUnusedIDs) {
-            this.bridge._identifierCache.startTrackingUsage();
+    get accessory_info() {
+        // Attempt to load existing AccessoryInfo from disk
+        let accessory_info = AccessoryInfo.load(this.username);
+
+        // If we don't have one, create a new one
+        if (!accessory_info) {
+            this.log.debug('Creating new AccessoryInfo');
+            accessory_info = AccessoryInfo.create(this.username);
         }
 
-        if (this.bridge.bridged) {
-            // This Accessory is bridged, so it must have an aid > 1. Use the provided identifierCache to
-            // fetch or assign one based on our UUID.
-            this.bridge.aid = identifier_cache.getAID(this.UUID);
+        if (accessory_info.setupID === undefined || accessory_info.setupID === '') {
+            this.bridge._setupID = this.bridge._generateSetupID();
         } else {
-            // Since this Accessory is the server (as opposed to any Accessories that may be bridged behind us),
-            // we must have aid = 1
-            this.bridge.aid = 1;
+            this.bridge._setupID = accessory_info.setupID;
         }
 
-        for (const service of this.bridge.services) {
-            if (this.bridge._isBridge) service._assignIDs(identifier_cache, this.UUID, 2000000000);
-            else service._assignIDs(identifier_cache, this.UUID);
+        accessory_info.setupID = this._setupID;
+
+        // Make sure we have up-to-date values in AccessoryInfo, then save it in case they changed (or if we just created it)
+        accessory_info.displayName = this.name;
+        accessory_info.category = Accessory.Categories.BRIDGE;
+        accessory_info.pincode = this.pincode;
+        accessory_info.save();
+
+        return Object.defineProperty(this, 'accessory_info', {value: accessory_info}).accessory_info;
+    }
+
+    get identifier_cache() {
+        // Create our IdentifierCache so we can provide clients with stable aid/iid's
+        let identifier_cache = IdentifierCache.load(this.username);
+
+        // If we don't have one, create a new one
+        if (!identifier_cache) {
+            this.log.debug('Creating new IdentifierCache');
+            identifier_cache = new IdentifierCache(this.username);
         }
 
-        // Now assign IDs for any Accessories we are bridging
-        for (const accessory of this.bridge.bridgedAccessories) {
-            accessory._assignIDs(identifier_cache);
-        }
+        return Object.defineProperty(this, 'identifier_cache', {value: identifier_cache}).identifier_cache;
+    }
 
-        for (const accessory of this.cached_accessories) {
-            accessory._assignIDs(identifier_cache);
-        }
+    get hap_server() {
+        // Create our HAP server which handles all communication between iOS devices and us
+        const hap_server = new HAPServer(this.bridge, {
+            port: this.port,
+            unauthenticated_access: this.unauthenticated_access,
+        }, this.log.withPrefix('Server'), this.accessory_info, this.identifier_cache);
 
-        // Expire any now-unused cache keys (for Accessories, Services, or Characteristics
-        // that have been removed since the last call to assignIDs())
-        if (this._identifierCache) {
-            // Check weather we want to purge the unused ids
-            if (this.shouldPurgeUnusedIDs) this._identifierCache.stopTrackingUsageAndExpireUnused();
-            // Save in case we have new ones
-            this._identifierCache.save();
-        }
+        return Object.defineProperty(this, 'hap_server', {value: hap_server}).hap_server;
     }
 
     /**
-     * Handle /accessories requests.
-     * Called when an iOS client wishes to know all about our accessory via JSON payload.
+     * Adds an accessory.
+     *
+     * @param {Accessory} accessory
      */
-    async handleAccessories() {
-        this.log.debug('Getting accessories for', this.name);
-
-        // Make sure our aid/iid's are all assigned
-        this.bridge._assignIDs(this.bridge._identifierCache);
-
-        // Build out our JSON payload and call the callback
-        return {
-            // Array of Accessory HAP
-            // _handleGetCharacteristics will return SERVICE_COMMUNICATION_FAILURE for cached characteristics
-            accessories: this.bridge.toHAP().concat(this.cachedAccessoriesHAP()),
-        };
-    }
-
-    cachedAccessoriesHAP(args) {
-        return this.cached_accessories.map(accessory => accessory.toHAP(args)[0]);
-    }
-
-    getAccessoryProxy(accessory) {
-        if (this.accessory_proxy_map.has(accessory)) return this.accessory_proxy_map.get(accessory);
-
-        if (accessory instanceof AccessoryProxy) {
-            this.accessory_proxy_map.set(accessory.accessory, accessory);
-            return accessory;
-        }
-
-        const proxy = new AccessoryProxy(accessory /* , permissions */);
-        this.accessory_proxy_map.set(accessory, proxy);
-
-        return proxy;
-    }
-
     addAccessory(accessory) {
-        accessory = this.getAccessoryProxy(accessory);
-
         this.bridge.addBridgedAccessory(accessory);
         this.removeCachedAccessory(accessory);
     }
 
+    /**
+     * Removes an accessory.
+     *
+     * @param {Accessory} accessory
+     */
     removeAccessory(accessory) {
-        accessory = this.getAccessoryProxy(accessory);
-
         this.bridge.removeBridgeAccessory(accessory);
+        this.removeCachedAccessory(accessory);
     }
 
     addCachedAccessory(accessory) {
-        accessory = this.getAccessoryProxy(accessory);
-
         this.log.debug('Adding cached accessory', accessory.displayName, 'to', this.name);
 
         if (accessory._isBridge) throw new Error('Cannot Bridge another Bridge!');
@@ -181,21 +206,29 @@ export default class Bridge {
     }
 
     removeCachedAccessory(accessory) {
-        accessory = this.getAccessoryProxy(accessory);
-
         let index;
         while ((index = this.cached_accessories.indexOf(accessory)) !== -1) this.cached_accessories.splice(index, 1);
 
-        // if (!this.cached_accessories.length) {
-        //     this.bridge.purgeUnusedIDs();
-        //     this.bridge.enableUnusedIDPurge();
-        // }
+        if (!this.cached_accessories.length) this.expireUnusedIDs();
     }
 
     removeAllCachedAccessories() {
         this.cached_accessories.splice(0, this.cached_accessories.length);
-        this.bridge.purgeUnusedIDs();
-        this.bridge.enableUnusedIDPurge();
+
+        this.expireUnusedIDs();
+    }
+
+    expireUnusedIDs() {
+        if (!this.hasOwnProperty('identifier_cache') || !this.hasOwnProperty('hap_server')) return;
+
+        this.identifier_cache.startTrackingUsage();
+
+        this.hap_server.toHAP(this.bridge);
+        for (const accessory of this.bridge.bridgedAccessories) this.hap_server.toHAP(accessory);
+        for (const accessory of this.cached_accessories) this.hap_server.toHAP(accessory);
+
+        this.identifier_cache.stopTrackingUsageAndExpireUnused();
+        this.identifier_cache.save();
     }
 
     printSetupInfo() {

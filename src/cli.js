@@ -273,6 +273,9 @@ yargs.command('$0 [config]', 'Run the HAP and web server', yargs => {
         log.info('Bridge', bridge.name, bridge.bridge.bridgedAccessories.length, 'accessories',
             server.cached_accessories.length, 'cached accessories');
 
+        // Save the identifier cache in case any new accessories/services/characteristics have been added or expired
+        bridge.expireUnusedIDs();
+
         // Bridge has already been paired with
         if (bridge.bridge._accessoryInfo && bridge.bridge._accessoryInfo.pairedClients.length) continue;
 

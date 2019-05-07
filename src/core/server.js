@@ -878,8 +878,9 @@ export default class Server extends EventEmitter {
      * @param {} value
      * @param {} old_value
      * @param {object} context
+     * @return {Promise}
      */
-    handleCharacteristicUpdate(accessory, service, characteristic, value, old_value, context) {
+    async handleCharacteristicUpdate(accessory, service, characteristic, value, old_value, context) {
         if (this.hasOwnProperty('automations')) {
             this.automations.handleCharacteristicUpdate(accessory, service, characteristic, value, old_value, context);
         }
@@ -894,6 +895,19 @@ export default class Server extends EventEmitter {
                 value,
             }),
         });
+
+        for (const bridge of this.bridges) {
+            if (bridge instanceof Homebridge || !bridge.hasOwnProperty('hap_server')) continue;
+
+            if (!bridge.bridge.bridgedAccessories.includes(accessory)) continue;
+
+            const aid = bridge.hap_server.getAccessoryID(accessory);
+            const iid = bridge.hap_server.getCharacteristicID(accessory, service, characteristic);
+
+            bridge.hap_server.server.notifyClients(/* eventName */ `${aid}.${iid}`, /* data */ {
+                characteristics: [{aid, iid, value}],
+            }, /* excludeEvents */ context);
+        }
     }
 
     /**

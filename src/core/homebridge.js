@@ -61,16 +61,8 @@ export default class Homebridge extends Bridge {
         this.homebridge._teardown();
     }
 
-    assignIDs(accessory) {
-        throw new Error('Cannot assign IDs for Homebridge');
-    }
-
-    handleAccessories(accessory) {
-        throw new Error('Cannot handle /accessories requests for Homebridge');
-    }
-
-    cachedAccessoriesHAP(accessory) {
-        return [];
+    get server() {
+        throw new Error('Cannot create a HAPServer for Homebridge');
     }
 
     addAccessory(accessory) {
