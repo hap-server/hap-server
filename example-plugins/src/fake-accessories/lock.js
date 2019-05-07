@@ -14,12 +14,12 @@ export default function createAccessory(name, uuid, log) {
 
     lock_mechanism.getCharacteristic(Characteristic.LockTargetState)
         .on('set', async new_value => {
-            if (value === Characteristic.LockTargetState.UNSECURED) {
+            if (new_value === Characteristic.LockTargetState.UNSECURED) {
                 locked = false;
 
                 // now we want to set our lock's "actual state" to be unsecured so it shows as unlocked in iOS apps
                 lock_mechanism.setCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.UNSECURED);
-            } else if (value === Characteristic.LockTargetState.SECURED) {
+            } else if (new_value === Characteristic.LockTargetState.SECURED) {
                 locked = true;
 
                 // now we want to set our lock's "actual state" to be locked so it shows as open in iOS apps

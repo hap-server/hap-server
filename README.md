@@ -26,6 +26,8 @@ A lot.
         - [x] Programmable Switch (shows last action for five seconds)
         - [x] Outlet
         - [x] Television
+        - [x] Lock Mechanism
+        - [x] Garage Door Opener
         - [ ] [All other services supported by hap-nodejs](https://github.com/khaost/hap-nodejs/tree/master/lib/gen)
         - [x] [Other services with plugins](docs/plugins.md#accessoryuiregisterservicecomponent)
     - [x] Accessory control
@@ -34,6 +36,8 @@ A lot.
         - [ ] Programmable Switch
         - [x] Outlet
         - [ ] Television
+        - [ ] Lock Mechanism
+        - [ ] Garage Door Opener
         - [ ] [All other services supported by hap-nodejs](https://github.com/khaost/hap-nodejs/tree/master/lib/gen)
         - [x] [Other services with plugins](docs/plugins.md#accessoryuiregisteraccessorydetailscomponent)
 - [ ] Historical data
