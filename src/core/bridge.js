@@ -3,7 +3,6 @@ import os from 'os';
 import chalk from 'chalk';
 import qrcode from 'qrcode-terminal';
 import {Bridge as HAPBridge, Accessory, Service, Characteristic} from './hap-async';
-import AccessoryProxy from './accessoryproxy';
 import HAPServer from './hap-server';
 
 import {AccessoryInfo} from 'hap-nodejs/lib/model/AccessoryInfo';
@@ -68,10 +67,10 @@ export default class Bridge {
         let eventhandlers = _eventhandlers.get(accessory);
         if (!eventhandlers) _eventhandlers.set(accessory, eventhandlers = {});
 
-        if (!eventhandlers.characteristic_change) eventhandlers.characteristic_change = change => {
-            bridge._handleCharacteristicChange(clone(change, {accessory:accessory}));
+        if (!eventhandlers.characteristic_change) eventhandlers.characteristic_change = change => { // eslint-disable-line curly
+            bridge._handleCharacteristicChange(clone(change, {accessory: accessory}));
         };
-        if (!eventhandlers.configuration_change) eventhandlers.configuration_change = change => {
+        if (!eventhandlers.configuration_change) eventhandlers.configuration_change = change => { // eslint-disable-line curly
             bridge._updateConfiguration();
         };
 

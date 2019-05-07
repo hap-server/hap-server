@@ -1,11 +1,6 @@
 
-import {Bridge as HAPBridge, Accessory, Service, Characteristic} from './hap-async';
-import AccessoryProxy from './accessoryproxy';
-
-import {HAPServer} from 'hap-nodejs/lib/HAPServer';
+import {HAPServer, Accessory} from 'hap-nodejs';
 import {Advertiser} from 'hap-nodejs/lib/Advertiser';
-import {AccessoryInfo} from 'hap-nodejs/lib/model/AccessoryInfo';
-import {IdentifierCache} from 'hap-nodejs/lib/model/IdentifierCache';
 
 function hapStatus(err) {
     let value = 0;
@@ -421,7 +416,7 @@ export default class Server {
         const characteristic = this.getCharacteristicByID(accessory, iid);
 
         if (!characteristic) {
-            this.log.warning('Could not find a Characteristic with aid %d and iid %d', aid, iid);
+            this.log.warning('Could not find a characteristic with aid %d and iid %d', aid, iid);
 
             return {
                 aid, iid,
@@ -500,7 +495,7 @@ export default class Server {
             }, (err, data) => err ? rj(err) : rs(data)));
         }
 
-        throw 'resource not found';
+        throw new Error('resource not found');
     }
 
     /**
@@ -517,13 +512,13 @@ export default class Server {
 
         // this._unsubscribeEvents(events);
 
-        for (var key in events) {
+        for (const key in events) {
             if (key.indexOf('.') === -1) continue;
 
             try {
                 const [aid, iid] = key.split('.');
 
-                var characteristic = this.getCharacteristicByID(aid, iid);
+                const characteristic = this.getCharacteristicByID(aid, iid);
                 if (characteristic) characteristic.unsubscribe();
             } catch (err) {}
         }
