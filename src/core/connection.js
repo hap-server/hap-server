@@ -1184,7 +1184,7 @@ export default class Connection {
 
         const ids = [];
 
-        for (const client_username of Object.keys(bridge.bridge._accessoryInfo.pairedClients)) {
+        for (const client_username of Object.keys(bridge.accessory_info.pairedClients)) {
             ids.push(client_username);
         }
 
@@ -1209,7 +1209,7 @@ export default class Connection {
         const bridge = this.server.bridges.find(bridge => bridge.uuid === bridge_uuid);
         if (!bridge) return null;
 
-        const public_key = bridge.bridge._accessoryInfo.pairedClients[id];
+        const public_key = bridge.accessory_info.pairedClients[id];
 
         return {
             bridge_uuid,

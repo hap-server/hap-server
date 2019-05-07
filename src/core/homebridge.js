@@ -61,7 +61,7 @@ export default class Homebridge extends Bridge {
         this.homebridge._teardown();
     }
 
-    get server() {
+    get hap_server() {
         throw new Error('Cannot create a HAPServer for Homebridge');
     }
 
