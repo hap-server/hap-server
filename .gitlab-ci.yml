@@ -15,10 +15,12 @@ build:
         - npm install
         - npx gulp build
         - npx gulp build-release
+        - npx gulp build-example-plugins
     artifacts:
         paths:
             - dist
             - release
+            - example-plugins/dist
     only:
         changes:
             - .gitlab-ci.yml
@@ -26,6 +28,7 @@ build:
             - gulpfile.babel.js
             - .babelrc
             - src
+            - example-plugins/src
 
 lint:
     script:
@@ -40,6 +43,7 @@ lint:
             - .eslintrc.js
             - .sass-lint.yml
             - src
+            - example-plugins/src
     cache:
         paths:
             - node_modules/
