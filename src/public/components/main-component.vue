@@ -42,9 +42,12 @@
 
             <settings v-else-if="modal.type === 'settings'" :key="index" :ref="'modal-' + index"
                 :connection="connection" :accessories="accessories" :loading-accessories="loading_accessories"
+                :can-add-accessories="can_add_accessories" @modal="modal => modals.push(modal)"
                 @show-accessory-settings="accessory => modals.push({type: 'accessory-settings', accessory})"
                 @refresh-accessories="refreshAccessories()"
                 @updated-settings="reload" @close="modals.splice(index, 1)" />
+            <add-accessory v-else-if="modal.type === 'add-accessory'" :key="index" :ref="'modal-' + index"
+                :connection="connection" @close="modals.splice(index, 1)" />
 
             <layout-settings v-else-if="modal.type === 'layout-settings'" :key="index" :ref="'modal-' + index"
                 :connection="connection" :accessories="accessories" :layout="modal.layout"
@@ -115,6 +118,7 @@
             Automations: () => import(/* webpackChunkName: 'automations' */ '../automations/automations.vue'),
 
             Settings: () => import(/* webpackChunkName: 'settings' */ './settings.vue'),
+            AddAccessory: () => import(/* webpackChunkName: 'settings' */ './add-accessory.vue'),
             LayoutSettings: () => import(/* webpackChunkName: 'settings' */ './layout-settings.vue'),
             AccessorySettings: () => import(/* webpackChunkName: 'settings' */ './accessory-settings.vue'),
             ServiceSettings: () => import(/* webpackChunkName: 'settings' */ './service-settings.vue'),
@@ -136,6 +140,7 @@
 
                 can_update_home_settings: false,
                 can_access_server_settings: false,
+                can_add_accessories: false,
                 can_create_layouts: false,
                 loading_permissions: false,
 
@@ -168,6 +173,7 @@
                         if (modal.type === 'authenticate') return 'Login';
 
                         if (modal.type === 'settings') return 'Settings';
+                        if (modal.type === 'add-accessory') return 'Add accessory';
 
                         if (modal.type === 'layout-settings') return modal.layout.name + ' Settings';
                         if (modal.type === 'new-layout') return 'New layout';
@@ -498,6 +504,7 @@
 
                     this.can_update_home_settings = !!permissions.set;
                     this.can_access_server_settings = !!permissions.server;
+                    this.can_add_accessories = !!permissions.add_accessories;
                     this.can_create_layouts = !!permissions.create_layouts;
                     this.can_access_automations = permissions.has_automations || permissions.create_automations;
                 } finally {

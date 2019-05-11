@@ -24,6 +24,8 @@ import Homebridge from './homebridge';
 import Logger from './logger';
 import {Accessory, Service, Characteristic} from './hap-async';
 
+import {HAPIP as HAPIPDiscovery, HAPBLE as HAPBLEDiscovery} from '../accessory-discovery';
+
 import Automations from '../automations';
 
 const DEVELOPMENT = true;
@@ -52,6 +54,10 @@ export default class Server extends EventEmitter {
         this.accessory_platforms = [];
         this.cached_accessories = [];
         this.bridges = [];
+
+        this.accessory_discovery_counter = 0;
+        this.accessory_discovery_handlers = new Set();
+        this.accessory_discovery_handlers_events = new WeakMap();
 
         this.app = express();
 
@@ -654,6 +660,134 @@ export default class Server extends EventEmitter {
         if (!this.hasOwnProperty('automations')) return null;
 
         return this.automations.getAutomation(id);
+    }
+
+    /**
+     * Starts accessory discovery.
+     */
+    async startAccessoryDiscovery() {
+        await Promise.all([
+            HAPIPDiscovery, HAPBLEDiscovery,
+            ...PluginManager.getAccessoryDiscoveryHandlers(),
+        ].map(async accessory_discovery => {
+            if (this.accessory_discovery_handlers.has(accessory_discovery)) return;
+
+            this.log.debug('Starting accessory discovery handler', accessory_discovery.id);
+
+            this.accessory_discovery_handlers.add(accessory_discovery);
+
+            let events = this.accessory_discovery_handlers_events.get(accessory_discovery);
+            if (!events) this.accessory_discovery_handlers_events.set(accessory_discovery, events = {});
+
+            if (!events.add_accessory) events.add_accessory = data => this.handleAddDiscoveredAccessory(accessory_discovery, data);
+            accessory_discovery.on('add-accessory', events.add_accessory);
+            if (!events.remove_accessory) events.remove_accessory = data => this.handleRemoveDiscoveredAccessory(accessory_discovery, data);
+            accessory_discovery.on('remove-accessory', events.remove_accessory);
+
+            await accessory_discovery.start();
+        }));
+    }
+
+    /**
+     * Stops accessory discovery.
+     */
+    async stopAccessoryDiscovery() {
+        await Promise.all([
+            HAPIPDiscovery, HAPBLEDiscovery,
+            ...PluginManager.getAccessoryDiscoveryHandlers(),
+        ].map(async accessory_discovery => {
+            if (!this.accessory_discovery_handlers.has(accessory_discovery)) return;
+
+            this.log.debug('Stopping accessory discovery handler', accessory_discovery.id);
+
+            this.accessory_discovery_handlers.delete(accessory_discovery);
+
+            let events = this.accessory_discovery_handlers_events.get(accessory_discovery);
+            if (!events) this.accessory_discovery_handlers_events.set(accessory_discovery, events = {});
+
+            accessory_discovery.removeListener('add-accessory', events.add_accessory);
+            accessory_discovery.removeListener('remove-accessory', events.remove_accessory);
+
+            await accessory_discovery.stop();
+        }));
+    }
+
+    /**
+     * Starts accessory discovery if it isn't already running and increment the listening counter.
+     */
+    incrementAccessoryDiscoveryCounter() {
+        if (!this.accessory_discovery_counter) this.startAccessoryDiscovery();
+
+        this.accessory_discovery_counter++;
+
+        this.log.debug('Accessory discovery counter: %d', this.accessory_discovery_counter);
+    }
+
+    /**
+     * Decrement the listening counter and stop accessory discovery if there are no listeners left.
+     */
+    decrementAccessoryDiscoveryCounter() {
+        this.accessory_discovery_counter--;
+
+        this.log.debug('Accessory discovery counter: %d', this.accessory_discovery_counter);
+
+        if (!this.accessory_discovery_counter) this.stopAccessoryDiscovery();
+    }
+
+    /**
+     * Gets all already discovered accessories.
+     *
+     * @return {DiscoveredAccessory[]}
+     */
+    getDiscoveredAccessories() {
+        const discovered_accessories = [];
+
+        for (const accessory_discovery of this.accessory_discovery_handlers) {
+            discovered_accessories.push(...accessory_discovery.discovered_accessories);
+        }
+
+        return discovered_accessories;
+    }
+
+    /**
+     * Called when new accessories are discovered.
+     *
+     * @param {AccessoryDiscovery} accessory_discovery
+     * @param {DiscoveredAccessory} discovered_accessory
+     */
+    handleAddDiscoveredAccessory(accessory_discovery, discovered_accessory) {
+        for (const ws of this.wss.clients) {
+            const connection = Connection.getConnectionForWebSocket(ws);
+            if (connection && connection.enable_accessory_discovery) {
+                ws.send('**:' + JSON.stringify({
+                    type: 'add-discovered-accessory',
+                    plugin: accessory_discovery.plugin ? accessory_discovery.plugin.name : null,
+                    accessory_discovery: accessory_discovery.id,
+                    id: discovered_accessory.id,
+                    data: discovered_accessory,
+                }));
+            }
+        }
+    }
+
+    /**
+     * Called when discovered accessories are removed.
+     *
+     * @param {AccessoryDiscovery} accessory_discovery
+     * @param {DiscoveredAccessory} discovered_accessory
+     */
+    handleRemoveDiscoveredAccessory(accessory_discovery, discovered_accessory) {
+        for (const ws of this.wss.clients) {
+            const connection = Connection.getConnectionForWebSocket(ws);
+            if (connection && connection.enable_accessory_discovery) {
+                ws.send('**:' + JSON.stringify({
+                    type: 'remove-discovered-accessory',
+                    plugin: accessory_discovery.plugin ? accessory_discovery.plugin.name : null,
+                    accessory_discovery: accessory_discovery.id,
+                    id: discovered_accessory.id,
+                }));
+            }
+        }
     }
 
     /**

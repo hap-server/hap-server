@@ -106,3 +106,22 @@
         transform: rotate(3deg);
     }
 }
+
+.add-accessory .settings-window {
+    max-width: 550px;
+}
+
+.discovered-accessories {
+    margin-right: -1rem;
+
+    .discovered-accessory-wrapper {
+        display: inline-block;
+        // width: 6.8rem;
+        width: 14.6rem;
+        height: 6.8rem;
+
+        margin: 0 1rem 1rem 0;
+
+        vertical-align: top;
+    }
+}

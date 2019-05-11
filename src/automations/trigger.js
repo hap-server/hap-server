@@ -64,7 +64,7 @@ export default class AutomationTrigger extends EventEmitter {
         if (this.running) return;
         if (this.starting) return this.starting;
 
-        return this.starting = Promise.all([this.onstart()]).then(() => this.running = true);
+        return this.starting = Promise.all([this.onstart()]).then(() => (this.starting = null, this.running = true));
     }
 
     onstart() {
@@ -81,7 +81,7 @@ export default class AutomationTrigger extends EventEmitter {
         if (!this.running) return;
         if (this.stopping) return this.stopping;
 
-        return this.stopping = Promise.all([this.onstop()]).then(() => this.running = false).then(() => true);
+        return this.stopping = Promise.all([this.onstop()]).then(() => (this.starting = null, this.running = false)).then(() => true);
     }
 
     onstop() {

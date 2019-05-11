@@ -71,6 +71,10 @@
         </div>
 
         <div class="d-flex">
+            <template v-if="tab === 'accessories'">
+                <button class="btn btn-default btn-sm" type="button" :disabled="!canAddAccessories"
+                    @click="$emit('modal', {type: 'add-accessory'})">Add accessory</button>&nbsp;
+            </template>
             <div v-if="loading">Loading</div>
             <div v-else-if="saving">Saving</div>
             <div class="flex-fill"></div>
@@ -112,6 +116,7 @@
             connection: Connection,
             accessories: Object,
             loadingAccessories: Boolean,
+            canAddAccessories: Boolean,
         },
         data() {
             return {

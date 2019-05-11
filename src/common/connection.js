@@ -6,6 +6,8 @@ const broadcast_message_methods = {
     'update-accessory': 'handleUpdateAccessoryDetailsMessage',
     'update-characteristic': 'handleUpdateCharacteristicMessage',
     'update-accessory-data': 'handleUpdateAccessoryDataMessage',
+    'add-discovered-accessory': 'handleAddDiscoveredAccessoryMessage',
+    'remove-discovered-accessory': 'handleRemoveDiscoveredAccessoryMessage',
     'update-home-settings': 'handleUpdateHomeSettingsMessage',
     'add-layout': 'handleAddLayoutMessage',
     'remove-layout': 'handleRemoveLayoutMessage',
@@ -193,6 +195,24 @@ export default class Connection extends EventEmitter {
 
     setAccessoryData(id, data) {
         return this.setAccessoriesData([id, data]);
+    }
+
+    startAccessoryDiscovery() {
+        return this.send({
+            type: 'start-accessory-discovery',
+        });
+    }
+
+    getDiscoveredAccessories() {
+        return this.send({
+            type: 'get-discovered-accessories',
+        });
+    }
+
+    stopAccessoryDiscovery() {
+        return this.send({
+            type: 'stop-accessory-discovery',
+        });
     }
 
     getHomeSettings() {
@@ -434,6 +454,14 @@ export default class Connection extends EventEmitter {
 
     handleUpdateAccessoryDataMessage(data) {
         this.emit('update-accessory-data', data.uuid, data.data);
+    }
+
+    handleAddDiscoveredAccessoryMessage(data) {
+        this.emit('add-discovered-accessory', data.plugin, data.accessory_discovery, data.id, data.data);
+    }
+
+    handleRemoveDiscoveredAccessoryMessage(data) {
+        this.emit('remove-discovered-accessory', data.plugin, data.accessory_discovery, data.id);
     }
 
     handleUpdateHomeSettingsMessage(data) {

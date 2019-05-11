@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import util from 'util';
 import crypto from 'crypto';
+import EventEmitter from 'events';
 
 import semver from 'semver';
 import persist from 'node-persist';
@@ -109,6 +110,7 @@ export class PluginManager {
                 AccessoryPlatform: AccessoryPlatform.bind(AccessoryPlatform, plugin),
                 AccessoryUI: AccessoryUI.bind(AccessoryUI, plugin),
                 AccessoryDiscovery: AccessoryDiscovery.bind(AccessoryDiscovery, plugin),
+                DiscoveredAccessory: DiscoveredAccessory.bind(DiscoveredAccessory, plugin),
                 AccessorySetup: AccessorySetup.bind(AccessorySetup, plugin),
                 AuthenticationHandler: AuthenticationHandler.bind(AuthenticationHandler, plugin),
                 AuthenticatedUser: AuthenticatedUser.bind(AuthenticatedUser, plugin),
@@ -290,6 +292,11 @@ export class PluginManager {
         }
     }
 
+    getAccessoryDiscoveryHandlers(include_disabled) {
+        return this.plugins.map(plugin => plugin.enabled || include_disabled ?
+            plugin.getAccessoryDiscoveryHandlers(include_disabled) : []).reduce((acc, val) => acc.concat(val), []);
+    }
+
     getAuthenticationHandlers(include_disabled) {
         return this.plugins.map(plugin => plugin.enabled || include_disabled ?
             plugin.getAuthenticationHandlers() : []).reduce((acc, val) => acc.concat(val), []);
@@ -418,7 +425,11 @@ export class Plugin {
         return [...this.accessory_discovery].filter(discovery => discovery.enabled || include_disabled);
     }
 
-    registerAccessoryDiscovery(handler) {
+    registerAccessoryDiscovery(handler, stop_handler) {
+        if (typeof handler === 'function' && typeof stop_handler === 'function') {
+            handler = new (AccessoryDiscovery.withHandler(handler, stop_handler))(this);
+        }
+
         if (!(handler instanceof AccessoryDiscovery)) {
             throw new Error('handler must be an AccessoryDiscovery object');
         }
@@ -745,11 +756,161 @@ export class AccessoryUI {
 
 AccessoryUI.id = 0;
 
-export class AccessoryDiscovery {
+export class AccessoryDiscovery extends EventEmitter {
     constructor(plugin) {
+        super();
+
         Object.defineProperty(this, 'plugin', {value: plugin});
+        Object.defineProperty(this, 'id', {value: AccessoryDiscovery.id++});
+        Object.defineProperty(this, 'discovered_accessories', {value: []});
+
+        this.running = false;
+        this.starting = null;
+        this.stopping = null;
+    }
+
+    static withHandler(start_handler, stop_handler) {
+        return class extends this {
+            async onstart() {
+                return this.start_handler_return = await start_handler.call(this, this);
+            }
+
+            async onstop() {
+                return stop_handler.call(this, this, this.start_handler_return);
+            }
+        };
+    }
+
+    get enabled() {
+        // TODO
+
+        return true;
+    }
+
+    /**
+     * Starts the accessory discovery handler.
+     *
+     * @return {Promise}
+     */
+    async start() {
+        if (this.stopping) await this.stopping;
+        if (this.running) return;
+        if (this.starting) return this.starting;
+
+        return this.starting = Promise.all([this.onstart()]).then(() => (this.starting = null, this.running = true));
+    }
+
+    onstart() {
+        throw new Error('AccessoryDiscovery did not override the onstart function');
+    }
+
+    /**
+     * Stops the accessory discovery handler.
+     *
+     * @return {Promise}
+     */
+    async stop() {
+        if (this.starting) await this.starting;
+        if (!this.running) return;
+        if (this.stopping) return this.stopping;
+
+        return this.stopping = Promise.all([this.onstop()]).then(() => (this.stopping = null, this.running = false))
+            .then(() => (this.removeAllAccessories(), true));
+    }
+
+    onstop() {
+        throw new Error('AccessoryDiscovery did not override the onstop function');
+    }
+
+    /**
+     * Adds a new accessory.
+     *
+     * @param {DiscoveredAccessory} data
+     */
+    addAccessory(...accessories) {
+        for (const accessory of accessories) {
+            if (!(accessory instanceof DiscoveredAccessory)) {
+                throw new Error('accessory must be an instance of DiscoveredAccessory');
+            }
+
+            if (accessory.accessory_discovery && accessory.accessory_discovery !== this) {
+                throw new Error('The accessory discovery handler returned a DiscoveredAccessory object that belongs' +
+                    ' to another accessory discovery handler');
+            }
+
+            Object.defineProperty(accessory, 'accessory_discovery', {value: this});
+
+            this.discovered_accessories.push(accessory);
+            this.emit('add-accessory', accessory);
+        }
+
+        this.emit('add-accessories', accessories);
+    }
+
+    /**
+     * Removes a discovered accessory or the first accessory that passes a filter function.
+     *
+     * @param {(DiscoveredAccessory|function)} filter
+     */
+    removeAccessory(filter) {
+        const index = this.discovered_accessories
+            .findIndex(data => typeof filter === 'function' ? filter.call(this, data) : data === filter);
+        if (index <= -1) return;
+
+        this.emit('remove-accessory', this.discovered_accessories[index], index);
+        this.emit('remove-accessories', [this.discovered_accessories[index]]);
+        this.discovered_accessories.splice(index, 1);
+    }
+
+    /**
+     * Removes accessories that pass a filter function.
+     *
+     * @param {function} filter
+     */
+    removeAccessories(filter) {
+        const removed = [];
+        let index;
+
+        while ((index = this.discovered_accessories.findIndex(data => filter.call(this, data))) > -1) {
+            this.emit('remove-accessory', this.discovered_accessories[index], index);
+            removed.push(this.discovered_accessories[index]);
+            this.discovered_accessories.splice(index, 1);
+        }
+
+        this.emit('remove-accessories', removed);
+    }
+
+    /**
+     * Removes all accessories.
+     */
+    removeAllAccessories() {
+        const removed = [...this.discovered_accessories];
+
+        for (const data of removed) {
+            this.emit('remove-accessory', data);
+        }
+
+        this.discovered_accessories.splice(0, this.discovered_accessories.length);
+        this.emit('remove-accessories', removed);
     }
 }
+
+AccessoryDiscovery.id = 0;
+
+export class DiscoveredAccessory {
+    constructor(plugin, data, accessory_discovery) {
+        Object.defineProperty(this, 'plugin', {value: plugin});
+        Object.defineProperty(this, 'id', {value: DiscoveredAccessory.id++});
+
+        Object.defineProperty(this, 'accessory_discovery',
+            accessory_discovery && accessory_discovery instanceof AccessoryDiscovery
+                ? {value: accessory_discovery} : {configurable: true, value: null});
+
+        Object.assign(this, data);
+    }
+}
+
+DiscoveredAccessory.id = 0;
 
 export class AccessorySetup {
     constructor(plugin) {
@@ -898,8 +1059,8 @@ export class PluginAPI {
         return this.plugin.registerAccessoryUI(handler);
     }
 
-    registerAccessoryDiscovery(handler) {
-        return this.plugin.registerAccessoryDiscovery(handler);
+    registerAccessoryDiscovery(handler, stop_handler) {
+        return this.plugin.registerAccessoryDiscovery(handler, stop_handler);
     }
 
     registerAccessorySetup(name, handler) {

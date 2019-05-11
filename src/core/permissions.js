@@ -106,6 +106,77 @@ export default class Permissions {
     }
 
     /**
+     * Check if the user can add accessories.
+     *
+     * @return {Promise<boolean>}
+     */
+    checkCanCreateAccessories() {
+        if (DEVELOPMENT && this.__development_allow_local()) return true;
+
+        if (!this.user) return false;
+
+        return true;
+    }
+
+    async assertCanCreateAccessories(accessory_uuid) {
+        if (!await this.checkCanCreateAccessories(accessory_uuid)) throw new Error('You don\'t have permission to add accessories');
+    }
+
+    /**
+     * Check if the user can access an accessory's settings.
+     *
+     * @param {string} accessory_uuid
+     * @return {Promise<boolean>}
+     */
+    checkCanGetAccessoryConfig(accessory_uuid) {
+        if (DEVELOPMENT && this.__development_allow_local()) return true;
+
+        if (!this.user) return false;
+
+        return true;
+    }
+
+    async assertCanGetAccessoryConfig(accessory_uuid) {
+        if (!await this.checkCanGetAccessoryConfig(accessory_uuid)) throw new Error('You don\'t have permission to manage this accessory');
+    }
+
+    /**
+     * Check if the user can manage an accessory's settings.
+     *
+     * @param {string} accessory_uuid
+     * @return {Promise<boolean>}
+     */
+    checkCanSetAccessoryConfig(accessory_uuid) {
+        if (DEVELOPMENT && this.__development_allow_local()) return true;
+
+        if (!this.user) return false;
+
+        return true;
+    }
+
+    async assertCanSetAccessoryConfig(accessory_uuid) {
+        if (!await this.checkCanSetAccessoryConfig(accessory_uuid)) throw new Error('You don\'t have permission to manage this accessory');
+    }
+
+    /**
+     * Check if the user can delete an accessory.
+     *
+     * @param {string} accessory_uuid
+     * @return {Promise<boolean>}
+     */
+    checkCanDeleteAccessory(accessory_uuid) {
+        if (DEVELOPMENT && this.__development_allow_local()) return true;
+
+        if (!this.user) return false;
+
+        return true;
+    }
+
+    async assertCanDeleteAccessory(accessory_uuid) {
+        if (!await this.checkCanDeleteAccessory(accessory_uuid)) throw new Error('You don\'t have permission to delete this accessory');
+    }
+
+    /**
      * Check if the user can access this home's settings.
      *
      * @return {Promise<boolean>}

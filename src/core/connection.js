@@ -22,6 +22,9 @@ const message_methods = {
     'set-characteristics': 'handleSetCharacteristicsMessage',
     'get-accessories-data': 'handleGetAccessoriesDataMessage',
     'set-accessories-data': 'handleSetAccessoriesDataMessage',
+    'start-accessory-discovery': 'handleStartAccessoryDiscoveryMessage',
+    'get-discovered-accessories': 'handleGetDiscoveredAccessoriesMessage',
+    'stop-accessory-discovery': 'handleStopAccessoryDiscoveryMessage',
     'get-home-settings': 'handleGetHomeSettingsMessage',
     'get-home-permissions': 'handleGetHomePermissionsMessage',
     'set-home-settings': 'handleSetHomeSettingsMessage',
@@ -70,6 +73,7 @@ export default class Connection {
         this.id = id++;
         this.log = server.log.withPrefix('Connection #' + this.id);
         this.authenticated_user = null;
+        this.enable_accessory_discovery = false;
         this.enable_proxy_stdout = false;
         this.last_message = null;
         this.closed = false;
@@ -124,6 +128,11 @@ export default class Connection {
                 }
             } catch (err) {
                 this.log.error('Error in disconnect handler', err);
+            }
+
+            if (this.enable_accessory_discovery) {
+                this.enable_accessory_discovery = false;
+                this.server.decrementAccessoryDiscoveryCounter();
             }
 
             await Promise.all(this.uploads.map(file => new Promise((rs, rj) =>
@@ -430,6 +439,59 @@ export default class Connection {
     }
 
     /**
+     * Starts accessory discovery.
+     */
+    handleStartAccessoryDiscoveryMessage(messageid, data) {
+        this.respond(messageid, this.startAccessoryDiscovery());
+    }
+
+    async startAccessoryDiscovery() {
+        await this.permissions.assertCanCreateAccessories();
+
+        if (!this.enable_accessory_discovery) {
+            this.enable_accessory_discovery = true;
+            this.server.incrementAccessoryDiscoveryCounter();
+        }
+
+        return this.getDiscoveredAccessories();
+    }
+
+    /**
+     * Gets discovered accessories.
+     */
+    handleGetDiscoveredAccessoriesMessage(messageid, data) {
+        this.respond(messageid, this.getDiscoveredAccessories());
+    }
+
+    async getDiscoveredAccessories() {
+        await this.permissions.assertCanCreateAccessories();
+
+        return this.server.getDiscoveredAccessories().map(discovered_accessory => ({
+            plugin: discovered_accessory.accessory_discovery.plugin ?
+                discovered_accessory.accessory_discovery.plugin.name : null,
+            accessory_discovery: discovered_accessory.accessory_discovery.id,
+            id: discovered_accessory.id,
+            data: discovered_accessory,
+        }));
+    }
+
+    /**
+     * Stops accessory discovery.
+     */
+    handleStopAccessoryDiscoveryMessage(messageid, data) {
+        this.respond(messageid, this.stopAccessoryDiscovery());
+    }
+
+    async stopAccessoryDiscovery() {
+        await this.permissions.assertCanCreateAccessories();
+
+        if (!this.enable_accessory_discovery) return;
+
+        this.enable_accessory_discovery = false;
+        this.server.decrementAccessoryDiscoveryCounter();
+    }
+
+    /**
      * Gets global settings.
      */
     handleGetHomeSettingsMessage(messageid, data) {
@@ -452,16 +514,17 @@ export default class Connection {
     }
 
     async getHomePermissions() {
-        const [get, set, create_layouts, has_automations, create_automations, server] = await Promise.all([
+        const [get, set, add_accessories, create_layouts, has_automations, create_automations, server] = await Promise.all([
             this.permissions.checkCanGetHomeSettings(),
             this.permissions.checkCanSetHomeSettings(),
+            this.permissions.checkCanCreateAccessories(),
             this.permissions.checkCanCreateLayouts(),
             this.permissions.getAuthorisedAutomationUUIDs().then(uuids => !!uuids.length),
             this.permissions.checkCanCreateAutomations(),
             this.permissions.checkCanAccessServerRuntimeInfo(),
         ]);
 
-        return {get, set, create_layouts, has_automations, create_automations, server};
+        return {get, set, add_accessories, create_layouts, has_automations, create_automations, server};
     }
 
     /**
