@@ -65,6 +65,14 @@ export default class Homebridge extends Bridge {
         throw new Error('Cannot create a HAPServer for Homebridge');
     }
 
+    get accessory_info() {
+        return this.bridge._accessoryInfo;
+    }
+
+    get identifier_cache() {
+        return this.bridge._identifierCache;
+    }
+
     addAccessory(accessory) {
         throw new Error('Cannot add accessory to Homebridge');
     }

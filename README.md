@@ -7,7 +7,7 @@ It includes a web interface for controlling accessories. Scenes, custom controls
 interface, storing historical data and configuring automations in the web interface are not supported yet.
 
 It includes a plugin system to add accessories, accessory configuration, authentication and options for automations.
-All Homebridge plugins are supported and work with the web interface but cannot be added to additional HAP bridges.
+All Homebridge plugins are supported.
 
 ![Screenshot](assets/screenshot-layout-1.png)
 
@@ -62,6 +62,9 @@ A lot.
             - [ ] Set characteristic action editor
     - [x] Triggers
         - [x] Cron expressions
+        - [ ] Characteristic changes
+            - [ ] Set to value
+            - [ ] Set below/above value
     - [x] Conditions
         - [x] All/any
         - [x] JavaScript
@@ -84,6 +87,7 @@ A lot.
         - Per-user HomeKit bridges (see above)
     - [ ] Expose accessories via multiple bridges
     - [ ] Manage + name HomeKit pairings
+- [ ] Cameras
 - [x] Plugins
     - [x] Accessories
     - [x] Accessory platforms
@@ -113,8 +117,7 @@ A lot.
             background.
 - [x] Full compatibility with Homebridge
     - Run instead of Homebridge and use all Homebridge plugins with the web interface. Homebridge accessories appear
-        and can be controlled in the web interface and by automations on the server and Homebridge's HAP bridge but
-        cannot be added to hap-server's HAP bridges.
+        and can be controlled in the web interface, by automations on the server and with hap-server's HAP bridges.
 
 Installation
 ---

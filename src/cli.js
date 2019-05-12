@@ -239,7 +239,7 @@ yargs.command('$0 [config]', 'Run the HAP and web server', yargs => {
         log.info('Not loading Homebridge as it was disabled on the command line');
     } else if (config.bridge || config.accessories || config.platforms) {
         log.info('Loading Homebridge');
-        await server.loadHomebridge();
+        server.loadHomebridge();
     }
 
     for (const bridge of server.bridges) {
@@ -254,6 +254,16 @@ yargs.command('$0 [config]', 'Run the HAP and web server', yargs => {
         server.loadAccessoriesFromConfig(),
         server.loadAccessoryPlatformsFromConfig(),
     ]);
+
+    if (server.homebridge) {
+        if (server.homebridge._asyncCalls !== 0) {
+            log.info('Waiting for Homebridge to finish loading');
+            await new Promise(rs => server.homebridge.bridge.once('listening', rs));
+        }
+
+        log.info('Loading accessories from Homebridge');
+        await server.loadHomebridgeAccessories();
+    }
 
     log.info('Saving cached accessories');
     await server.saveCachedAccessories();

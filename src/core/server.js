@@ -113,6 +113,10 @@ export default class Server extends EventEmitter {
                 event.characteristic, event.newValue, event.oldValue, event.context);
         };
 
+        this._handleRegisterHomebridgePlatformAccessories = this.handleRegisterHomebridgePlatformAccessories.bind(this);
+        this._handleUnregisterHomebridgePlatformAccessories =
+            this.handleUnregisterHomebridgePlatformAccessories.bind(this);
+
         Server.instances.add(this);
     }
 
@@ -220,7 +224,7 @@ export default class Server extends EventEmitter {
     }
 
     loadHomebridge() {
-        if (this.homebridge) return;
+        if (this.homebridge) return this.homebridge;
 
         // config.bridge, config.accessories and config.platforms are for Homebridge
         // If any of these exist, the user wants to run Homebridge as well
@@ -231,6 +235,69 @@ export default class Server extends EventEmitter {
         });
 
         this.bridges.push(this.homebridge);
+
+        return this.homebridge;
+    }
+
+    async loadHomebridgeAccessories() {
+        for (const accessory of this.homebridge.bridge.bridgedAccessories) {
+            const plugin_accessory = new HomebridgeAccessory(this, accessory);
+
+            this.removeCachedAccessory(accessory.UUID);
+
+            this.accessories.push(plugin_accessory);
+
+            for (const bridge of this.bridges.filter(bridge => bridge.accessory_uuids.find(accessory_uuid =>
+                accessory_uuid instanceof Array ? accessory_uuid[0] === 'homebridge' &&
+                    accessory_uuid[1] === null && accessory_uuid[2] === accessory.displayName :
+                    accessory_uuid === accessory.UUID
+            ))) {
+                bridge.addAccessory(accessory);
+            }
+        }
+
+        this.homebridge.homebridge._api
+            .on('handleRegisterPlatformAccessories', this._handleRegisterHomebridgePlatformAccessories);
+        this.homebridge.homebridge._api
+            .on('handleUnregisterPlatformAccessories', this._handleUnregisterHomebridgePlatformAccessories);
+    }
+
+    handleRegisterHomebridgePlatformAccessories(accessories) {
+        for (const platform_accessory of accessories) {
+            const accessory = platform_accessory._associatedHAPAccessory;
+            if (!accessory) continue;
+
+            const plugin_accessory = new HomebridgeAccessory(this, accessory);
+
+            this.removeCachedAccessory(accessory.UUID);
+
+            this.accessories.push(plugin_accessory);
+
+            for (const bridge of this.bridges.filter(bridge => bridge.accessory_uuids.find(accessory_uuid =>
+                accessory_uuid instanceof Array ? accessory_uuid[0] === 'homebridge' &&
+                    accessory_uuid[1] === null && accessory_uuid[2] === accessory.displayName :
+                    accessory_uuid === accessory.UUID
+            ))) {
+                bridge.addAccessory(accessory);
+            }
+        }
+    }
+
+    handleUnregisterHomebridgePlatformAccessories(accessories) {
+        for (const platform_accessory of accessories) {
+            const accessory = platform_accessory._associatedHAPAccessory;
+            if (!accessory) continue;
+
+            while ((index = this.server.accessories.findIndex(a => a.uuid === accessory.UUID)) !== -1) {
+                this.accessories.splice(index, 1);
+            }
+
+            for (const bridge of this.bridges) {
+                if (!bridge.bridge.bridgedAccessories.find(a => a.UUID === accessory.UUID)) continue;
+
+                bridge.removeAccessory(accessory);
+            }
+        }
     }
 
     async loadCachedAccessories(dont_throw) {
@@ -1131,6 +1198,7 @@ export class PluginAccessory {
             },
             plugin: this.plugin ? this.plugin.name : null,
             uuid: this.uuid,
+            is_homebridge: this instanceof HomebridgeAccessory,
             accessory_type: this.accessory_type,
             base_uuid: this.base_uuid,
             accessory_platform: this.accessory_platform_name,
@@ -1145,25 +1213,6 @@ export class PluginAccessory {
      * @param {object} cache The cached data returned from pluginaccessory.cache
      */
     static restore(server, cache) {
-        const is_builtin = !cache.plugin && (builtin_accessory_types[cache.accessory_type] ||
-            builtin_accessory_platforms[cache.accessory_platform]);
-
-        const plugin = is_builtin ? null : PluginManager.getPlugin(cache.plugin);
-        if (!plugin && !is_builtin) throw new Error('Unknown plugin "' + cache.plugin + '"');
-
-        const accessory_handler = cache.accessory_type ? is_builtin ? builtin_accessory_types[cache.accessory_type] :
-            plugin.getAccessoryHandler(cache.accessory_type) : undefined;
-        if (cache.accessory_type && !accessory_handler) throw new Error('Unknown accessory "' + // eslint-disable-line curly
-            cache.accessory_type + '"');
-
-        const accessory_platform_handler = cache.accessory_platform ? is_builtin ?
-            builtin_accessory_platforms[cache.accessory_platform] :
-                plugin.getAccessoryPlatformHandler(cache.accessory_platform) : undefined;
-        if (cache.accessory_platform && !accessory_platform_handler) throw new Error('Unknown accessory platform "' + // eslint-disable-line curly
-            cache.accessory_platform + '"');
-
-        if (!accessory_handler && !accessory_platform_handler) throw new Error('Invalid cache data');
-
         const accessory = new Accessory(cache.accessory.displayName, cache.accessory.UUID);
 
         accessory.services = cache.accessory.services.map(service_cache => {
@@ -1182,6 +1231,29 @@ export class PluginAccessory {
 
             return service;
         });
+
+        if (cache.is_homebridge) {
+            return new HomebridgeAccessory(server, accessory);
+        }
+
+        const is_builtin = !cache.plugin && (builtin_accessory_types[cache.accessory_type] ||
+            builtin_accessory_platforms[cache.accessory_platform]);
+
+        const plugin = is_builtin ? null : PluginManager.getPlugin(cache.plugin);
+        if (!plugin && !is_builtin) throw new Error('Unknown plugin "' + cache.plugin + '"');
+
+        const accessory_handler = cache.accessory_type ? is_builtin ? builtin_accessory_types[cache.accessory_type] :
+            plugin.getAccessoryHandler(cache.accessory_type) : undefined;
+        if (cache.accessory_type && !accessory_handler) throw new Error('Unknown accessory "' + // eslint-disable-line curly
+            cache.accessory_type + '"');
+
+        const accessory_platform_handler = cache.accessory_platform ? is_builtin ?
+            builtin_accessory_platforms[cache.accessory_platform] :
+                plugin.getAccessoryPlatformHandler(cache.accessory_platform) : undefined;
+        if (cache.accessory_platform && !accessory_platform_handler) throw new Error('Unknown accessory platform "' + // eslint-disable-line curly
+            cache.accessory_platform + '"');
+
+        if (!accessory_handler && !accessory_platform_handler) throw new Error('Invalid cache data');
 
         const plugin_accessory = accessory_platform_handler ?
             new PluginAccessoryPlatformAccessory(server, accessory, plugin, cache.accessory_platform, cache.base_uuid) :
@@ -1206,5 +1278,11 @@ export class PluginAccessoryPlatformAccessory extends PluginAccessory {
 
         Object.defineProperty(this, 'base_uuid', {value: base_uuid});
         Object.defineProperty(this, 'accessory_platform_name', {value: accessory_platform_name});
+    }
+}
+
+export class HomebridgeAccessory extends PluginAccessory {
+    constructor(server, accessory) {
+        super(server, accessory, null);
     }
 }

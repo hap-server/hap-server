@@ -228,6 +228,14 @@ will have to add them manually.
 ]
 ```
 
+You can register accessories from Homebridge plugins by using the plugin `"homebridge"` and accessory type `null`.
+
+```json
+[
+    ["homebridge", null, "Accessory from Homebridge plugin"]
+]
+```
+
 ### `accessories2`
 
 The `accessories2` property is an array of accessory configuration objects. Plugins can use any additional properties.
