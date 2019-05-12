@@ -15,16 +15,17 @@ export default class HAPIP extends AccessoryPlatform {
         this.client.on('event', event => {
             log.info('Received event', event);
 
-            try {
-                for (const hap_characteristic of event.characteristics) {
+            for (const hap_characteristic of event.characteristics) {
+                try {
                     const accessory_uuid = uuid.generate(this.config.uuid + ':' + hap_characteristic.aid);
-                    const accessory = this.accessories.find(plugin_accessory => plugin_accessory.uuid === accessory_uuid).accessory;
+                    const accessory = this.accessories.find(plugin_accessory =>
+                        plugin_accessory.uuid === accessory_uuid).accessory;
                     const characteristic = accessory[CharacteristicMap].get(hap_characteristic.iid);
 
                     characteristic.updateValue(hap_characteristic.value);
+                } catch (err) {
+                    log.error('Error updating characteristic', hap_characteristic, err);
                 }
-            } catch (err) {
-                log.error('Error handling event', event, err);
             }
         });
 
@@ -32,6 +33,16 @@ export default class HAPIP extends AccessoryPlatform {
         const subscribe_characteristics = [];
 
         await Promise.all(accessories.map(async (hap_accessory, index) => {
+            if (hap_accessory.aid === 1 && (!hap_accessory.services.length || (hap_accessory.services.length === 1 &&
+                (hap_accessory.services[0].type === Service.AccessoryInformation.UUID ||
+                    '000000' + hap_accessory.services[0].type + '-0000-1000-8000-0026BB765291' ===
+                        Service.AccessoryInformation.UUID)))
+            ) {
+                // If this is the first accessory and it only has an AccessoryInformation service it's probably
+                // just a placeholder for a bridge
+                return;
+            }
+
             const accessory = await this.createAccessoryFromHAP(hap_accessory, subscribe_characteristics);
 
             this.addAccessory(accessory);
@@ -147,7 +158,7 @@ export default class HAPIP extends AccessoryPlatform {
      *
      * @param {number} aid
      * @param {number} iid
-     * @return {Promise<>}
+     * @return {Promise<object>}
      */
     queueCharacteristicGet(aid, iid) {
         return new Promise((resolve, reject) => {
@@ -207,7 +218,7 @@ export default class HAPIP extends AccessoryPlatform {
      * @param {number} aid
      * @param {number} iid
      * @param {} value
-     * @return {Promise<>}
+     * @return {Promise<object>}
      */
     queueCharacteristicSet(aid, iid, value) {
         return new Promise((resolve, reject) => {
