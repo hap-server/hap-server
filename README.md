@@ -87,7 +87,10 @@ A lot.
         - Per-user HomeKit bridges (see above)
     - [ ] Expose accessories via multiple bridges
     - [ ] Manage + name HomeKit pairings
-- [ ] Cameras
+- [ ] Camera accessories
+- [x] Add HomeKit accessories
+    - [x] HomeKit over IP
+    - [ ] HomeKit over BLE
 - [x] Plugins
     - [x] Accessories
     - [x] Accessory platforms
