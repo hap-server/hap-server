@@ -166,25 +166,30 @@ export class PluginManager {
         let package_json;
 
         if (stat.isDirectory()) {
-            package_json = require(path.resolve(plugin_path, 'package.json'));
+            try {
+                package_json = require(path.resolve(plugin_path, 'package.json'));
 
-            if (!package_json.name) {
-                throw new Error('"' + plugin_path + '" doesn\'t have a name in it\'s package.json');
-            }
+                if (!package_json.name) {
+                    throw new Error('"' + plugin_path + '" doesn\'t have a name in it\'s package.json');
+                }
 
-            if (!package_json.engines || !package_json.engines['@hap-server/hap-server'] ||
-                !package_json.keywords || !package_json.keywords.includes('hap-server-plugin')) {
-                throw new Error('"' + package_json.name + '" is not a hap-server plugin');
-            }
+                if (!package_json.engines || !package_json.engines['@hap-server/hap-server'] ||
+                    !package_json.keywords || !package_json.keywords.includes('hap-server-plugin')) {
+                    throw new Error('"' + package_json.name + '" is not a hap-server plugin');
+                }
 
-            if (!semver.satisfies(hap_server_version, package_json.engines['@hap-server/hap-server'])) {
-                throw new Error('"' + package_json.name + '" requires a hap-server version of '
-                    + package_json.engines['@hap-server/hap-server'] + ' - you have version ' + hap_server_version);
-            }
+                if (!semver.satisfies(hap_server_version, package_json.engines['@hap-server/hap-server'])) {
+                    throw new Error('"' + package_json.name + '" requires a hap-server version of '
+                        + package_json.engines['@hap-server/hap-server'] + ' - you have version ' + hap_server_version);
+                }
 
-            if (package_json.engines.node && !semver.satisfies(process.version, package_json.engines.node)) {
-                log.warn('"' + package_json.name + '" requires a Node.js version of '
-                    + package_json.engines.node + ' - you have version ' + process.version);
+                if (package_json.engines.node && !semver.satisfies(process.version, package_json.engines.node)) {
+                    log.warn('"' + package_json.name + '" requires a Node.js version of '
+                        + package_json.engines.node + ' - you have version ' + process.version);
+                }
+            } catch (err) {
+                log.error('Error loading plugin', package_json && package_json.name || plugin_path, err);
+                throw err;
             }
         }
 

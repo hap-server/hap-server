@@ -1,6 +1,6 @@
 {
     "name": "@hap-server/hap-server",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "",
     "keywords": [
         "homekit",
@@ -83,7 +83,7 @@
         "xterm": "^3.12.2"
     },
     "peerDependencies": {
-        "@hap-server/authenticate-pam": "^0.3.0"
+        "@hap-server/authenticate-pam": "^0.3.1"
     },
     "scripts": {
         "build": "gulp build"
