@@ -156,7 +156,7 @@ export default class HAPIP extends AccessoryPlatform {
             queue.push([aid + '.' + iid, resolve, reject]);
 
             if (typeof this.get_queue_timeout === 'undefined' || this.get_queue_timeout === null) {
-                this.get_queue_timeout = setTimeout(() => this.processCharacteristicGetQueue(), 1000);
+                this.get_queue_timeout = setTimeout(() => this.processCharacteristicGetQueue(), 100);
             }
         });
     }
@@ -218,7 +218,7 @@ export default class HAPIP extends AccessoryPlatform {
             log.debug('Queued characteristic set', queue);
 
             if (typeof this.set_queue_timeout === 'undefined' || this.set_queue_timeout === null) {
-                this.set_queue_timeout = setTimeout(() => this.processCharacteristicSetQueue(), 1000);
+                this.set_queue_timeout = setTimeout(() => this.processCharacteristicSetQueue(), 100);
             }
         });
     }
