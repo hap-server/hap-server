@@ -33,8 +33,8 @@ export default class Accessory extends EventEmitter {
         return this._details;
     }
 
-    _setDetails(details) {
-        this._updateServicesFrom(details);
+    _setDetails(details, dont_update_services) {
+        if (!dont_update_services) this._updateServicesFrom(details);
 
         this._details = Object.freeze(details);
 
@@ -66,7 +66,7 @@ export default class Accessory extends EventEmitter {
                 service_uuid.substr(service_uuid.indexOf('.') + 1) : undefined;
 
             // Service still exists
-            if (details.services.find(s => s.type === service_type
+            if (details.services && details.services.find(s => s.type === service_type
                 && (!s.subtype && !service_subtype) || s.subtype === service_subtype)) continue;
 
             removed_service_ids.push(service_uuid);

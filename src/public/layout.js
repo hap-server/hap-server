@@ -135,6 +135,7 @@ export class LayoutSection extends EventEmitter {
 
         this.layout = layout;
         this.uuid = uuid;
+        this.unavailable_service_placeholders = {};
         this._setData(data || {});
     }
 

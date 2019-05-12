@@ -2,6 +2,7 @@ import EventEmitter from 'events';
 
 import Vue from 'vue';
 
+import Accessory from './accessory';
 import Characteristic, {type_uuids as characteristic_type_uuids} from './characteristic';
 
 export default class Service extends EventEmitter {
@@ -251,6 +252,44 @@ export class UnsupportedService extends Service {
 
     get type() {
         return '--unsupported';
+    }
+}
+
+export class UnavailableService extends Service {
+    /**
+     * Creates a fake Service to display when an accessory/service doesn't exist anymore.
+     *
+     * @param {Accessory} accessory
+     * @param {string} uuid
+     */
+    constructor(accessory, uuid) {
+        super(accessory, uuid, null, accessory.data['Service.' + uuid]);
+    }
+
+    static for(connection, accessories, uuid, service_uuid) {
+        const accessory_uuid = uuid.split('.', 1)[0];
+        if (!service_uuid) service_uuid = uuid.substr(accessory_uuid.length + 1);
+
+        if (!accessories) accessories = {};
+        const accessory = accessories[accessory_uuid] || new Accessory(connection, accessory_uuid);
+
+        const service = new this(accessory, service_uuid);
+
+        if (connection && !accessories[accessory_uuid]) {
+            connection.getAccessories(accessory_uuid).then(([details]) => accessory._setDetails(details || {}, true));
+            connection.getAccessoriesData(accessory_uuid).then(([data]) => accessory._setData(data || {}));
+            connection.getAccessoriesPermissions(accessory_uuid)
+                .then(([permissions]) => accessory._setPermissions(permissions || {}));
+        }
+
+        // if (!accessories[accessory_uuid]) accessories[accessory_uuid] = accessory;
+        if (!accessory.services[service_uuid]) accessory.services[service_uuid] = service;
+
+        return service;
+    }
+
+    get is_unavailable() {
+        return true;
     }
 }
 

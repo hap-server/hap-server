@@ -7,7 +7,7 @@
             :group="accessoriesDraggableGroup" :disabled="staged_accessories_order"
         >
             <template v-for="id in effective_accessories_order">
-                <service v-if="getService(id)" :key="id" :service="getService(id)" :edit="editing"
+                <service :key="id" :service="getService(id)" :edit="editing"
                     @show-details="closing => $emit('modal', {type: 'accessory-details', service: getService(id), closing})"
                     @show-settings="$emit('modal', {type: 'service-settings', service: getService(id)})" />
             </template>
@@ -15,7 +15,7 @@
 
         <sortable v-else :sorted="effective_accessories_order" :filter-text="true">
             <template v-for="service in effective_accessories_order.map(id => getService(id))">
-                <service v-if="service" :key="service.accessory.uuid + '.' + service.uuid"
+                <service :key="service.accessory.uuid + '.' + service.uuid"
                     :connection="connection" :service="service" :edit="editing"
                     @show-details="closing => $emit('modal', {type: 'accessory-details', service, closing})"
                     @show-settings="$emit('modal', {type: 'service-settings', service})" />
@@ -25,9 +25,11 @@
 </template>
 
 <script>
+    import {LayoutSection} from '../../layout';
+    import {UnavailableService} from '../../service';
     import {ConnectionSymbol, GetServiceSymbol, LayoutSymbol} from '../../internal-symbols';
 
-    import LayoutSection from '../layout-section.vue';
+    import LayoutSectionComponent from '../layout-section.vue';
     import Service from '../service.vue';
     import Sortable from '../sortable.vue';
 
@@ -36,13 +38,13 @@
 
     export default {
         components: {
-            LayoutSection,
+            LayoutSection: LayoutSectionComponent,
             Service,
             Sortable,
             Draggable: () => import(/* webpackChunkName: 'layout-editor' */ 'vuedraggable'),
         },
         props: {
-            section: Object,
+            section: LayoutSection,
             accessories: Object,
             accessoriesDraggableGroup: String,
             editing: Boolean,
@@ -56,7 +58,7 @@
         inject: {
             connection: {from: ConnectionSymbol},
             layout: {from: LayoutSymbol},
-            getService: {from: GetServiceSymbol},
+            _getService: {from: GetServiceSymbol},
         },
         computed: {
             effective_accessories_order: {
@@ -85,6 +87,16 @@
 
                     return updating_accessories_order;
                 },
+            },
+        },
+        methods: {
+            getService(uuid) {
+                const service = this._getService(uuid);
+                if (service) return service;
+
+                return this.section.unavailable_service_placeholders[uuid] ||
+                    this.$set(this.section.unavailable_service_placeholders, uuid,
+                        UnavailableService.for(this.connection(), null, uuid));
             },
         },
     };

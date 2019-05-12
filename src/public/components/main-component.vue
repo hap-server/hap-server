@@ -157,7 +157,7 @@
         },
         provide() {
             return {
-                [ConnectionSymbol]: this.connection,
+                [ConnectionSymbol]: () => this.connection,
                 [AccessoriesSymbol]: this.accessories,
                 [GetAllDisplayServicesSymbol]: () => this.getAllServices(),
                 [GetServiceSymbol]: (uuid, service_uuid) => this.getService(uuid, service_uuid),
