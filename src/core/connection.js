@@ -288,8 +288,10 @@ export default class Connection {
         const hap = accessory.toHAP()[0];
 
         // Add service subtypes
-        for (const service of accessory.services) {
-            const service_hap = hap.services.find(s => s.iid === service.iid);
+        // eslint-disable-next-line guard-for-in
+        for (const index in accessory.services) {
+            const service = accessory.services[index];
+            const service_hap = hap.services[index];
 
             service_hap.subtype = service.subtype;
         }
@@ -371,9 +373,10 @@ export default class Connection {
     async setCharacteristic(accessory_uuid, service_uuid, characteristic_uuid, value) {
         await this.permissions.assertCanSetCharacteristic(accessory_uuid, service_uuid, characteristic_uuid, value);
 
-        // this.server.log.info('Setting characteristic', accessory_uuid, service_uuid, characteristic_uuid, 'to', value);
+        // this.log.info('Setting characteristic', accessory_uuid, service_uuid, characteristic_uuid, 'to', value);
 
         const accessory = this.server.getAccessory(accessory_uuid);
+        if (!accessory) return this.log.warn('Unknown accessory %s', accessory_uuid);
 
         const service_type = service_uuid.indexOf('.') !== -1 ?
             service_uuid.substr(0, service_uuid.indexOf('.')) : service_uuid;
@@ -382,12 +385,14 @@ export default class Connection {
 
         const service = accessory.services.find(service => service.UUID === service_type &&
             ((!service.subtype && !service_subtype) || service.subtype === service_subtype));
-        if (!service) return;
+        if (!service) return this.log.warn('Unknown service %s', service_uuid);
 
         const characteristic = service.characteristics.find(c => c.UUID === characteristic_uuid);
-        if (!characteristic) return;
+        if (!characteristic) return this.log.warn('Unknown characteristic %s', characteristic_uuid);
 
-        return characteristic.setValue(value);
+        return new Promise((resolve, reject) => {
+            characteristic.setValue(value, (err, r) => err ? reject(err) : resolve(r));
+        });
     }
 
     /**

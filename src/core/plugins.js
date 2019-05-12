@@ -693,8 +693,10 @@ export class AccessoryPlatform {
      */
     removeAllCachedAccessories() {
         for (const accessory of this.cached_accessories) {
-            this.removeCachedAccessory(accessory.UUID);
+            this.server.removeCachedAccessory(accessory.UUID);
         }
+
+        this.cached_accessories.splice(0, this.cached_accessories.length);
     }
 }
 
