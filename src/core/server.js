@@ -24,6 +24,7 @@ import Homebridge from './homebridge';
 import Logger from './logger';
 import {Accessory, Service, Characteristic} from './hap-async';
 
+import {builtin_accessory_types, builtin_accessory_platforms} from '../accessories';
 import {HAPIP as HAPIPDiscovery, HAPBLE as HAPBLEDiscovery} from '../accessory-discovery';
 
 import Automations from '../automations';
@@ -197,12 +198,14 @@ export default class Server extends EventEmitter {
 
         for (const accessory_uuid of bridge.accessory_uuids) {
             if (accessory_uuid instanceof Array) {
-                const accessory = this.accessories.find(accessory => accessory_uuid[0] === accessory.plugin.name &&
+                const accessory = this.accessories.find(accessory =>
+                    accessory_uuid[0] === accessory.plugin ? accessory.plugin.name : null &&
                     accessory_uuid[1] === accessory.accessory_type &&
                     accessory_uuid[2] === accessory.accessory.displayName);
                 if (accessory) bridge.addAccessory(accessory.accessory);
 
-                const cached_accessory = this.cached_accessories.find(accessory => accessory_uuid[0] === accessory.plugin.name &&
+                const cached_accessory = this.cached_accessories.find(accessory =>
+                    accessory_uuid[0] === accessory.plugin ? accessory.plugin.name : null &&
                     accessory_uuid[1] === accessory.accessory_type &&
                     accessory_uuid[2] === accessory.accessory.displayName);
                 if (cached_accessory) bridge.addCachedAccessory(cached_accessory.accessory);
@@ -211,7 +214,7 @@ export default class Server extends EventEmitter {
                 if (accessory) bridge.addAccessory(accessory.accessory);
 
                 const cached_accessory = this.cached_accessories.find(accessory => accessory.uuid === accessory_uuid);
-                if (cached_accessory) bridge.addCachedAccessory(accessory.cached_accessory);
+                if (cached_accessory) bridge.addCachedAccessory(cached_accessory.accessory);
             }
         }
     }
@@ -328,13 +331,16 @@ export default class Server extends EventEmitter {
         const {plugin: plugin_name, accessory: accessory_type, name} = accessory_config;
 
         // eslint-disable-next-line curly
-        if (!plugin_name || !accessory_type || !name) throw new Error('Invalid accessory configuration: accessories'
-            + ' must have the plugin, accessory and name properties');
+        if (!accessory_type || !name) throw new Error('Invalid accessory configuration: accessories must have the' +
+            ' plugin, accessory and name properties');
 
-        const plugin = PluginManager.getPlugin(plugin_name);
-        if (!plugin) throw new Error('No plugin with the name "' + plugin_name + '"');
+        const is_builtin = !plugin_name && builtin_accessory_types[accessory_type];
 
-        const accessory_handler = plugin.getAccessoryHandler(accessory_type);
+        const plugin = is_builtin ? null : PluginManager.getPlugin(plugin_name);
+        if (!plugin && !is_builtin) throw new Error('No plugin with the name "' + plugin_name + '"');
+
+        const accessory_handler = is_builtin ? builtin_accessory_types[accessory_type] :
+            plugin.getAccessoryHandler(accessory_type);
         if (!accessory_handler) throw new Error('No accessory handler with the name "' + accessory_type + '"');
 
         // eslint-disable-next-line curly
@@ -395,13 +401,16 @@ export default class Server extends EventEmitter {
         const {plugin: plugin_name, platform: accessory_platform_name, name} = config;
 
         // eslint-disable-next-line curly
-        if (!plugin_name || !accessory_platform_name || !name) throw new Error('Invalid accessory platform' +
-            ' configuration: accessory platforms must have the plugin, platform and name properties');
+        if (!accessory_platform_name || !name) throw new Error('Invalid accessory platform configuration: accessory' +
+            ' platforms must have the plugin, platform and name properties');
 
-        const plugin = PluginManager.getPlugin(plugin_name);
-        if (!plugin) throw new Error('No plugin with the name "' + plugin_name + '"');
+        const is_builtin = !plugin_name && builtin_accessory_platforms[accessory_platform_name];
 
-        const AccessoryPlatformHandler = plugin.getAccessoryPlatformHandler(accessory_platform_name);
+        const plugin = is_builtin ? null : PluginManager.getPlugin(plugin_name);
+        if (!plugin && !is_builtin) throw new Error('No plugin with the name "' + plugin_name + '"');
+
+        const AccessoryPlatformHandler = is_builtin ? builtin_accessory_platforms[accessory_platform_name] :
+            plugin.getAccessoryPlatformHandler(accessory_platform_name);
         if (!AccessoryPlatformHandler) throw new Error('No accessory platform handler with the name "' + // eslint-disable-line curly
             accessory_platform_name + '"');
 
@@ -411,8 +420,8 @@ export default class Server extends EventEmitter {
         if (this.accessory_platforms.find(p => p.config.uuid === config.uuid)) throw new Error('Already have an' +
             ' accessory platform with the UUID base "' + accessory.config.uuid + '"');
 
-        const cached_accessories = this.getCachedAccessoryPlatformAccessories(config.uuid, plugin, accessory_platform_name)
-            .map(plugin_accessory => plugin_accessory.accessory);
+        const cached_accessories = this.getCachedAccessoryPlatformAccessories(config.uuid, plugin,
+            accessory_platform_name).map(plugin_accessory => plugin_accessory.accessory);
 
         const accessory_platform = new AccessoryPlatformHandler(plugin, this, config, cached_accessories);
         await accessory_platform.init(cached_accessories);
@@ -1120,7 +1129,7 @@ export class PluginAccessory {
                     })),
                 })),
             },
-            plugin: this.plugin.name,
+            plugin: this.plugin ? this.plugin.name : null,
             uuid: this.uuid,
             accessory_type: this.accessory_type,
             base_uuid: this.base_uuid,
@@ -1136,16 +1145,20 @@ export class PluginAccessory {
      * @param {object} cache The cached data returned from pluginaccessory.cache
      */
     static restore(server, cache) {
-        const plugin = PluginManager.getPlugin(cache.plugin);
-        if (!plugin) throw new Error('Unknown plugin "' + cache.plugin + '"');
+        const is_builtin = !cache.plugin && (builtin_accessory_types[cache.accessory_type] ||
+            builtin_accessory_platforms[cache.accessory_platform]);
 
-        const accessory_handler = cache.accessory_type ?
+        const plugin = is_builtin ? null : PluginManager.getPlugin(cache.plugin);
+        if (!plugin && !is_builtin) throw new Error('Unknown plugin "' + cache.plugin + '"');
+
+        const accessory_handler = cache.accessory_type ? is_builtin ? builtin_accessory_types[cache.accessory_type] :
             plugin.getAccessoryHandler(cache.accessory_type) : undefined;
         if (cache.accessory_type && !accessory_handler) throw new Error('Unknown accessory "' + // eslint-disable-line curly
             cache.accessory_type + '"');
 
-        const accessory_platform_handler = cache.accessory_platform ?
-            plugin.getAccessoryPlatformHandler(cache.accessory_platform) : undefined;
+        const accessory_platform_handler = cache.accessory_platform ? is_builtin ?
+            builtin_accessory_platforms[cache.accessory_platform] :
+                plugin.getAccessoryPlatformHandler(cache.accessory_platform) : undefined;
         if (cache.accessory_platform && !accessory_platform_handler) throw new Error('Unknown accessory platform "' + // eslint-disable-line curly
             cache.accessory_platform + '"');
 

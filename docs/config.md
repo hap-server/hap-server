@@ -73,6 +73,8 @@ An array of plugin paths to add or a single plugin path.
 You can also provide the path to a single JavaScript file and it will be loaded as a plugin, but will not be able to
 use the `@hap-server/api/plugin-config` or `@hap-server/api/storage` modules.
 
+To use single file plugins use the full path of the plugin instead of a name.
+
 ### `plugins`
 
 The `plugins` property can be used to enable/disable features of and configure plugins. Useful if you have are running
@@ -240,6 +242,10 @@ The name of the plugin providing this accessory.
 
 The type of accessory.
 
+hap-server includes one built in accessory type:
+
+- HomeKitBLE
+
 #### `accessories2[].name`
 
 The name to display in HomeKit (can be changed in both HomeKit and the web interface separately).
@@ -263,6 +269,10 @@ The name of the plugin providing this accessory platform.
 
 The name of the accessory platform.
 
+hap-server includes one built in accessory platform:
+
+- HomeKitIP
+
 #### `platforms2[].name`
 
 A name used to identify this accessory platform instance.
@@ -271,6 +281,42 @@ A name used to identify this accessory platform instance.
 
 Optional. If not provided a UUID will be generated from the plugin name, accessory platform type and accessory
 platform name. This isn't a real UUID, it's used to generate UUIDs for individual accessories.
+
+##### `HomeKitIP`
+
+> `!platforms2[].plugin && platforms2[].platform === 'HomeKitIP'`
+
+```json
+{
+    "platform": "HomeKitIP",
+    "name": "HAP over IP Accessory",
+    "username": "00:00:00:00:00:00",
+    "host": "samuels-macbook-air.local",
+    "port": 49682,
+    "pairing_data": {
+        "AccessoryPairingID": ...,
+        "AccessoryLTPK": ...,
+        "iOSDevicePairingID": ...,
+        "iOSDeviceLTSK": ...,
+        "iOSDeviceLTPK": ...
+    }
+}
+```
+###### `platforms2[].username`
+
+The accessory ID. [This is the same as the username property of a HAP bridge.](#bridgesusername)
+
+###### `platforms2[].host`
+
+The hostname/IP address of the accessory.
+
+###### `platforms2[].port`
+
+The port number of the HAP service.
+
+###### `platforms2[].pairing_data`
+
+[hap-controller](https://github.com/mrstegeman/hap-controller-node) pairing data.
 
 ### `automation-triggers`
 

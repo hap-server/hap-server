@@ -641,7 +641,7 @@ export class AccessoryPlatform {
             this.server.accessories.push(plugin_accessory);
 
             for (const bridge of this.server.bridges.filter(bridge => bridge.accessory_uuids.find(accessory_uuid =>
-                accessory_uuid instanceof Array ? accessory_uuid[0] === this.plugin.name &&
+                accessory_uuid instanceof Array ? accessory_uuid[0] === this.plugin ? this.plugin.name : null &&
                     accessory_uuid[1] === this.constructor.name && accessory_uuid[2] === accessory.displayName :
                     accessory_uuid === accessory.UUID
             ))) {
