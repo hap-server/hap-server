@@ -1,8 +1,7 @@
 
 import Logger from '../core/logger';
-import {Accessory, Service, Characteristic} from '../core/hap-async';
 import {AccessoryPlatform} from '../core/plugins';
-import {uuid} from 'hap-nodejs';
+import {Accessory, Service, Characteristic, uuid} from 'hap-nodejs';
 import {HttpClient} from 'hap-controller';
 
 const log = new Logger('HAP IP Accessory');
@@ -38,7 +37,8 @@ export default class HAPIP extends AccessoryPlatform {
                 hap_service.type = '000000' + hap_service.type + '-0000-1000-8000-0026BB765291';
             }
 
-            const service = new Service(null, hap_service.type, hap_service.iid);
+            // subtype must be a string
+            const service = new Service(null, hap_service.type, '' + hap_service.iid);
 
             for (const hap_characteristic of hap_service.characteristics) {
                 if (hap_characteristic.type.length === 2) {
@@ -64,15 +64,10 @@ export default class HAPIP extends AccessoryPlatform {
 
                 characteristic.updateValue(hap_characteristic.value);
 
-                characteristic.on('get', async () => this.client.getCharacteristics([
-                    hap_accessory.aid + '.' + hap_characteristic.iid,
-                ], {
-                    //
-                }).then(characteristics => characteristics[0].value));
-
-                characteristic.on('set', async value => this.client.setCharacteristics({
-                    [hap_accessory.aid + '.' + hap_characteristic.iid]: value,
-                }));
+                characteristic.on('get', this.handleCharacteristicGet.bind(this, accessory, hap_accessory, service,
+                    hap_service, characteristic, hap_characteristic));
+                characteristic.on('set', this.handleCharacteristicSet.bind(this, accessory, hap_accessory, service,
+                    hap_service, characteristic, hap_characteristic));
 
                 service.addCharacteristic(characteristic);
             }
@@ -97,6 +92,131 @@ export default class HAPIP extends AccessoryPlatform {
         }
 
         return accessory;
+    }
+
+    /**
+     * Handles characteristic get events.
+     *
+     * @param {Accessory} accessory
+     * @param {object} hap_accessory
+     * @param {Service} service
+     * @param {object} hap_service
+     * @param {Characteristic} characteristic
+     * @param {object} hap_characteristic
+     * @param {function} callback
+     */
+    handleCharacteristicGet(
+        accessory, hap_accessory, service, hap_service, characteristic, hap_characteristic, callback
+    ) {
+        this.queueCharacteristicGet(hap_accessory.aid, hap_characteristic.iid)
+            .then(c => callback(null, c.value), callback);
+    }
+
+    /**
+     * Queues a characteristic get event.
+     *
+     * @param {number} aid
+     * @param {number} iid
+     * @return {Promise<>}
+     */
+    queueCharacteristicGet(aid, iid) {
+        return new Promise((resolve, reject) => {
+            const queue = this.get_queue || (this.get_queue = []);
+
+            queue.push([aid + '.' + iid, resolve, reject]);
+
+            if (typeof this.get_queue_timeout === 'undefined' || this.get_queue_timeout === null) {
+                this.get_queue_timeout = setTimeout(() => this.processCharacteristicGetQueue(), 1000);
+            }
+        });
+    }
+
+    async processCharacteristicGetQueue() {
+        const queue = this.get_queue || [];
+        clearTimeout(this.get_queue_timeout);
+
+        this.get_queue = null;
+        this.get_queue_timeout = null;
+
+        try {
+            const {characteristics} = await this.client.getCharacteristics(queue.map(q => q[0]));
+
+            // eslint-disable-next-line guard-for-in
+            for (const index in characteristics) {
+                queue[index][1].call(null, characteristics[index]);
+            }
+        } catch (err) {
+            for (const q of queue) {
+                q[2].call(null, err);
+            }
+        }
+    }
+
+    /**
+     * Handles characteristic set events.
+     *
+     * @param {Accessory} accessory
+     * @param {object} hap_accessory
+     * @param {Service} service
+     * @param {object} hap_service
+     * @param {Characteristic} characteristic
+     * @param {object} hap_characteristic
+     * @param {} value
+     * @param {function} callback
+     */
+    handleCharacteristicSet(
+        accessory, hap_accessory, service, hap_service, characteristic, hap_characteristic, value, callback
+    ) {
+        this.queueCharacteristicSet(hap_accessory.aid, hap_characteristic.iid, value)
+            .then(v => callback(null, v), callback);
+    }
+
+    /**
+     * Queues a characteristic set event.
+     *
+     * @param {number} aid
+     * @param {number} iid
+     * @param {} value
+     * @return {Promise<>}
+     */
+    queueCharacteristicSet(aid, iid, value) {
+        return new Promise((resolve, reject) => {
+            const queue = this.set_queue || (this.set_queue = []);
+
+            queue.push([aid + '.' + iid, value, resolve, reject]);
+
+            log.debug('Queued characteristic set', queue);
+
+            if (typeof this.set_queue_timeout === 'undefined' || this.set_queue_timeout === null) {
+                this.set_queue_timeout = setTimeout(() => this.processCharacteristicSetQueue(), 1000);
+            }
+        });
+    }
+
+    async processCharacteristicSetQueue() {
+        const queue = this.set_queue || [];
+        clearTimeout(this.set_queue_timeout);
+
+        this.set_queue = null;
+        this.set_queue_timeout = null;
+
+        log.debug('Setting characteristics', queue);
+
+        try {
+            const {characteristics} = await this.client.setCharacteristics(queue
+                .reduce((acc, cur) => (acc[cur[0]] = cur[1], acc), {}));
+
+            log.debug('Set characteristics', characteristics);
+
+            // eslint-disable-next-line guard-for-in
+            for (const index in characteristics) {
+                queue[index][2].call(null, characteristics[index]);
+            }
+        } catch (err) {
+            for (const q of queue) {
+                q[3].call(null, err);
+            }
+        }
     }
 }
 
