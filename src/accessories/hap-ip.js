@@ -5,19 +5,40 @@ import {Accessory, Service, Characteristic, uuid} from 'hap-nodejs';
 import {HttpClient} from 'hap-controller';
 
 const log = new Logger('HAP IP Accessory');
+const ServiceMap = Symbol('ServiceMap');
+const CharacteristicMap = Symbol('CharacteristicMap');
 
 export default class HAPIP extends AccessoryPlatform {
     async init(cached_accessories) {
         this.client = new HttpClient(this.config.id, this.config.address, this.config.port, this.config.pairing_data);
+
+        this.client.on('event', event => {
+            log.info('Received event', event);
+
+            try {
+                for (const hap_characteristic of event.characteristics) {
+                    const accessory_uuid = uuid.generate(this.config.uuid + ':' + hap_characteristic.aid);
+                    const accessory = this.accessories.find(plugin_accessory => plugin_accessory.uuid === accessory_uuid).accessory;
+                    const characteristic = accessory[CharacteristicMap].get(hap_characteristic.iid);
+
+                    characteristic.updateValue(hap_characteristic.value);
+                }
+            } catch (err) {
+                log.error('Error handling event', event, err);
+            }
+        });
+
         const {accessories} = await this.client.getAccessories();
+        const subscribe_characteristics = [];
 
         await Promise.all(accessories.map(async (hap_accessory, index) => {
-            log.info('Accessory #%d', index, hap_accessory);
-
-            const accessory = await this.createAccessoryFromHAP(hap_accessory);
+            const accessory = await this.createAccessoryFromHAP(hap_accessory, subscribe_characteristics);
 
             this.addAccessory(accessory);
         }));
+
+        this.events_connection = await this.client.subscribeCharacteristics(subscribe_characteristics);
+        // await this.client.unsubscribeCharacteristics(subscribe_characteristics, this.events_connection);
 
         // TODO: watch the advertisment and update accessories when the configuration changes
 
@@ -25,9 +46,12 @@ export default class HAPIP extends AccessoryPlatform {
         this.removeAllCachedAccessories();
     }
 
-    async createAccessoryFromHAP(hap_accessory) {
+    async createAccessoryFromHAP(hap_accessory, subscribe_characteristics) {
         // The name will be replaced later
         const accessory = new Accessory('Accessory', uuid.generate(this.config.uuid + ':' + hap_accessory.aid));
+
+        accessory[ServiceMap] = new Map();
+        accessory[CharacteristicMap] = new Map();
 
         // Remove the AccessoryInformation service created by hap-nodejs
         for (const service of accessory.services) accessory.removeService(service);
@@ -39,6 +63,8 @@ export default class HAPIP extends AccessoryPlatform {
 
             // subtype must be a string
             const service = new Service(null, hap_service.type, '' + hap_service.iid);
+
+            accessory[ServiceMap].set(hap_service.iid, service);
 
             for (const hap_characteristic of hap_service.characteristics) {
                 if (hap_characteristic.type.length === 2) {
@@ -62,12 +88,16 @@ export default class HAPIP extends AccessoryPlatform {
                     minStep: hap_characteristic.minStep,
                 });
 
+                accessory[CharacteristicMap].set(hap_characteristic.iid, characteristic);
+
                 characteristic.updateValue(hap_characteristic.value);
 
                 characteristic.on('get', this.handleCharacteristicGet.bind(this, accessory, hap_accessory, service,
                     hap_service, characteristic, hap_characteristic));
                 characteristic.on('set', this.handleCharacteristicSet.bind(this, accessory, hap_accessory, service,
                     hap_service, characteristic, hap_characteristic));
+
+                subscribe_characteristics.push(hap_accessory.aid + '.' + hap_characteristic.iid);
 
                 service.addCharacteristic(characteristic);
             }

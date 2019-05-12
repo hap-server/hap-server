@@ -608,7 +608,7 @@ export class AccessoryPlatform {
      * @param {Array} cached_accessories
      */
     async init(cached_accessories) {
-        this.addAccessory(...accessories);
+        this.addAccessory(...cached_accessories);
     }
 
     /**
