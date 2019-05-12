@@ -96,7 +96,7 @@
 
                 return this.section.unavailable_service_placeholders[uuid] ||
                     this.$set(this.section.unavailable_service_placeholders, uuid,
-                        UnavailableService.for(this.connection(), null, uuid));
+                        UnavailableService.for(this.connection(), null, uuid)); // eslint-disable-line vue/script-indent
             },
         },
     };

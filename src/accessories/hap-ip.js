@@ -125,7 +125,7 @@ export default class HAPIP extends AccessoryPlatform {
             const service = accessory.services.find(s => s.UUID === hap_service.type && s.subtype === hap_service.iid);
 
             for (const linked_service_iid of hap_service.linked) {
-                const linked_service = accessory.services.find(s => s.subtype === hap_service.iid);
+                const linked_service = accessory[ServiceMap].get(linked_service_iid);
                 if (!linked_service) continue;
 
                 service.addLinkedService(linked_service);

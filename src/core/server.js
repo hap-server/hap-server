@@ -1249,7 +1249,7 @@ export class PluginAccessory {
 
         const accessory_platform_handler = cache.accessory_platform ? is_builtin ?
             builtin_accessory_platforms[cache.accessory_platform] :
-                plugin.getAccessoryPlatformHandler(cache.accessory_platform) : undefined;
+            plugin.getAccessoryPlatformHandler(cache.accessory_platform) : undefined;
         if (cache.accessory_platform && !accessory_platform_handler) throw new Error('Unknown accessory platform "' + // eslint-disable-line curly
             cache.accessory_platform + '"');
 

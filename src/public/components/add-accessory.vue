@@ -5,7 +5,9 @@
         <template v-else>
             <h4 v-if="Object.keys(discovered_accessories).length">Discovered accessories</h4>
             <div v-if="Object.keys(discovered_accessories).length" class="discovered-accessories">
-                <div v-for="discovered_accessory in discovered_accessories" class="discovered-accessory-wrapper">
+                <div v-for="discovered_accessory in discovered_accessories" :key="discovered_accessory.id"
+                    class="discovered-accessory-wrapper"
+                >
                     <component v-if="discovered_accessory.component" :is="discovered_accessory.component"
                         :discovered-accessory="discovered_accessory" />
 
@@ -92,7 +94,9 @@
         },
         methods: {
             async startAccessoryDiscovery() {
-                if (this.starting_accessory_discovery || this.stopping_accessory_discovery) throw new Error('Already starting/stopping accessory discovery');
+                if (this.starting_accessory_discovery || this.stopping_accessory_discovery) {
+                    throw new Error('Already starting/stopping accessory discovery');
+                }
                 this.starting_accessory_discovery = true;
 
                 try {
@@ -101,7 +105,7 @@
 
                     for (const data of discovered_accessories) {
                         const discovered_accessory = new DiscoveredAccessory(this.connection, data.plugin,
-                            data.accessory_discovery, data.id, data.data);
+                            data.accessory_discovery, data.id, data.data); // eslint-disable-line vue/script-indent
 
                         this.$set(this.discovered_accessories, discovered_accessory.id, discovered_accessory);
                     }
@@ -121,7 +125,7 @@
             },
             handleAddDiscoveredAccessory(plugin_name, accessory_discovery_id, id, data) {
                 const discovered_accessory = new DiscoveredAccessory(this.connection, plugin_name,
-                    accessory_discovery_id, id, data);
+                    accessory_discovery_id, id, data); // eslint-disable-line vue/script-indent
 
                 this.$set(this.discovered_accessories, discovered_accessory.id, discovered_accessory);
                 this.discovered_accessories = this.discovered_accessories;
