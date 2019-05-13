@@ -29,7 +29,8 @@ export async function handler(argv) {
         const service_uuid = uuid.substr(uuid.indexOf('.') + 1, uuid.lastIndexOf('.') - uuid.indexOf('.') - 1);
         const characteristic_uuid = uuid.substr(uuid.lastIndexOf('.') + 1);
 
-        log.withPrefix(`Characteristic #${index + 1}`).debug('UUID', [accessory_uuid, service_uuid, characteristic_uuid]);
+        log.withPrefix(`Characteristic #${index + 1}`)
+            .debug('UUID', [accessory_uuid, service_uuid, characteristic_uuid]);
         return [accessory_uuid, service_uuid, characteristic_uuid];
     }));
 
@@ -38,7 +39,8 @@ export async function handler(argv) {
         const characteristic = characteristics[index];
 
         log.withPrefix(`Characteristic #${parseInt(index) + 1}`).debug(characteristic);
-        log.withPrefix(`Characteristic #${parseInt(index) + 1}`).info((characteristic.description || 'Value') + ':', characteristic.value);
+        log.withPrefix(`Characteristic #${parseInt(index) + 1}`)
+            .info((characteristic.description || 'Value') + ':', characteristic.value);
     }
 
     connection.ws.close();

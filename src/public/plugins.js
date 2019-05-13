@@ -5,7 +5,11 @@ import axios from 'axios';
 import * as vue_module from 'vue';
 import * as axios_module from 'axios';
 
-import Service, {type_names as service_type_names, system_types as system_service_types, collapsed_services} from './service';
+import Service, {
+    type_names as service_type_names,
+    system_types as system_service_types,
+    collapsed_services,
+} from './service';
 import Characteristic from './characteristic';
 
 import {AuthenticationHandlerConnection, AuthenticatedUser} from '../common/connection';
@@ -91,7 +95,9 @@ export class PluginManager {
             return layout_section_component_module;
         } else if (request === '@hap-server/accessory-ui-api/sortable') {
             return sortable_component_module;
-        } else if (request.startsWith('@hap-server/accessory-ui-api/icons/') && icon_component_modules.has('./' + request.substr(35) + '.vue')) {
+        } else if (request.startsWith('@hap-server/accessory-ui-api/icons/') &&
+            icon_component_modules.has('./' + request.substr(35) + '.vue')
+        ) {
             return icon_component_modules.get('./' + request.substr(35) + '.vue');
         } else if (request === 'vue') {
             return vue_module;
@@ -107,7 +113,9 @@ export class PluginManager {
 
         if (request === '@hap-server/accessory-ui-api/automation-trigger' && automation_trigger_component_module) {
             return automation_trigger_component_module;
-        } else if (request === '@hap-server/accessory-ui-api/automation-condition' && automation_condition_component_module) {
+        } else if (request === '@hap-server/accessory-ui-api/automation-condition' &&
+            automation_condition_component_module
+        ) {
             return automation_condition_component_module;
         } else if (request === '@hap-server/accessory-ui-api/automation-action' && automation_action_component_module) {
             return automation_action_component_module;

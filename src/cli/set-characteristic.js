@@ -33,7 +33,7 @@ export async function handler(argv) {
 
     log.withPrefix('Characteristic').debug('UUID', [accessory_uuid, service_uuid, characteristic_uuid]);
 
-    const characteristic = (await connection.getCharacteristics([accessory_uuid, service_uuid, characteristic_uuid]))[0];
+    const [characteristic] = (await connection.getCharacteristics([accessory_uuid, service_uuid, characteristic_uuid]));
 
     log.withPrefix('Characteristic').debug(characteristic);
     log.withPrefix('Characteristic').info((characteristic.description || 'Value') + ':', characteristic.value);
@@ -43,7 +43,8 @@ export async function handler(argv) {
 
     log.withPrefix('Characteristic').info('Setting value to', {value: argv.value, formatted_value});
 
-    const response = await connection.setCharacteristic(accessory_uuid, service_uuid, characteristic_uuid, formatted_value);
+    const response = await connection.setCharacteristic(accessory_uuid, service_uuid, characteristic_uuid,
+        formatted_value);
 
     log.withPrefix('Characteristic').debug('Response', response);
 

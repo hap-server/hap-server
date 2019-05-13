@@ -539,7 +539,8 @@ export class Plugin {
         }
 
         if (this.automation_conditions.has(name)) {
-            throw new Error(this.name + ' has already registered an automation condition with the name "' + name + '".');
+            throw new Error(this.name + ' has already registered an automation condition with the name "' + name +
+                '".');
         }
 
         log.info('Registering automation condition', name, 'from plugin', this.name);
@@ -669,8 +670,12 @@ export class AccessoryPlatform {
             }
 
             let index;
-            while ((index = this.accessories.findIndex(a => a.uuid === accessory.UUID)) !== -1) this.accessories.splice(index, 1);
-            while ((index = this.server.accessories.findIndex(a => a.uuid === accessory.UUID)) !== -1) this.server.accessories.splice(index, 1);
+            while ((index = this.accessories.findIndex(a => a.uuid === accessory.UUID)) !== -1) {
+                this.accessories.splice(index, 1);
+            }
+            while ((index = this.server.accessories.findIndex(a => a.uuid === accessory.UUID)) !== -1) {
+                this.server.accessories.splice(index, 1);
+            }
 
             for (const bridge of this.server.bridges) {
                 if (!bridge.bridge.bridgedAccessories.find(a => a.UUID === accessory.UUID)) continue;
@@ -726,20 +731,28 @@ export class AccessoryUI {
     }
 
     get enabled() {
-        if (typeof this.plugin.config['accessory-uis'] === 'object' && typeof this.plugin.config['accessory-uis'][this.id] !== 'undefined') {
+        if (typeof this.plugin.config['accessory-uis'] === 'object' &&
+            typeof this.plugin.config['accessory-uis'][this.id] !== 'undefined'
+        ) {
             return !!this.plugin.config['accessory-uis'][this.id];
         }
-        if (typeof this.plugin.config['accessory-uis'] === 'object' && typeof this.plugin.config['accessory-uis']['*'] !== 'undefined') {
+        if (typeof this.plugin.config['accessory-uis'] === 'object' &&
+            typeof this.plugin.config['accessory-uis']['*'] !== 'undefined'
+        ) {
             return !!this.plugin.config['accessory-uis']['*'];
         }
 
-        if (typeof this.plugin.config['accessory-uis'] !== 'undefined' && typeof this.plugin.config['accessory-uis'] !== 'object') {
+        if (typeof this.plugin.config['accessory-uis'] !== 'undefined' &&
+            typeof this.plugin.config['accessory-uis'] !== 'object'
+        ) {
             return !!this.plugin.config['accessory-uis'];
         }
 
         const defaults = this.plugin.plugin_manager.default_plugin_config || {};
 
-        if (typeof defaults['accessory-uis'] === 'object' && typeof defaults['accessory-uis'][this.id] !== 'undefined') {
+        if (typeof defaults['accessory-uis'] === 'object' &&
+            typeof defaults['accessory-uis'][this.id] !== 'undefined'
+        ) {
             return !!defaults['accessory-uis'][this.id];
         }
         if (typeof defaults['accessory-uis'] === 'object' && typeof defaults['accessory-uis']['*'] !== 'undefined') {

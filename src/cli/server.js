@@ -240,7 +240,10 @@ export async function handler(argv) {
 
     let exit_attempts = 0;
 
-    for (const [signal, code] of Object.entries({'SIGINT': 2, 'SIGTERM': 15})) {
+    for (const [signal, code] of [
+        ['SIGINT', 2],
+        ['SIGTERM', 15],
+    ]) {
         process.on(signal, async () => {
             exit_attempts++;
 

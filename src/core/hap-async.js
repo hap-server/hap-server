@@ -150,7 +150,8 @@ class AsyncCharacteristic extends Characteristic {
                 }
             });
 
-            this.emit('get', cb, context, connectionID).then(r => (r = r.find(r => r)) ? undefined : cb(null, r)).catch(cb);
+            this.emit('get', cb, context, connectionID)
+                .then(r => (r = r.find(r => r)) ? undefined : cb(null, r)).catch(cb);
         } else {
             // No one is listening to the 'get' event, so just return the cached value
             if (callback) callback(this.status, this.value);

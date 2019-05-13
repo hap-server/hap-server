@@ -199,7 +199,11 @@ export class ScriptCondition extends AutomationCondition {
             log: this.log.withPrefix('Script'),
         });
 
-        this.script = new vm.Script('(async function () { ' + (this.config.script instanceof Array ? this.config.script.join('\n') : this.config.script) + '\n})()');
+        this.script = new vm.Script(
+            '(async function () { ' +
+            (this.config.script instanceof Array ? this.config.script.join('\n') : this.config.script) +
+            '\n})()'
+        );
     }
 
     async check(runner, setProgress, ...parent_conditions) {

@@ -246,7 +246,9 @@ export class ServiceProxy extends Service {
 
                 if (!characteristic) {
                     let index;
-                    while ((index = this._characteristics.indexOf(proxy)) !== -1) this._characteristics.splice(index, 1);
+                    while ((index = this._characteristics.indexOf(proxy)) !== -1) {
+                        this._characteristics.splice(index, 1);
+                    }
                 }
             }
         }
@@ -263,8 +265,9 @@ export class ServiceProxy extends Service {
         if (this.service) {
             for (const characteristic of this.service.optionalCharacteristics) {
                 const proxy = this._optionalCharacteristics.find(p => p.UUID === characteristic.UUID);
+                if (proxy) continue;
 
-                if (!proxy) this._optionalCharacteristics.push(new CharacteristicProxy(characteristic, this.permissions));
+                this._optionalCharacteristics.push(new CharacteristicProxy(characteristic, this.permissions));
             }
 
             for (const proxy of this._optionalCharacteristics) {
@@ -272,7 +275,9 @@ export class ServiceProxy extends Service {
 
                 if (!characteristic) {
                     let index;
-                    while ((index = this._optionalCharacteristics.indexOf(proxy)) !== -1) this._optionalCharacteristics.splice(index, 1);
+                    while ((index = this._optionalCharacteristics.indexOf(proxy)) !== -1) {
+                        this._optionalCharacteristics.splice(index, 1);
+                    }
                 }
             }
         }
@@ -308,7 +313,8 @@ export class ServiceProxy extends Service {
             }
 
             for (const proxy of this._linkedServices) {
-                const service = this.service.linkedServices.find(s => s.UUID === proxy.UUID && s.subtype === proxy.subtype);
+                const service = this.service.linkedServices
+                    .find(s => s.UUID === proxy.UUID && s.subtype === proxy.subtype);
 
                 if (!service) {
                     let index;

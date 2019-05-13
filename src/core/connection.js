@@ -519,7 +519,9 @@ export default class Connection {
     }
 
     async getHomePermissions() {
-        const [get, set, add_accessories, create_layouts, has_automations, create_automations, server] = await Promise.all([
+        const [
+            get, set, add_accessories, create_layouts, has_automations, create_automations, server,
+        ] = await Promise.all([
             this.permissions.checkCanGetHomeSettings(),
             this.permissions.checkCanSetHomeSettings(),
             this.permissions.checkCanCreateAccessories(),
@@ -553,7 +555,9 @@ export default class Connection {
         await this.server.storage.setItem('Home', data);
 
         let index;
-        while ((index = this.uploads.findIndex(f => f.filename === data.background_url)) > -1) this.uploads.splice(index, 1);
+        while ((index = this.uploads.findIndex(f => f.filename === data.background_url)) > -1) {
+            this.uploads.splice(index, 1);
+        }
 
         this.server.sendBroadcast({
             type: 'update-home-settings',
@@ -623,7 +627,9 @@ export default class Connection {
         }
 
         let index;
-        while ((index = this.uploads.findIndex(f => f.filename === data.background_url)) > -1) this.uploads.splice(index, 1);
+        while ((index = this.uploads.findIndex(f => f.filename === data.background_url)) > -1) {
+            this.uploads.splice(index, 1);
+        }
 
         this.server.sendBroadcast({
             type: 'new-layout',
@@ -704,7 +710,9 @@ export default class Connection {
         }
 
         let index;
-        while ((index = this.uploads.findIndex(f => f.filename === data.background_url)) > -1) this.uploads.splice(index, 1);
+        while ((index = this.uploads.findIndex(f => f.filename === data.background_url)) > -1) {
+            this.uploads.splice(index, 1);
+        }
 
         this.server.sendBroadcast({
             type: 'update-layout',
@@ -1343,7 +1351,8 @@ export default class Connection {
                 const authentication_handler = plugin.getAuthenticationHandler(session.authentication_handler);
                 if (!authentication_handler) throw new Error('Unknown authentication handler');
 
-                const authenticated_user = await authentication_handler.handleResumeSession(token, session.authenticated_user);
+                const authenticated_user = await authentication_handler.handleResumeSession(token,
+                    session.authenticated_user);
 
                 await this.sendAuthenticateResponse(messageid, authenticated_user);
             } else if (data.cli_token) {

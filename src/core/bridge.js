@@ -60,7 +60,8 @@ export default class Bridge {
 
         // Check for UUID conflict
         for (const existing of bridge.bridgedAccessories) {
-            if (existing.UUID === accessory.UUID) throw new Error('Cannot add a bridged Accessory with the same UUID as another bridged Accessory: ' + existing.UUID);
+            if (existing.UUID === accessory.UUID) throw new Error('Cannot add a bridged Accessory with the same' + // eslint-disable-line curly
+                ' UUID as another bridged Accessory: ' + existing.UUID);
         }
 
         const _eventhandlers = bridge.__hap_server_eventhandlers || (bridge.__hap_server_eventhandlers = new WeakMap());
@@ -197,7 +198,8 @@ export default class Bridge {
         // Check for UUID conflict
         const existing = this.bridge.bridgedAccessories.find(existing => existing.UUID === accessory.UUID) ||
             this.cached_accessories.find(existing => existing.UUID === accessory.UUID);
-        if (existing) throw new Error('Cannot add a bridged Accessory with the same UUID as another bridged Accessory: ' + existing.UUID);
+        if (existing) throw new Error('Cannot add a bridged Accessory with the same UUID as another bridged' + // eslint-disable-line curly
+            ' Accessory: ' + existing.UUID);
 
         accessory.bridged = true;
 

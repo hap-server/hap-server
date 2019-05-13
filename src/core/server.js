@@ -504,44 +504,44 @@ export default class Server extends EventEmitter {
 
     async loadAutomationTriggersFromConfig(dont_throw) {
         if (this.config_automation_triggers) return this.config_automation_triggers;
-        this.config_automation_triggers = {};
+        const triggers = {};
 
         await Promise.all(Object.entries(this.config['automation-triggers'] || {}).map(([key, config]) =>
-            this.automations.loadAutomationTrigger(config).then(t => this.config_automation_triggers[key] = t).catch(err => {
+            this.automations.loadAutomationTrigger(config).then(t => triggers[key] = t).catch(err => {
                 if (!dont_throw) throw err;
 
                 this.log.warn('Error loading automation trigger', config.plugin, config.trigger, err);
             })));
 
-        return this.config_automation_triggers;
+        return this.config_automation_triggers = triggers;
     }
 
     async loadAutomationConditionsFromConfig(dont_throw) {
         if (this.config_automation_conditions) return this.config_automation_conditions;
-        this.config_automation_conditions = {};
+        const conditions = {};
 
         await Promise.all(Object.entries(this.config['automation-conditions'] || {}).map(([key, config]) =>
-            this.automations.loadAutomationCondition(config).then(t => this.config_automation_conditions[key] = t).catch(err => {
+            this.automations.loadAutomationCondition(config).then(t => conditions[key] = t).catch(err => {
                 if (!dont_throw) throw err;
 
                 this.log.warn('Error loading automation condition', config.plugin, config.condition, err);
             })));
 
-        return this.config_automation_conditions;
+        return this.config_automation_conditions = conditions;
     }
 
     async loadAutomationActionsFromConfig(dont_throw) {
         if (this.config_automation_actions) return this.config_automation_actions;
-        this.config_automation_actions = {};
+        const actions = {};
 
         await Promise.all(Object.entries(this.config['automation-actions'] || {}).map(([key, config]) =>
-            this.automations.loadAutomationAction(config).then(t => this.config_automation_actions[key] = t).catch(err => {
+            this.automations.loadAutomationAction(config).then(t => actions[key] = t).catch(err => {
                 if (!dont_throw) throw err;
 
                 this.log.warn('Error loading automation action', config.plugin, config.action, err);
             })));
 
-        return this.config_automation_actions;
+        return this.config_automation_actions = actions;
     }
 
     async loadAutomationsFromConfig(dont_throw) {
@@ -755,9 +755,11 @@ export default class Server extends EventEmitter {
             let events = this.accessory_discovery_handlers_events.get(accessory_discovery);
             if (!events) this.accessory_discovery_handlers_events.set(accessory_discovery, events = {});
 
-            if (!events.add_accessory) events.add_accessory = data => this.handleAddDiscoveredAccessory(accessory_discovery, data);
+            if (!events.add_accessory) events.add_accessory = data => // eslint-disable-line curly
+                this.handleAddDiscoveredAccessory(accessory_discovery, data);
             accessory_discovery.on('add-accessory', events.add_accessory);
-            if (!events.remove_accessory) events.remove_accessory = data => this.handleRemoveDiscoveredAccessory(accessory_discovery, data);
+            if (!events.remove_accessory) events.remove_accessory = data => // eslint-disable-line curly
+                this.handleRemoveDiscoveredAccessory(accessory_discovery, data);
             accessory_discovery.on('remove-accessory', events.remove_accessory);
 
             await accessory_discovery.start();

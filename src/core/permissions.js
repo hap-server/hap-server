@@ -63,7 +63,9 @@ export default class Permissions {
     }
 
     async assertCanGetAccessory(accessory_uuid) {
-        if (!await this.checkCanGetAccessory(accessory_uuid)) throw new Error('You don\'t have permission to access this accessory');
+        if (!await this.checkCanGetAccessory(accessory_uuid)) {
+            throw new Error('You don\'t have permission to access this accessory');
+        }
     }
 
     /**
@@ -84,7 +86,9 @@ export default class Permissions {
     }
 
     async assertCanSetCharacteristic(accessory_uuid, service_uuid, characteristic_uuid, value) {
-        if (!await this.checkCanSetCharacteristic(accessory_uuid, service_uuid, characteristic_uuid, value)) throw new Error('You don\'t have permission to control this accessory');
+        if (!await this.checkCanSetCharacteristic(accessory_uuid, service_uuid, characteristic_uuid, value)) {
+            throw new Error('You don\'t have permission to control this accessory');
+        }
     }
 
     /**
@@ -102,7 +106,9 @@ export default class Permissions {
     }
 
     async assertCanSetAccessoryData(accessory_uuid) {
-        if (!await this.checkCanSetAccessoryData(accessory_uuid)) throw new Error('You don\'t have permission to manage this accessory');
+        if (!await this.checkCanSetAccessoryData(accessory_uuid)) {
+            throw new Error('You don\'t have permission to manage this accessory');
+        }
     }
 
     /**
@@ -119,7 +125,9 @@ export default class Permissions {
     }
 
     async assertCanCreateAccessories(accessory_uuid) {
-        if (!await this.checkCanCreateAccessories(accessory_uuid)) throw new Error('You don\'t have permission to add accessories');
+        if (!await this.checkCanCreateAccessories(accessory_uuid)) {
+            throw new Error('You don\'t have permission to add accessories');
+        }
     }
 
     /**
@@ -137,7 +145,9 @@ export default class Permissions {
     }
 
     async assertCanGetAccessoryConfig(accessory_uuid) {
-        if (!await this.checkCanGetAccessoryConfig(accessory_uuid)) throw new Error('You don\'t have permission to manage this accessory');
+        if (!await this.checkCanGetAccessoryConfig(accessory_uuid)) {
+            throw new Error('You don\'t have permission to manage this accessory');
+        }
     }
 
     /**
@@ -155,7 +165,9 @@ export default class Permissions {
     }
 
     async assertCanSetAccessoryConfig(accessory_uuid) {
-        if (!await this.checkCanSetAccessoryConfig(accessory_uuid)) throw new Error('You don\'t have permission to manage this accessory');
+        if (!await this.checkCanSetAccessoryConfig(accessory_uuid)) {
+            throw new Error('You don\'t have permission to manage this accessory');
+        }
     }
 
     /**
@@ -173,7 +185,9 @@ export default class Permissions {
     }
 
     async assertCanDeleteAccessory(accessory_uuid) {
-        if (!await this.checkCanDeleteAccessory(accessory_uuid)) throw new Error('You don\'t have permission to delete this accessory');
+        if (!await this.checkCanDeleteAccessory(accessory_uuid)) {
+            throw new Error('You don\'t have permission to delete this accessory');
+        }
     }
 
     /**
@@ -190,7 +204,9 @@ export default class Permissions {
     }
 
     async assertCanGetHomeSettings() {
-        if (!await this.checkCanGetHomeSettings()) throw new Error('You don\'t have permission to access this home');
+        if (!await this.checkCanGetHomeSettings()) {
+            throw new Error('You don\'t have permission to access this home');
+        }
     }
 
     /**
@@ -207,7 +223,9 @@ export default class Permissions {
     }
 
     async assertCanSetHomeSettings() {
-        if (!await this.checkCanSetHomeSettings()) throw new Error('You don\'t have permission to manage this home');
+        if (!await this.checkCanSetHomeSettings()) {
+            throw new Error('You don\'t have permission to manage this home');
+        }
     }
 
     /**
@@ -242,7 +260,9 @@ export default class Permissions {
     }
 
     async assertCanCreateLayouts() {
-        if (!await this.checkCanCreateLayouts()) throw new Error('You don\'t have permission to create layouts');
+        if (!await this.checkCanCreateLayouts()) {
+            throw new Error('You don\'t have permission to create layouts');
+        }
     }
 
     /**
@@ -263,7 +283,9 @@ export default class Permissions {
     }
 
     async assertCanGetLayout(id) {
-        if (!await this.checkCanGetLayout(id)) throw new Error('You don\'t have permission to access this layout');
+        if (!await this.checkCanGetLayout(id)) {
+            throw new Error('You don\'t have permission to access this layout');
+        }
     }
 
     /**
@@ -284,7 +306,9 @@ export default class Permissions {
     }
 
     async assertCanSetLayout(id) {
-        if (!await this.checkCanSetLayout(id)) throw new Error('You don\'t have permission to update this layout');
+        if (!await this.checkCanSetLayout(id)) {
+            throw new Error('You don\'t have permission to update this layout');
+        }
     }
 
     /**
@@ -305,7 +329,9 @@ export default class Permissions {
     }
 
     async assertCanDeleteLayout(id) {
-        if (!await this.checkCanDeleteLayout(id)) throw new Error('You don\'t have permission to delete this layout');
+        if (!await this.checkCanDeleteLayout(id)) {
+            throw new Error('You don\'t have permission to delete this layout');
+        }
     }
 
     /**
@@ -337,7 +363,9 @@ export default class Permissions {
     }
 
     async assertCanCreateAutomations() {
-        if (!await this.checkCanCreateAutomations()) throw new Error('You don\'t have permission to create automations');
+        if (!await this.checkCanCreateAutomations()) {
+            throw new Error('You don\'t have permission to create automations');
+        }
     }
 
     /**
@@ -355,7 +383,9 @@ export default class Permissions {
     }
 
     async assertCanGetAutomation(uuid) {
-        if (!await this.checkCanGetAutomation(uuid)) throw new Error('You don\'t have permission to access this automation');
+        if (!await this.checkCanGetAutomation(uuid)) {
+            throw new Error('You don\'t have permission to access this automation');
+        }
     }
 
     /**
@@ -373,7 +403,9 @@ export default class Permissions {
     }
 
     async assertCanSetAutomation(uuid) {
-        if (!await this.checkCanSetAutomation(uuid)) throw new Error('You don\'t have permission to update this automation');
+        if (!await this.checkCanSetAutomation(uuid)) {
+            throw new Error('You don\'t have permission to update this automation');
+        }
     }
 
     /**
@@ -391,7 +423,9 @@ export default class Permissions {
     }
 
     async assertCanDeleteAutomation(uuid) {
-        if (!await this.checkCanDeleteAutomation(uuid)) throw new Error('You don\'t have permission to delete this automation');
+        if (!await this.checkCanDeleteAutomation(uuid)) {
+            throw new Error('You don\'t have permission to delete this automation');
+        }
     }
 
     /**
@@ -408,7 +442,9 @@ export default class Permissions {
     }
 
     async assertCanAccessServerRuntimeInfo() {
-        if (!await this.checkCanAccessServerRuntimeInfo()) throw new Error('You don\'t have permission to manage this home');
+        if (!await this.checkCanAccessServerRuntimeInfo()) {
+            throw new Error('You don\'t have permission to manage this home');
+        }
     }
 
     /**
@@ -422,8 +458,12 @@ export default class Permissions {
         if (data.type === 'update-characteristic') return this.checkCanGetAccessory(data.accessory_uuid);
         if (data.type === 'update-accessory-data') return this.checkCanGetAccessory(data.uuid);
         if (data.type === 'update-home-settings') return this.checkCanGetHomeSettings();
-        if (['new-layout', 'update-layout', 'remove-layout'].includes(data.type)) return this.checkCanGetLayout(data.uuid);
-        if (['new-layout-section', 'update-layout-section', 'remove-layout-section'].includes(data.type)) return this.checkCanGetLayout(data.layout_uuid);
+        if (['new-layout', 'update-layout', 'remove-layout'].includes(data.type)) {
+            return this.checkCanGetLayout(data.uuid);
+        }
+        if (['new-layout-section', 'update-layout-section', 'remove-layout-section'].includes(data.type)) {
+            return this.checkCanGetLayout(data.layout_uuid);
+        }
 
         if (DEVELOPMENT && this.__development_allow_local()) return true;
 
@@ -437,7 +477,9 @@ if (DEVELOPMENT) {
     const local_addresses = ['::1', '::ffff:127.0.0.1', '127.0.0.1'];
 
     Permissions.prototype.__development_allow_local = function() {
-        if (local_addresses.includes(this.connection.req.connection.remoteAddress) && !this.connection.req.headers['x-forwarded-for']) {
+        if (local_addresses.includes(this.connection.req.connection.remoteAddress) &&
+            !this.connection.req.headers['x-forwarded-for']
+        ) {
             return true;
         }
     };

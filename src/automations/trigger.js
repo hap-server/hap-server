@@ -81,7 +81,9 @@ export default class AutomationTrigger extends EventEmitter {
         if (!this.running) return;
         if (this.stopping) return this.stopping;
 
-        return this.stopping = Promise.all([this.onstop()]).then(() => (this.starting = null, this.running = false)).then(() => true);
+        return this.stopping = Promise.all([this.onstop()])
+            .then(() => (this.starting = null, this.running = false))
+            .then(() => true);
     }
 
     onstop() {

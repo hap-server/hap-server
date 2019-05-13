@@ -287,9 +287,10 @@ export default class Server {
             services: accessory.services.map(service => ({
                 iid: this.getServiceID(accessory, service),
                 type: service.UUID,
-                characteristics: service.characteristics.map(characteristic => Object.assign(characteristic.toHAP(options), {
-                    iid: this.getCharacteristicID(accessory, service, characteristic),
-                })),
+                characteristics: service.characteristics
+                    .map(characteristic => Object.assign(characteristic.toHAP(options), {
+                        iid: this.getCharacteristicID(accessory, service, characteristic),
+                    })),
 
                 primary: service.isPrimaryService,
                 hidden: service.isHiddenService,
@@ -321,7 +322,8 @@ export default class Server {
         const accessory = this.getAccessoryByID(aid, false);
 
         if (!accessory) {
-            this.log.debug('Tried to get a characteristic from an unknown/cached accessory with aid', aid, 'and iid', iid);
+            this.log.debug('Tried to get a characteristic from an unknown/cached accessory with aid', aid,
+                'and iid', iid);
 
             return {
                 aid, iid,
@@ -352,7 +354,8 @@ export default class Server {
         const context = events;
 
         try {
-            const value = await new Promise((rs, rj) => characteristic.getValue((err, value) => err ? rj(err) : rs(value), context, connection_id));
+            const value = await new Promise((rs, rj) =>
+                characteristic.getValue((err, value) => err ? rj(err) : rs(value), context, connection_id));
 
             // set the value and wait for success
             this.log.debug('Got characteristic "%s"', characteristic.displayName, value);
@@ -405,7 +408,8 @@ export default class Server {
         const accessory = this.getAccessoryByID(aid, false);
 
         if (!accessory) {
-            this.log.debug('Tried to get a characteristic from an unknown/cached accessory with aid', aid, 'and iid', iid);
+            this.log.debug('Tried to get a characteristic from an unknown/cached accessory with aid', aid,
+                'and iid', iid);
 
             return {
                 aid, iid,
@@ -457,7 +461,8 @@ export default class Server {
 
             try {
                 // Set the value and wait for success
-                await new Promise((rs, rj) => characteristic.setValue(value, (err, value) => err ? rj(err) : rs(value), context, connection_id));
+                await new Promise((rs, rj) =>
+                    characteristic.setValue(value, (err, value) => err ? rj(err) : rs(value), context, connection_id));
 
                 return {
                     aid, iid,

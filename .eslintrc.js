@@ -13,10 +13,10 @@ module.exports = {
     rules: {
         indent: ['error', 4],
         camelcase: 'off',
-        'max-len': ['warn', {code: 120}],
+        'max-len': ['warn', {code: 120, ignoreComments: true}],
         // 'require-jsdoc': 'warn',
         'arrow-parens': ['warn', 'as-needed'],
-        'quote-props': ['warn', 'as-needed'],
+        'quote-props': ['warn', 'consistent-as-needed'],
 
         'require-jsdoc': 'off',
         'valid-jsdoc': 'off',

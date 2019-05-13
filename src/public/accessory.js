@@ -159,7 +159,9 @@ export default class Accessory extends EventEmitter {
 
         if (added_display_services.length) this.emit('new-display-services', added_display_services);
 
-        for (const [collapsed_service_type, removed_collapsed_services] of Object.entries(removed_collapsed_service_types)) {
+        for (const [collapsed_service_type, removed_collapsed_services] of
+            Object.entries(removed_collapsed_service_types)
+        ) {
             const collapsed_service = this.display_services.find(service => service instanceof CollapsedService &&
                 service.collapsed_service_type === collapsed_service_type);
 
@@ -190,7 +192,8 @@ export default class Accessory extends EventEmitter {
             if (this.display_services.find(display_service => {
                 if (service === display_service) return true;
 
-                if (display_service instanceof CollapsedService && display_service.services.includes(service)) return true;
+                if (display_service instanceof CollapsedService &&
+                    display_service.services.includes(service)) return true;
 
                 return false;
             })) continue;
@@ -288,7 +291,8 @@ export default class Accessory extends EventEmitter {
     }
 
     getService(uuid, include_display_services) {
-        return this.services[uuid] || include_display_services ? this.display_services.find(s => s.uuid === uuid) : null;
+        return this.services[uuid] ||
+            include_display_services ? this.display_services.find(s => s.uuid === uuid) : null;
     }
 
     getServiceByName(name) {

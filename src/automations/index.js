@@ -255,7 +255,9 @@ export class Automation {
             this.triggers.splice(this.triggers.indexOf(trigger), 1);
 
             try {
-                if (!trigger.automations.automations.find(a => a.triggers.find(t => t === trigger))) await trigger.stop();
+                if (!trigger.automations.automations.find(a => a.triggers.find(t => t === trigger))) {
+                    await trigger.stop();
+                }
             } catch (err) {
                 this.triggers.push(automation);
                 throw err;
@@ -411,7 +413,8 @@ export class AutomationRunner extends EventEmitter {
                 this.emit('condition-finished', condition, result);
 
                 if (!result) {
-                    this.log.info('Not running automation #%d as condition #%d failed', this.automation.id, condition.id);
+                    this.log.info('Not running automation #%d as condition #%d failed',
+                        this.automation.id, condition.id);
                     this.emit('condition-failed', condition);
                     this.finished = true;
                     this.emit('finished', false);
