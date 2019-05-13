@@ -74,7 +74,7 @@ export default class Permissions {
      * @param {string} accessory_uuid
      * @param {string} service_uuid
      * @param {string} characteristic_uuid
-     * @param {} value
+     * @param {*} value
      * @return {Promise<boolean>}
      */
     checkCanSetCharacteristic(accessory_uuid, service_uuid, characteristic_uuid, value) {

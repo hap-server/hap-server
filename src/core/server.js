@@ -1019,7 +1019,10 @@ export default class Server extends EventEmitter {
             req.url = accessory_ui_pathname;
 
             const accessory_ui = PluginManager.getAccessoryUI(accessory_ui_id);
-            if (!accessory_ui) return res.end('Cannot ' + req.method + ' ' + pathname);
+            if (!accessory_ui) {
+                res.end('Cannot ' + req.method + ' ' + pathname);
+                return;
+            }
 
             accessory_ui.handle(req, res, next);
         } else if (pathname === '/websocket') {
@@ -1043,7 +1046,7 @@ export default class Server extends EventEmitter {
      *
      * @param {http.IncomingRequest} request
      * @param {net.Socket} socket
-     * @param {} head
+     * @param {*} head
      */
     upgrade(request, socket, head) {
         if (url.parse(request.url).pathname !== '/websocket') {
@@ -1087,8 +1090,8 @@ export default class Server extends EventEmitter {
      * @param {Accessory} accessory
      * @param {Service} service
      * @param {Characteristic} characteristic
-     * @param {} value
-     * @param {} old_value
+     * @param {*} value
+     * @param {*} old_value
      * @param {object} context
      * @return {Promise}
      */
@@ -1213,6 +1216,7 @@ export class PluginAccessory {
      *
      * @param {Server} server
      * @param {object} cache The cached data returned from pluginaccessory.cache
+     * @return {PluginAccessory}
      */
     static restore(server, cache) {
         const accessory = new Accessory(cache.accessory.displayName, cache.accessory.UUID);

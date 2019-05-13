@@ -308,7 +308,7 @@ export default class Server {
      * @param {object} events
      * @param {object} remote
      * @param {string} connection_id
-     * @param {Promise<object[]>}
+     * @return {Promise<object[]>}
      */
     async handleGetCharacteristics(data, events, remote, connection_id) {
         return Promise.all(data.map(data => this.handleGetCharacteristic(data, events, remote, connection_id)));
@@ -386,7 +386,7 @@ export default class Server {
      * @param {object} events
      * @param {object} remote
      * @param {string} connection_id
-     * @param {Promise<object[]>}
+     * @return {Promise<object[]>}
      */
     async handleSetCharacteristics(data, events, remote, connection_id) {
         // data is an array of characteristics and values like this:

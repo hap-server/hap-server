@@ -79,7 +79,7 @@ export default class Layout extends EventEmitter {
      *
      * @param {object} [data]
      * @param {number} [index]
-     * @param {Promise<LayoutSection>}
+     * @return {Promise<LayoutSection>}
      */
     async addSection(data, index) {
         const [uuid] = await this.connection.createLayoutSection(this.uuid, data || {});

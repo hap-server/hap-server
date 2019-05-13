@@ -75,10 +75,10 @@ export class PluginManager {
      *
      * @param {AccessoryUI} accessory_ui
      * @param {?string} script The parent module's name
-     * @param {Object} cache The module cache
-     * @param {?Object} module The parent module
+     * @param {object} cache The module cache
+     * @param {?object} module The parent module
      * @param {string} request The name of the module to return the exports of
-     * @return {}
+     * @return {*}
      */
     require(accessory_ui, script, cache, module, request) {
         if (request === '.' || request === '..' || request.startsWith('./') || request.startsWith('../')) {
@@ -143,10 +143,10 @@ export class PluginManager {
      *
      * @param {AccessoryUI} accessory_ui
      * @param {?string} script The parent module's name
-     * @param {Object} cache The module cache
-     * @param {?Object} module The parent module
+     * @param {object} cache The module cache
+     * @param {?object} parent The parent module
      * @param {string} request The name of the module to return the exports of
-     * @return {Promise<>}
+     * @return {Promise<*>}
      */
     async import(accessory_ui, script, cache, parent, request) {
         if (script) request = path.resolve(path.dirname(script), request);
@@ -209,7 +209,7 @@ export class PluginManager {
      * Get the module cache for an accessory UI.
      *
      * @param {AccessoryUI} accessory_ui
-     * @return {Object}
+     * @return {object}
      */
     getModuleCache(accessory_ui) {
         if (this.require_caches.has(accessory_ui)) return this.require_caches.get(accessory_ui);
@@ -225,7 +225,7 @@ export class PluginManager {
      * Get the plugin API module for an accessory UI.
      *
      * @param {AccessoryUI} accessory_ui
-     * @return {Object}
+     * @return {object}
      */
     getPluginAPI(accessory_ui) {
         if (this.plugin_apis.has(accessory_ui)) return this.plugin_apis.get(accessory_ui);
@@ -331,9 +331,9 @@ export class PluginAPI {
      * @param {string} type The service type UUID to use for the display service
      * @param {string[]} collapsed_service_types An array of service type UUIDs to collapse
      */
-    registerCollapsedService(uuid, collapsed_service_types) {
-        if (collapsed_services[uuid]) {
-            throw new Error('There is already a collapsed service with the UUID "' + uuid + '"');
+    registerCollapsedService(type, collapsed_service_types) {
+        if (collapsed_services[type]) {
+            throw new Error('There is already a collapsed service with the UUID "' + type + '"');
         }
 
         if (!(collapsed_service_types instanceof Array)) {
@@ -349,7 +349,7 @@ export class PluginAPI {
             }
         }
 
-        collapsed_services[uuid] = collapsed_service_types;
+        collapsed_services[type] = collapsed_service_types;
 
         this.refreshDisplayServices();
     }

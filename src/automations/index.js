@@ -20,6 +20,8 @@ export default class Automations {
 
     /**
      * Start running automations.
+     *
+     * @return {Promise}
      */
     start() {
         this.running = true;
@@ -29,6 +31,8 @@ export default class Automations {
 
     /**
      * Stop running automations.
+     *
+     * @return {Promise}
      */
     stop() {
         this.running = false;
@@ -41,7 +45,7 @@ export default class Automations {
      *
      * @param {object} config
      * @param {string} [uuid]
-     * @return {Automation}
+     * @return {Promise<Automation>}
      */
     async loadAutomation(config, uuid) {
         const automation = new Automation(this, config, uuid);
@@ -167,8 +171,8 @@ export default class Automations {
      * @param {Accessory} accessory
      * @param {Service} service
      * @param {Characteristic} characteristic
-     * @param {} value
-     * @param {} old_value
+     * @param {*} value
+     * @param {*} old_value
      * @param {object} context
      */
     handleCharacteristicUpdate(accessory, service, characteristic, value, old_value, context) {
@@ -375,11 +379,13 @@ export class AutomationRunner extends EventEmitter {
 
     /**
      * Run an automation.
+     *
+     * @return {Promise}
      */
     run() {
         if (this.running) return this.running;
 
-        this.running = this._run();
+        return this.running = this._run();
     }
 
     async _run() {

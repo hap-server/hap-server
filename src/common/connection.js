@@ -522,8 +522,8 @@ export class AuthenticationHandlerConnection {
     /**
      * Send data to an authentication handler on the server.
      *
-     * @param {} data
-     * @return {Promise<>}
+     * @param {*} data
+     * @return {Promise<*>}
      */
     async send(data) {
         const response = await this.connection.send({

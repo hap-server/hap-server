@@ -1,4 +1,6 @@
 
+/* eslint valid-jsdoc: 'off' */
+
 import process from 'process';
 import crypto from 'crypto';
 import path from 'path';

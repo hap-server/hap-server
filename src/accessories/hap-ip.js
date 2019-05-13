@@ -202,7 +202,7 @@ export default class HAPIP extends AccessoryPlatform {
      * @param {object} hap_service
      * @param {Characteristic} characteristic
      * @param {object} hap_characteristic
-     * @param {} value
+     * @param {*} value
      * @param {function} callback
      */
     handleCharacteristicSet(
@@ -217,7 +217,7 @@ export default class HAPIP extends AccessoryPlatform {
      *
      * @param {number} aid
      * @param {number} iid
-     * @param {} value
+     * @param {*} value
      * @return {Promise<object>}
      */
     queueCharacteristicSet(aid, iid, value) {

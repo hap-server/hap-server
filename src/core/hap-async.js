@@ -315,6 +315,7 @@ export class AsyncEventEmitter extends EventEmitter {
      *
      * @param {string} event
      * @param {function} callback
+     * @return {?Promise<*>}
      */
     once(event, callback) {
         if (callback) {
