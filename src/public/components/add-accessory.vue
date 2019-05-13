@@ -21,7 +21,8 @@
         <div class="d-flex">
             <div v-if="creating">Saving</div>
             <div class="flex-fill"></div>
-            <button class="btn btn-default btn-sm" type="button" :disabled="creating" @click="() => $refs.panel.close()">Cancel</button>
+            <button class="btn btn-default btn-sm" type="button" :disabled="creating"
+                @click="() => $refs.panel.close()">Cancel</button>
         </div>
     </panel>
 </template>

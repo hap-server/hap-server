@@ -12,8 +12,9 @@
             <div class="form-group row">
                 <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-room-name'">Room</label>
                 <div class="col-sm-9">
-                    <input :id="_uid + '-room-name'" v-model="room_name" type="text" class="form-control form-control-sm"
-                        :placeholder="service.accessory.data.room_name" :disabled="saving" />
+                    <input :id="_uid + '-room-name'" v-model="room_name" type="text"
+                        class="form-control form-control-sm" :placeholder="service.accessory.data.room_name"
+                        :disabled="saving" />
                 </div>
             </div>
         </form>
@@ -21,8 +22,10 @@
         <div class="d-flex">
             <div v-if="saving">Saving</div>
             <div class="flex-fill"></div>
-            <button class="btn btn-default btn-sm" type="button" @click="$emit('show-accessory-settings')">Accessory settings</button>&nbsp;
-            <button class="btn btn-default btn-sm" type="button" :disabled="saving" @click="() => $refs.panel.close()">Cancel</button>&nbsp;
+            <button class="btn btn-default btn-sm" type="button" @click="$emit('show-accessory-settings')">
+                Accessory settings</button>&nbsp;
+            <button class="btn btn-default btn-sm" type="button" :disabled="saving" @click="() => $refs.panel.close()">
+                Cancel</button>&nbsp;
             <button class="btn btn-primary btn-sm" type="button" :disabled="saving" @click="save(true)">Save</button>
         </div>
     </panel>

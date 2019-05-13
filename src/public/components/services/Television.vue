@@ -40,7 +40,8 @@
 
                 const active_identifier = this.television_service.getCharacteristicValueByName('ActiveIdentifier');
 
-                return this.service.services.find(service => service.getCharacteristicValueByName('Identifier') === active_identifier);
+                return this.service.services.find(service =>
+                    service.getCharacteristicValueByName('Identifier') === active_identifier);
             },
             input_label() {
                 if (!this.active_input) return;
@@ -55,7 +56,8 @@
 
                 try {
                     await this.television_service.setCharacteristicByName('Active', value);
-                    console.log('Turning %s %s', this.service.name || this.service.accessory.name, value ? 'on' : 'off');
+                    console.log('Turning %s %s',
+                        this.service.name || this.service.accessory.name, value ? 'on' : 'off');
                 } finally {
                     this.updating = false;
                 }

@@ -1,7 +1,7 @@
 <script>
     export default {
         props: {
-            sorted: Array,
+            sorted: {type: Array, default: () => []},
             idProp: {type: String, default: 'key'},
             filterText: Boolean,
         },

@@ -49,7 +49,8 @@
 
                 try {
                     await this.service.setCharacteristicByName('On', value);
-                    console.log('Turning %s %s', this.service.name || this.service.accessory.name, value ? 'on' : 'off');
+                    console.log('Turning %s %s',
+                        this.service.name || this.service.accessory.name, value ? 'on' : 'off');
                 } finally {
                     this.updating = false;
                 }
@@ -57,8 +58,11 @@
             getButtonName(button, index) {
                 if (!button.name) return 'Button #' + (index + 1);
 
-                if (button.name.startsWith(this.service.name)) return button.name.substr(this.service.name.length).trim();
-                if (button.name.startsWith(this.service.default_name)) return button.name.substr(this.service.default_name.length).trim();
+                if (button.name.startsWith(this.service.name)) {
+                    return button.name.substr(this.service.name.length).trim();
+                } else if (button.name.startsWith(this.service.default_name)) {
+                    return button.name.substr(this.service.default_name.length).trim();
+                }
 
                 return button.name;
             },

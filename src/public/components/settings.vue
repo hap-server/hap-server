@@ -1,11 +1,6 @@
 <template>
     <panel ref="panel" class="home-settings" @close="$emit('close')">
-        <ul class="nav nav-tabs nav-sm mb-3">
-            <li class="nav-item"><a class="nav-link" :class="{active: tab === 'general'}" href="#" @click.prevent="tab = 'general'">General</a></li>
-            <li class="nav-item"><a class="nav-link" :class="{active: tab === 'accessories'}" href="#" @click.prevent="tab = 'accessories'">Accessories</a></li>
-            <li class="nav-item"><a class="nav-link" :class="{active: tab === 'bridges'}" href="#" @click.prevent="tab = 'bridges'">Bridges</a></li>
-            <li class="nav-item"><a class="nav-link" :class="{active: tab === 'output'}" href="#" @click.prevent="tab = 'output'">Output</a></li>
-        </ul>
+        <panel-tabs v-model="tab" :tabs="tabs" />
 
         <form v-if="tab === 'general'" @submit.prevent="save(true)">
             <div class="form-group row">
@@ -20,7 +15,7 @@
                 <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-wallpaper'">Wallpaper</label>
                 <div class="col-sm-9">
                     <div class="custom-file form-control-sm">
-                        <input ref="file" type="file" class="custom-file-input" :id="_uid + '-wallpaper'"
+                        <input :id="_uid + '-wallpaper'" ref="file" type="file" class="custom-file-input"
                             :disabled="saving || uploading" @change="upload" />
                         <label class="custom-file-label" :for="_uid + '-wallpaper'">Choose file</label>
                     </div>
@@ -101,6 +96,7 @@
     import Connection from '../../common/connection';
 
     import Panel from './panel.vue';
+    import PanelTabs from './panel-tabs.vue';
     import TerminalComponent from './terminal.vue';
     import ListGroup from './list-group.vue';
     import ListItem from './list-item.vue';
@@ -108,6 +104,7 @@
     export default {
         components: {
             Panel,
+            PanelTabs,
             Terminal: TerminalComponent,
             ListGroup,
             ListItem,
@@ -128,6 +125,12 @@
                 command_line_flags: [],
 
                 tab: 'general',
+                tabs: {
+                    general: 'General',
+                    accessories: 'Accessories',
+                    bridges: 'Bridges',
+                    output: 'Output',
+                },
 
                 terminal: null,
 

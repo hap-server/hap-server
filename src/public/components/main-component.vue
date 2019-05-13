@@ -10,7 +10,10 @@
             </div>
 
             <h1>
-                <span class="d-inline d-sm-none">{{ show_automations ? 'Automations' : (layout ? authenticated_user && layout.uuid === 'Overview.' + authenticated_user.id ? name : layout.name : name) || 'Home' }}</span>
+                <span v-if="show_automations" class="d-inline d-sm-none">Automations</span>
+                <span v-else-if="layout && !(authenticated_user && layout.uuid === 'Overview.' + authenticated_user.id)"
+                    class="d-inline d-sm-none">{{ layout.name || 'Home' }}</span>
+                <span v-else class="d-inline d-sm-none">{{ name || 'Home' }}</span>
                 <span class="d-none d-sm-inline">{{ name || 'Home' }}</span>
             </h1>
 
@@ -31,8 +34,8 @@
         <div v-if="!show_automations" class="main">
             <layout ref="layout" :key="layout ? layout.uuid : ''" :layout="layout"
                 :connection="connection" :accessories="accessories" :bridge-uuids="bridge_uuids"
-                :title="(layout ? authenticated_user && layout.uuid === 'Overview.' + authenticated_user.id ? name : layout.name : name) || 'Home'" :sections="layout && layout.sections"
-                :can-edit="layout && layout.can_set" :can-delete="layout && layout.can_delete" :show-all-accessories="!layout"
+                :title="(layout ? authenticated_user && layout.uuid === 'Overview.' + authenticated_user.id ? name : layout.name : name) || 'Home'" :sections="layout && layout.sections" :can-edit="layout && layout.can_set"
+                :can-delete="layout && layout.can_delete" :show-all-accessories="!layout"
                 @modal="modal => modals.push(modal)" @ping="ping" />
         </div>
 
@@ -180,9 +183,13 @@
                         if (modal.type === 'delete-layout') return 'Delete ' + modal.layout.name + '?';
 
                         if (modal.type === 'accessory-settings') return modal.accessory.name + ' Settings';
-                        if (modal.type === 'service-settings') return (modal.service.name || modal.service.accessory.name) + ' Settings';
+                        if (modal.type === 'service-settings') {
+                            return (modal.service.name || modal.service.accessory.name) + ' Settings';
+                        }
 
-                        if (modal.type === 'accessory-details') return modal.service.name || modal.service.accessory.name;
+                        if (modal.type === 'accessory-details') {
+                            return modal.service.name || modal.service.accessory.name;
+                        }
                     }
 
                     return modal.title;
@@ -553,10 +560,13 @@
                         this.connection.getLayouts(...new_layout_uuids),
                         this.connection.listLayoutSections(...new_layout_uuids).then(section_uuids => {
                             const flat_section_uuids = section_uuids.map((section_uuids, index) => {
-                                return section_uuids.map(section_uuid => [new_layout_uuids[index], section_uuid, index]);
+                                return section_uuids.map(section_uuid =>
+                                    [new_layout_uuids[index], section_uuid, index]);
                             }).flat();
 
-                            return this.connection.getLayoutSections(...flat_section_uuids.map(([layout_uuid, section_uuid, index]) => [layout_uuid, section_uuid])).then(section_data => {
+                            return this.connection.getLayoutSections(...flat_section_uuids.map(([
+                                layout_uuid, section_uuid, index,
+                            ]) => [layout_uuid, section_uuid])).then(section_data => {
                                 const all_layout_sections = {};
 
                                 // eslint-disable-next-line guard-for-in
@@ -565,7 +575,8 @@
                                     const section_uuid = flat_section_uuids[index][1];
                                     const data = section_data[index];
 
-                                    const layout_sections = all_layout_sections[layout_uuid] || (all_layout_sections[layout_uuid] = {});
+                                    const layout_sections = all_layout_sections[layout_uuid] ||
+                                        (all_layout_sections[layout_uuid] = {});
                                     layout_sections[section_uuid] = data;
                                 }
 
@@ -601,7 +612,8 @@
                     this.loading_layouts = false;
                 }
 
-                const layout_uuid = localStorage.getItem('layout') || (this.authenticated_user ? 'Overview.' + this.authenticated_user.id : null);
+                const layout_uuid = localStorage.getItem('layout') ||
+                    (this.authenticated_user ? 'Overview.' + this.authenticated_user.id : null);
                 if (layout_uuid && this.layouts[layout_uuid] && !this.layout) this.layout = this.layouts[layout_uuid];
             },
             addLayout(layout) {
@@ -678,7 +690,9 @@
                         if (!dont_emit_events) this.$emit('removed-accessory', accessory);
                     }
 
-                    if (removed_accessories.length && !dont_emit_events) this.$emit('removed-accessories', removed_accessory_objects);
+                    if (removed_accessories.length && !dont_emit_events) {
+                        this.$emit('removed-accessories', removed_accessory_objects);
+                    }
 
                     if (added_accessories.length || removed_accessories.length) {
                         this.$emit('updated-accessories', added_accessories, removed_accessory_objects);
@@ -709,7 +723,9 @@
                     // Not supported tile
                     else if (!accessory.display_services.length) services.push(accessory.uuid + '.');
 
-                    for (const service of accessory.display_services) services.push(accessory.uuid + '.' + service.uuid);
+                    for (const service of accessory.display_services) {
+                        services.push(accessory.uuid + '.' + service.uuid);
+                    }
                 }
 
                 return services;

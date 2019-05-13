@@ -25,9 +25,15 @@
                 <div class="right">
                     <slot name="footer-right">
                         <div v-if="$listeners['show-settings']" class="btn btn-dark btn-sm clickable"
-                            @click.stop="$emit('show-settings')">Settings</div>
+                            @click.stop="$emit('show-settings')"
+                        >
+                            Settings
+                        </div>
                         <div class="btn btn-dark btn-sm clickable"
-                            @click.stop="() => $listeners.close ? $emit('close') : closeAccessoryDetails()">Close</div>
+                            @click.stop="() => $listeners.close ? $emit('close') : closeAccessoryDetails()"
+                        >
+                            Close
+                        </div>
                     </slot>
                 </div>
             </div>
@@ -45,8 +51,11 @@
         props: {
             active: Boolean,
             updating: Boolean,
-            name: String,
+            name: {type: String, default: null},
         },
-        inject: ['service', 'closeAccessoryDetails'],
+        inject: [
+            'service',
+            'closeAccessoryDetails',
+        ],
     };
 </script>

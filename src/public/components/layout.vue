@@ -3,20 +3,22 @@
         <h1>{{ title }}</h1>
 
         <div class="section">
-            <p v-for="(status, key) in status_messages" :key="key" class="mb-1">{{ status }}</p>
+            <p v-for="(status_message, key) in status_messages" :key="key" class="mb-1">{{ status_message }}</p>
 
             <button class="btn btn-default btn-sm mt-3" @click="$emit('ping')">Ping</button>
         </div>
 
-        <component :is="edit ? 'draggable' : 'div'" v-model="effective_sections" handle=".drag-handle" :disabled="staged_sections_order">
+        <component :is="edit ? 'draggable' : 'div'" v-model="effective_sections" handle=".drag-handle"
+            :disabled="staged_sections_order"
+        >
             <template v-for="section in effective_sections">
                 <component v-if="section_components.has(section.type || 'Accessories')"
-                    :is="section_components.get(section.type || 'Accessories').component" :accessories="accessories"
-                    :key="section.uuid" :section="section" :accessories-draggable-group="'' + _uid"
+                    :is="section_components.get(section.type || 'Accessories').component" :key="section.uuid"
+                    :accessories="accessories" :section="section" :accessories-draggable-group="'' + _uid"
                     :editing="edit" @edit="e => edit = e" @update-name="name => updateSectionName(section, name)"
                     @update-data="data => updateSectionData(section, data)" @modal="modal => $emit('modal', modal)" />
 
-                <layout-section v-else-if="edit" class="unknown-layout-section" :key="section.uuid"
+                <layout-section v-else-if="edit" :key="section.uuid" class="unknown-layout-section"
                     :section="section" :name="section.name" :editing="edit" @edit="$emit('edit', $event)"
                     @update-name="name => updateSectionName(section, name)"
                 >
@@ -53,8 +55,10 @@
         </service-container> -->
 
         <div class="section">
-            <p v-if="showAllAccessories || accessories_count === total_accessories_count">{{ total_accessories_count }} accessor{{ total_accessories_count === 1 ? 'y' : 'ies' }}</p>
-            <p v-else>{{ accessories_count }} of {{ total_accessories_count }} accessor{{ total_accessories_count === 1 ? 'y' : 'ies' }}</p>
+            <p v-if="showAllAccessories || accessories_count === total_accessories_count">
+                {{ total_accessories_count }} accessor{{ total_accessories_count === 1 ? 'y' : 'ies' }}</p>
+            <p v-else>{{ accessories_count }} of {{ total_accessories_count }}
+                accessor{{ total_accessories_count === 1 ? 'y' : 'ies' }}</p>
         </div>
     </div>
 </template>
@@ -143,7 +147,7 @@
                 set(sections_order) {
                     if (!this.updating_sections_order) this.updating_sections_order = Promise.resolve();
 
-                    const updating_sections_order = this.updating_sections_order = this.updating_sections_order.then(() => {
+                    const updating_sections_order = this.updating_sections_order.then(() => {
                         this.staged_sections_order = sections_order;
                         this.$set(this.layout, 'staged_sections_order', sections_order);
                         return this.layout.updateData(Object.assign({}, this.layout.data, {sections_order}));
@@ -154,7 +158,7 @@
                         this.$delete(this.layout, 'staged_sections_order');
                     });
 
-                    return updating_sections_order;
+                    return this.updating_sections_order = updating_sections_order;
                 },
             },
             all_accessories_section() {
@@ -166,10 +170,13 @@
             },
             status() {
                 const status = {
-                    light_services: [], light_rooms: [], active_light_services: [], active_light_rooms: [], lights_count: 0, active_lights_count: 0,
+                    light_services: [], light_rooms: [], lights_count: 0,
+                    active_light_services: [], active_light_rooms: [], active_lights_count: 0,
                     tv_services: [], tv_rooms: [], active_tv_services: [], active_tv_rooms: [], tv_on: false,
-                    outlet_services: [], outlet_rooms: [], active_outlet_services: [], active_outlet_rooms: [], outlets_count: 0, active_outlets_count: 0,
-                    switch_services: [], switch_rooms: [], active_switch_services: [], active_switch_rooms: [], switches_count: 0, active_switches_count: 0,
+                    outlet_services: [], outlet_rooms: [], outlets_count: 0,
+                    active_outlet_services: [], active_outlet_rooms: [], active_outlets_count: 0,
+                    switch_services: [], switch_rooms: [], switches_count: 0,
+                    active_switch_services: [], active_switch_rooms: [], active_switches_count: 0,
                 };
 
                 for (const section of Object.values(this.sections || {})) {
@@ -182,15 +189,22 @@
                         if (service.type === Service.Lightbulb) {
                             status.lights_count++;
                             if (!status.light_services.includes(service)) status.light_services.push(service);
-                            if (!status.light_rooms.includes(service.data.room_name || service.accessory.data.room_name)) {
+                            if (!status.light_rooms.includes(service.data.room_name ||
+                                service.accessory.data.room_name
+                            )) {
                                 status.light_rooms.push(service.data.room_name || service.accessory.data.room_name);
                             }
 
                             if (service.getCharacteristicValueByName('On')) {
                                 status.active_lights_count++;
-                                if (!status.active_light_services.includes(service)) status.active_light_services.push(service);
-                                if (!status.active_light_rooms.includes(service.data.room_name || service.accessory.data.room_name)) {
-                                    status.active_light_rooms.push(service.data.room_name || service.accessory.data.room_name);
+                                if (!status.active_light_services.includes(service)) {
+                                    status.active_light_services.push(service);
+                                }
+                                if (!status.active_light_rooms.includes(service.data.room_name ||
+                                    service.accessory.data.room_name
+                                )) {
+                                    status.active_light_rooms.push(service.data.room_name ||
+                                        service.accessory.data.room_name);
                                 }
                             }
                         }
@@ -203,9 +217,14 @@
 
                             if (service.getCharacteristicValueByName('Active')) {
                                 status.tv_on = true;
-                                if (!status.active_tv_services.includes(service)) status.active_tv_services.push(service);
-                                if (!status.active_tv_rooms.includes(service.data.room_name || service.accessory.data.room_name)) {
-                                    status.active_tv_rooms.push(service.data.room_name || service.accessory.data.room_name);
+                                if (!status.active_tv_services.includes(service)) {
+                                    status.active_tv_services.push(service);
+                                }
+                                if (!status.active_tv_rooms.includes(service.data.room_name ||
+                                    service.accessory.data.room_name
+                                )) {
+                                    status.active_tv_rooms.push(service.data.room_name ||
+                                        service.accessory.data.room_name);
                                 }
                             }
                         }
@@ -213,15 +232,22 @@
                         if (service.type === Service.Outlet) {
                             status.outlets_count++;
                             if (!status.outlet_services.includes(service)) status.outlet_services.push(service);
-                            if (!status.outlet_rooms.includes(service.data.room_name || service.accessory.data.room_name)) {
+                            if (!status.outlet_rooms.includes(service.data.room_name ||
+                                service.accessory.data.room_name
+                            )) {
                                 status.outlet_rooms.push(service.data.room_name || service.accessory.data.room_name);
                             }
 
                             if (service.getCharacteristicValueByName('On')) {
                                 status.active_outlets_count++;
-                                if (!status.active_outlet_services.includes(service)) status.active_outlet_services.push(service);
-                                if (!status.active_outlet_rooms.includes(service.data.room_name || service.accessory.data.room_name)) {
-                                    status.active_outlet_rooms.push(service.data.room_name || service.accessory.data.room_name);
+                                if (!status.active_outlet_services.includes(service)) {
+                                    status.active_outlet_services.push(service);
+                                }
+                                if (!status.active_outlet_rooms.includes(service.data.room_name ||
+                                    service.accessory.data.room_name
+                                )) {
+                                    status.active_outlet_rooms.push(service.data.room_name ||
+                                        service.accessory.data.room_name);
                                 }
                             }
                         }
@@ -229,15 +255,22 @@
                         if (service.type === Service.Switch) {
                             status.switches_count++;
                             if (!status.switch_services.includes(service)) status.switch_services.push(service);
-                            if (!status.switch_rooms.includes(service.data.room_name || service.accessory.data.room_name)) {
+                            if (!status.switch_rooms.includes(service.data.room_name ||
+                                service.accessory.data.room_name
+                            )) {
                                 status.switch_rooms.push(service.data.room_name || service.accessory.data.room_name);
                             }
 
                             if (service.getCharacteristicValueByName('On')) {
                                 status.active_switches_count++;
-                                if (!status.active_switch_services.includes(service)) status.active_switch_services.push(service);
-                                if (!status.active_switch_rooms.includes(service.data.room_name || service.accessory.data.room_name)) {
-                                    status.active_switch_rooms.push(service.data.room_name || service.accessory.data.room_name);
+                                if (!status.active_switch_services.includes(service)) {
+                                    status.active_switch_services.push(service);
+                                }
+                                if (!status.active_switch_rooms.includes(service.data.room_name ||
+                                    service.accessory.data.room_name
+                                )) {
+                                    status.active_switch_rooms.push(service.data.room_name ||
+                                        service.accessory.data.room_name);
                                 }
                             }
                         }
@@ -251,45 +284,69 @@
                 const status_messages = {};
 
                 // Lights
-                if (status.active_lights_count && status.active_light_rooms.length === 1 && status.active_light_rooms[0] &&
-                    !status.light_services.find(s => ((s.data.room_name || s.accessory.data.room_name) !== status.active_light_rooms[0] && status.active_light_services.includes(s)) ||
-                        ((s.data.room_name || s.accessory.data.room_name) === status.active_light_rooms[0] && !status.active_light_services.includes(s))) &&
+                if (status.active_lights_count && status.active_light_rooms.length === 1 &&
+                    status.active_light_rooms[0] && !status.light_services.find(s =>
+                        ((s.data.room_name || s.accessory.data.room_name) !== status.active_light_rooms[0] &&
+                            status.active_light_services.includes(s)) ||
+                        ((s.data.room_name || s.accessory.data.room_name) === status.active_light_rooms[0] &&
+                            !status.active_light_services.includes(s))) &&
                     status.light_rooms.length !== 1
                 ) {
-                    status_messages.lights = `${status.active_light_rooms[0]} light${status.active_lights_count === 1 ? '' : 's'} on.`;
+                    status_messages.lights = status.active_light_rooms[0] + ' light' +
+                        (status.active_lights_count === 1 ? '' : 's') + ' on.';
                 } else if (status.active_lights_count && status.lights_count === status.active_lights_count) {
                     status_messages.lights = `Light${status.active_lights_count === 1 ? '' : 's'} on.`;
-                } else if (status.active_lights_count) status_messages.lights = `${status.active_lights_count} light${status.active_lights_count === 1 ? '' : 's'} on.`;
+                } else if (status.active_lights_count) {
+                    status_messages.lights = status.active_lights_count + ' light' +
+                        (status.active_lights_count === 1 ? '' : 's') + ' on.';
+                }
 
                 // TVs
-                if (status.tv_on && status.active_tv_rooms.length === 1 && status.active_tv_rooms[0] &&
-                    !status.tv_services.find(s => ((s.data.room_name || s.accessory.data.room_name) !== status.active_tv_rooms[0] && status.active_tv_services.includes(s)) ||
-                        ((s.data.room_name || s.accessory.data.room_name) === status.active_tv_rooms[0] && !status.active_tv_services.includes(s)))
+                if (status.tv_on && status.active_tv_rooms.length === 1 &&
+                    status.active_tv_rooms[0] && !status.tv_services.find(s =>
+                        ((s.data.room_name || s.accessory.data.room_name) !== status.active_tv_rooms[0] &&
+                            status.active_tv_services.includes(s)) ||
+                        ((s.data.room_name || s.accessory.data.room_name) === status.active_tv_rooms[0] &&
+                            !status.active_tv_services.includes(s)))
                 ) {
                     status_messages.tv = `${status.active_tv_rooms[0]} TV on.`;
                 } else if (status.tv_on) status_messages.tv = `TV on.`;
 
                 // Outlets/power points
-                if (status.active_outlets_count && status.active_outlet_rooms.length === 1 && status.active_outlet_rooms[0] &&
-                    !status.outlet_services.find(s => ((s.data.room_name || s.accessory.data.room_name) !== status.active_outlet_rooms[0] && status.active_outlet_services.includes(s)) ||
-                        ((s.data.room_name || s.accessory.data.room_name) === status.active_outlet_rooms[0] && !status.active_outlet_services.includes(s))) &&
+                if (status.active_outlets_count && status.active_outlet_rooms.length === 1 &&
+                    status.active_outlet_rooms[0] && !status.outlet_services.find(s =>
+                        ((s.data.room_name || s.accessory.data.room_name) !== status.active_outlet_rooms[0] &&
+                            status.active_outlet_services.includes(s)) ||
+                        ((s.data.room_name || s.accessory.data.room_name) === status.active_outlet_rooms[0] &&
+                            !status.active_outlet_services.includes(s))) &&
                     status.outlet_rooms.length !== 1
                 ) {
-                    status_messages.outlets = `${status.active_outlet_rooms[0]} power point${status.active_outlets_count === 1 ? '' : 's'} on.`;
+                    status_messages.outlets = 'status.active_outlet_rooms[0]' + ' power point' +
+                        (status.active_outlets_count === 1 ? '' : 's') + ' on.';
                 } else if (status.active_outlets_count && status.outlets_count === status.active_outlets_count) {
                     status_messages.outlets = `Power point${status.active_outlets_count === 1 ? '' : 's'} on.`;
-                } else if (status.active_outlets_count) status_messages.outlets = `${status.active_outlets_count} power point${status.active_outlets_count === 1 ? '' : 's'} on.`;
+                } else if (status.active_outlets_count) {
+                    status_messages.outlets = status.active_outlets_count + ' power point' +
+                        (status.active_outlets_count === 1 ? '' : 's') + ' on.';
+                }
 
                 // Switches
-                if (status.active_switches_count && status.active_switch_rooms.length === 1 && status.active_switch_rooms[0] &&
-                    !status.switch_services.find(s => ((s.data.room_name || s.accessory.data.room_name) !== status.active_switch_rooms[0] && status.active_switch_services.includes(s)) ||
-                        ((s.data.room_name || s.accessory.data.room_name) === status.active_switch_rooms[0] && !status.active_switch_services.includes(s))) &&
+                if (status.active_switches_count && status.active_switch_rooms.length === 1 &&
+                    status.active_switch_rooms[0] && !status.switch_services.find(s =>
+                        ((s.data.room_name || s.accessory.data.room_name) !== status.active_switch_rooms[0] &&
+                            status.active_switch_services.includes(s)) ||
+                        ((s.data.room_name || s.accessory.data.room_name) === status.active_switch_rooms[0] &&
+                            !status.active_switch_services.includes(s))) &&
                     status.switch_rooms.length !== 1
                 ) {
-                    status_messages.switches = `${status.active_switch_rooms[0]} switch${status.active_switches_count === 1 ? '' : 'es'} on.`;
+                    status_messages.switches = status.active_switch_rooms[0] + ' switch' +
+                        (status.active_switches_count === 1 ? '' : 'es') + ' on.';
                 } else if (status.active_switches_count && status.switches_count === status.active_switches_count) {
                     status_messages.switches = `Switch${status.active_switches_count === 1 ? '' : 'es'} on.`;
-                } else if (status.active_switches_count) status_messages.switches = `${status.active_switches_count} switch${status.active_switches_count === 1 ? '' : 'es'} on.`;
+                } else if (status.active_switches_count) {
+                    status_messages.switches = status.active_switches_count + ' switch' +
+                        (status.active_switches_count === 1 ? '' : 'es') + ' on.';
+                }
 
                 return status_messages;
             },

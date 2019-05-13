@@ -2,7 +2,7 @@
     <div class="layout-section">
         <div class="layout-section-header">
             <form v-if="editing" class="flex-fill" @submit.prevent="updateName">
-                <input ref="title_edit" :id="_uid + '-name'" :value="name" type="text"
+                <input :id="_uid + '-name'" ref="title_edit" :value="name" type="text"
                     class="form-control form-control-sm" :placeholder="defaultName" @blur="updateName" />
             </form>
 
@@ -27,7 +27,8 @@
                         </div>
                     </div>
 
-                    <button class="btn btn-danger btn-sm ml-3" type="button" @click="removeSection">Remove section</button>
+                    <button class="btn btn-danger btn-sm ml-3" type="button"
+                        @click="removeSection">Remove section</button>
                     <button class="btn btn-dark btn-sm ml-3 drag-handle" type="button"
                         :disabled="layout.staged_sections_order">Drag</button>
                     <button class="btn btn-dark btn-sm ml-3" type="button"

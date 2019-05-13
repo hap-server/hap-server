@@ -1,5 +1,7 @@
 <template>
-    <div class="service" :class="{active, updating, clickable: !updating && $listeners.click && !editing}" @click="click">
+    <div class="service" :class="{active, updating, clickable: !updating && $listeners.click && !editing}"
+        @click="click"
+    >
         <div class="service-top">
             <div class="service-icon">
                 <slot name="icon">
@@ -43,8 +45,8 @@
         props: {
             active: Boolean,
             updating: Boolean,
-            name: String,
-            roomName: String,
+            name: {type: String, default: null},
+            roomName: {type: String, default: null},
             type: {type: String, default: null},
         },
         inject: {

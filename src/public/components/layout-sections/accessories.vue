@@ -3,7 +3,7 @@
         :layout="layout" :section="section" :name="section.name" default-name="Accessories"
         :editing="editing" @edit="edit => $emit('edit', edit)" @update-name="name => $emit('update-name', name)"
     >
-        <draggable v-if="editing" class="draggable" v-model="effective_accessories_order"
+        <draggable v-if="editing" v-model="effective_accessories_order" class="draggable"
             :group="accessoriesDraggableGroup" :disabled="staged_accessories_order"
         >
             <template v-for="id in effective_accessories_order">
@@ -76,16 +76,18 @@
                 set(accessories_order) {
                     if (!this.updating_accessories_order) this.updating_accessories_order = Promise.resolve();
 
-                    const updating_accessories_order = this.updating_accessories_order = this.updating_accessories_order.then(() => {
+                    const updating_accessories_order = this.updating_accessories_order.then(() => {
                         this.staged_accessories_order = accessories_order;
-                        return this.section.updateData(Object.assign({}, this.section.data, {accessories: accessories_order}));
+                        return this.section.updateData(Object.assign({}, this.section.data, {
+                            accessories: accessories_order,
+                        }));
                     }).catch(() => null).then(() => {
                         if (updating_accessories_order !== this.updating_accessories_order) return;
                         this.updating_accessories_order = null;
                         this.staged_accessories_order = null;
                     });
 
-                    return updating_accessories_order;
+                    return this.updating_accessories_order = updating_accessories_order;
                 },
             },
         },

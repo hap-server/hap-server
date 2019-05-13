@@ -49,22 +49,26 @@
         watch: {
             programmable_switch_events(programmable_switch_events, old_programmable_switch_events) {
                 for (const programmable_switch_event of old_programmable_switch_events) {
-                    programmable_switch_event.removeListener('value-updated', this.handleSwitchEvent.bind(null, programmable_switch_event));
+                    programmable_switch_event.removeListener('value-updated',
+                        this.handleSwitchEvent.bind(null, programmable_switch_event));
                 }
 
                 for (const programmable_switch_event of programmable_switch_events) {
-                    programmable_switch_event.on('value-updated', this.handleSwitchEvent.bind(null, programmable_switch_event));
+                    programmable_switch_event.on('value-updated',
+                        this.handleSwitchEvent.bind(null, programmable_switch_event));
                 }
             },
         },
         created() {
             for (const programmable_switch_event of this.programmable_switch_events) {
-                programmable_switch_event.on('value-updated', this.handleSwitchEvent.bind(null, programmable_switch_event));
+                programmable_switch_event.on('value-updated',
+                    this.handleSwitchEvent.bind(null, programmable_switch_event));
             }
         },
         destroy() {
             for (const programmable_switch_event of this.programmable_switch_events) {
-                programmable_switch_event.removeListener('value-updated', this.handleSwitchEvent.bind(null, programmable_switch_event));
+                programmable_switch_event.removeListener('value-updated',
+                    this.handleSwitchEvent.bind(null, programmable_switch_event));
             }
         },
         methods: {
@@ -85,8 +89,11 @@
             getButtonName(service) {
                 if (!service.name || true) return 'Button #' + (this.service.services.indexOf(service) + 1);
 
-                if (service.name.startsWith(this.service.name)) return service.name.substr(this.service.name.length).trim();
-                if (service.name.startsWith(this.service.default_name)) return service.name.substr(this.service.default_name.length).trim();
+                if (service.name.startsWith(this.service.name)) {
+                    return service.name.substr(this.service.name.length).trim();
+                } else if (service.name.startsWith(this.service.default_name)) {
+                    return service.name.substr(this.service.default_name.length).trim();
+                }
 
                 return service.name;
             },

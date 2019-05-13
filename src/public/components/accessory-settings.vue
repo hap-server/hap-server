@@ -1,10 +1,7 @@
 <template>
     <panel ref="panel" class="accessory-settings" @close="$emit('close')">
-        <ul v-if="is_bridge" class="nav nav-tabs nav-sm mb-3">
-            <li class="nav-item"><a class="nav-link" :class="{active: tab === 'general'}" href="#" @click.prevent="tab = 'general'">General</a></li>
-            <li class="nav-item"><a class="nav-link" :class="{active: tab === 'accessories'}" href="#" @click.prevent="tab = 'accessories'">Accessories</a></li>
-            <li class="nav-item"><a class="nav-link" :class="{active: tab === 'pairings'}" href="#" @click.prevent="tab = 'pairings'">Pairings</a></li>
-        </ul>
+        <panel-tabs v-if="is_bridge" v-model="tab"
+            :tabs="{general: 'General', accessories: 'Accessories', pairings: 'Pairings'}" />
 
         <form v-if="!is_bridge || tab === 'general'" @submit="save(true)">
             <div class="form-group row">
@@ -18,8 +15,8 @@
             <div class="form-group row">
                 <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-room-name'">Room</label>
                 <div class="col-sm-9">
-                    <input :id="_uid + '-room-name'" v-model="room_name" type="text" class="form-control form-control-sm"
-                        :disabled="saving" />
+                    <input :id="_uid + '-room-name'" v-model="room_name" type="text"
+                        class="form-control form-control-sm" :disabled="saving" />
                 </div>
             </div>
 
@@ -101,12 +98,14 @@
     import Accessory from '../accessory';
 
     import Panel from './panel.vue';
+    import PanelTabs from './panel-tabs.vue';
     import ListGroup from './list-group.vue';
     import ListItem from './list-item.vue';
 
     export default {
         components: {
             Panel,
+            PanelTabs,
             ListGroup,
             ListItem,
         },
@@ -166,7 +165,8 @@
                 return this.accessory_information.getCharacteristicByName('AccessoryFlags');
             },
             bridged_accessories() {
-                return Object.values(this.accessories).filter(accessory => this.accessory_uuids.includes(accessory.uuid));
+                return Object.values(this.accessories)
+                    .filter(accessory => this.accessory_uuids.includes(accessory.uuid));
             },
         },
         async created() {

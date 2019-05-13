@@ -15,7 +15,7 @@
                 <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-wallpaper'">Wallpaper</label>
                 <div class="col-sm-9">
                     <div class="custom-file form-control-sm">
-                        <input ref="file" type="file" class="custom-file-input" :id="_uid + '-wallpaper'"
+                        <input :id="_uid + '-wallpaper'" ref="file" type="file" class="custom-file-input"
                             :disabled="saving || uploading" @change="upload" />
                         <label class="custom-file-label" :for="_uid + '-wallpaper'">Choose file</label>
                     </div>
@@ -38,9 +38,12 @@
             <div v-if="saving && deleteLayout">Deleting</div>
             <div v-else-if="saving">Saving</div>
             <div class="flex-fill"></div>
-            <button class="btn btn-default btn-sm" type="button" :disabled="saving || uploading" @click="() => $refs.panel.close()">Cancel</button>&nbsp;
-            <button v-if="deleteLayout" class="btn btn-danger btn-sm" type="button" :disabled="saving" @click="save(true)">Delete</button>
-            <button v-else class="btn btn-primary btn-sm" type="button" :disabled="saving || uploading" @click="save(true)">{{ create ? 'Create' : 'Save' }}</button>
+            <button class="btn btn-default btn-sm" type="button" :disabled="saving || uploading"
+                @click="() => $refs.panel.close()">Cancel</button>&nbsp;
+            <button v-if="deleteLayout" class="btn btn-danger btn-sm" type="button" :disabled="saving"
+                @click="save(true)">Delete</button>
+            <button v-else class="btn btn-primary btn-sm" type="button" :disabled="saving || uploading"
+                @click="save(true)">{{ create ? 'Create' : 'Save' }}</button>
         </div>
     </panel>
 </template>

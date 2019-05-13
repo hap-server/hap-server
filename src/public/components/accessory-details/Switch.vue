@@ -42,7 +42,8 @@
 
                 try {
                     await this.service.setCharacteristicByName('On', value);
-                    console.log('Turning %s %s', this.service.name || this.service.accessory.name, value ? 'on' : 'off');
+                    console.log('Turning %s %s',
+                        this.service.name || this.service.accessory.name, value ? 'on' : 'off');
                 } finally {
                     this.updating = false;
                 }

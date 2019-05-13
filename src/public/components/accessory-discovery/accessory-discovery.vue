@@ -35,8 +35,8 @@
             BridgeIcon,
         },
         props: {
-            name: String,
-            type: String,
+            name: {type: String, default: null},
+            type: {type: String, default: null},
         },
     };
 </script>

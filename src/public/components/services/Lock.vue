@@ -67,7 +67,8 @@
                 this.updating = true;
 
                 try {
-                    await this.service.setCharacteristicByName('LockTargetState', value ? LockState.SECURED : LockState.UNSECURED);
+                    await this.service.setCharacteristicByName('LockTargetState',
+                        value ? LockState.SECURED : LockState.UNSECURED);
                     console.log((value ? 'L' : 'Unl') + 'ocking %s', this.service.name || this.service.accessory.name);
                 } finally {
                     this.updating = false;

@@ -14,8 +14,8 @@
             <p>System service</p>
         </service>
 
-        <service v-else-if="service.is_unavailable" class="unavailable-accessory" :class="{'details-open': details_open}"
-            :service="service" :type="service_name"
+        <service v-else-if="service.is_unavailable" class="unavailable-accessory"
+            :class="{'details-open': details_open}" :service="service" :type="service_name"
         >
             <p>Not available</p>
         </service>

@@ -18,7 +18,8 @@
                     <div v-if="service.getCharacteristicByName('Brightness')" style="flex: 1 1 10%;" />
 
                     <div v-if="service.getCharacteristicByName('Brightness')" @click.stop>
-                        <input v-model="brightness" type="range" class="form-control-range" :id="_uid + '-brightness'" />
+                        <input :id="_uid + '-brightness'" v-model="brightness" type="range"
+                            class="form-control-range" />
                     </div>
 
                     <div class="flex-fill"></div>
@@ -143,7 +144,8 @@
 
                 try {
                     await this.service.setCharacteristicByName('On', value);
-                    console.log('Turning %s %s', this.service.name || this.service.accessory.name, value ? 'on' : 'off');
+                    console.log('Turning %s %s',
+                        this.service.name || this.service.accessory.name, value ? 'on' : 'off');
                 } finally {
                     this.updating = false;
                 }

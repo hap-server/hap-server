@@ -28,11 +28,12 @@ module.exports = {
                 normal: 'any',
             },
         }],
-        'vue/script-indent': ['error', 4, {
-            baseIndent: 1,
-            switchCase: 0,
-            ignores: [],
-        }],
+        // 'vue/script-indent': ['error', 4, {
+        //     baseIndent: 1,
+        //     switchCase: 0,
+        //     ignores: [],
+        // }],
+        'vue/script-indent': 'off',
         'vue/max-attributes-per-line': 'off',
         'vue/singleline-html-element-content-newline': 'off',
 
