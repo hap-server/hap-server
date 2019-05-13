@@ -1,13 +1,16 @@
 import path from 'path';
 import process from 'process';
 import fs from 'fs';
+import util from 'util';
 
 import yargs from 'yargs';
 import chalk from 'chalk';
 
-import {PluginManager, Logger, forceColourLogs} from '..';
+import {PluginManager, Logger, forceColourLogs, version} from '..';
 
 export const log = new Logger();
+
+const readFile = util.promisify(fs.readFile);
 
 const DEVELOPMENT = true;
 
@@ -83,11 +86,11 @@ export async function connect(argv) {
 
     log.debug('Arguments', argv);
 
-    const cli_auth_token_bytes = await new Promise((rs, rj) => fs.readFile(path.join(data_path, 'cli-token'), (err, bytes) => err ? rj(err) : rs(bytes)));
+    const cli_auth_token_bytes = await readFile(path.join(data_path, 'cli-token'));
     const cli_auth_token = cli_auth_token_bytes.toString('hex');
 
-    const server_pid = parseInt(await new Promise((rs, rj) => fs.readFile(path.join(data_path, 'hap-server.pid'), 'utf-8', (err, bytes) => err ? rj(err) : rs(bytes))));
-    const http_port = parseInt(await new Promise((rs, rj) => fs.readFile(path.join(data_path, 'hap-server-port'), 'utf-8', (err, bytes) => err ? rj(err) : rs(bytes))));
+    const server_pid = parseInt(await readFile(path.join(data_path, 'hap-server.pid'), 'utf-8'));
+    const http_port = parseInt(await readFile(path.join(data_path, 'hap-server-port'), 'utf-8'));
 
     const http_host = config.http_host && !['::', '0.0.0.0'].includes(config.http_host) ?
         config.http_host.match(/[^0-9.]/) ? `[${config.http_host}]` : config.http_host : '127.0.0.1';
@@ -114,7 +117,7 @@ command('./get-characteristics', 'get-characteristics <config> <characteristics>
 command('./set-characteristic', 'set-characteristic <config> <characteristic> <value>', 'Set a characteristic');
 
 yargs.command('version', 'Show version number', yargs => {}, async argv => {
-    console.log('hap-server version', require('.').version, DEVELOPMENT ? chalk.red('development') : chalk.grey('production'));
+    console.log('hap-server version', version, DEVELOPMENT ? chalk.red('development') : chalk.grey('production'));
     console.log('homebridge version', require('homebridge/package').version);
     console.log('hap-nodejs version', require('hap-nodejs/package').version);
 });

@@ -3,6 +3,7 @@ import process from 'process';
 import os from 'os';
 import fs from 'fs';
 import crypto from 'crypto';
+import util from 'util';
 
 import {Plugin as HomebridgePluginManager} from 'homebridge/lib/plugin';
 import {User as HomebridgeUser} from 'homebridge/lib/user';
@@ -11,6 +12,10 @@ import hap from 'hap-nodejs';
 
 import {Server, PluginManager, Logger, forceColourLogs} from '..';
 import {getConfig, log} from '.';
+
+const randomBytes = util.promisify(crypto.randomBytes);
+const writeFile = util.promisify(fs.writeFile);
+const unlink = util.promisify(fs.unlink);
 
 const DEVELOPMENT = true;
 
@@ -137,10 +142,10 @@ export async function handler(argv) {
     PluginManager.storage_path = path.resolve(data_path, 'plugin-storage');
     await PluginManager.loadPlugins();
 
-    const cli_auth_token_bytes = await new Promise((rs, rj) => crypto.randomBytes(48, (err, bytes) => err ? rj(err) : rs(bytes)));
+    const cli_auth_token_bytes = await randomBytes(48);
     const cli_auth_token = cli_auth_token_bytes.toString('hex');
 
-    await new Promise((rs, rj) => fs.writeFile(path.join(data_path, 'cli-token'), cli_auth_token_bytes, err => err ? rj(err) : rs()));
+    await writeFile(path.join(data_path, 'cli-token'), cli_auth_token_bytes);
 
     const server = await Server.createServer({
         data_path,
@@ -166,8 +171,8 @@ export async function handler(argv) {
     log.info(`Listening on ${http_host} port ${http_port}`);
 
     await Promise.all([
-        new Promise((rs, rj) => fs.writeFile(path.join(data_path, 'hap-server.pid'), process.pid, err => err ? rj(err) : rs())),
-        new Promise((rs, rj) => fs.writeFile(path.join(data_path, 'hap-server-port'), http_port, err => err ? rj(err) : rs())),
+        writeFile(path.join(data_path, 'hap-server.pid'), process.pid),
+        writeFile(path.join(data_path, 'hap-server-port'), http_port),
     ]);
 
     log.info('Loading cached accessories');
@@ -243,13 +248,14 @@ export async function handler(argv) {
                 log.info(`Got ${signal} (x${exit_attempts}), exiting...`);
                 throw process.exit(128 + code);
             } else if (exit_attempts > 1) {
-                log.info(`Got ${signal} (x${exit_attempts} - ${3 - exit_attempts} left to force exit), shutting down...`);
+                log.info(`Got ${signal} (x${exit_attempts} - ${3 - exit_attempts} left to force exit),` +
+                    + ' shutting down...');
             } else log.info(`Got ${signal}, shutting down...`);
 
             await Promise.all([
-                new Promise((rs, rj) => fs.unlink(path.join(data_path, 'hap-server.pid'), err => err ? rj(err) : rs())),
-                new Promise((rs, rj) => fs.unlink(path.join(data_path, 'hap-server-port'), err => err ? rj(err) : rs())),
-                new Promise((rs, rj) => fs.unlink(path.join(data_path, 'cli-token'), err => err ? rj(err) : rs())),
+                unlink(path.join(data_path, 'hap-server.pid')),
+                unlink(path.join(data_path, 'hap-server-port')),
+                unlink(path.join(data_path, 'cli-token')),
 
                 server.automations.stop(),
 
