@@ -166,18 +166,18 @@ export class PluginManager {
         let package_json;
 
         if (stat.isDirectory()) {
+            package_json = require(path.resolve(plugin_path, 'package.json'));
+
+            if (!package_json.name) {
+                throw new Error('"' + plugin_path + '" doesn\'t have a name in it\'s package.json');
+            }
+
+            if (!package_json.engines || !package_json.engines['@hap-server/hap-server'] ||
+                !package_json.keywords || !package_json.keywords.includes('hap-server-plugin')) {
+                throw new Error('"' + package_json.name + '" is not a hap-server plugin');
+            }
+
             try {
-                package_json = require(path.resolve(plugin_path, 'package.json'));
-
-                if (!package_json.name) {
-                    throw new Error('"' + plugin_path + '" doesn\'t have a name in it\'s package.json');
-                }
-
-                if (!package_json.engines || !package_json.engines['@hap-server/hap-server'] ||
-                    !package_json.keywords || !package_json.keywords.includes('hap-server-plugin')) {
-                    throw new Error('"' + package_json.name + '" is not a hap-server plugin');
-                }
-
                 if (!semver.satisfies(hap_server_version, package_json.engines['@hap-server/hap-server'])) {
                     throw new Error('"' + package_json.name + '" requires a hap-server version of '
                         + package_json.engines['@hap-server/hap-server'] + ' - you have version ' + hap_server_version);
@@ -193,7 +193,8 @@ export class PluginManager {
             }
         }
 
-        if (this.plugins.find(plugin => plugin.path === plugin_path)) return plugin;
+        const existing_plugin = this.plugins.find(plugin => plugin.path === plugin_path);
+        if (existing_plugin) return existing_plugin;
 
         const name = package_json ? package_json.name : plugin_path;
 
