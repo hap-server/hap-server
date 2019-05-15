@@ -232,11 +232,18 @@ export default class Bridge {
         this.identifier_cache.save();
     }
 
+    get setup_uri() {
+        // Make sure this is set otherwise setupURI won't work
+        this.bridge._accessoryInfo = this.accessory_info;
+
+        return this.bridge.setupURI();
+    }
+
     printSetupInfo() {
-        console.log('Setup payload:', this.bridge.setupURI());
+        console.log('Setup payload:', this.setup_uri);
 
         console.log('Scan this code with your HomeKit app on your iOS device:');
-        qrcode.generate(this.bridge.setupURI());
+        qrcode.generate(this.setup_uri);
 
         console.log('Or enter this code with your HomeKit app on your iOS device:');
         console.log(chalk.black.bgWhite('                       '));

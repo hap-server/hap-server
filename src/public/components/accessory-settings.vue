@@ -1,7 +1,6 @@
 <template>
     <panel ref="panel" class="accessory-settings" @close="$emit('close')">
-        <panel-tabs v-if="is_bridge" v-model="tab"
-            :tabs="{general: 'General', accessories: 'Accessories', pairings: 'Pairings'}" />
+        <panel-tabs v-if="is_bridge" v-model="tab" :tabs="tabs" />
 
         <form v-if="!is_bridge || tab === 'general'" @submit="save(true)">
             <div class="form-group row">
@@ -68,14 +67,29 @@
             </list-item>
         </list-group>
 
-        <list-group v-if="tab === 'pairings'" class="mb-3">
-            <list-item v-for="pairing in pairings" :key="pairing.id">
-                {{ pairing.id }}
-                <small class="text-muted">{{ pairing.public_key }}</small>
-            </list-item>
-        </list-group>
+        <template v-if="tab === 'pairings'">
+            <div v-if="pairing_details && !pairings.length">
+                <p>Enter the code <code>{{ pairing_details.pincode }}</code> or scan this QR code to pair with this bridge:</p>
+
+                <qr-code class="mb-3" :data="pairing_details.url" />
+
+                <p>Setup payload: <code>{{ pairing_details.url }}</code></p>
+            </div>
+
+            <list-group class="mb-3">
+                <list-item v-for="pairing in pairings" :key="pairing.id">
+                    {{ pairing.id }}
+                    <small class="text-muted">{{ pairing.public_key }}</small>
+                </list-item>
+            </list-group>
+        </template>
 
         <div class="d-flex">
+            <div v-if="tab === 'pairings' && pairings.length">
+                <button class="btn btn-default btn-sm" type="button" :disabled="resetting_pairings"
+                    @click="resetPairings">Reset pairings</button>
+            </div>
+
             <div v-if="loading">Loading</div>
             <div v-else-if="saving">Saving</div>
             <div class="flex-fill"></div>
@@ -108,6 +122,7 @@
             PanelTabs,
             ListGroup,
             ListItem,
+            QrCode: () => import(/* webpackChunkName: 'qrcode' */ './qrcode.vue'),
         },
         props: {
             connection: Connection,
@@ -119,8 +134,14 @@
                 loading: false,
                 loading_pairings: false,
                 saving: false,
+                resetting_pairings: false,
 
                 tab: 'general',
+                tabs: {
+                    general: 'General',
+                    accessories: 'Accessories',
+                    pairings: 'Pairings',
+                },
 
                 name: null,
                 room_name: null,
@@ -128,6 +149,7 @@
                 is_bridge: false,
                 accessory_uuids: [],
                 pairings: [],
+                pairing_details: null,
 
                 identify_saving: false,
             };
@@ -198,8 +220,15 @@
 
                 try {
                     const pairings = await this.connection.listPairings(this.accessory.uuid) || [];
-                    this.pairings = await this.connection.getPairings(...pairings
-                        .map(pairing_id => ([this.accessory.uuid, pairing_id])));
+
+                    if (pairings.length) {
+                        this.pairings = await this.connection.getPairings(...pairings
+                            .map(pairing_id => ([this.accessory.uuid, pairing_id])));
+                        this.pairing_details = null;
+                    } else {
+                        this.pairing_details = (await this.connection.getBridgesPairingDetails(this.accessory.uuid))[0];
+                        this.pairings = [];
+                    }
                 } finally {
                     this.loading_pairings = false;
                 }
@@ -229,6 +258,19 @@
                     await this.identify.setValue(1);
                 } finally {
                     this.identify_saving = false;
+                }
+            },
+            async resetPairings() {
+                if (this.resetting_pairings) throw new Error('Already resetting pairings');
+                this.resetting_pairings = true;
+
+                try {
+                    const pairings = await this.connection.resetBridgesPairings(this.accessory.uuid);
+
+                    this.pairings = [];
+                    this.pairing_details = (await this.connection.getBridgesPairingDetails(this.accessory.uuid))[0];
+                } finally {
+                    this.resetting_pairings = false;
                 }
             },
         },

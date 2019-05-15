@@ -407,6 +407,20 @@ export default class Connection extends EventEmitter {
         });
     }
 
+    getBridgesPairingDetails(...bridge_uuid) {
+        return this.send({
+            type: 'get-bridges-pairing-details',
+            bridge_uuid,
+        });
+    }
+
+    resetBridgesPairings(...bridge_uuid) {
+        return this.send({
+            type: 'reset-bridges-pairings',
+            bridge_uuid,
+        });
+    }
+
     listPairings(bridge_uuid) {
         return this.send({
             type: 'list-pairings',

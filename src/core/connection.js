@@ -52,6 +52,8 @@ const message_methods = {
     'disable-proxy-stdout': 'handleDisableProxyStdoutMessage',
     'list-bridges': 'handleListBridgesMessage',
     'get-bridges': 'handleGetBridgesMessage',
+    'get-bridges-pairing-details': 'handleGetBridgesPairingDetailsMessage',
+    'reset-bridges-pairings': 'handleResetBridgesPairingsMessage',
     'list-pairings': 'handleListPairingsMessage',
     'get-pairings': 'handleGetPairingsMessage',
     'get-pairings-data': 'handleGetPairingsDataMessage',
@@ -1244,6 +1246,57 @@ export default class Connection {
         }
 
         return bridge_details;
+    }
+
+    /**
+     * Get bridges pairing details.
+     */
+    handleGetBridgesPairingDetailsMessage(messageid, data) {
+        this.respond(messageid, this.getBridgesPairingDetails(data.bridge_uuid));
+    }
+
+    getBridgesPairingDetails(bridge_uuid) {
+        return Promise.all(bridge_uuid.map(bridge_uuid => this.getBridgePairingDetails(bridge_uuid)));
+    }
+
+    async getBridgePairingDetails(bridge_uuid) {
+        await this.permissions.assertCanGetAccessory(bridge_uuid);
+        await this.permissions.assertCanAccessServerRuntimeInfo();
+
+        const bridge = this.server.bridges.find(bridge => bridge.uuid === bridge_uuid);
+        if (!bridge) return;
+
+        return {
+            username: bridge.username,
+            pincode: bridge.pincode,
+            url: bridge.setup_uri,
+        };
+    }
+
+    /**
+     * Reset bridge pairings.
+     */
+    handleResetBridgesPairingsMessage(messageid, data) {
+        this.respond(messageid, this.resetBridgesPairings(data.bridge_uuid));
+    }
+
+    resetBridgesPairings(bridge_uuid) {
+        return Promise.all(bridge_uuid.map(bridge_uuid => this.resetBridgePairings(bridge_uuid)));
+    }
+
+    async resetBridgePairings(bridge_uuid) {
+        await this.permissions.assertCanGetAccessory(bridge_uuid);
+        await this.permissions.assertCanAccessServerRuntimeInfo();
+
+        const bridge = this.server.bridges.find(bridge => bridge.uuid === bridge_uuid);
+        if (!bridge) return;
+
+        for (const client_username of Object.keys(bridge.accessory_info.pairedClients)) {
+            bridge.accessory_info.removePairedClient(client_username);
+        }
+
+        bridge.accessory_info.save();
+        if (bridge.hasOwnProperty('hap_server')) bridge.hap_server.advertisement.updateAdvertisement();
     }
 
     /**
