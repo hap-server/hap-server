@@ -69,13 +69,13 @@
                 :bridge-uuids="bridge_uuids"
                 @show-accessory-settings="accessory => modals.push({type: 'accessory-settings', accessory})"
                 @show-service-settings="service => modals.push({type: 'service-settings', service})"
-                @close="modals.splice(index, 1)" />
+                @modal="modal => modals.push(modal)" @close="modals.splice(index, 1)" />
             <accessory-settings v-else-if="modal.type === 'new-bridge'" :key="index" :ref="'modal-' + index"
                 :connection="connection" :accessories="accessories" :bridge-uuids="bridge_uuids" :create-bridge="true"
                 @accessory="addAccessory" @close="modals.splice(index, 1)" />
             <accessory-settings v-else-if="modal.type === 'delete-bridge'" :key="index" :ref="'modal-' + index"
                 :connection="connection" :accessory="modal.accessory" :accessories="accessories"
-                :bridge-uuids="bridge_uuids" :delete-bridge="true"
+                :bridge-uuids="bridge_uuids" :delete-bridge="true" @remove="removeAccessory"
                 @close="modals.splice(index, 1)" />
 
             <service-settings v-else-if="modal.type === 'service-settings'" :key="index" :ref="'modal-' + index"

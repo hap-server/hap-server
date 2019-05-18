@@ -99,7 +99,7 @@
 
         <list-group v-if="!createBridge && !deleteBridge && tab === 'accessories'" class="mb-3">
             <template v-if="config && can_set_config">
-                <draggable :list="config.accessories || $set(config, 'accessories', [])"
+                <draggable class="draggable" :list="config.accessories || $set(config, 'accessories', [])"
                     :group="_uid + '-accessories-draggable-group'"
                 >
                     <list-item v-for="[uuid, accessory] in config.accessories.map(uuid => [uuid, accessories[uuid]])"
@@ -112,10 +112,10 @@
 
                 <list-item class="heading"><h4>Other accessories</h4></list-item>
 
-                <draggable :value="Object.keys(accessories).filter(uuid => !bridgeUuids.includes(uuid) && (!config || !config.accessories || !config.accessories.includes(uuid)))"
+                <draggable class="draggable" :value="accessories_available_to_bridge"
                     :group="_uid + '-accessories-draggable-group'"
                 >
-                    <list-item v-for="[uuid, accessory] in Object.keys(accessories).filter(uuid => !bridgeUuids.includes(uuid) && (!config || !config.accessories || !config.accessories.includes(uuid))).map(uuid => [uuid, accessories[uuid]])"
+                    <list-item v-for="[uuid, accessory] in accessories_available_to_bridge.map(uuid => [uuid, accessories[uuid]])"
                         :key="uuid"
                     >
                         {{ accessory ? accessory.name : uuid }}
@@ -150,6 +150,11 @@
         </template>
 
         <div class="d-flex">
+            <div v-if="can_delete && !deleteBridge">
+                <button class="btn btn-danger btn-sm" type="button"
+                    @click="() => ($emit('close'), $emit('modal', {type: 'delete-bridge', accessory}))"
+                >Delete</button>&nbsp;
+            </div>
             <div v-if="tab === 'pairings' && pairings.length">
                 <button class="btn btn-warning btn-sm" type="button" :disabled="resetting_pairings"
                     @click="resetPairings">Reset pairings</button>
@@ -158,9 +163,15 @@
             <div v-if="loading || loading_config || loading_pairings">Loading</div>
             <div v-else-if="saving">Saving</div>
             <div class="flex-fill"></div>
-            <button v-if="identify" class="btn btn-default btn-sm" type="button" :disabled="identify_saving"
-                @click="setIdentify">Identify</button>
-            <template v-if="createBridge || tab === 'config' || (config && can_set_config && tab === 'accessories')">
+            <button v-if="identify && !deleteBridge" class="btn btn-default btn-sm" type="button"
+                :disabled="identify_saving" @click="setIdentify">Identify</button>
+            <template v-if="deleteBridge">
+                <button class="btn btn-default btn-sm" type="button" :disabled="saving"
+                    @click="() => $refs.panel.close()">Cancel</button>&nbsp;
+                <button key="primary" class="btn btn-danger btn-sm" type="button" :disabled="saving"
+                    @click="save(true)">Delete</button>
+            </template>
+            <template v-else-if="createBridge || tab === 'config' || (config && can_set_config && tab === 'accessories')">
                 <button class="btn btn-default btn-sm" type="button" :disabled="saving"
                     @click="() => $refs.panel.close()">Cancel</button>&nbsp;
                 <button key="primary" class="btn btn-primary btn-sm" type="button"
@@ -276,6 +287,11 @@
                 return Object.values(this.accessories)
                     .filter(accessory => this.accessory_uuids.includes(accessory.uuid));
             },
+            accessories_available_to_bridge() {
+                return Object.keys(this.accessories)
+                    .filter(uuid => !this.bridgeUuids.includes(uuid) && (!this.config || !this.config.accessories ||
+                        !this.config.accessories.includes(uuid)));
+            },
         },
         async created() {
             if (this.createBridge) {
@@ -354,6 +370,15 @@
                 this.saving = true;
 
                 try {
+                    if (this.deleteBridge) {
+                        await this.connection.deleteBridges(this.accessory.uuid);
+
+                        this.$emit('remove', this.accessory);
+                        this.$emit('close');
+
+                        return;
+                    }
+
                     const data = Object.assign({}, this.accessory.data, {
                         name: this.name,
                         room_name: this.room_name,
@@ -381,7 +406,7 @@
                             this.connection.getAccessoriesPermissions(uuid),
                         ]);
 
-                        const accessory = new Accessory(this.connection, uuid, details, data, permissions);
+                        const accessory = new Accessory(this.connection, uuid, details, this.config, permissions);
 
                         this.$emit('accessory', accessory);
                     }

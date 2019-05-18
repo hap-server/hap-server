@@ -101,6 +101,7 @@ const message_methods = {
     'get-bridges-configuration': 'handleGetBridgesConfigurationMessage',
     'get-bridges-permissions': 'handleGetBridgesConfigurationPermissionsMessage',
     'set-bridges-configuration': 'handleSetBridgesConfigurationMessage',
+    'delete-bridges': 'handleDeleteBridgesMessage',
     'get-bridges-pairing-details': 'handleGetBridgesPairingDetailsMessage',
     'reset-bridges-pairings': 'handleResetBridgesPairingsMessage',
     'list-pairings': 'handleListPairingsMessage',
@@ -1272,9 +1273,8 @@ export default class Connection {
     async createBridge(data) {
         await this.permissions.assertCanCreateBridges();
 
-        // const uuid = genuuid();
-        const uuid = hap.uuid.generate('testbridge');
-        if (!data.username || !data.username.toLowerCase().match(/^([0-9a-f]{2}:){5}[0-9a-f]$/)) {
+        const uuid = genuuid();
+        if (!data.username || !data.username.toLowerCase().match(/^([0-9a-f]{2}:){5}[0-9a-f]$/i)) {
             data.username = await genusername(this.server.storage);
         }
 
@@ -1449,6 +1449,43 @@ export default class Connection {
         //     uuid,
         //     data,
         // }, this.ws);
+    }
+
+    /**
+     * Deletes a bridge.
+     */
+    handleDeleteBridgesMessage(messageid, data) {
+        this.respond(messageid, this.deleteBridges(...data.uuid));
+    }
+
+    deleteBridges(...uuid) {
+        return Promise.all(uuid.map(uuid => this.deleteBridge(uuid)));
+    }
+
+    async deleteBridge(uuid) {
+        await this.permissions.assertCanDeleteBridge(uuid);
+
+        const is_from_config = this.server.config.bridges && this.server.config.bridges
+            .find(c => c.uuid ? c.uuid === uuid : hap.uuid.generate('hap-server:bridge:' + c.username) === uuid);
+        if (is_from_config) throw new Error('Cannot delete bridges not created in the web interface');
+
+        this.log.debug('Stopping bridge', uuid);
+        await this.server.unloadBridge(uuid);
+
+        this.log.debug('Deleting bridge', uuid);
+        await this.server.storage.removeItem('Bridge.' + uuid);
+
+        const bridge_uuids = await this.server.storage.getItem('Bridges') || [];
+        let index;
+        while ((index = bridge_uuids.indexOf(uuid)) > -1) {
+            bridge_uuids.splice(index, 1);
+        }
+        await this.server.storage.setItem('Bridges', bridge_uuids);
+
+        this.server.sendBroadcast({
+            type: 'remove-accessories',
+            ids: [uuid],
+        }, this.ws);
     }
 
     /**

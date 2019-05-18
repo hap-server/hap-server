@@ -439,6 +439,13 @@ export default class Connection extends EventEmitter {
         return this.setBridgesConfiguration([uuid, data]);
     }
 
+    deleteBridges(...uuid) {
+        return this.send({
+            type: 'delete-bridges',
+            uuid,
+        });
+    }
+
     getBridgesPairingDetails(...bridge_uuid) {
         return this.send({
             type: 'get-bridges-pairing-details',
