@@ -1280,7 +1280,8 @@ export default class Connection {
         await this.server.storage.setItem('Bridge.' + uuid, data);
 
         this.log.debug('Starting bridge', uuid);
-        await this.server.loadBridge(data, uuid);
+        const bridge = await this.server.loadBridge(data, uuid);
+        await bridge.publish();
 
         const bridge_uuids = await this.server.storage.getItem('Bridges') || [];
         if (!bridge_uuids.includes(uuid)) {
@@ -1389,7 +1390,11 @@ export default class Connection {
     async setBridgeConfiguration(uuid, data) {
         await this.permissions.assertCanSetBridgeConfiguration(uuid);
 
-        if (!data.username || !data.username.toLowerCase().match(/^([0-9a-f]{2}:){5}[0-9a-f]$/)) {
+        const is_from_config = this.server.config.bridges && this.server.config.bridges
+            .find(c => c.uuid ? c.uuid === uuid : hap.uuid.generate('hap-server:bridge:' + c.username) === uuid);
+        if (is_from_config) throw new Error('Cannot update bridges not created in the web interface');
+
+        if (!data.username || !data.username.toLowerCase().match(/^([0-9a-f]{2}:){5}[0-9a-f]{2}$/)) {
             data.username = await genusername(this.server.storage);
         }
 
@@ -1400,7 +1405,10 @@ export default class Connection {
         await this.server.storage.setItem('Bridge.' + uuid, data);
 
         this.log.debug('Starting bridge', uuid);
-        await this.server.loadBridge(data, uuid);
+        const bridge = await this.server.loadBridge(data, uuid);
+        await bridge.publish();
+
+        // TODO: if only the accessories have changed then update the existing bridge's accessories
 
         const bridge_uuids = await this.server.storage.getItem('Bridges') || [];
         if (!bridge_uuids.includes(uuid)) {

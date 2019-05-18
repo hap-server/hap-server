@@ -210,6 +210,7 @@ export default class Server extends EventEmitter {
      * @param {boolean} [bridge_config.unauthenticated_access]
      * @param {(Array|string)[]} [bridge_config.accessories]
      * @param {string} [uuid]
+     * @return {Bridge}
      */
     loadBridge(bridge_config, uuid) {
         // bridge_config.username is required - all other properties are optional
@@ -254,6 +255,8 @@ export default class Server extends EventEmitter {
                 if (cached_accessory) bridge.addCachedAccessory(cached_accessory.accessory);
             }
         }
+
+        return bridge;
     }
 
     /**

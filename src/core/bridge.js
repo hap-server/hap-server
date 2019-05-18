@@ -1,5 +1,6 @@
 
 import os from 'os';
+import crypto from 'crypto';
 import chalk from 'chalk';
 import qrcode from 'qrcode-terminal';
 import {Bridge as HAPBridge, Accessory, Service, Characteristic} from './hap-async';
@@ -45,6 +46,7 @@ export default class Bridge {
 
         bridge.addBridgedAccessory = this._addBridgedAccessory.bind(this, bridge);
         bridge.removeBridgeAccessory = this._removeBridgedAccessory.bind(this, bridge);
+        bridge._updateConfiguration = this._updateConfiguration.bind(this, bridge, false);
 
         bridge.getService(Service.AccessoryInformation)
             .setCharacteristic(Characteristic.Manufacturer, 'Samuel Elliott')
@@ -70,7 +72,7 @@ export default class Bridge {
         if (!eventhandlers) _eventhandlers.set(accessory, eventhandlers = {});
 
         if (!eventhandlers.characteristic_change) eventhandlers.characteristic_change = change => { // eslint-disable-line curly
-            bridge._handleCharacteristicChange(clone(change, {accessory: accessory}));
+            bridge._handleCharacteristicChange(clone(change, {accessory}));
         };
         if (!eventhandlers.configuration_change) eventhandlers.configuration_change = change => { // eslint-disable-line curly
             bridge._updateConfiguration();
@@ -95,7 +97,7 @@ export default class Bridge {
 
         this._removeBridgedAccessoryEventListeners(bridge, accessory);
 
-        if (!defer_update) this._updateConfiguration();
+        if (!defer_update) bridge._updateConfiguration();
     }
 
     _removeBridgedAccessoryEventListeners(bridge, accessory) {
@@ -113,7 +115,42 @@ export default class Bridge {
         }
     }
 
+    _updateConfiguration(bridge, dont_update_advertisement) {
+        this.log.debug('Maybe update configuration for bridge', bridge.UUID);
+
+        if (!dont_update_advertisement && (!this.hasOwnProperty('hap_server') ||
+            !this.hasOwnProperty('accessory_info') || !this.hap_server.is_advertising)) return;
+
+        this.log.debug('Updating configuration for bridge', bridge.UUID);
+
+        // Get our accessory information in HAP format and determine if our configuration (that is, our
+        // Accessories/Services/Characteristics) has changed since the last time we were published. Make
+        // sure to omit actual values since these are not part of the "configuration".
+        const config = this.hap_server.toHAP({omitValues: true});
+
+        // Now convert it into a hash code and check it against the last one we made, if we have one
+        const shasum = crypto.createHash('sha1');
+        shasum.update(JSON.stringify(config));
+        const config_hash = shasum.digest('hex');
+
+        if (this.accessory_info.configHash !== config_hash) {
+            this.log.debug('Saving new config hash (old: %s, new: %s, version: %d)',
+                this.accessory_info.configHash, config_hash, this.accessory_info.configVersion + 1);
+
+            // Our configuration has changed!
+            // We'll need to bump our config version number
+            this.accessory_info.configVersion++;
+            this.accessory_info.configHash = config_hash;
+            this.accessory_info.save();
+        }
+
+        // Update our advertisement so HomeKit on iOS can pickup new accessory
+        if (!dont_update_advertisement) this.hap_server.updateAdvertisement();
+    }
+
     publish() {
+        this._updateConfiguration(this.bridge, true);
+
         this.hap_server.start();
     }
 
@@ -178,7 +215,7 @@ export default class Bridge {
      */
     addAccessory(accessory) {
         this.bridge.addBridgedAccessory(accessory);
-        this.removeCachedAccessory(accessory);
+        this.removeCachedAccessory(accessory.UUID);
     }
 
     /**
@@ -209,7 +246,10 @@ export default class Bridge {
 
     removeCachedAccessory(accessory) {
         let index;
-        while ((index = this.cached_accessories.indexOf(accessory)) !== -1) this.cached_accessories.splice(index, 1);
+        while ((index = typeof accessory === 'string' ?
+            this.cached_accessories.findIndex(a => a.UUID === accessory.UUID) :
+            this.cached_accessories.indexOf(accessory)
+        ) !== -1) this.cached_accessories.splice(index, 1);
 
         if (!this.cached_accessories.length) this.expireUnusedIDs();
     }

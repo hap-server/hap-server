@@ -98,7 +98,33 @@
         </form>
 
         <list-group v-if="!createBridge && !deleteBridge && tab === 'accessories'" class="mb-3">
-            <list-item v-for="accessory in bridged_accessories" :key="accessory.uuid"
+            <template v-if="config && can_set_config">
+                <draggable :list="config.accessories || $set(config, 'accessories', [])"
+                    :group="_uid + '-accessories-draggable-group'"
+                >
+                    <list-item v-for="[uuid, accessory] in config.accessories.map(uuid => [uuid, accessories[uuid]])"
+                        :key="uuid" @click="$emit('show-accessory-settings', accessory)"
+                    >
+                        {{ accessory ? accessory.name : uuid }}
+                        <small v-if="accessory" class="text-muted">{{ uuid }}</small>
+                    </list-item>
+                </draggable>
+
+                <list-item class="heading"><h4>Other accessories</h4></list-item>
+
+                <draggable :value="Object.keys(accessories).filter(uuid => !bridgeUuids.includes(uuid) && (!config || !config.accessories || !config.accessories.includes(uuid)))"
+                    :group="_uid + '-accessories-draggable-group'"
+                >
+                    <list-item v-for="[uuid, accessory] in Object.keys(accessories).filter(uuid => !bridgeUuids.includes(uuid) && (!config || !config.accessories || !config.accessories.includes(uuid))).map(uuid => [uuid, accessories[uuid]])"
+                        :key="uuid"
+                    >
+                        {{ accessory ? accessory.name : uuid }}
+                        <small v-if="accessory" class="text-muted">{{ uuid }}</small>
+                    </list-item>
+                </draggable>
+            </template>
+
+            <list-item v-else v-for="accessory in bridged_accessories" :key="accessory.uuid"
                 @click="$emit('show-accessory-settings', accessory)"
             >
                 {{ accessory.name }}
@@ -134,7 +160,7 @@
             <div class="flex-fill"></div>
             <button v-if="identify" class="btn btn-default btn-sm" type="button" :disabled="identify_saving"
                 @click="setIdentify">Identify</button>
-            <template v-if="createBridge || tab === 'config'">
+            <template v-if="createBridge || tab === 'config' || (config && can_set_config && tab === 'accessories')">
                 <button class="btn btn-default btn-sm" type="button" :disabled="saving"
                     @click="() => $refs.panel.close()">Cancel</button>&nbsp;
                 <button key="primary" class="btn btn-primary btn-sm" type="button"
@@ -169,11 +195,13 @@
             ListGroup,
             ListItem,
             QrCode: () => import(/* webpackChunkName: 'qrcode' */ './qrcode.vue'),
+            Draggable: () => import(/* webpackChunkName: 'layout-editor' */ 'vuedraggable'),
         },
         props: {
             connection: Connection,
             accessory: Accessory,
             accessories: Object,
+            bridgeUuids: {type: Array, default: () => []},
 
             createBridge: Boolean,
             deleteBridge: Boolean,

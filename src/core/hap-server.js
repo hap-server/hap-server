@@ -185,7 +185,8 @@ export default class Server {
     }
 
     get listening_port() {
-        return this.server._httpServer._tcpServer.address().port;
+        const listening = this.server._httpServer._tcpServer.address();
+        return listening && listening.port;
     }
 
     startAdvertising() {
@@ -198,6 +199,10 @@ export default class Server {
 
     stopAdvertising() {
         this.advertiser.stopAdvertising();
+    }
+
+    get is_advertising() {
+        return this.advertiser.isAdvertising();
     }
 
     /**
@@ -261,12 +266,7 @@ export default class Server {
         this.log.debug('Getting accessories');
 
         // Build out our JSON payload and call the callback
-        const hap = {
-            // Array of Accessory HAP
-            // _handleGetCharacteristics will return SERVICE_COMMUNICATION_FAILURE for cached characteristics
-            accessories: [this.bridge].concat(this.accessories, this.cached_accessories)
-                .map(accessory => this.toHAP(accessory)),
-        };
+        const hap = this.toHAP();
 
         // Save the identifier cache in case new identifiers were assigned
         this.identifier_cache.save();
@@ -275,13 +275,31 @@ export default class Server {
     }
 
     /**
+     * Get a HAP JSON representation of all accessories.
+     *
+     * @param {object} [options]
+     * @return {object}
+     */
+    toHAP(options) {
+        return {
+            // Array of Accessory HAP
+            // _handleGetCharacteristics will return SERVICE_COMMUNICATION_FAILURE for cached characteristics
+            accessories: [this.bridge].concat(this.accessories)
+                .map(accessory => this.accessoryToHAP(accessory, options))
+                .concat(this.cached_accessories
+                    .map(accessory => this.accessoryToHAP(accessory, options, true))),
+        };
+    }
+
+    /**
      * Get a HAP JSON representation of an Accessory.
      *
      * @param {Accessory} accessory
      * @param {object} [options]
+     * @param {boolean} [is_cached]
      * @return {object}
      */
-    toHAP(accessory, options) {
+    accessoryToHAP(accessory, options, is_cached) {
         return {
             aid: this.getAccessoryID(accessory),
             services: accessory.services.map(service => ({
@@ -290,7 +308,9 @@ export default class Server {
                 characteristics: service.characteristics
                     .map(characteristic => Object.assign(characteristic.toHAP(options), {
                         iid: this.getCharacteristicID(accessory, service, characteristic),
-                    })),
+                    }, is_cached ? {
+                        status: HAPServer.Status.SERVICE_COMMUNICATION_FAILURE,
+                    } : {})),
 
                 primary: service.isPrimaryService,
                 hidden: service.isHiddenService,
