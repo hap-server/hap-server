@@ -400,11 +400,43 @@ export default class Connection extends EventEmitter {
         });
     }
 
+    createBridges(...data) {
+        return this.send({
+            type: 'create-bridges',
+            data,
+        });
+    }
+
     getBridges(...uuid) {
         return this.send({
             type: 'get-bridges',
             uuid,
         });
+    }
+
+    getBridgesConfiguration(...uuid) {
+        return this.send({
+            type: 'get-bridges-configuration',
+            uuid,
+        });
+    }
+
+    getBridgesConfigurationPermissions(...uuid) {
+        return this.send({
+            type: 'get-bridges-permissions',
+            uuid,
+        });
+    }
+
+    setBridgesConfiguration(...uuid_data) {
+        return this.send({
+            type: 'set-bridges-configuration',
+            uuid_data,
+        });
+    }
+
+    setBridgeConfiguration(uuid, data) {
+        return this.setBridgesConfiguration([uuid, data]);
     }
 
     getBridgesPairingDetails(...bridge_uuid) {

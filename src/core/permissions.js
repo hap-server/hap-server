@@ -429,6 +429,85 @@ export default class Permissions {
     }
 
     /**
+     * Check if the user can create HAP bridges.
+     *
+     * @return {Promise<boolean>}
+     */
+    checkCanCreateBridges() {
+        if (DEVELOPMENT && this.__development_allow_local()) return true;
+
+        if (!this.user) return false;
+
+        return true;
+    }
+
+    async assertCanCreateBridges() {
+        if (!await this.checkCanCreateBridges()) {
+            throw new Error('You don\'t have permission to create bridges');
+        }
+    }
+
+    /**
+     * Check if the user can see a HAP bridge.
+     *
+     * @param {string} uuid
+     * @return {Promise<boolean>}
+     */
+    checkCanGetBridgeConfiguration(uuid) {
+        if (DEVELOPMENT && this.__development_allow_local()) return true;
+
+        if (!this.user) return false;
+
+        return true;
+    }
+
+    async assertCanGetBridgeConfiguration(uuid) {
+        if (!await this.checkCanGetBridgeConfiguration(uuid)) {
+            throw new Error('You don\'t have permission to access this bridge\'s configuration');
+        }
+    }
+
+    /**
+     * Check if the user can update a HAP bridge.
+     *
+     * @param {string} uuid
+     * @return {Promise<boolean>}
+     */
+    checkCanSetBridgeConfiguration(uuid) {
+        if (DEVELOPMENT && this.__development_allow_local()) return true;
+
+        if (!this.user) return false;
+
+        return true;
+    }
+
+    async assertCanSetBridgeConfiguration(uuid) {
+        if (!await this.checkCanSetBridgeConfiguration(uuid)) {
+            throw new Error('You don\'t have permission to update this bridge\'s configuration');
+        }
+    }
+
+    /**
+     * Check if the user can delete a HAP bridge.
+     *
+     * @param {string} uuid
+     * @return {Promise<boolean>}
+     */
+    checkCanDeleteBridge(uuid) {
+        if (DEVELOPMENT && this.__development_allow_local()) return true;
+
+        if (!this.user) return false;
+
+        return true;
+    }
+
+    async assertCanDeleteBridge(uuid) {
+        if (!await this.checkCanDeleteBridge(uuid)) {
+            throw new Error('You don\'t have permission to delete this bridge');
+        }
+    }
+
+    /**
      * Check if the user can manage the server.
      *
      * @return {Promise<boolean>}
@@ -455,6 +534,12 @@ export default class Permissions {
      * @return {Promise<boolean>}
      */
     checkShouldReceiveBroadcast(data) {
+        if (data.type === 'add-accessories') {
+            return Promise.all(data.ids.map(uuid => this.checkCanGetAccessory(uuid))).then(g => !g.find(g => !g));
+        }
+        if (data.type === 'remove-accessories') {
+            return Promise.all(data.ids.map(uuid => this.checkCanGetAccessory(uuid))).then(g => !g.find(g => !g));
+        }
         if (data.type === 'update-characteristic') return this.checkCanGetAccessory(data.accessory_uuid);
         if (data.type === 'update-accessory-data') return this.checkCanGetAccessory(data.uuid);
         if (data.type === 'update-home-settings') return this.checkCanGetHomeSettings();

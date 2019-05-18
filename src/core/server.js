@@ -13,7 +13,7 @@ import csp from 'express-csp';
 import cookieParser from 'cookie-parser';
 import multer from 'multer';
 
-import {uuid} from 'hap-nodejs';
+import hap from 'hap-nodejs';
 
 import isEqual from 'lodash.isequal';
 
@@ -183,12 +183,40 @@ export default class Server extends EventEmitter {
         return Promise.all(this.config.bridges.map(bridge_config => this.loadBridge(bridge_config)));
     }
 
-    loadBridge(bridge_config) {
+    async loadBridgesFromStorage(dont_throw) {
+        const bridge_uuids = await this.storage.getItem('Bridges') || [];
+
+        return Promise.all(bridge_uuids.map(async uuid => {
+            try {
+                const data = await this.storage.getItem('Bridge.' + uuid) || {};
+                return this.loadBridge(data, uuid);
+            } catch (err) {
+                if (!dont_throw && typeof dont_throw !== 'undefined') throw err;
+
+                this.log.warn('Error loading bridge', cache.plugin, cache.accessory.displayName, err);
+            }
+        }));
+    }
+
+    /**
+     * Loads a bridge.
+     *
+     * @param {object} bridge_config
+     * @param {string} bridge_config.username
+     * @param {string} [bridge_config.uuid]
+     * @param {string} [bridge_config.name]
+     * @param {number} [bridge_config.port]
+     * @param {string} [bridge_config.pincode]
+     * @param {boolean} [bridge_config.unauthenticated_access]
+     * @param {(Array|string)[]} [bridge_config.accessories]
+     * @param {string} [uuid]
+     */
+    loadBridge(bridge_config, uuid) {
         // bridge_config.username is required - all other properties are optional
         const name = bridge_config.name || 'Bridge ' + bridge_config.username.match(/(.{2}\:.{2})$/)[1];
 
         const bridge = new Bridge(this, this.log.withPrefix(name), {
-            uuid: bridge_config.uuid || uuid.generate('hap-server:bridge:' + bridge_config.username),
+            uuid: uuid || bridge_config.uuid || hap.uuid.generate('hap-server:bridge:' + bridge_config.username),
             name,
             username: bridge_config.username,
             port: bridge_config.port,
@@ -196,7 +224,12 @@ export default class Server extends EventEmitter {
             unauthenticated_access: bridge_config.unauthenticated_access,
 
             accessory_uuids: bridge_config.accessories,
+            config: bridge_config,
         });
+
+        if (this.bridges.find(b => b.uuid === bridge.uuid)) {
+            throw new Error('There is already a bridge with the UUID "' + bridge.uuid + '"');
+        }
 
         this.bridges.push(bridge);
 
@@ -220,6 +253,28 @@ export default class Server extends EventEmitter {
                 const cached_accessory = this.cached_accessories.find(accessory => accessory.uuid === accessory_uuid);
                 if (cached_accessory) bridge.addCachedAccessory(cached_accessory.accessory);
             }
+        }
+    }
+
+    /**
+     * Removes a bridge.
+     *
+     * @param {(Bridge|string)} bridge
+     */
+    async unloadBridge(bridge) {
+        if (!(bridge instanceof Bridge)) {
+            bridge = this.bridges.find(b => b.uuid === bridge);
+        }
+
+        if (bridge instanceof Homebridge) {
+            throw new Error('Homebridge cannot be unloaded');
+        }
+
+        await bridge.unpublish();
+
+        let index;
+        while ((index = this.bridges.findIndex(b => b.uuid === bridge.uuid)) !== -1) {
+            this.bridges.splice(index, 1);
         }
     }
 
@@ -411,7 +466,7 @@ export default class Server extends EventEmitter {
         if (!accessory_handler) throw new Error('No accessory handler with the name "' + accessory_type + '"');
 
         // eslint-disable-next-line curly
-        if (!accessory_config.uuid) accessory_config.uuid = uuid.generate('accessory:' + plugin_name + ':' +
+        if (!accessory_config.uuid) accessory_config.uuid = hap.uuid.generate('accessory:' + plugin_name + ':' +
             accessory_type + ':' + name);
 
         const cached_accessory = this.getCachedAccessory(accessory_config.uuid);

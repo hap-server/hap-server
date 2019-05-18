@@ -97,9 +97,7 @@
                         return;
                     }
 
-                    const data = Object.assign({}, this.create ? {
-                        sections: [],
-                    } : this.layout.data, {
+                    const data = Object.assign({}, this.create ? {} : this.layout.data, {
                         name: this.name,
                         background_url: this.background_url,
                     });

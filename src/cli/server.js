@@ -180,6 +180,7 @@ export async function handler(argv) {
 
     log.info('Loading HAP bridges');
     await server.loadBridgesFromConfig();
+    await server.loadBridgesFromStorage();
 
     if (!argv.enableHomebridge) {
         log.info('Not loading Homebridge as it was disabled on the command line');

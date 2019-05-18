@@ -70,6 +70,10 @@
                 <button class="btn btn-default btn-sm" type="button" :disabled="!canAddAccessories"
                     @click="$emit('modal', {type: 'add-accessory'})">Add accessory</button>&nbsp;
             </template>
+            <template v-if="tab === 'bridges'">
+                <button class="btn btn-default btn-sm" type="button" :disabled="!canCreateBridges"
+                    @click="$emit('modal', {type: 'new-bridge'})">New bridge</button>&nbsp;
+            </template>
             <div v-if="loading">Loading</div>
             <div v-else-if="saving">Saving</div>
             <div class="flex-fill"></div>
@@ -114,6 +118,7 @@
             accessories: Object,
             loadingAccessories: Boolean,
             canAddAccessories: Boolean,
+            canCreateBridges: Boolean,
         },
         data() {
             return {

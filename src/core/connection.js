@@ -7,12 +7,55 @@ import path from 'path';
 import url from 'url';
 import querystring from 'querystring';
 import fs from 'fs';
+import util from 'util';
 import genuuid from 'uuid/v4';
 import mkdirp from 'mkdirp';
+
+import hap from 'hap-nodejs';
 
 import PluginManager, {AuthenticatedUser} from './plugins';
 import Homebridge from './homebridge';
 import Permissions from './permissions';
+
+const randomBytes = util.promisify(crypto.randomBytes);
+
+/**
+ * Get/generate an Organisationally Unique Identifier for generating MAC addresses.
+ *
+ * @param {node-persist} storage
+ * @return {Promise<Buffer>}
+ */
+async function getoui(storage) {
+    const oui = await storage.getItem('OUI');
+    if (oui) return Buffer.from(oui, 'hex');
+
+    const bytes = await randomBytes(3);
+
+    bytes[0] &= ~(1 << 6); // Set bit 7 to 1 (locally administered)
+    bytes[0] |= (1 << 7); // Set bit 8 to 0 (unicast)
+
+    await storage.setItem('OUI', bytes.toString('hex'));
+
+    return bytes;
+}
+
+/**
+ * Generate a MAC address.
+ *
+ * @param {node-persist} storage
+ * @return {Promise<string>}
+ */
+async function genusername(storage) {
+    const oui = await getoui(storage);
+    const bytes = await randomBytes(3);
+
+    return oui.slice(0, 1).toString('hex') + ':' +
+        oui.slice(1, 2).toString('hex') + ':' +
+        oui.slice(2, 3).toString('hex') + ':' +
+        bytes.slice(0, 1).toString('hex') + ':' +
+        bytes.slice(1, 2).toString('hex') + ':' +
+        bytes.slice(2, 3).toString('hex');
+}
 
 let id = 0;
 
@@ -51,7 +94,11 @@ const message_methods = {
     'enable-proxy-stdout': 'handleEnableProxyStdoutMessage',
     'disable-proxy-stdout': 'handleDisableProxyStdoutMessage',
     'list-bridges': 'handleListBridgesMessage',
+    'create-bridges': 'handleCreateBridgesMessage',
     'get-bridges': 'handleGetBridgesMessage',
+    'get-bridges-configuration': 'handleGetBridgesConfigurationMessage',
+    'get-bridges-permissions': 'handleGetBridgesConfigurationPermissionsMessage',
+    'set-bridges-configuration': 'handleSetBridgesConfigurationMessage',
     'get-bridges-pairing-details': 'handleGetBridgesPairingDetailsMessage',
     'reset-bridges-pairings': 'handleResetBridgesPairingsMessage',
     'list-pairings': 'handleListPairingsMessage',
@@ -204,7 +251,7 @@ export default class Connection {
     async getAssetToken() {
         if (this.asset_token) return this.asset_token;
 
-        const bytes = await new Promise((rs, rj) => crypto.randomBytes(48, (err, bytes) => err ? rj(err) : rs(bytes)));
+        const bytes = await randomBytes(48);
         const token = bytes.toString('hex');
 
         this.log.info('Asset token', token);
@@ -524,7 +571,7 @@ export default class Connection {
 
     async getHomePermissions() {
         const [
-            get, set, add_accessories, create_layouts, has_automations, create_automations, server,
+            get, set, add_accessories, create_layouts, has_automations, create_automations, create_bridges, server,
         ] = await Promise.all([
             this.permissions.checkCanGetHomeSettings(),
             this.permissions.checkCanSetHomeSettings(),
@@ -532,10 +579,11 @@ export default class Connection {
             this.permissions.checkCanCreateLayouts(),
             this.permissions.getAuthorisedAutomationUUIDs().then(uuids => !!uuids.length),
             this.permissions.checkCanCreateAutomations(),
+            this.permissions.checkCanCreateBridges(),
             this.permissions.checkCanAccessServerRuntimeInfo(),
         ]);
 
-        return {get, set, add_accessories, create_layouts, has_automations, create_automations, server};
+        return {get, set, add_accessories, create_layouts, has_automations, create_automations, create_bridges, server};
     }
 
     /**
@@ -1022,8 +1070,7 @@ export default class Connection {
     async createAutomation(data) {
         await this.permissions.assertCanCreateAutomations();
 
-        // const uuid = genuuid();
-        const uuid = 'testautomation';
+        const uuid = genuuid();
 
         this.log.debug('Creating automation', uuid, data);
 
@@ -1172,28 +1219,24 @@ export default class Connection {
         this.respond(messageid, this.enableProxyStdout());
     }
 
-    async enableProxyStdout(messageid) {
+    async enableProxyStdout() {
         await this.permissions.assertCanAccessServerRuntimeInfo();
 
         this.log.info('Enabling stdout proxy for', this.id);
         this.enable_proxy_stdout = true;
 
         setTimeout(() => this.log.info('Should work'), 1000);
-
-        this.respond(messageid);
     }
 
     handleDisableProxyStdoutMessage(messageid) {
         this.respond(messageid, this.disableProxyStdout());
     }
 
-    async disableProxyStdout(messageid) {
+    async disableProxyStdout() {
         await this.permissions.assertCanAccessServerRuntimeInfo();
 
         this.log.info('Disabling stdout proxy for', this.id);
         this.enable_proxy_stdout = false;
-
-        this.respond(messageid);
     }
 
     /**
@@ -1216,6 +1259,43 @@ export default class Connection {
         return uuids.filter(uuid => authorised_uuids.includes(uuid));
     }
 
+    handleCreateBridgesMessage(messageid, data) {
+        this.respond(messageid, this.createBridges(...data.data));
+    }
+
+    createBridges(...data) {
+        return Promise.all(data.map(data => this.createBridge(data)));
+    }
+
+    async createBridge(data) {
+        await this.permissions.assertCanCreateBridges();
+
+        // const uuid = genuuid();
+        const uuid = hap.uuid.generate('testbridge');
+        if (!data.username || !data.username.toLowerCase().match(/^([0-9a-f]{2}:){5}[0-9a-f]$/)) {
+            data.username = await genusername(this.server.storage);
+        }
+
+        this.log.debug('Creating bridge', uuid, data);
+        await this.server.storage.setItem('Bridge.' + uuid, data);
+
+        this.log.debug('Starting bridge', uuid);
+        await this.server.loadBridge(data, uuid);
+
+        const bridge_uuids = await this.server.storage.getItem('Bridges') || [];
+        if (!bridge_uuids.includes(uuid)) {
+            bridge_uuids.push(uuid);
+            await this.server.storage.setItem('Bridges', bridge_uuids);
+        }
+
+        this.server.sendBroadcast({
+            type: 'add-accessories',
+            ids: [uuid],
+        }, this.ws);
+
+        return uuid;
+    }
+
     /**
      * Gets the details of a bridge.
      */
@@ -1232,7 +1312,7 @@ export default class Connection {
         const authorised_uuids = await this.permissions.getAuthorisedAccessoryUUIDs();
 
         const bridge = this.server.bridges.find(bridge => bridge.uuid === uuid);
-        this.log.debug('Getting bridge info', uuid, bridge);
+        this.log.debug('Getting bridge info', uuid);
         if (!bridge) return;
 
         const bridge_details = {
@@ -1246,6 +1326,93 @@ export default class Connection {
         }
 
         return bridge_details;
+    }
+
+    /**
+     * Gets the configuration of a bridge.
+     */
+    handleGetBridgesConfigurationMessage(messageid, data) {
+        this.respond(messageid, this.getBridgesConfiguration(...data.uuid));
+    }
+
+    getBridgesConfiguration(...uuid) {
+        return Promise.all(uuid.map(uuid => this.getBridgeConfiguration(uuid)));
+    }
+
+    async getBridgeConfiguration(uuid) {
+        await this.permissions.assertCanGetAccessory(uuid);
+        await this.permissions.assertCanGetBridgeConfiguration(uuid);
+
+        this.log.debug('Getting bridge configuration', uuid);
+
+        const bridge = this.server.bridges.find(b => b.uuid === uuid);
+        if (bridge) return bridge.config;
+
+        return this.server.storage.getItem('Bridge.' + uuid) || {};
+    }
+
+    /**
+     * Gets the user's permissions for a bridge.
+     */
+    handleGetBridgesConfigurationPermissionsMessage(messageid, data) {
+        this.respond(messageid, this.getBridgesConfigurationPermissions(...data.uuid));
+    }
+
+    getBridgesConfigurationPermissions(...uuid) {
+        return Promise.all(uuid.map(uuid => this.getBridgeConfigurationPermissions(uuid)));
+    }
+
+    async getBridgeConfigurationPermissions(uuid) {
+        const is_from_config = this.server.config.bridges && this.server.config.bridges
+            .find(c => c.uuid ? c.uuid === uuid : hap.uuid.generate('hap-server:bridge:' + c.username) === uuid);
+
+        const [get, set, del] = await Promise.all([
+            this.permissions.checkCanGetBridgeConfiguration(uuid),
+            this.permissions.checkCanSetBridgeConfiguration(uuid),
+            this.permissions.checkCanDeleteBridge(uuid),
+        ]);
+
+        return {get, set, delete: del, is_from_config};
+    }
+
+    /**
+     * Sets the configuration of a bridge.
+     */
+    handleSetBridgesConfigurationMessage(messageid, data) {
+        this.respond(messageid, this.setBridgesConfiguration(...data.uuid_data));
+    }
+
+    setBridgesConfiguration(...uuid_data) {
+        return Promise.all(uuid_data.map(([uuid, data]) => this.setBridgeConfiguration(uuid, data)));
+    }
+
+    async setBridgeConfiguration(uuid, data) {
+        await this.permissions.assertCanSetBridgeConfiguration(uuid);
+
+        if (!data.username || !data.username.toLowerCase().match(/^([0-9a-f]{2}:){5}[0-9a-f]$/)) {
+            data.username = await genusername(this.server.storage);
+        }
+
+        this.log.debug('Stopping bridge', uuid);
+        await this.server.unloadBridge(uuid);
+
+        this.log.debug('Setting bridge configuration', uuid, data);
+        await this.server.storage.setItem('Bridge.' + uuid, data);
+
+        this.log.debug('Starting bridge', uuid);
+        await this.server.loadBridge(data, uuid);
+
+        const bridge_uuids = await this.server.storage.getItem('Bridges') || [];
+        if (!bridge_uuids.includes(uuid)) {
+            bridge_uuids.push(uuid);
+            await this.server.storage.setItem('Bridges', bridge_uuids);
+        }
+
+        // this.server.sendBroadcast({
+        //     type: 'update-bridge-configuration',
+        //     uuid,
+        //     data,
+        // }, this.ws);
     }
 
     /**

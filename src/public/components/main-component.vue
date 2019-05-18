@@ -45,7 +45,8 @@
 
             <settings v-else-if="modal.type === 'settings'" :key="index" :ref="'modal-' + index"
                 :connection="connection" :accessories="accessories" :loading-accessories="loading_accessories"
-                :can-add-accessories="can_add_accessories" @modal="modal => modals.push(modal)"
+                :can-add-accessories="can_add_accessories" :can-create-bridges="can_create_bridges"
+                @modal="modal => modals.push(modal)"
                 @show-accessory-settings="accessory => modals.push({type: 'accessory-settings', accessory})"
                 @refresh-accessories="refreshAccessories()"
                 @updated-settings="reload" @close="modals.splice(index, 1)" />
@@ -68,6 +69,15 @@
                 @show-accessory-settings="accessory => modals.push({type: 'accessory-settings', accessory})"
                 @show-service-settings="service => modals.push({type: 'service-settings', service})"
                 @close="modals.splice(index, 1)" />
+            <accessory-settings v-else-if="modal.type === 'new-bridge'" :key="index" :ref="'modal-' + index"
+                :connection="connection" :accessories="accessories" :create-bridge="true"
+                @accessory="addAccessory" @close="modals.splice(index, 1)" />
+            <accessory-settings v-else-if="modal.type === 'delete-bridge'" :key="index" :ref="'modal-' + index"
+                :connection="connection" :accessory="modal.accessory" :accessories="accessories" :delete-bridge="true"
+                @show-accessory-settings="accessory => modals.push({type: 'accessory-settings', accessory})"
+                @show-service-settings="service => modals.push({type: 'service-settings', service})"
+                @close="modals.splice(index, 1)" />
+
             <service-settings v-else-if="modal.type === 'service-settings'" :key="index" :ref="'modal-' + index"
                 :connection="connection" :service="modal.service"
                 @show-accessory-settings="modals.push({type: 'accessory-settings', accessory: modal.service.accessory})"
@@ -144,6 +154,7 @@
                 can_update_home_settings: false,
                 can_access_server_settings: false,
                 can_add_accessories: false,
+                can_create_bridges: false,
                 can_create_layouts: false,
                 loading_permissions: false,
 
@@ -512,6 +523,7 @@
                     this.can_update_home_settings = !!permissions.set;
                     this.can_access_server_settings = !!permissions.server;
                     this.can_add_accessories = !!permissions.add_accessories;
+                    this.can_create_bridges = !!permissions.create_bridges;
                     this.can_create_layouts = !!permissions.create_layouts;
                     this.can_access_automations = permissions.has_automations || permissions.create_automations;
                 } finally {
@@ -616,6 +628,18 @@
                     (this.authenticated_user ? 'Overview.' + this.authenticated_user.id : null);
                 if (layout_uuid && this.layouts[layout_uuid] && !this.layout) this.layout = this.layouts[layout_uuid];
             },
+            addAccessory(accessory) {
+                this.$set(this.accessories, accessory.uuid, accessory);
+                this.$emit('new-accessory', accessory);
+                this.$emit('new-accessories', [accessory]);
+                this.$emit('update-accessories', [accessory], []);
+            },
+            removeAccessory(accessory) {
+                this.$delete(this.accessories, accessory.uuid);
+                this.$emit('removed-accessory', accessory);
+                this.$emit('removed-accessories', [accessory]);
+                this.$emit('update-accessories', [], [accessory]);
+            },
             addLayout(layout) {
                 this.$set(this.layouts, layout.uuid, layout);
                 this.$emit('new-layout', layout);
@@ -626,8 +650,8 @@
                 if (this.layout === layout) this.layout = null;
 
                 this.$delete(this.layouts, layout.uuid);
-                this.$emit('remove-layout', layout);
-                this.$emit('remove-layouts', [layout]);
+                this.$emit('removed-layout', layout);
+                this.$emit('removed-layouts', [layout]);
                 this.$emit('updated-layouts', [], [layout]);
             },
             async reloadBridges() {

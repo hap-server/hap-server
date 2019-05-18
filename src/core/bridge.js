@@ -18,6 +18,7 @@ export default class Bridge {
             throw new Error('No UUID specified in bridge configuration');
         }
 
+        this.config = config.config;
         this.uuid = config.uuid;
         this.name = config.name || os.hostname();
         this.username = config.username || 'CC:22:3D:E3:CE:30';
