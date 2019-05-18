@@ -90,12 +90,13 @@ export default class Bridge {
     }
 
     _removeBridgedAccessory(bridge, accessory, defer_update) {
-        const existing = bridge.bridgedAccessories.findIndex(a => a.UUID === accessory.UUID);
-        if (existing <= -1) throw new Error('Cannot find the bridged Accessory to remove.');
+        const index = bridge.bridgedAccessories.findIndex(a => a.UUID === accessory.UUID);
+        if (index <= -1) throw new Error('Cannot find the bridged Accessory to remove.');
 
+        const existing = bridge.bridgedAccessories[index];
         bridge.bridgedAccessories.splice(index, 1);
 
-        this._removeBridgedAccessoryEventListeners(bridge, accessory);
+        this._removeBridgedAccessoryEventListeners(bridge, existing);
 
         if (!defer_update) bridge._updateConfiguration();
     }
@@ -142,6 +143,9 @@ export default class Bridge {
             this.accessory_info.configVersion++;
             this.accessory_info.configHash = config_hash;
             this.accessory_info.save();
+        } else {
+            this.log.debug('Config hash hasn\'t changed (old: %s, new: %s, version: %d)',
+                this.accessory_info.configHash, config_hash, this.accessory_info.configVersion);
         }
 
         // Update our advertisement so HomeKit on iOS can pickup new accessory
@@ -226,6 +230,30 @@ export default class Bridge {
     removeAccessory(accessory) {
         this.bridge.removeBridgeAccessory(accessory);
         this.removeCachedAccessory(accessory);
+    }
+
+    /**
+     * Adds and removes accessories.
+     *
+     * @param {Accessory[]} add
+     * @param {Accessory[]} remove
+     */
+    patchAccessories(add, remove) {
+        try {
+            for (const accessory of add) {
+                this.bridge.addBridgedAccessory(accessory, true);
+                this.removeCachedAccessory(accessory.UUID);
+            }
+
+            for (const accessory of remove) {
+                try {
+                    this.bridge.removeBridgeAccessory(accessory, true);
+                } catch (err) {}
+                this.removeCachedAccessory(accessory.UUID);
+            }
+        } finally {
+            this.bridge._updateConfiguration();
+        }
     }
 
     addCachedAccessory(accessory) {

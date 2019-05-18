@@ -13,6 +13,8 @@ import mkdirp from 'mkdirp';
 
 import hap from 'hap-nodejs';
 
+import isEqual from 'lodash.isequal';
+
 import PluginManager, {AuthenticatedUser} from './plugins';
 import Homebridge from './homebridge';
 import Permissions from './permissions';
@@ -1398,17 +1400,43 @@ export default class Connection {
             data.username = await genusername(this.server.storage);
         }
 
-        this.log.debug('Stopping bridge', uuid);
-        await this.server.unloadBridge(uuid);
+        const bridge = this.server.bridges.find(b => b.uuid === uuid);
+        if (!bridge) throw new Error('Unknown bridge');
 
-        this.log.debug('Setting bridge configuration', uuid, data);
-        await this.server.storage.setItem('Bridge.' + uuid, data);
+        if (!isEqual(
+            Object.assign({}, {accessories: undefined}, data, {accessories: undefined}),
+            Object.assign({}, {accessories: undefined}, bridge.config, {accessories: undefined})
+        )) {
+            this.log.debug('Stopping bridge', uuid);
+            await this.server.unloadBridge(uuid);
 
-        this.log.debug('Starting bridge', uuid);
-        const bridge = await this.server.loadBridge(data, uuid);
-        await bridge.publish();
+            this.log.debug('Setting bridge configuration', uuid, data);
+            await this.server.storage.setItem('Bridge.' + uuid, data);
 
-        // TODO: if only the accessories have changed then update the existing bridge's accessories
+            this.log.debug('Starting bridge', uuid);
+            const bridge = await this.server.loadBridge(data, uuid);
+            await bridge.publish();
+        } else {
+            this.log.debug('Setting bridge configuration', uuid, bridge.config, data);
+            await this.server.storage.setItem('Bridge.' + uuid, data);
+
+            // If only the accessories have changed then update the existing bridge's accessories
+
+            const old_accessories = bridge.config.accessories || [];
+            const new_accessories = data.accessories || [];
+            const added_accessories = new_accessories.filter(u => !old_accessories.includes(u));
+            const removed_accessories = old_accessories.filter(u => !new_accessories.includes(u));
+
+            bridge.config = data;
+            bridge.accessory_uuids = data.accessories || [];
+
+            this.log.debug('Updating accessories', added_accessories, removed_accessories);
+
+            bridge.patchAccessories(
+                added_accessories.map(u => this.server.getAccessory(u)).filter(a => a),
+                removed_accessories.map(u => this.server.getAccessory(u))
+            );
+        }
 
         const bridge_uuids = await this.server.storage.getItem('Bridges') || [];
         if (!bridge_uuids.includes(uuid)) {
