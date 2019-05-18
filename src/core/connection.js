@@ -107,6 +107,7 @@ const message_methods = {
     'list-pairings': 'handleListPairingsMessage',
     'get-pairings': 'handleGetPairingsMessage',
     'get-pairings-data': 'handleGetPairingsDataMessage',
+    'get-pairings-permissions': 'handleGetPairingsPermissionsMessage',
     'set-pairings-data': 'handleSetPairingsDataMessage',
     'get-accessory-uis': 'handleGetAccessoryUIsMessage',
     'authenticate': 'handleAuthenticateMessage',
@@ -1587,6 +1588,79 @@ export default class Connection {
             id,
             public_key: public_key.toString('hex'),
         };
+    }
+
+    /**
+     * Gets the details of HAP pairings.
+     * This is stored by the web interface.
+     */
+    handleGetPairingsDataMessage(messageid, data) {
+        this.respond(messageid, this.getPairingsData(...data.id));
+    }
+
+    getPairingsData(...id) {
+        return Promise.all(id.map(id => this.getPairingData(id)));
+    }
+
+    async getPairingData(id) {
+        await this.permissions.assertCanAccessServerRuntimeInfo();
+        await this.permissions.assertCanGetPairing(id);
+
+        this.log.debug('Getting data for pairing', id);
+
+        return await this.server.storage.getItem('Pairing.' + id) || {};
+    }
+
+    /**
+     * Gets the user's permissions for HAP pairings.
+     * This is stored by the web interface.
+     */
+    handleGetPairingsPermissionsMessage(messageid, data) {
+        this.respond(messageid, this.getPairingsPermissions(...data.id));
+    }
+
+    getPairingsPermissions(...id) {
+        return Promise.all(id.map(id => this.getPairingPermissions(id)));
+    }
+
+    async getPairingPermissions(id) {
+        const [get, set, info] = await Promise.all([
+            this.permissions.checkCanGetPairing(id),
+            this.permissions.checkCanSetPairing(id),
+            this.permissions.checkCanAccessServerRuntimeInfo(),
+        ]);
+
+        return {
+            get: get && info,
+            set: set && info,
+        };
+    }
+
+    /**
+     * Sets extra data of HAP pairings.
+     * This is stored by the web interface.
+     */
+    handleSetPairingsDataMessage(messageid, data) {
+        this.respond(messageid, this.setPairingsData(...data.id_data));
+    }
+
+    setPairingsData(...id_data) {
+        return Promise.all(id_data.map(([id, data]) => this.setPairingData(id, data)));
+    }
+
+    async setPairingData(id, data) {
+        await this.permissions.assertCanAccessServerRuntimeInfo();
+        await this.permissions.assertCanSetPairing(id);
+
+        this.log.debug('Setting data for pairing', id, data);
+
+        await this.server.storage.setItem('Pairing.' + id, data);
+
+        this.server.sendBroadcast({
+            type: 'update-pairing-data',
+            id,
+            data,
+        }, this.ws);
     }
 
     /**

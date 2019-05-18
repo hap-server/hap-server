@@ -78,6 +78,10 @@
                 :bridge-uuids="bridge_uuids" :delete-bridge="true" @remove="removeAccessory"
                 @close="modals.splice(index, 1)" />
 
+            <pairing-settings v-else-if="modal.type === 'pairing-settings'" :key="index" :ref="'modal-' + index"
+                :connection="connection" :accessory="modal.accessory" :pairing="modal.pairing"
+                :pairing-data="modal.data" :permissions="modal.permissions" @close="modals.splice(index, 1)" />
+
             <service-settings v-else-if="modal.type === 'service-settings'" :key="index" :ref="'modal-' + index"
                 :connection="connection" :service="modal.service"
                 @show-accessory-settings="modals.push({type: 'accessory-settings', accessory: modal.service.accessory})"
@@ -134,6 +138,7 @@
             AddAccessory: () => import(/* webpackChunkName: 'settings' */ './add-accessory.vue'),
             LayoutSettings: () => import(/* webpackChunkName: 'settings' */ './layout-settings.vue'),
             AccessorySettings: () => import(/* webpackChunkName: 'settings' */ './accessory-settings.vue'),
+            PairingSettings: () => import(/* webpackChunkName: 'settings' */ './pairing-settings.vue'),
             ServiceSettings: () => import(/* webpackChunkName: 'settings' */ './service-settings.vue'),
         },
         data() {
@@ -194,6 +199,13 @@
                         if (modal.type === 'delete-layout') return 'Delete ' + modal.layout.name + '?';
 
                         if (modal.type === 'accessory-settings') return modal.accessory.name + ' Settings';
+                        if (modal.type === 'new-bridge') return 'New bridge';
+                        if (modal.type === 'delete-bridge') return 'Delete ' + modal.accessory.name + '?';
+
+                        if (modal.type === 'pairing-settings') {
+                            return ((modal.data && modal.data.name) || modal.pairing.id) + ' Settings';
+                        }
+
                         if (modal.type === 'service-settings') {
                             return (modal.service.name || modal.service.accessory.name) + ' Settings';
                         }

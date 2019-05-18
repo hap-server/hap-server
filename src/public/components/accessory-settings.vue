@@ -141,9 +141,14 @@
                 <p>Setup payload: <code>{{ pairing_details.url }}</code></p>
             </div>
 
-            <list-group class="mb-3">
-                <list-item v-for="pairing in pairings" :key="pairing.id">
-                    {{ pairing.id }}
+            <p v-if="pairings.length">Each Apple ID your home is shared with has it's own pairing. You can assign each pairing a name if you know which device/Apple ID it is for.</p>
+
+            <list-group v-if="pairings.length" class="mb-3">
+                <list-item v-for="[pairing, data, permissions] in pairings" :key="pairing.id"
+                    @click="$emit('modal', {type: 'pairing-settings', pairing, data, permissions, accessory})"
+                >
+                    {{ data && data.name || pairing.id }}
+                    <small v-if="data && data.name" class="text-muted">{{ pairing.id }}</small>
                     <small class="text-muted">{{ pairing.public_key }}</small>
                 </list-item>
             </list-group>
@@ -293,7 +298,22 @@
                         !this.config.accessories.includes(uuid)));
             },
         },
+        watch: {
+            connection(connection, old_connection) {
+                if (old_connection) {
+                    old_connection.removeListener('update-pairing-data', this.handleUpdatePairingData);
+                }
+
+                if (connection) {
+                    connection.on('update-pairing-data', this.handleUpdatePairingData);
+                }
+            },
+        },
         async created() {
+            if (this.connection) {
+                this.connection.on('update-pairing-data', this.handleUpdatePairingData);
+            }
+
             if (this.createBridge) {
                 this.config = {};
                 this.can_set_config = true;
@@ -307,6 +327,11 @@
                     this.loadPairings(),
                     this.loadPermissions(),
                 ]);
+            }
+        },
+        destroyed() {
+            if (this.connection) {
+                this.connection.removeListener('update-pairing-data', this.handleUpdatePairingData);
             }
         },
         methods: {
@@ -341,8 +366,14 @@
                     const pairings = await this.connection.listPairings(this.accessory.uuid) || [];
 
                     if (pairings.length) {
-                        this.pairings = await this.connection.getPairings(...pairings
-                            .map(pairing_id => ([this.accessory.uuid, pairing_id])));
+                        this.pairings = await Promise.all([
+                            this.connection.getPairings(...pairings
+                                .map(pairing_id => ([this.accessory.uuid, pairing_id]))),
+                            this.connection.getPairingsData(...pairings),
+                            this.connection.getPairingsPermissions(...pairings),
+                        ]).then(([details, data, permissions]) => pairings
+                            .map((d, i) => [details[i], data[i], permissions[i]]));
+
                         this.pairing_details = null;
                     } else {
                         this.pairing_details = (await this.connection.getBridgesPairingDetails(this.accessory.uuid))[0];
@@ -438,6 +469,12 @@
                 } finally {
                     this.resetting_pairings = false;
                 }
+            },
+            handleUpdatePairingData(pairing_id, data) {
+                const pairing = this.pairings.find(([p]) => p.id === pairing_id);
+                if (!pairing) return;
+
+                pairing.splice(1, 1, data);
             },
         },
     };

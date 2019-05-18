@@ -47,6 +47,8 @@ Stored in `ui-storage` in the data directory. node-persist uses the MD5 hash of 
     - Automation configuration.
 - `AccessoryData.{accessory_uuid}`
     - Extra data for accessories.
+- `Pairing.{username}`
+    - Extra data for HAP pairings.
 - `CachedAccessories`
     - Used to quickly add accessories to HAP bridges so they can start before the accessories become available.
 - `Bridges`

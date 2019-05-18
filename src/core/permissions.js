@@ -508,6 +508,42 @@ export default class Permissions {
     }
 
     /**
+     * Check if the user can see a pairing.
+     *
+     * @param {string} username
+     * @return {Promise<boolean>}
+     */
+    checkCanGetPairing(username) {
+        if (DEVELOPMENT && this.__development_allow_local()) return true;
+
+        if (!this.user) return false;
+
+        return true;
+    }
+
+    async assertCanGetPairing(username) {
+        if (!await this.checkCanGetPairing(username)) throw new Error('You don\'t have permission to access this pairing');
+    }
+
+    /**
+     * Check if the user can update a pairing.
+     *
+     * @param {string} username
+     * @return {Promise<boolean>}
+     */
+    checkCanSetPairing(username) {
+        if (DEVELOPMENT && this.__development_allow_local()) return true;
+
+        if (!this.user) return false;
+
+        return true;
+    }
+
+    async assertCanSetPairing(username) {
+        if (!await this.checkCanSetPairing(username)) throw new Error('You don\'t have permission to update this pairing');
+    }
+
+    /**
      * Check if the user can manage the server.
      *
      * @return {Promise<boolean>}
@@ -548,6 +584,9 @@ export default class Permissions {
         }
         if (['new-layout-section', 'update-layout-section', 'remove-layout-section'].includes(data.type)) {
             return this.checkCanGetLayout(data.layout_uuid);
+        }
+        if (data.type === 'update-pairing-data') {
+            return this.checkCanGetPairing(data.id) && this.checkCanAccessServerRuntimeInfo();
         }
 
         if (DEVELOPMENT && this.__development_allow_local()) return true;

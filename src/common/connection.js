@@ -18,6 +18,7 @@ const broadcast_message_methods = {
     'add-automation': 'handleAddAutomationMessage',
     'remove-automation': 'handleRemoveAutomationMessage',
     'update-automation': 'handleUpdateAutomationMessage',
+    'update-pairing-data': 'handleUpdatePairingData',
     'stdout': 'handleStdout',
     'stderr': 'handleStderr',
 };
@@ -474,6 +475,31 @@ export default class Connection extends EventEmitter {
         });
     }
 
+    getPairingsData(...id) {
+        return this.send({
+            type: 'get-pairings-data',
+            id,
+        });
+    }
+
+    getPairingsPermissions(...id) {
+        return this.send({
+            type: 'get-pairings-permissions',
+            id,
+        });
+    }
+
+    setPairingsData(...id_data) {
+        return this.send({
+            type: 'set-pairings-data',
+            id_data,
+        });
+    }
+
+    setPairingData(id, data) {
+        return this.setPairingsData([id, data]);
+    }
+
     getAccessoryUIs() {
         return this.send({
             type: 'get-accessory-uis',
@@ -555,6 +581,10 @@ export default class Connection extends EventEmitter {
 
     handleUpdateAutomationMessage(data) {
         this.emit('update-automation', data.uuid, data.data);
+    }
+
+    handleUpdatePairingData(data) {
+        this.emit('update-pairing-data', data.id, data.data);
     }
 
     handleStdout(data) {
