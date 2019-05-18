@@ -155,7 +155,7 @@
         </template>
 
         <div class="d-flex">
-            <div v-if="can_delete && !deleteBridge">
+            <div v-if="is_bridge && can_delete && !deleteBridge">
                 <button class="btn btn-danger btn-sm" type="button"
                     @click="() => ($emit('close'), $emit('modal', {type: 'delete-bridge', accessory}))"
                 >Delete</button>&nbsp;
