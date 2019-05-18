@@ -301,16 +301,19 @@
         watch: {
             connection(connection, old_connection) {
                 if (old_connection) {
+                    old_connection.removeListener('update-pairings', this.handleUpdatePairings);
                     old_connection.removeListener('update-pairing-data', this.handleUpdatePairingData);
                 }
 
                 if (connection) {
+                    connection.on('update-pairings', this.handleUpdatePairings);
                     connection.on('update-pairing-data', this.handleUpdatePairingData);
                 }
             },
         },
         async created() {
             if (this.connection) {
+                this.connection.on('update-pairings', this.handleUpdatePairings);
                 this.connection.on('update-pairing-data', this.handleUpdatePairingData);
             }
 
@@ -331,6 +334,7 @@
         },
         destroyed() {
             if (this.connection) {
+                this.connection.removeListener('update-pairings', this.handleUpdatePairings);
                 this.connection.removeListener('update-pairing-data', this.handleUpdatePairingData);
             }
         },
@@ -469,6 +473,11 @@
                 } finally {
                     this.resetting_pairings = false;
                 }
+            },
+            handleUpdatePairings(bridge_uuid /* , pairings */) {
+                if (this.accessory.uuid !== bridge_uuid) return;
+
+                this.loadPairings();
             },
             handleUpdatePairingData(pairing_id, data) {
                 const pairing = this.pairings.find(([p]) => p.id === pairing_id);

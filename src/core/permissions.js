@@ -585,6 +585,9 @@ export default class Permissions {
         if (['new-layout-section', 'update-layout-section', 'remove-layout-section'].includes(data.type)) {
             return this.checkCanGetLayout(data.layout_uuid);
         }
+        if (data.type === 'update-pairings') {
+            return this.checkCanGetAccessory(data.bridge_uuid) && this.checkCanAccessServerRuntimeInfo();
+        }
         if (data.type === 'update-pairing-data') {
             return this.checkCanGetPairing(data.id) && this.checkCanAccessServerRuntimeInfo();
         }

@@ -44,6 +44,8 @@ export default class Bridge {
     _createBridge(config) {
         const bridge = new HAPBridge(this.name, this.uuid);
 
+        bridge.on('hap-server-update-pairings', () => this.server.handlePairingsUpdate(this));
+
         bridge.addBridgedAccessory = this._addBridgedAccessory.bind(this, bridge);
         bridge.removeBridgeAccessory = this._removeBridgedAccessory.bind(this, bridge);
         bridge._updateConfiguration = this._updateConfiguration.bind(this, bridge, false);

@@ -18,6 +18,7 @@ const broadcast_message_methods = {
     'add-automation': 'handleAddAutomationMessage',
     'remove-automation': 'handleRemoveAutomationMessage',
     'update-automation': 'handleUpdateAutomationMessage',
+    'update-pairings': 'handleUpdatePairings',
     'update-pairing-data': 'handleUpdatePairingData',
     'stdout': 'handleStdout',
     'stderr': 'handleStderr',
@@ -581,6 +582,10 @@ export default class Connection extends EventEmitter {
 
     handleUpdateAutomationMessage(data) {
         this.emit('update-automation', data.uuid, data.data);
+    }
+
+    handleUpdatePairings(data) {
+        this.emit('update-pairings', data.bridge_uuid, data.pairings);
     }
 
     handleUpdatePairingData(data) {

@@ -1180,6 +1180,19 @@ export default class Server extends EventEmitter {
     }
 
     /**
+     * Handle changes to a HAP server's pairings.
+     *
+     * @param {Bridge}
+     */
+    handlePairingsUpdate(bridge) {
+        this.sendBroadcast({
+            type: 'update-pairings',
+            bridge_uuid: bridge.uuid,
+            // pairings: ...,
+        });
+    }
+
+    /**
      * Deletes all unused assets.
      *
      * @return {Promise<object>}

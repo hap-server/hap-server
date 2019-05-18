@@ -240,6 +240,8 @@ export default class Server {
 
         // Update our advertisement so it can pick up on the paired status of AccessoryInfo
         this.updateAdvertisement();
+
+        this.bridge.emit('hap-server-update-pairings');
     }
 
     /**
@@ -256,6 +258,8 @@ export default class Server {
 
         // Update our advertisement so it can pick up on the paired status of AccessoryInfo
         this.updateAdvertisement();
+
+        this.bridge.emit('hap-server-update-pairings');
     }
 
     /**

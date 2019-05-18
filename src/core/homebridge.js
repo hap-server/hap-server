@@ -38,19 +38,37 @@ export default class Homebridge extends Bridge {
     _createBridge(config) {
         const bridge = config.homebridge._bridge;
 
-        bridge.addBridgedAccessory = this._addBridgedAccessory.bind(this, bridge.addBridgedAccessory);
+        bridge.addBridgedAccessory = this._addBridgedAccessory.bind(this, bridge, bridge.addBridgedAccessory);
+        bridge._handlePair = this._handlePair.bind(this, bridge, bridge._handlePair);
+        bridge._handleUnpair = this._handlePair.bind(this, bridge, bridge._handleUnpair);
 
         return bridge;
     }
 
-    _addBridgedAccessory(addBridgedAccessory, accessory, defer_update, ...args) {
+    _addBridgedAccessory(bridge, addBridgedAccessory, accessory, defer_update, ...args) {
         accessory.on('service-characteristic-change', event => {
             // this.log.info('Updating characteristic', accessory, event);
             this.server.handleCharacteristicUpdate(event.accessory || accessory, event.service,
                 event.characteristic, event.newValue, event.oldValue, event.context);
         });
 
-        return addBridgedAccessory.call(this.bridge, accessory, defer_update, ...args);
+        return addBridgedAccessory.call(bridge, accessory, defer_update, ...args);
+    }
+
+    _handlePair(bridge, handlePair, ...args) {
+        const r = handlePair.call(bridge, ...args);
+
+        this.server.handlePairingsUpdate(this);
+
+        return r;
+    }
+
+    _handleUnpair(bridge, handleUnpair, ...args) {
+        const r = handleUnpair.call(bridge, ...args);
+
+        this.server.handlePairingsUpdate(this);
+
+        return r;
     }
 
     publish() {
