@@ -5,6 +5,7 @@ import path from 'path';
 import EventEmitter from 'events';
 import fs from 'fs';
 import os from 'os';
+import util from 'util';
 
 import express from 'express';
 import WebSocket from 'ws';
@@ -151,30 +152,25 @@ export default class Server extends EventEmitter {
         const console_log = console.log;
         const console_error = console.error;
 
-        console.log = (data, ...args) => {
+        const wrapConsoleFn = (fn, type) => (data, ...args) => {
             for (const server of Server.instances) {
                 for (const ws of server.wss.clients) {
                     const connection = Connection.getConnectionForWebSocket(ws);
                     if (connection && connection.enable_proxy_stdout) {
-                        ws.send('**:' + JSON.stringify({type: 'stdout', data: data + '\n'}));
+                        ws.send('**:' + JSON.stringify({
+                            type, data: util.formatWithOptions({
+                                colors: true,
+                            }, data, ...args) + '\n',
+                        }));
                     }
                 }
             }
 
-            console_log(data, ...args);
+            fn(data, ...args);
         };
-        console.error = (data, ...args) => {
-            for (const server of Server.instances) {
-                for (const ws of server.wss.clients) {
-                    const connection = Connection.getConnectionForWebSocket(ws);
-                    if (connection && connection.enable_proxy_stdout) {
-                        ws.send('**:' + JSON.stringify({type: 'stderr', data: data + '\n'}));
-                    }
-                }
-            }
 
-            console_error(data, ...args);
-        };
+        console.log = wrapConsoleFn(console_log, 'stdout');
+        console.error = wrapConsoleFn(console_error, 'stderr');
     }
 
     loadBridgesFromConfig() {
