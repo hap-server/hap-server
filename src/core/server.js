@@ -1212,6 +1212,7 @@ export default class Server extends EventEmitter {
 }
 
 Server.instances = new Set();
+Server.patchStdout();
 
 export class PluginAccessory {
     constructor(server, accessory, plugin, data) {

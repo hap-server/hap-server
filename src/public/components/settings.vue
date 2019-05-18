@@ -185,9 +185,9 @@
                 this.connection.enableProxyStdout().then(() => this.terminal.write('\nStarted stdout proxy...\n')),
             ]);
         },
-        destroy() {
-            this.connection.removeListener('added-bridge', this.addedBridge);
-            this.connection.removeListener('removed-bridge', this.removedBridge);
+        destroyed() {
+            // this.connection.removeListener('added-bridge', this.addedBridge);
+            // this.connection.removeListener('removed-bridge', this.removedBridge);
 
             return this.connection.disableProxyStdout().then(() => {
                 this.connection.removeListener('stdout', this.stdout);
