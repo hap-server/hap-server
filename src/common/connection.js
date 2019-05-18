@@ -585,7 +585,7 @@ export default class Connection extends EventEmitter {
     }
 
     handleUpdatePairings(data) {
-        this.emit('update-pairings', data.bridge_uuid, data.pairings);
+        this.emit('update-pairings', data.bridge_uuid /* , data.pairings */);
     }
 
     handleUpdatePairingData(data) {

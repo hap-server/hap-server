@@ -215,6 +215,27 @@ export default class Server {
     }
 
     /**
+     * Unsubscribes all events for an accessory.
+     *
+     * @param {Accessory} accessory
+     */
+    unsubscribeAllEventsForAccessory(accessory) {
+        const aid = this.getAccessoryID(accessory);
+
+        for (const connection of this.server._httpServer._connections) {
+            for (const k of Object.keys(connection._events)) {
+                const match = k.match(/^([0-9]*)\.([0-9]*)$/);
+                if (!match || aid != match[1]) continue;
+
+                const characteristic = this.getCharacteristicByID(accessory, parseInt(match[2]));
+                if (characteristic) characteristic.unsubscribe();
+
+                delete connection._events[k];
+            }
+        }
+    }
+
+    /**
      * Handle /identify requests.
      *
      * @return {Promise}
@@ -547,7 +568,7 @@ export default class Server {
             try {
                 const [aid, iid] = key.split('.');
 
-                const characteristic = this.getCharacteristicByID(aid, iid);
+                const characteristic = this.getCharacteristicByID(parseInt(aid), parseInt(iid));
                 if (characteristic) characteristic.unsubscribe();
             } catch (err) {}
         }

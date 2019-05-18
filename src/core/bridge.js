@@ -232,6 +232,7 @@ export default class Bridge {
     removeAccessory(accessory) {
         this.bridge.removeBridgeAccessory(accessory);
         this.removeCachedAccessory(accessory);
+        if (this.hasOwnProperty('hap_server')) this.hap_server.unsubscribeAllEventsForAccessory(accessory);
     }
 
     /**
@@ -252,6 +253,7 @@ export default class Bridge {
                     this.bridge.removeBridgeAccessory(accessory, true);
                 } catch (err) {}
                 this.removeCachedAccessory(accessory.UUID);
+                if (this.hasOwnProperty('hap_server')) this.hap_server.unsubscribeAllEventsForAccessory(accessory);
             }
         } finally {
             this.bridge._updateConfiguration();
