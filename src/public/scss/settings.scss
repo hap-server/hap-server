@@ -72,10 +72,10 @@
 }
 
 .settings-container {
-    min-height: calc(100vh + 2px);
     padding: 1rem;
 
     @media (max-width: map-get($grid-breakpoints, 'sm') - 1) {
+        min-height: calc(100vh + 2px);
         padding-bottom: calc(1rem + 78px);
     }
 
