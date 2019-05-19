@@ -1,4 +1,5 @@
 import path from 'path';
+import url from 'url';
 
 import gulp from 'gulp';
 import pump from 'pump';
@@ -9,6 +10,7 @@ import file from 'gulp-file';
 import minify from 'gulp-minify';
 import replace from 'gulp-replace';
 import del from 'del';
+import markdownlinks from 'transform-markdown-links';
 
 import VueLoaderPlugin from 'vue-loader/lib/plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
@@ -16,6 +18,9 @@ import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import TerserPlugin from 'terser-webpack-plugin';
 import OptimizeCSSAssetsPlugin from 'optimize-css-assets-webpack-plugin';
 import HotModuleReplacementPlugin from 'webpack/lib/HotModuleReplacementPlugin';
+
+const README_BASE_URL =
+    `https://gitlab.fancy.org.uk/hap-server/hap-server/blob/v${require('./package').version}/README.md`;
 
 const webpack_config = {
     context: __dirname,
@@ -220,7 +225,7 @@ gulp.task('copy-release-executables', function () {
     ]);
 });
 
-gulp.task('copy-release-files', function () {
+gulp.task('release-package', function () {
     return pump([
         gulp.src('package.json'),
         json(packagejson => {
@@ -232,13 +237,25 @@ gulp.task('copy-release-files', function () {
             };
             return packagejson;
         }),
+        gulp.dest('release'),
+    ]);
+});
 
+gulp.task('release-readme', function () {
+    return pump([
         gulp.src('README.md'),
+        replace(/^(.|\n)+$/, input => markdownlinks(input, link => url.resolve(README_BASE_URL, link))),
+        gulp.dest('release'),
+    ]);
+});
+
+gulp.task('copy-release-files', gulp.parallel('release-package', 'release-readme', function () {
+    return pump([
         gulp.src('LICENSE'),
 
         gulp.dest('release'),
     ]);
-});
+}));
 
 gulp.task('build-release', gulp.parallel('build-backend-release', 'build-frontend-release', 'copy-release-executables', 'copy-release-files'));
 

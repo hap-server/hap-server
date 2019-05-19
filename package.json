@@ -73,6 +73,7 @@
         "sass-lint": "^1.13.1",
         "sass-loader": "^7.1.0",
         "style-loader": "^0.23.1",
+        "transform-markdown-links": "^2.0.0",
         "vue": "^2.6.10",
         "vue-codemirror": "^4.0.6",
         "vue-color": "^2.7.0",
