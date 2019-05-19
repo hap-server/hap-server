@@ -21,6 +21,8 @@ import HotModuleReplacementPlugin from 'webpack/lib/HotModuleReplacementPlugin';
 
 const README_BASE_URL =
     `https://gitlab.fancy.org.uk/hap-server/hap-server/blob/v${require('./package').version}/README.md`;
+const README_IMAGE_BASE_URL =
+    `https://gitlab.fancy.org.uk/hap-server/hap-server/raw/v${require('./package').version}/README.md`;
 
 const webpack_config = {
     context: __dirname,
@@ -244,7 +246,8 @@ gulp.task('release-package', function () {
 gulp.task('release-readme', function () {
     return pump([
         gulp.src('README.md'),
-        replace(/^(.|\n)+$/, input => markdownlinks(input, link => url.resolve(README_BASE_URL, link))),
+        replace(/^(.|\n)+$/, input => markdownlinks(input, (link, title) =>
+            url.resolve(title.match(/Screenshot/) ? README_IMAGE_BASE_URL : README_BASE_URL, link))),
         gulp.dest('release'),
     ]);
 });
