@@ -466,7 +466,7 @@
                 this.resetting_pairings = true;
 
                 try {
-                    const pairings = await this.connection.resetBridgesPairings(this.accessory.uuid);
+                    await this.connection.resetBridgesPairings(this.accessory.uuid);
 
                     this.pairings = [];
                     this.pairing_details = (await this.connection.getBridgesPairingDetails(this.accessory.uuid))[0];

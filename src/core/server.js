@@ -1182,7 +1182,7 @@ export default class Server extends EventEmitter {
     /**
      * Handle changes to a HAP server's pairings.
      *
-     * @param {Bridge}
+     * @param {Bridge} bridge
      */
     handlePairingsUpdate(bridge) {
         this.sendBroadcast({
