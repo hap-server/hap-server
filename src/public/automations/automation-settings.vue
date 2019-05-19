@@ -48,9 +48,6 @@
         </div>
 
         <div v-if="tab === 'actions'" class="automation-actions">
-            <condition v-for="(action, id) in automation.data.actions || {}" :key="id" :id="id"
-                :action="action" :editable="editable" :saving="saving || deleting" />
-
             <template v-for="(action, id) in automation.data.actions || {}">
                 <component
                     v-if="action_components.find(c => c.plugin === action.plugin && c.type === action.action)"
@@ -108,12 +105,12 @@
 
             <div v-if="saving">Saving</div>
             <div class="flex-fill"></div>
-            <button class="btn btn-default btn-sm" type="button"
-                :disabled="saving || deleting" @click="() => $refs.panel.close()">Cancel</button>&nbsp;
+            <button class="btn btn-default btn-sm" type="button" :disabled="saving || deleting"
+                @click="() => ($emit('reset'), $refs.panel.close())">Cancel</button>&nbsp;
             <button v-if="exists && deletable" class="btn btn-danger btn-sm" type="button"
                 :disabled="saving || deleting" @click="() => $emit('delete')">Delete</button>&nbsp;
             <button v-if="editable" class="btn btn-primary btn-sm" type="button"
-                :disabled="!changed || saving || deleting" @click="$emit('save', true)">Save</button>
+                :disabled="saving || deleting" @click="$emit('save', true)">Save</button>
         </div>
     </panel>
 </template>

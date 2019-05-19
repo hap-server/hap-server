@@ -32,6 +32,7 @@
             :editable="open_automation.can_set && !deleting_automation" :deletable="open_automation.can_delete"
             :changed="open_automation.changed" :saving="saving_automation" :deleting="deleting_automation"
             @save="close => saveAutomation(open_automation.staged, close ? $refs.automation : null)"
+            @reset="() => open_automation.resetStagedAutomation()"
             @delete="deleteAutomation(open_automation, $refs.automation)"
             @close="open_automation = null" />
     </div>

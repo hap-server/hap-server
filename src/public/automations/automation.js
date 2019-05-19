@@ -21,6 +21,8 @@ export default class Automation extends EventEmitter {
         this.uuid = uuid;
         this._setPermissions(permissions || {});
         this._setData(data || {});
+
+        this.staged;
     }
 
     get live() {
@@ -28,11 +30,11 @@ export default class Automation extends EventEmitter {
     }
 
     get staged() {
-        return Object.defineProperty(this, 'staged', {value: new StagedAutomation(this)}).staged;
+        return Object.defineProperty(this, 'staged', {enumerable: true, value: new StagedAutomation(this)}).staged;
     }
 
     get changed() {
-        return isEqual(this.live.data, this.staged.data);
+        return !isEqual(this.live.data, this.staged.data);
     }
 
     get data() {
@@ -48,7 +50,7 @@ export default class Automation extends EventEmitter {
     }
 
     _setData(data) {
-        if (!this.changed) this.staged._setData(Object.assign({}, data));
+        if (!this.staged.data || !this.changed) this.staged._setData(JSON.parse(JSON.stringify(data)));
 
         this._data = Object.freeze(data);
 
@@ -58,6 +60,10 @@ export default class Automation extends EventEmitter {
     async updateData(data) {
         await this.connection.setAutomation(this.uuid, data);
         this._setData(data);
+    }
+
+    resetStagedAutomation() {
+        this.staged._setData(JSON.parse(JSON.stringify(this.live.data)));
     }
 
     _setPermissions(permissions) {
@@ -93,7 +99,7 @@ export class StagedAutomation extends Automation {
         super(automation.connection, automation.uuid);
 
         this.automation = automation;
-        this._data = Object.assign({}, automation.data);
+        this._data = JSON.parse(JSON.stringify(automation.live.data || null));
     }
 
     get live() {
