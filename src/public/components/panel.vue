@@ -19,6 +19,10 @@
 </template>
 
 <script>
+    import bouncefix from 'bouncefix.js/dist/bouncefix';
+
+    bouncefix.add('settings-window');
+
     export default {
         data() {
             return {

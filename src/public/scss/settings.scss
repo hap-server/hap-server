@@ -20,34 +20,88 @@
 }
 
 .settings-window {
-    width: 80%;
-    max-width: 500px;
-    margin-left: auto;
-    margin-right: auto;
-    max-height: 90%;
+    width: 100%;
     background-color: $light;
-    border: darken($light, 20%) 1px solid;
-    border-top-width: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
 
+    @media (max-width: map-get($grid-breakpoints, 'sm') - 1) {
+        height: 100% !important;
+    }
+
     &.show,
     &.v-enter-active {
-        animation: panel-in 0.3s ease-in forwards;
+        animation: mobile-panel-in 0.3s ease-in forwards;
     }
 
     &.v-leave-active {
-        animation: panel-out 0.3s ease-out forwards;
+        animation: mobile-panel-out 0.3s ease-out forwards;
     }
 
-    .home-settings &,
-    .accessory-settings & {
-        max-width: 626px;
+    // .terminal {
+    //     max-width: 100%;
+    //     overflow-x: auto;
+    //     -webkit-overflow-scrolling: touch;
+    // }
+}
+
+@media (min-width: map-get($grid-breakpoints, 'sm')) {
+    .settings-window {
+        width: 80%;
+        max-width: 500px;
+        margin-left: auto;
+        margin-right: auto;
+        max-height: 90%;
+        border: darken($light, 20%) 1px solid;
+        border-top-width: 0;
+
+        &.show,
+        &.v-enter-active {
+            animation: panel-in 0.3s ease-in forwards;
+        }
+
+        &.v-leave-active {
+            animation: panel-out 0.3s ease-out forwards;
+        }
+
+        .home-settings &,
+        .accessory-settings & {
+            max-width: 626px;
+        }
     }
 }
 
 .settings-container {
-    padding: 2rem;
+    min-height: calc(100vh + 2px);
+    padding: 1rem;
+
+    @media (max-width: map-get($grid-breakpoints, 'sm') - 1) {
+        padding-bottom: calc(1rem + 78px);
+    }
+
+    @media (min-width: map-get($grid-breakpoints, 'sm')) {
+        padding: 2rem;
+    }
+}
+
+@keyframes mobile-panel-in {
+    0% {
+        margin-top: 100vh;
+    }
+
+    100% {
+        margin-top: 0;
+    }
+}
+
+@keyframes mobile-panel-out {
+    0% {
+        margin-top: 0%;
+    }
+
+    100% {
+        margin-top: 100vh;
+    }
 }
 
 @keyframes panel-in {
