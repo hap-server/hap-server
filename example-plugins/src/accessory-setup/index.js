@@ -1,4 +1,4 @@
-import hapserver, {AccessoryDiscovery, DiscoveredAccessory, AccessorySetup, AccessoryUI, log} from '@hap-server/api';
+import hapserver, {AccessoryDiscovery, DiscoveredAccessory, AccessorySetup, AccessoryUI} from '@hap-server/api';
 import {Accessory} from '@hap-server/api/hap-async';
 
 //
