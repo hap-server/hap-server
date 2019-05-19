@@ -31,12 +31,13 @@
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
 
+    &.show,
     &.v-enter-active {
-        animation: panel-in 0.5s ease-in;
+        animation: panel-in 0.3s ease-in forwards;
     }
 
     &.v-leave-active {
-        animation: panel-out 0.5s ease-out;
+        animation: panel-out 0.3s ease-out forwards;
     }
 
     .home-settings &,
@@ -50,10 +51,6 @@
 }
 
 @keyframes panel-in {
-    0% {
-        margin-top: -90%;
-    }
-
     100% {
         margin-top: 0;
     }
@@ -62,9 +59,5 @@
 @keyframes panel-out {
     0% {
         margin-top: 0;
-    }
-
-    100% {
-        margin-top: -90%;
     }
 }
