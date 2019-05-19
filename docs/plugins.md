@@ -181,6 +181,53 @@ hapserver.registerDynamicAccessoryPlatform('AccessoryBridge', async (accessory_p
 });
 ```
 
+#### `hapserver.registerAccessoryDiscovery`
+
+Registers an accessory discovery handler. All accessory discovery handlers must have an accessory setup handler and
+an accessory UI providing an accessory discovery component.
+
+[See `accessoryui.registerAccessoryDiscoveryComponent`.](#accessoryuiregisteraccessorydiscoverycomponent)
+
+```js
+import hapserver, {AccessoryDiscovery, AccessorySetup} from '@hap-server/api';
+
+const accessory_setup = new AccessorySetup('AccessoryType');
+hapserver.registerAccessorySetup(accessory_setup);
+
+const accessory_discovery = new AccessoryDiscovery(accessory_setup);
+// Or if the accessory discovery handler's name should be different to the accessory setup handler's name:
+// const discovery = new AccessoryDiscovery('AccessoryType', setup);
+
+discovery.onstart = async () => {
+    //
+};
+
+discovery.onstop = async () => {
+    //
+};
+
+hapserver.registerAccessoryDiscovery(accessory_discovery);
+```
+
+#### `hapserver.registerAccessorySetup`
+
+Registers an accessory setup handler. All accessory setup handlers must have an accessory UI providing an accessory
+setup component.
+
+[See `accessoryui.registerAccessorySetupComponent`.](#accessoryuiregisteraccessorysetupcomponent)
+
+```js
+import hapserver, {AccessoryDiscovery, AccessorySetup} from '@hap-server/api';
+
+const accessory_setup = new AccessorySetup('AccessoryType', async data => {
+    // Handle messages from the accessory setup component
+    // This is optional - most accessory setup handlers won't need to ask the server for anything
+    // The returned/thrown value will be sent to the accessory setup component
+});
+
+hapserver.registerAccessorySetup(accessory_setup);
+```
+
 #### `hapserver.registerAccessoryUI`
 
 Registers an Accessory UI object. Accessory UIs should load one or more scripts with `accessory_ui.loadScript` which
@@ -453,11 +500,118 @@ accessoryui.registerCollapsedService(Service.Television, [
 ]);
 ```
 
+#### `accessoryui.registerAccessoryDiscoveryComponent`
+
+Registers an accessory discovery component. This expects the name of an accessory discovery handler and a
+[Vue component](https://vuejs.org/v2/guide/). The Vue component will receive one prop, `discovered-accessory`.
+
+```js
+import pluginapi, {DiscoveredAccessory} from '@hap-server/accessory-ui-api';
+import AccessoryDiscovery from '@hap-server/accessory-ui-api/accessory-discovery';
+
+const AccessoryDiscoveryComponent = {
+    template: `<accessory-discovery :name="discoveredAccessory.name" type="Example accessory" @click="$emit('click')">
+        <p>{{ discoveredAccessory.ip_address }}</p>
+    </accessory-discovery>`,
+    components: {
+        AccessoryDiscovery,
+    },
+    props: {
+        discoveredAccessory: DiscoveredAccessory,
+    },
+};
+
+pluginapi.registerAccessoryDiscoveryComponent('AccessoryType', AccessoryDiscoveryComponent);
+```
+
+#### `accessoryui.registerAccessorySetupComponent`
+
+Registers an accessory setup component. This expects the name of an accessory setup handler, a
+[Vue component](https://vuejs.org/v2/guide/) and an optional object with additional options. The Vue component will
+receive three props, `connection`, `discovered-accessory` and `creating`. The options object can have two properties,
+`name` (a name to display if the accessory setup handler can be used without an accessory discovery handler) and
+`manual` (`true` if the accessory setup handler can be used without an accessory discovery handler).
+
+When the user has configured the accessory/accessory platform the component should emit an `accessory` or
+`accessory-platform` event with the full configuration object (including the `plugin` and `accessory`/`platform`):
+
+```js
+this.$emit('accessory', {
+    // hap-server will generate a UUID for the accessory
+    plugin: 'some-plugin',
+    accessory: 'AccessoryType',
+    name: this.name,
+    ip_address: this.ip_address,
+});
+// Or:
+this.$emit('accessory-platform', {
+    // hap-server will generate a base UUID for the accessory platform
+    plugin: 'some-plugin',
+    platform: 'AccessoryPlatform',
+    name: this.name,
+    ip_address: this.ip_address,
+});
+```
+
+```js
+import pluginapi, {AccessorySetupConnection, DiscoveredAccessory} from '@hap-server/accessory-ui-api';
+
+const AccessorySetupComponent = {
+    template: `<div class="accessory-setup">
+        <!-- If the user selected a discovered accessory -->
+        <template v-if="discoveredAccessory">
+            <p>Data from the accessory discovery handler:</p>
+            <pre>{{ JSON.stringify(discoveredAccessory, null, 4) }}</pre>
+        </template>
+
+        <!-- If the user selected the accessory setup handler from the list of accessory setup handlers -->
+        <template v-else>
+            <!-- Ask for data required to setup the accessory -->
+        </template>
+
+        <div class="d-flex">
+            <div v-if="creating">Saving</div>
+            <div class="flex-fill"></div>
+            <button class="btn btn-default btn-sm" type="button" :disabled="creating"
+                @click="$emit('cancel')">Cancel</button>
+            <button class="btn btn-primary btn-sm" type="button" :disabled="creating"
+                @click="create">Add</button>
+        </div>
+    </div>`,
+    props: {
+        connection: AccessorySetupConnection,
+        discoveredAccessory: DiscoveredAccessory,
+        creating: Boolean,
+    },
+    data() {
+        return {
+            name: null,
+            ip_address: null,
+        };
+    },
+    methods: {
+        create() {
+            this.$emit('accessory', {
+                plugin: 'some-plugin',
+                accessory: 'AccessoryType',
+                name: this.name,
+                ip_address: this.ip_address,
+            });
+        },
+    },
+};
+
+pluginapi.registerAccessorySetupComponent('AccessoryType', AccessorySetupComponent, {
+    name: 'AccessoryType',
+    manual: true,
+});
+```
+
 #### `accessoryui.registerAuthenticationHandlerComponent`
 
 Registers an authentication handler component.
 
-See [`hapserver.registerAuthenticationHandler`](#hapserver-registerauthenticationhandler).
+[See `hapserver.registerAuthenticationHandler`.](#hapserver-registerauthenticationhandler).
 
 ```js
 import accessoryui, {AuthenticationHandlerConnection} from '@hap-server/accessory-ui-api';

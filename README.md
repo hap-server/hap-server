@@ -99,7 +99,8 @@ A lot.
         - [x] Layout sections
         - [x] Basic accessory control
         - [x] Accessory control
-        - [ ] Accessory + accessory platform discovery + setup
+        - [x] Accessory + accessory platform discovery + setup
+            - Discovery + setup UI works but accessories aren't actually created yet.
         - [ ] Accessory + accessory platform configuration
         - [x] Authentication
         - [ ] User management

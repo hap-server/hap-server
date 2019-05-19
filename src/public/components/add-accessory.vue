@@ -16,6 +16,9 @@
         </div>
 
         <template v-else>
+            <!-- TODO: maybe allow accessory platforms to list unconfigured accessories instead of adding new
+                accessories to the accessory platform? -->
+
             <h4 v-if="Object.keys(discovered_accessories).length">Discovered accessories</h4>
             <div v-if="Object.keys(discovered_accessories).length" class="discovered-accessories">
                 <div v-for="da in discovered_accessories" :key="da.id" class="discovered-accessory-wrapper">
