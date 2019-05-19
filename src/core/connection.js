@@ -111,6 +111,7 @@ const message_methods = {
     'set-pairings-data': 'handleSetPairingsDataMessage',
     'get-accessory-uis': 'handleGetAccessoryUIsMessage',
     'authenticate': 'handleAuthenticateMessage',
+    'accessory-setup': 'handleAccessorySetupMessage',
 };
 
 const hide_authentication_keys = [
@@ -1673,9 +1674,20 @@ export default class Connection {
     getAccessoryUIs() {
         return PluginManager.getAccessoryUIs().map(accessory_ui => {
             const plugin_authentication_handlers = {};
-
             for (const [localid, authentication_handler] of accessory_ui.plugin.authentication_handlers.entries()) {
                 plugin_authentication_handlers[localid] = authentication_handler.id;
+            }
+
+            const plugin_accessory_discovery_handlers = {};
+            const plugin_accessory_discovery_handler_setup_handlers = {};
+            for (const [localid, accessory_discovery] of accessory_ui.plugin.accessory_discovery.entries()) {
+                plugin_accessory_discovery_handlers[localid] = accessory_discovery.id;
+                plugin_accessory_discovery_handler_setup_handlers[localid] = accessory_discovery.setup.id;
+            }
+
+            const plugin_accessory_setup_handlers = {};
+            for (const [localid, accessory_setup] of accessory_ui.plugin.accessory_setup.entries()) {
+                plugin_accessory_setup_handlers[localid] = accessory_setup.id;
             }
 
             return {
@@ -1684,6 +1696,9 @@ export default class Connection {
 
                 plugin: accessory_ui.plugin.name,
                 plugin_authentication_handlers,
+                plugin_accessory_discovery_handlers,
+                plugin_accessory_discovery_handler_setup_handlers,
+                plugin_accessory_setup_handlers,
             };
         });
     }
@@ -1703,7 +1718,7 @@ export default class Connection {
                     throw new Error('Unknown authentication handler');
                 }
 
-                const response = await authentication_handler.handleMessage(data.data, this.authenticated_user);
+                const response = await authentication_handler.handleMessage(data.data, this);
 
                 await this.sendAuthenticateResponse(messageid, response);
             } else if (data.token) {
@@ -1721,7 +1736,7 @@ export default class Connection {
                 if (!authentication_handler) throw new Error('Unknown authentication handler');
 
                 const authenticated_user = await authentication_handler.handleResumeSession(token,
-                    session.authenticated_user);
+                    session.authenticated_user, this);
 
                 await this.sendAuthenticateResponse(messageid, authenticated_user);
             } else if (data.cli_token) {
@@ -1768,7 +1783,7 @@ export default class Connection {
 
             try {
                 if (this.authenticated_user) {
-                    this.authenticated_user.authentication_handler.handleReauthenticate(this.authenticated_user);
+                    this.authenticated_user.authentication_handler.handleReauthenticate(this.authenticated_user, this);
                 }
             } catch (err) {
                 this.log.error('Error in reauthenticate handler', err);
@@ -1790,6 +1805,33 @@ export default class Connection {
             success: false,
             data: response,
         });
+    }
+
+    async handleAccessorySetupMessage(messageid, data) {
+        try {
+            const accessory_setup = PluginManager.getAccessorySetupHandler(data.accessory_setup_id);
+
+            this.log.info('Received accessory setup message', messageid, data, accessory_setup);
+
+            if (!accessory_setup) {
+                throw new Error('Unknown accessory setup handler');
+            }
+
+            const response = await accessory_setup.handleMessage(data.data, this);
+
+            return this.respond(messageid, {
+                data: response,
+            });
+        } catch (err) {
+            this.log.error('Error in accessory setup handler', err);
+
+            this.respond(messageid, {
+                reject: true,
+                error: err instanceof Error,
+                constructor: err.constructor.name,
+                data: err instanceof Error ? {message: err.message, code: err.code, stack: err.stack} : err,
+            });
+        }
     }
 }
 

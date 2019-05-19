@@ -7,7 +7,10 @@ for (const file of contextRequire.keys()) {
 
     if (!accessory_discovery.hasOwnProperty('id')) continue;
 
-    accessory_discovery_components.set(accessory_discovery.id, accessory_discovery.default);
+    accessory_discovery_components.set(accessory_discovery.id, {
+        component: accessory_discovery.default,
+        setup_handler: accessory_discovery.setup_handler,
+    });
 
     console.log('Accessory discovery', file, accessory_discovery);
 }

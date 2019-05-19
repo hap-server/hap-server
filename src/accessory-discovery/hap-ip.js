@@ -3,6 +3,8 @@ import Logger from '../core/logger';
 import {AccessoryDiscovery, DiscoveredAccessory} from '../core/plugins';
 import {IPDiscovery} from 'hap-controller';
 
+import setup from '../accessory-setup/hap-ip';
+
 const log = new Logger('HAP IP Discovery');
 
 export const HAPIPDiscovery = AccessoryDiscovery.withHandler(accessory_discovery => {
@@ -19,8 +21,6 @@ export const HAPIPDiscovery = AccessoryDiscovery.withHandler(accessory_discovery
         // TODO: ignore if already paired
 
         accessory_discovery.addAccessory(accessories[service.id] = new DiscoveredAccessory(/* plugin */ null, {
-            transport: 'ip',
-
             username: service.id,
             name: service.name,
             address: service.address,
@@ -44,4 +44,4 @@ export const HAPIPDiscovery = AccessoryDiscovery.withHandler(accessory_discovery
     discovery.stop();
 });
 
-export default new HAPIPDiscovery();
+export default new HAPIPDiscovery(null, 'HAPIP', setup);

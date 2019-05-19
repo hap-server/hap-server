@@ -303,6 +303,18 @@ export class PluginManager {
             plugin.getAccessoryDiscoveryHandlers(include_disabled) : []).reduce((acc, val) => acc.concat(val), []);
     }
 
+    getAccessorySetupHandler(id, include_disabled) {
+        for (const plugin of this.plugins) {
+            if (!plugin.enabled && !include_disabled) continue;
+
+            for (const accessory_setup of plugin.accessory_setup.values()) {
+                if (!accessory_setup.enabled && !include_disabled) continue;
+
+                if (accessory_setup.id === id) return accessory_setup;
+            }
+        }
+    }
+
     getAuthenticationHandlers(include_disabled) {
         return this.plugins.map(plugin => plugin.enabled || include_disabled ?
             plugin.getAuthenticationHandlers() : []).reduce((acc, val) => acc.concat(val), []);
@@ -332,7 +344,7 @@ export class Plugin {
         this.accessories = new Map();
         this.accessory_platforms = new Map();
         this.accessory_ui = new Set();
-        this.accessory_discovery = new Set();
+        this.accessory_discovery = new Map();
         this.accessory_setup = new Map();
         this.authentication_handlers = new Map();
         this.automation_triggers = new Map();
@@ -428,12 +440,24 @@ export class Plugin {
     }
 
     getAccessoryDiscoveryHandlers(include_disabled) {
-        return [...this.accessory_discovery].filter(discovery => discovery.enabled || include_disabled);
+        return [...this.accessory_discovery.values()].filter(discovery => discovery.enabled || include_disabled);
     }
 
-    registerAccessoryDiscovery(handler, stop_handler) {
-        if (typeof handler === 'function' && typeof stop_handler === 'function') {
-            handler = new (AccessoryDiscovery.withHandler(handler, stop_handler))(this);
+    registerAccessoryDiscovery(name, handler, start_handler, stop_handler) {
+        if (handler instanceof AccessorySetup && typeof start_handler === 'function' &&
+            typeof stop_handler === 'function'
+        ) {
+            handler = new (AccessoryDiscovery.withHandler(start_handler, stop_handler))(this, name, handler);
+        }
+
+        if (name instanceof AccessoryDiscovery) {
+            handler = name;
+            name = handler.localid;
+        }
+
+        if (this.accessory_discovery.has(name)) {
+            throw new Error(this.name + ' has already registered an accessory discovery handler with the name "' +
+                name + '".');
         }
 
         if (!(handler instanceof AccessoryDiscovery)) {
@@ -442,7 +466,7 @@ export class Plugin {
 
         log.info('Registering accessory discovery handler from plugin', this.name);
 
-        this.accessory_discovery.add(handler);
+        this.accessory_discovery.set(name, handler);
     }
 
     getAccessorySetupHandlers(include_disabled) {
@@ -454,24 +478,19 @@ export class Plugin {
         return this.accessory_setup.get(name);
     }
 
-    registerAccessorySetup(name, handler) {
-        if (name.prototype instanceof AccessorySetup && !handler) {
-            handler = name;
-            name = handler.name;
+    registerAccessorySetup(handler) {
+        if (!(handler instanceof AccessorySetup)) {
+            throw new Error('handler must be an AccessorySetup object');
         }
 
-        if (!(handler.prototype instanceof AccessorySetup)) {
-            throw new Error('handler must be a class that extends AccessorySetup');
-        }
-
-        if (this.accessory_setup.has(name)) {
+        if (this.accessory_setup.has(handler.localid)) {
             throw new Error(this.name + ' has already registered an accessory setup handler with the name "' +
-                name + '".');
+                handler.localid + '".');
         }
 
-        log.info('Registering accessory setup handler', name, 'from plugin', this.name);
+        log.info('Registering accessory setup handler from plugin', this.name);
 
-        this.accessory_setup.set(name, handler);
+        this.accessory_setup.set(handler.localid, handler);
     }
 
     getAuthenticationHandlers(include_disabled) {
@@ -778,10 +797,21 @@ export class AccessoryUI {
 AccessoryUI.id = 0;
 
 export class AccessoryDiscovery extends EventEmitter {
-    constructor(plugin) {
+    constructor(plugin, localid, setup) {
+        if (localid instanceof AccessorySetup) {
+            setup = localid;
+            localid = setup.localid;
+        }
+
+        if (!(setup instanceof AccessorySetup)) {
+            throw new Error('setup must be an AccessorySetup object');
+        }
+
         super();
 
         Object.defineProperty(this, 'plugin', {value: plugin});
+        Object.defineProperty(this, 'localid', {value: localid});
+        Object.defineProperty(this, 'setup', {value: setup});
         Object.defineProperty(this, 'id', {value: AccessoryDiscovery.id++});
         Object.defineProperty(this, 'discovered_accessories', {value: []});
 
@@ -934,10 +964,31 @@ export class DiscoveredAccessory {
 DiscoveredAccessory.id = 0;
 
 export class AccessorySetup {
-    constructor(plugin) {
+    constructor(plugin, name, handler) {
         Object.defineProperty(this, 'plugin', {value: plugin});
+        Object.defineProperty(this, 'id', {value: AccessorySetup.id++});
+        Object.defineProperty(this, 'localid', {value: name});
+
+        this.handler = handler;
+    }
+
+    get enabled() {
+        return true;
+    }
+
+    /**
+     * @param {*} data
+     * @param {Connection} connection
+     * @return {Promise}
+     */
+    async handleMessage(data, connection) {
+        if (!this.handler) return;
+
+        return this.handler.call(this, data);
     }
 }
+
+AccessorySetup.id = 0;
 
 export class AuthenticationHandler {
     constructor(plugin, localid, handler, disconnect_handler) {
@@ -982,7 +1033,12 @@ export class AuthenticationHandler {
         return true;
     }
 
-    async handleMessage(data) {
+    /**
+     * @param {*} data
+     * @param {Connection} connection
+     * @return {Promise}
+     */
+    async handleMessage(data, connection) {
         const response = await this.handler.call(this, data);
 
         if (response instanceof AuthenticatedUser) {
@@ -999,10 +1055,11 @@ export class AuthenticationHandler {
 
     /**
      * @param {string} token
-     * @param {Object} data
+     * @param {object} data
+     * @param {Connection} connection
      * @return {Promise<AuthenticatedUser>}
      */
-    handleResumeSession(token, data) {
+    handleResumeSession(token, data, connection) {
         if (this.reconnect_handler) return this.reconnect_handler.call(this, data);
 
         const authenticated_user = new AuthenticatedUser(this.plugin, data.id, data.name, this);
@@ -1017,16 +1074,24 @@ export class AuthenticationHandler {
         return authenticated_user;
     }
 
-    handleReauthenticate(authenticated_user) {
+    /**
+     * @param {AuthenticatedUser} authenticated_user
+     * @param {Connection} connection
+     */
+    handleReauthenticate(authenticated_user, connection) {
         if (!this.disconnect_handler) return;
 
-        return this.disconnect_handler.call(this, authenticated_user, false);
+        this.disconnect_handler.call(this, authenticated_user, false);
     }
 
-    handleDisconnect(authenticated_user) {
+    /**
+     * @param {AuthenticatedUser} authenticated_user
+     * @param {Connection} connection
+     */
+    handleDisconnect(authenticated_user, connection) {
         if (!this.disconnect_handler) return;
 
-        return this.disconnect_handler.call(this, authenticated_user, true);
+        this.disconnect_handler.call(this, authenticated_user, true);
     }
 }
 

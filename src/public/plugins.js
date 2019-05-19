@@ -12,7 +12,7 @@ import Service, {
 } from './service';
 import Characteristic from './characteristic';
 
-import {AuthenticationHandlerConnection, AuthenticatedUser} from '../common/connection';
+import {AuthenticationHandlerConnection, AuthenticatedUser, AccessorySetupConnection} from '../common/connection';
 
 import {instances as main_component_instances} from './components/main-component.vue';
 import service_components from './components/services';
@@ -23,10 +23,14 @@ import icon_component_modules from './components/icons';
 import authentication_handler_components from './components/authentication-handlers';
 import layout_section_components from './components/layout-sections';
 import * as layout_section_component_module from './components/layout-section.vue';
+import accessory_discovery_components from './components/accessory-discovery';
+import * as accessory_discovery_component_module from './components/accessory-discovery/accessory-discovery.vue';
+import accessory_setup_components from './components/accessory-setup';
 import * as sortable_component_module from './components/sortable.vue';
 import * as vue_color_chrome_module from 'vue-color/src/components/Chrome.vue';
 import * as vue_color_swatches_module from 'vue-color/src/components/Swatches.vue';
 import * as vue_color_sketch_module from 'vue-color/src/components/Sketch.vue';
+import {DiscoveredAccessory} from './components/add-accessory.vue';
 
 import {
     trigger_components as automation_trigger_components,
@@ -93,6 +97,8 @@ export class PluginManager {
             return accessory_details_component_module;
         } else if (request === '@hap-server/accessory-ui-api/layout-section') {
             return layout_section_component_module;
+        } else if (request === '@hap-server/accessory-ui-api/accessory-discovery') {
+            return accessory_discovery_component_module;
         } else if (request === '@hap-server/accessory-ui-api/sortable') {
             return sortable_component_module;
         } else if (request.startsWith('@hap-server/accessory-ui-api/icons/') &&
@@ -239,6 +245,9 @@ export class PluginManager {
             AuthenticationHandlerConnection,
             AuthenticatedUser,
 
+            AccessorySetupConnection,
+            DiscoveredAccessory,
+
             // Expose Service and Characteristic for the default UUIDs
             Service,
             Characteristic,
@@ -352,6 +361,67 @@ export class PluginAPI {
         collapsed_services[type] = collapsed_service_types;
 
         this.refreshDisplayServices();
+    }
+
+    /**
+     * Registers an accessory discovery component.
+     *
+     * @param {string} localid
+     * @param {VueComponent} component
+     */
+    registerAccessoryDiscoveryComponent(localid, component) {
+        const id = this.accessory_ui.plugin_accessory_discovery_handlers[localid];
+        const setup_handler = this.accessory_ui.plugin_accessory_discovery_handler_setup_handlers[localid];
+
+        if (typeof id === 'undefined') {
+            throw new Error('Unknown accessory discovery handler "' + localid + '"');
+        }
+        if (typeof setup_handler === 'undefined') {
+            throw new Error('Unknown accessory setup handler for accessory discovery handler "' + localid + '"');
+        }
+
+        if (accessory_discovery_components.has(id)) {
+            throw new Error('There is already an accessory discovery component with the ID "' + localid +
+                '" (global ID of "' + id + '")');
+        }
+
+        if (!name) name = localid;
+
+        if (!component.name) {
+            component.name = 'accessory-discovery-' + localid;
+        }
+
+        accessory_discovery_components.set(id, {component, setup_handler});
+    }
+
+    /**
+     * Registers an accessory setup component.
+     *
+     * @param {string} localid
+     * @param {VueComponent} component
+     * @param {object} [options]
+     * @param {string} [options.name]
+     * @param {boolean} [options.manual]
+     */
+    registerAccessorySetupComponent(localid, component, options) {
+        const id = this.accessory_ui.plugin_accessory_setup_handlers[localid];
+        const name = options && options.name || localid;
+        const manual = options && options.manual || false;
+
+        if (typeof id === 'undefined') {
+            throw new Error('Unknown accessory setup handler "' + localid + '"');
+        }
+
+        if (accessory_setup_components.has(id)) {
+            throw new Error('There is already an accessory setup component with the ID "' + localid +
+                '" (global ID of "' + id + '")');
+        }
+
+        if (!component.name) {
+            component.name = 'accessory-setup-' + localid;
+        }
+
+        accessory_setup_components.set(id, {component, name, manual});
     }
 
     /**

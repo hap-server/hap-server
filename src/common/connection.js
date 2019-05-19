@@ -650,3 +650,36 @@ export class AuthenticatedUser {
         Object.defineProperty(this, 'id', {value: id});
     }
 }
+
+export class AccessorySetupConnection {
+    constructor(connection, accessory_setup_id) {
+        Object.defineProperty(this, 'connection', {value: connection});
+        Object.defineProperty(this, 'accessory_setup_id', {value: accessory_setup_id});
+    }
+
+    /**
+     * Send data to an accessory setup handler on the server.
+     *
+     * @param {*} data
+     * @return {Promise<*>}
+     */
+    async send(data) {
+        const response = await this.connection.send({
+            type: 'accessory-setup',
+            accessory_setup_id: this.accessory_setup_id,
+            data,
+        });
+
+        if (response.reject) {
+            if (response.error) {
+                const error = new (global[response.constructor] || Error)(response.data.message);
+                error.code = response.data.code;
+                throw error;
+            }
+
+            throw response.data;
+        }
+
+        return response.data;
+    }
+}

@@ -75,7 +75,7 @@ export function getConfig(argv) {
 }
 
 export async function connect(argv) {
-    const Connection = require('./common/connection').default;
+    const Connection = require('../common/connection').default;
     const WebSocket = require('ws');
 
     const [config, config_path, data_path] = await getConfig(argv);

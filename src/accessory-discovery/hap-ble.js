@@ -3,6 +3,8 @@ import Logger from '../core/logger';
 import {AccessoryDiscovery, DiscoveredAccessory} from '../core/plugins';
 import {BLEDiscovery} from 'hap-controller';
 
+import setup from '../accessory-setup/hap-ble';
+
 const log = new Logger('HAP BLE Discovery');
 
 export const HAPBLEDiscovery = AccessoryDiscovery.withHandler(accessory_discovery => {
@@ -19,8 +21,6 @@ export const HAPBLEDiscovery = AccessoryDiscovery.withHandler(accessory_discover
         // TODO: ignore if already paired
 
         accessory_discovery.addAccessory(accessories[service.DeviceID] = new DiscoveredAccessory(/* plugin */ null, {
-            transport: 'ble',
-
             username: service.DeviceID,
             name: service.name,
         }));
@@ -42,4 +42,4 @@ export const HAPBLEDiscovery = AccessoryDiscovery.withHandler(accessory_discover
     discovery.stop();
 });
 
-export default new HAPBLEDiscovery();
+export default new HAPBLEDiscovery(null, 'HAPBLE', setup);
