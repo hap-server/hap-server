@@ -599,7 +599,6 @@ export class AccessoryPlatform {
         Object.defineProperty(this, 'config', {value: Object.freeze(config)});
         Object.defineProperty(this, 'accessories', {value: []});
         Object.defineProperty(this, 'cached_accessories', {value: cached_accessories});
-        Object.defineProperty(this, 'characteristic_change_handlers', {value: new WeakMap()});
     }
 
     static withHandler(handler) {
@@ -642,34 +641,12 @@ export class AccessoryPlatform {
      */
     addAccessory(...accessories) {
         for (const accessory of accessories) {
-            // eslint-disable-next-line curly
-            if (this.server.accessories.find(a => a.uuid === accessory.UUID)) throw new Error('Already have an' +
-                ' accessory with the UUID "' + accessory.UUID + '"');
-
-            const prev_characteristic_change_handler = this.characteristic_change_handlers.get(accessory);
-            if (prev_characteristic_change_handler) {
-                accessory.removeListener('service-characteristic-change', prev_characteristic_change_handler);
-            }
-
-            const characteristic_change_handler = this.server._handleCharacteristicUpdate.bind(this.server, accessory);
-            this.characteristic_change_handlers.set(accessory, characteristic_change_handler);
-            accessory.on('service-characteristic-change', characteristic_change_handler);
-
             const plugin_accessory = new PluginAccessoryPlatformAccessory(this.server, accessory, this.plugin,
                 this.constructor.name, this.config.uuid);
 
+            this.server.addAccessory(plugin_accessory);
             this.removeCachedAccessory(accessory.UUID);
-
             this.accessories.push(plugin_accessory);
-            this.server.accessories.push(plugin_accessory);
-
-            for (const bridge of this.server.bridges.filter(bridge => bridge.accessory_uuids.find(accessory_uuid =>
-                accessory_uuid instanceof Array ? accessory_uuid[0] === this.plugin ? this.plugin.name : null &&
-                    accessory_uuid[1] === this.constructor.name && accessory_uuid[2] === accessory.displayName :
-                    accessory_uuid === accessory.UUID
-            ))) {
-                bridge.addAccessory(accessory);
-            }
         }
     }
 
@@ -680,23 +657,10 @@ export class AccessoryPlatform {
      */
     removeAccessory(...accessories) {
         for (const accessory of accessories) {
-            const characteristic_change_handler = this.characteristic_change_handlers.get(accessory);
-            if (characteristic_change_handler) {
-                accessory.removeListener('service-characteristic-change', this.server.__handleCharacteristicUpdate);
-            }
-
             let index;
             while ((index = this.accessories.findIndex(a => a.uuid === accessory.UUID)) !== -1) {
+                this.server.removeAccessory(this.accessories[index]);
                 this.accessories.splice(index, 1);
-            }
-            while ((index = this.server.accessories.findIndex(a => a.uuid === accessory.UUID)) !== -1) {
-                this.server.accessories.splice(index, 1);
-            }
-
-            for (const bridge of this.server.bridges) {
-                if (!bridge.bridge.bridgedAccessories.find(a => a.UUID === accessory.UUID)) continue;
-
-                bridge.removeAccessory(accessory);
             }
         }
     }

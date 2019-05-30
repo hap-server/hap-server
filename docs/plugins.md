@@ -93,6 +93,15 @@ hapserver.registerAccessory('AccessoryType', config => {
 });
 ```
 
+Most plugins will need to listen to the `destroy` event to disconnect from the accessory it it's removed from the
+server.
+
+```js
+accessory.on('destroy', () => {
+    // ...
+});
+```
+
 #### `hapserver.registerAccessoryPlatform`
 
 Registers an accessory platform. An accessory platform is similar to a HomeKit bridge as it provides multiple

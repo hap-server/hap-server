@@ -10,7 +10,7 @@ import {User as HomebridgeUser} from 'homebridge/lib/user';
 import HomebridgeLogger from 'homebridge/lib/logger';
 import hap from 'hap-nodejs';
 
-import {Server, PluginManager, Logger, forceColourLogs} from '..';
+import {Events, Server, PluginManager, Logger, forceColourLogs} from '..';
 import {getConfig, log} from '.';
 
 const randomBytes = util.promisify(crypto.randomBytes);
@@ -215,6 +215,14 @@ export async function handler(argv) {
     log.info('Saving cached accessories');
     await server.saveCachedAccessories();
 
+    function saveCachedAccessories(event) {
+        log.info('Saving cached accessories');
+        await server.saveCachedAccessories();
+    }
+    server.on(Events.AddAccessoryEvent, saveCachedAccessories);
+    server.on(Events.UpdateAccessoryConfigurationEvent, saveCachedAccessories);
+    server.on(Events.RemoveAccessoryEvent, saveCachedAccessories);
+
     log.info('Starting automations');
     await server.loadAutomationsFromConfig();
     await server.loadAutomationsFromStorage();
@@ -265,6 +273,10 @@ export async function handler(argv) {
 
                 new Promise((rs, rj) => server.wss.close(err => err ? rj(err) : rs())),
             ]);
+
+            server.removeListener(Events.AddAccessoryEvent, saveCachedAccessories);
+            server.removeListener(Events.UpdateAccessoryConfigurationEvent, saveCachedAccessories);
+            server.removeListener(Events.RemoveAccessoryEvent, saveCachedAccessories);
 
             server.unpublish();
             http_server.close();

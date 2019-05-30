@@ -114,10 +114,18 @@ export default class Server extends Events {
 
         this.handle = this.handle.bind(this);
         this.upgrade = this.upgrade.bind(this);
+
+        this.characteristic_change_handlers = new WeakMap();
         this._handleCharacteristicUpdate = (default_accessory, event) => {
             // this.log.info('Updating characteristic', event);
             this.handleCharacteristicUpdate(event.accessory || default_accessory, event.service,
                 event.characteristic, event.newValue, event.oldValue, event.context);
+        };
+
+        this.configuration_change_handlers = new WeakMap();
+        this._handleConfigurationChange = (default_accessory, event) => {
+            this.log.debug('Updating accessory configuration', event);
+            this.handleConfigurationChange(event.accessory || default_accessory, event.service, event.characteristic);
         };
 
         this._handleRegisterHomebridgePlatformAccessories = this.handleRegisterHomebridgePlatformAccessories.bind(this);
@@ -177,6 +185,16 @@ export default class Server extends Events {
 
         console.log = wrapConsoleFn(console_log, 'stdout');
         console.error = wrapConsoleFn(console_error, 'stderr');
+    }
+
+    async destroy() {
+        throw new Error('Not implemented');
+
+        this.destructor();
+    }
+
+    destructor() {
+        // Server.instances.remove(this);
     }
 
     loadBridgesFromConfig() {
@@ -303,17 +321,7 @@ export default class Server extends Events {
         for (const accessory of this.homebridge.bridge.bridgedAccessories) {
             const plugin_accessory = new HomebridgeAccessory(this, accessory);
 
-            this.removeCachedAccessory(accessory.UUID);
-
-            this.accessories.push(plugin_accessory);
-
-            for (const bridge of this.bridges.filter(bridge => bridge.accessory_uuids.find(accessory_uuid =>
-                accessory_uuid instanceof Array ? accessory_uuid[0] === 'homebridge' &&
-                    accessory_uuid[1] === null && accessory_uuid[2] === accessory.displayName :
-                    accessory_uuid === accessory.UUID
-            ))) {
-                bridge.addAccessory(accessory);
-            }
+            this.addAccessory(plugin_accessory);
         }
 
         this.homebridge.homebridge._api
@@ -327,19 +335,9 @@ export default class Server extends Events {
             const accessory = platform_accessory._associatedHAPAccessory;
             if (!accessory) continue;
 
-            const plugin_accessory = new HomebridgeAccessory(this, accessory);
+            const plugin_accessory = new HomebridgeAccessory(this, accessory, platform_accessory);
 
-            this.removeCachedAccessory(accessory.UUID);
-
-            this.accessories.push(plugin_accessory);
-
-            for (const bridge of this.bridges.filter(bridge => bridge.accessory_uuids.find(accessory_uuid =>
-                accessory_uuid instanceof Array ? accessory_uuid[0] === 'homebridge' &&
-                    accessory_uuid[1] === null && accessory_uuid[2] === accessory.displayName :
-                    accessory_uuid === accessory.UUID
-            ))) {
-                bridge.addAccessory(accessory);
-            }
+            this.addAccessory(plugin_accessory);
         }
     }
 
@@ -348,15 +346,10 @@ export default class Server extends Events {
             const accessory = platform_accessory._associatedHAPAccessory;
             if (!accessory) continue;
 
-            while ((index = this.server.accessories.findIndex(a => a.uuid === accessory.UUID)) !== -1) {
-                this.accessories.splice(index, 1);
-            }
+            const plugin_accessory = this.accessories.find(a => a instanceof HomebridgeAccessory &&
+                (a.platform_accessory === platform_accessory || a.uuid === accessory.UUID));
 
-            for (const bridge of this.bridges) {
-                if (!bridge.bridge.bridgedAccessories.find(a => a.UUID === accessory.UUID)) continue;
-
-                bridge.removeAccessory(accessory);
-            }
+            this.removeAccessory(plugin_accessory);
         }
     }
 
@@ -441,6 +434,83 @@ export default class Server extends Events {
         await this.storage.setItem('CachedAccessories', cached_accessories);
     }
 
+    /**
+     * Adds a accessory.
+     *
+     * @param {PluginAccessory} plugin_accessory
+     */
+    addAccessory(plugin_accessory) {
+        // eslint-disable-next-line curly
+        if (this.accessories.find(a => a.uuid === plugin_accessory.uuid)) throw new Error('Already have an' +
+            ' accessory with the UUID "' + plugin_accessory.uuid + '"');
+
+        plugin_accessory.accessory.bridges = true;
+
+        const prev_characteristic_change_handler = this.characteristic_change_handlers.get(accessory);
+        if (prev_characteristic_change_handler) {
+            accessory.removeListener('service-characteristic-change', prev_characteristic_change_handler);
+        }
+        const characteristic_change_handler = this.server._handleCharacteristicUpdate.bind(this.server, accessory);
+        this.characteristic_change_handlers.set(accessory, characteristic_change_handler);
+        accessory.on('service-characteristic-change', characteristic_change_handler);
+
+        const prev_configuration_change_handler = this.configuration_change_handlers.get(accessory);
+        if (prev_configuration_change_handler) {
+            accessory.removeListener('service-configurationChange', prev_configuration_change_handler);
+        }
+        const configuration_change_handler = this.server._handleConfigurationChange.bind(this.server, accessory);
+        this.configuration_change_handlers.set(accessory, configuration_change_handler);
+        accessory.on('service-configurationChange', configuration_change_handler);
+
+        this.removeCachedAccessory(plugin_accessory.uuid);
+
+        this.accessories.push(plugin_accessory);
+
+        for (const bridge of this.bridges.filter(bridge => bridge.accessory_uuids.find(accessory_uuid =>
+            accessory_uuid instanceof Array ? accessory_uuid[0] === (plugin_accessory.plugin ?
+                    plugin_accessory.plugin.name : plugin_accessory instanceof HomebridgeAccessory ?
+                        'homebridge' : null) &&
+                accessory_uuid[1] === (plugin_accessory instanceof PluginStandaloneAccessory ?
+                    plugin_accessory.accessory_type : plugin_accessory instanceof PluginAccessoryPlatformAccessory ?
+                    plugin_accessory.accessory_platform : null) &&
+                accessory_uuid[2] === plugin_accessory.accessory.displayName :
+                accessory_uuid === plugin_accessory.uuid
+        ))) {
+            bridge.addAccessory(plugin_accessory.accessory);
+        }
+
+        this.emit(Events.AddAccessoryEvent, this, plugin_accessory);
+    }
+
+    /**
+     * Removes an accessory.
+     *
+     * @param {PluginAccessory} plugin_accessory
+     */
+    removeAccessory(plugin_accessory) {
+        const characteristic_change_handler = this.characteristic_change_handlers.get(plugin_accessory.accessory);
+        if (characteristic_change_handler) {
+            plugin_accessory.accessory.removeListener('service-characteristic-change', this.server.__handleCharacteristicUpdate);
+        }
+        const configuration_change_handler = this.configuration_change_handlers.get(plugin_accessory.accessory);
+        if (configuration_change_handler) {
+            plugin_accessory.accessory.removeListener('service-configurationChange', configuration_change_handler);
+        }
+
+        let index;
+        while ((index = this.accessories.findIndex(a => a.uuid === plugin_accessory.uuid)) !== -1) {
+            this.accessories.splice(index, 1);
+        }
+
+        for (const bridge of this.bridges) {
+            if (!bridge.bridge.bridgedAccessories.find(a => a.UUID === plugin_accessory.uuid)) continue;
+
+            bridge.removeAccessory(plugin_accessory.accessory);
+        }
+
+        this.emit(Events.RemoveAccessoryEvent, this, plugin_accessory);
+    }
+
     async loadAccessoriesFromConfig() {
         await this.loadAccessories(this.config.accessories2 || [], true);
     }
@@ -479,29 +549,10 @@ export default class Server extends Events {
         const accessory = await accessory_handler.call(plugin, accessory_config,
             cached_accessory ? cached_accessory.accessory : undefined);
 
-        accessory.on('service-characteristic-change', event => {
-            this.handleCharacteristicUpdate(event.accessory || accessory, event.service,
-                event.characteristic, event.newValue, event.oldValue, event.context);
-        });
-
-        // eslint-disable-next-line curly
-        if (this.accessories.find(a => a.uuid === accessory.UUID)) throw new Error('Already have an accessory with' +
-            ' the UUID "' + accessory.UUID + '"');
-
         const plugin_accessory = new PluginStandaloneAccessory(this, accessory, plugin, accessory_type,
             accessory_config.uuid);
 
-        this.removeCachedAccessory(accessory.UUID);
-
-        this.accessories.push(plugin_accessory);
-
-        for (const bridge of this.bridges.filter(bridge => bridge.accessory_uuids.find(accessory_uuid =>
-            accessory_uuid instanceof Array ? accessory_uuid[0] === plugin_name &&
-                accessory_uuid[1] === accessory_type && accessory_uuid[2] === name :
-                accessory_uuid === accessory_config.uuid
-        ))) {
-            bridge.addAccessory(accessory);
-        }
+        this.addAccessory(plugin_accessory);
     }
 
     async loadAccessoryPlatformsFromConfig() {
@@ -1188,6 +1239,19 @@ export default class Server extends Events {
     }
 
     /**
+     * Handle an accessory configuration change.
+     *
+     * @param {Accessory} accessory
+     * @param {Service} service
+     * @param {Characteristic} characteristic
+     */
+    handleConfigurationChange(accessory, service, characteristic) {
+        this.emit(Events.UpdateAccessoryConfigurationEvent, this, accessory, service, characteristic);
+
+        // ...
+    }
+
+    /**
      * Handle changes to a HAP server's pairings.
      *
      * @param {Bridge} bridge
@@ -1243,6 +1307,14 @@ export class PluginAccessory {
 
     get uuid() {
         return this.accessory.UUID;
+    }
+
+    destroy() {
+        if (this.accessory.listenerCount('destroy') <= 0) {
+            this.server.log.warn('Accessory %s doesn\'t have a destory handler', this.uuid);
+        }
+
+        this.accessory.emit('destroy');
     }
 
     /**
@@ -1364,7 +1436,9 @@ export class PluginAccessoryPlatformAccessory extends PluginAccessory {
 }
 
 export class HomebridgeAccessory extends PluginAccessory {
-    constructor(server, accessory) {
+    constructor(server, accessory, platform_accessory) {
         super(server, accessory, null);
+
+        Object.defineProperty(this, 'platform_accessory', {value: platform_accessory});
     }
 }

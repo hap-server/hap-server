@@ -198,5 +198,6 @@ export default class Events extends EventEmitter {
 }
 
 // Use require instead of import so this isn't hoisted and run before the Event class is defined
+require('./accessories');
 require('./automation-trigger');
 require('./characteristic-update');

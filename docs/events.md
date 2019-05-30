@@ -168,3 +168,65 @@ The `AutomationTrigger` that emitted this event.
 #### `AutomationTriggerEvent.prototype.context`
 
 The `context` object passed to `AutomationTrigger.prototype.trigger`.
+
+### `AddAccessoryEvent`
+
+Emitted when an accessory is added to a server.
+
+- `Server`
+    - `events`
+
+#### `AddAccessoryEvent.prototype.server`
+
+The `Server` the accessory was added to.
+
+#### `AddAccessoryEvent.prototype.plugin_accessory`
+
+The `PluginAccessory` added to the server.
+
+#### `AddAccessoryEvent.prototype.accessory`
+
+The `Accessory` added to the server.
+
+### `RemoveAccessoryEvent`
+
+Emitted when an accessory is removed from a server.
+
+- `Server`
+    - `events`
+
+#### `RemoveAccessoryEvent.prototype.server`
+
+The `Server` the accessory was removed from.
+
+#### `RemoveAccessoryEvent.prototype.plugin_accessory`
+
+The `PluginAccessory` removed from the server.
+
+#### `RemoveccessoryEvent.prototype.accessory`
+
+The `Accessory` removed from the server.
+
+### `UpdateAccessoryConfigurationEvent`
+
+Emitted when an accessory's configuration is changed (a service is added an accessory, a characteristic is added to
+a service or a characteristic's props (not value) is changed).
+
+- `Server`
+    - `events`
+
+#### `AddAccessoryEvent.prototype.server`
+
+The `Server` containing the accessory/service/characteristic that changed.
+
+#### `AddAccessoryEvent.prototype.accessory`
+
+The `Accessory` that was updated.
+
+#### `AddAccessoryEvent.prototype.service`
+
+The `Service` that was updated/added/removed.
+
+#### `AddAccessoryEvent.prototype.characteristic`
+
+The `Characteristic` that was updated/added/removed.
