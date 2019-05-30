@@ -1,6 +1,6 @@
 import EventEmitter from 'events';
 
-import Vue from 'vue';
+import {$set, $delete} from './client';
 
 export default class Layout extends EventEmitter {
     /**
@@ -87,7 +87,7 @@ export default class Layout extends EventEmitter {
         const section = new LayoutSection(this, uuid, data || {});
 
         // Use Vue.set so Vue updates properly
-        Vue.set(this.sections, uuid, section);
+        $set(this.sections, uuid, section);
 
         if (typeof index !== 'undefined') {
             const sections_order = this.layout && this.layout.sections_order || [];
@@ -102,7 +102,7 @@ export default class Layout extends EventEmitter {
 
     _handleNewLayoutSection(uuid, data) {
         // Use Vue.set so Vue updates properly
-        Vue.set(this.sections, uuid, new LayoutSection(this, uuid, data || {}));
+        $set(this.sections, uuid, new LayoutSection(this, uuid, data || {}));
     }
 
     /**
@@ -113,12 +113,12 @@ export default class Layout extends EventEmitter {
      */
     async deleteSection(section) {
         await this.connection.deleteLayoutSection(this.uuid, section.uuid);
-        Vue.delete(this.sections, section.uuid);
+        $delete(this.sections, section.uuid);
     }
 
     _handleRemoveLayoutSection(uuid) {
         // Use Vue.set so Vue updates properly
-        Vue.delete(this.sections, uuid);
+        $delete(this.sections, uuid);
     }
 }
 

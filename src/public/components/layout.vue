@@ -65,8 +65,8 @@
 
 <script>
     import Connection from '../../common/connection';
-    import Layout, {LayoutSection} from '../layout';
-    import Service from '../service';
+    import Layout, {LayoutSection} from '../../common/layout';
+    import Service from '../../common/service';
     import {
         GetAllDisplayServicesSymbol, GetServiceSymbol, LayoutSymbol, LayoutAddSectionSymbol,
         LayoutRemoveSectionSymbol, LayoutGetEditingSymbol, LayoutGetCanEditSymbol, LayoutSetEditingSymbol,

@@ -9,7 +9,7 @@
 </template>
 
 <script>
-    import Service from '../../service';
+    import Service from '../../../common/service';
     import ServiceComponent from './service.vue';
     import TelevisionIcon from '../icons/television.vue';
 

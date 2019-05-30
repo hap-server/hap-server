@@ -1,7 +1,6 @@
 import EventEmitter from 'events';
 
-import Vue from 'vue';
-
+import {$set, $delete} from './client';
 import Accessory from './accessory';
 import Characteristic, {type_uuids as characteristic_type_uuids} from './characteristic';
 
@@ -67,7 +66,7 @@ export default class Service extends EventEmitter {
 
         for (const characteristic of added_characteristics) {
             // Use Vue.set so Vue updates properly
-            Vue.set(this.characteristics, characteristic.uuid, characteristic);
+            $set(this.characteristics, characteristic.uuid, characteristic);
             this.emit('new-characteristic', characteristic);
         }
 
@@ -77,7 +76,7 @@ export default class Service extends EventEmitter {
 
         for (const characteristic of removed_characteristics) {
             // Use Vue.delete so Vue updates properly
-            Vue.delete(this.characteristics, characteristic.uuid);
+            $delete(this.characteristics, characteristic.uuid);
             this.emit('removed-characteristic', characteristic);
         }
 

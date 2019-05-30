@@ -18,7 +18,7 @@
 </template>
 
 <script>
-    import Service from '../../service';
+    import Service from '../../../common/service';
     import AccessoryDetails from './accessory-details.vue';
     import ButtonIcon from '../icons/button.vue';
 

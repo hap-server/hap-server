@@ -106,13 +106,16 @@
 </template>
 
 <script>
-    import Connection, {AuthenticatedUser} from '../../common/connection';
-    import Layout from '../layout';
-    import Accessory from '../accessory';
-    import {BridgeService, UnsupportedService} from '../service';
+    // import Client from '../../common/client';
+    import /* Connection, */ {AuthenticatedUser} from '../../common/connection';
+    // import Layout from '../../common/layout';
+    // import Accessory from '../../common/accessory';
+    import {BridgeService, UnsupportedService} from '../../common/service';
     import PluginManager from '../plugins';
-    import {ConnectionSymbol, AccessoriesSymbol, GetAllDisplayServicesSymbol, GetServiceSymbol, PushModalSymbol}
-        from '../internal-symbols';
+    import {
+        ClientSymbol, ConnectionSymbol, AccessoriesSymbol, GetAllDisplayServicesSymbol, GetServiceSymbol,
+        PushModalSymbol,
+    } from '../internal-symbols';
 
     import Authenticate from './authenticate.vue';
 
@@ -141,16 +144,17 @@
             PairingSettings: () => import(/* webpackChunkName: 'settings' */ './pairing-settings.vue'),
             ServiceSettings: () => import(/* webpackChunkName: 'settings' */ './service-settings.vue'),
         },
+        inject: {
+            client: {from: ClientSymbol},
+        },
         data() {
             return {
                 connection: null,
-                connecting: false,
                 has_connected: false,
                 loading: false,
 
                 name: null,
                 default_background_url: null,
-                layouts: {},
                 layout: null,
 
                 show_automations: false,
@@ -163,7 +167,6 @@
                 can_create_layouts: false,
                 loading_permissions: false,
 
-                accessories: {},
                 refresh_accessories_timeout: null,
                 loading_accessories: false,
 
@@ -246,6 +249,16 @@
 
                 return preload_urls;
             },
+
+            connecting() {
+                return this.client.connecting;
+            },
+            accessories() {
+                return this.client.accessories || (this.client.accessories = {});
+            },
+            layouts() {
+                return this.client.layouts || (this.client.layouts = {});
+            },
         },
         watch: {
             title(title) {
@@ -253,15 +266,6 @@
             },
             modal_open() {
                 document.body.style.overflow = this.modal_open ? 'hidden' : 'auto';
-            },
-            connection(connection, old_connection) {
-                for (const accessory of Object.values(this.accessories)) {
-                    accessory.connection = connection;
-                }
-
-                for (const layout of Object.values(this.layouts)) {
-                    layout.connection = connection;
-                }
             },
             async authenticated_user(authenticated_user) {
                 document.cookie = 'asset_token=' + (authenticated_user ?
@@ -282,6 +286,11 @@
                 if (layout) localStorage.setItem('layout', layout.uuid);
                 else localStorage.removeItem('layout');
             },
+            layouts(layouts, old_layouts) {
+                const layout_uuid = localStorage.getItem('layout') ||
+                    (this.authenticated_user ? 'Overview.' + this.authenticated_user.id : null);
+                if (layout_uuid && this.layouts[layout_uuid] && !this.layout) this.layout = this.layouts[layout_uuid];
+            },
         },
         async created() {
             instances.add(this);
@@ -290,10 +299,12 @@
             window.addEventListener('touchmove', this.onscroll);
             document.body.scrollTo(0, 0);
 
-            this.$on('updated-accessories', (added, removed) => console.log('Updated accessories', added, removed));
-            this.$on('updated-layouts', (added, removed) => console.log('Updated layouts', added, removed));
+            this.client.on('connected', this.connected);
+            this.client.on('disconnected', this.disconnected);
+            this.client.on('update-home-settings', this.handleUpdateHomeSettings);
+            // this.client.on('add-automation', this.handleAddAutomation);
 
-            await this.tryConnect();
+            await this.client.tryConnect();
 
             // await Promise.all([
             //     this.reload(),
@@ -318,34 +329,9 @@
             instances.remove(this);
         },
         methods: {
-            async connect() {
-                if (this.connecting) throw new Error('Already trying to connect');
-                this.connecting = true;
-
-                try {
-                    this.connection = await Connection.connect();
-
-                    this.has_connected = true;
-                    this.connectionEvents(this.connection);
-                } finally {
-                    this.connecting = false;
-                }
-
-                this.ping();
-            },
-            async tryConnect() {
-                while (!this.connection) {
-                    console.log('Trying to connect');
-
-                    try {
-                        await this.connect();
-                        break;
-                    } catch (err) {
-                        console.error('Connect error', err);
-                    }
-
-                    await new Promise(r => setTimeout(r, 4000));
-                }
+            async connected(connection) {
+                this.connection = connection;
+                this.has_connected = true;
 
                 if (process.env.NODE_ENV === 'development') {
                     const development_data = await this.connection.send({type: 'development-data'});
@@ -361,9 +347,15 @@
                 await Promise.all([
                     loadAccessoryUIs,
                     this.tryRestoreSession().catch(() => {
-                        loadAccessoryUIs.then(() => this.modals.push({type: 'authenticate'}));
+                        return loadAccessoryUIs.then(() => this.modals.push({type: 'authenticate'}));
                     }),
                 ]);
+            },
+            disconnected() {
+                // The asset token is only valid while the WebSocket is connected
+                document.cookie = 'asset_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+
+                this.client.tryConnect();
             },
             async tryRestoreSession() {
                 // Restore the previous session
@@ -385,127 +377,12 @@
 
                 return this.connection.authenticated_user = authenticated_user;
             },
-            async connectionEvents(connection) {
-                connection.on('disconnected', event => {
-                    if (!event.wasClean) console.error('Disconnected', event);
-                    else console.log('Disconnected');
-
-                    // The asset token is only valid while the WebSocket is connected
-                    document.cookie = 'asset_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-
-                    this.connection = null;
-
-                    return this.tryConnect();
-                });
-
-                connection.on('update-home-settings', data => {
-                    this.name = data.name;
-                    this.default_background_url = data.background_url;
-                });
-
-                connection.on('add-layout', async uuid => {
-                    const [[layout_data], [layout_permissions]] = await Promise.all([
-                        this.connection.getLayouts(uuid),
-                        this.connection.getLayoutsPermissions(uuid),
-                    ]);
-
-                    const layout = new Layout(this.connection, uuid, layout_data, layout_permissions);
-
-                    this.$set(this.layouts, layout.uuid, layout);
-                    this.$emit('new-layout', layout);
-                    this.$emit('new-layouts', [layout]);
-                    this.$emit('updated-layouts', [layout], []);
-                });
-
-                connection.on('remove-layout', async uuid => {
-                    const layout = this.layouts[uuid];
-
-                    if (!layout) return;
-
-                    this.$delete(this.layouts, layout.uuid);
-                    this.$emit('removed-layout', layout);
-                    this.$emit('removed-layouts', [layout]);
-                    this.$emit('updated-layouts', [], [layout]);
-                });
-
-                connection.on('update-layout', (uuid, data) => {
-                    const layout = this.layouts[uuid];
-
-                    layout._setData(data);
-                });
-
-                connection.on('add-layout-section', async (layout_uuid, uuid) => {
-                    const layout = this.layouts[layout_uuid];
-                    const [data] = await this.connection.getLayoutSection(layout_uuid, uuid);
-
-                    layout._handleNewLayoutSection(uuid, data);
-                });
-
-                connection.on('remove-layout-section', (layout_uuid, uuid) => {
-                    const layout = this.layouts[layout_uuid];
-
-                    layout._handleRemoveLayoutSection(uuid);
-                });
-
-                connection.on('update-layout-section', (layout_uuid, uuid, data) => {
-                    const layout = this.layouts[layout_uuid];
-                    const section = layout.sections[uuid];
-
-                    section._setData(data);
-                });
-
-                connection.on('add-automation', () => {
-                    this.can_access_automations = true;
-                });
-
-                connection.on('add-accessory', async accessory_uuid => {
-                    if (this.accessories[accessory_uuid]) return;
-
-                    const [[accessory_details], [accessory_data], [accessory_permissions]] = await Promise.all([
-                        this.connection.getAccessories(accessory_uuid),
-                        this.connection.getAccessoriesData(accessory_uuid),
-                        this.connection.getAccessoriesPermissions(accessory_uuid),
-                    ]);
-
-                    const accessory = new Accessory(this.connection, accessory_uuid, accessory_details, accessory_data,
-                        accessory_permissions); // eslint-disable-line vue/script-indent
-
-                    this.$set(this.accessories, accessory.uuid, accessory);
-                    this.$emit('new-accessory', accessory);
-                    this.$emit('new-accessories', [accessory]);
-                    this.$emit('updated-accessories', [accessory], []);
-                });
-
-                connection.on('remove-accessory', accessory_uuid => {
-                    const accessory = this.accessories[uuid];
-
-                    if (!accessory) return;
-
-                    this.$delete(this.accessories, accessory.uuid);
-                    this.$emit('removed-accessory', accessory);
-                    this.$emit('removed-accessories', [accessory]);
-                    this.$emit('updated-accessories', [], [accessory]);
-                });
-
-                connection.on('update-accessory', (uuid, details) => {
-                    const accessory = this.accessories[uuid];
-
-                    accessory._setDetails(details);
-                });
-
-                connection.on('update-accessory-data', (uuid, data) => {
-                    const accessory = this.accessories[uuid];
-
-                    accessory._setData(data);
-                });
-
-                connection.on('update-characteristic', (accessory_uuid, service_uuid, characteristic_uuid, details) => {
-                    const accessory = this.accessories[accessory_uuid];
-                    const service = accessory.findService(service => service.uuid === service_uuid);
-                    const characteristic = service.findCharacteristic(c => c.uuid === characteristic_uuid);
-
-                    characteristic._setDetails(details);
-                });
+            handleUpdateHomeSettings(data) {
+                this.name = data.name;
+                this.default_background_url = data.background_url;
+            },
+            handleAddAutomation() {
+                this.can_access_automations = true;
             },
             async ping() {
                 console.log('Sending ping request');
@@ -555,86 +432,7 @@
                 }
             },
             async refreshLayouts(dont_emit_events) {
-                if (this.loading_layouts) throw new Error('Already loading layouts');
-                this.loading_layouts = true;
-
-                try {
-                    const layout_uuids = await this.connection.listLayouts();
-
-                    const new_layout_uuids = [];
-                    const removed_layout_uuids = [];
-
-                    for (const uuid of layout_uuids) {
-                        // Layout already exists
-                        if (this.layouts[uuid]) continue;
-
-                        // Add this layout to the list of layouts we don't yet know about
-                        new_layout_uuids.push(uuid);
-                    }
-
-                    for (const uuid of Object.keys(this.layouts)) {
-                        // Layout still exists
-                        if (layout_uuids.includes(uuid)) continue;
-
-                        // Add this layout to the list of layouts that have been removed
-                        removed_layout_uuids.push(uuid);
-                    }
-
-                    const [new_layouts_data, new_layouts_sections, new_layouts_permissions] = await Promise.all([
-                        this.connection.getLayouts(...new_layout_uuids),
-                        this.connection.listLayoutSections(...new_layout_uuids).then(section_uuids => {
-                            const flat_section_uuids = section_uuids.map((section_uuids, index) => {
-                                return section_uuids.map(section_uuid =>
-                                    [new_layout_uuids[index], section_uuid, index]);
-                            }).flat();
-
-                            return this.connection.getLayoutSections(...flat_section_uuids.map(([
-                                layout_uuid, section_uuid, index,
-                            ]) => [layout_uuid, section_uuid])).then(section_data => {
-                                const all_layout_sections = {};
-
-                                // eslint-disable-next-line guard-for-in
-                                for (const index in section_data) {
-                                    const layout_uuid = flat_section_uuids[index][0];
-                                    const section_uuid = flat_section_uuids[index][1];
-                                    const data = section_data[index];
-
-                                    const layout_sections = all_layout_sections[layout_uuid] ||
-                                        (all_layout_sections[layout_uuid] = {});
-                                    layout_sections[section_uuid] = data;
-                                }
-
-                                return new_layout_uuids.map(uuid => all_layout_sections[uuid]);
-                            });
-                        }),
-                        this.connection.getLayoutsPermissions(...new_layout_uuids),
-                    ]);
-
-                    const new_layouts = new_layout_uuids.map((uuid, index) => new Layout(this.connection, uuid,
-                        new_layouts_data[index], new_layouts_sections[index], new_layouts_permissions[index])); // eslint-disable-line vue/script-indent
-
-                    for (const layout of new_layouts) {
-                        this.$set(this.layouts, layout.uuid, layout);
-                        if (!dont_emit_events) this.$emit('new-layout', layout);
-                    }
-
-                    if (new_layouts.length && !dont_emit_events) this.$emit('new-layouts', new_layouts);
-
-                    const removed_layouts = removed_layout_uuids.map(uuid => this.layouts[uuid]);
-
-                    for (const layout of removed_layouts) {
-                        this.$delete(this.layouts, layout.uuid);
-                        if (!dont_emit_events) this.$emit('removed-layout', layout);
-                    }
-
-                    if (removed_layouts.length && !dont_emit_events) this.$emit('removed-layouts', removed_layouts);
-
-                    if (new_layouts.length || removed_layouts.length) {
-                        this.$emit('updated-layouts', new_layouts, removed_layouts);
-                    }
-                } finally {
-                    this.loading_layouts = false;
-                }
+                await this.client.refreshLayouts(dont_emit_events);
 
                 const layout_uuid = localStorage.getItem('layout') ||
                     (this.authenticated_user ? 'Overview.' + this.authenticated_user.id : null);
@@ -677,65 +475,7 @@
                 }
             },
             async refreshAccessories(dont_emit_events) {
-                if (this.loading_accessories) throw new Error('Already loading accessories');
-                this.loading_accessories = true;
-
-                try {
-                    const accessory_uuids = await this.connection.listAccessories();
-
-                    const new_accessories = [];
-                    const removed_accessories = [];
-
-                    for (const accessory_uuid of accessory_uuids) {
-                        // Accessory already exists
-                        if (this.accessories[accessory_uuid]) continue;
-
-                        // Add this accessory to the list of accessories we don't yet know about
-                        new_accessories.push(accessory_uuid);
-                    }
-
-                    for (const accessory_uuid of Object.keys(this.accessories)) {
-                        // Accessory still exists
-                        if (accessory_uuids.includes(accessory_uuid)) continue;
-
-                        // Add this accessory to the list of accessories that have been removed
-                        removed_accessories.push(accessory_uuid);
-                    }
-
-                    const [new_accessory_details, new_accessory_data, new_accessory_permissions] = await Promise.all([
-                        this.connection.getAccessories(...new_accessories),
-                        this.connection.getAccessoriesData(...new_accessories),
-                        this.connection.getAccessoriesPermissions(...new_accessories),
-                    ]);
-
-                    const added_accessories = new_accessories.map((uuid, index) =>
-                        new Accessory(this.connection, uuid, new_accessory_details[index], new_accessory_data[index],
-                            new_accessory_permissions[index])); // eslint-disable-line vue/script-indent
-
-                    for (const accessory of added_accessories) {
-                        this.$set(this.accessories, accessory.uuid, accessory);
-                        if (!dont_emit_events) this.$emit('new-accessory', accessory);
-                    }
-
-                    if (added_accessories.length && !dont_emit_events) this.$emit('new-accessories', added_accessories);
-
-                    const removed_accessory_objects = removed_accessories.map(uuid => this.accessories[uuid]);
-
-                    for (const accessory of removed_accessory_objects) {
-                        this.$delete(this.accessories, accessory.uuid);
-                        if (!dont_emit_events) this.$emit('removed-accessory', accessory);
-                    }
-
-                    if (removed_accessories.length && !dont_emit_events) {
-                        this.$emit('removed-accessories', removed_accessory_objects);
-                    }
-
-                    if (added_accessories.length || removed_accessories.length) {
-                        this.$emit('updated-accessories', added_accessories, removed_accessory_objects);
-                    }
-                } finally {
-                    this.loading_accessories = false;
-                }
+                await this.client.refreshAccessories(dont_emit_events);
             },
             onscroll() {
                 this.scrolled = document.body.scrollTop > 60;

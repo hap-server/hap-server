@@ -9,8 +9,8 @@ import Service, {
     type_names as service_type_names,
     system_types as system_service_types,
     collapsed_services,
-} from './service';
-import Characteristic from './characteristic';
+} from '../common/service';
+import Characteristic from '../common/characteristic';
 
 import {AuthenticationHandlerConnection, AuthenticatedUser, AccessorySetupConnection} from '../common/connection';
 

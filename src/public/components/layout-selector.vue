@@ -66,8 +66,8 @@
 </template>
 
 <script>
-    import Layout from '../layout';
     import {AuthenticatedUser} from '../../common/connection';
+    import Layout from '../../common/layout';
 
     export default {
         props: {

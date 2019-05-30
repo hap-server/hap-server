@@ -197,7 +197,7 @@
 
 <script>
     import Connection from '../../common/connection';
-    import Accessory from '../accessory';
+    import Accessory from '../../common/accessory';
 
     import Panel from './panel.vue';
     import PanelTabs from './panel-tabs.vue';

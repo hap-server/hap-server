@@ -9,7 +9,7 @@
 </template>
 
 <script>
-    import Service from '../../service';
+    import Service from '../../../common/service';
     import AccessoryDetails from './accessory-details.vue';
     import BridgeIcon from '../icons/hub.vue';
 

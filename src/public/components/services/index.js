@@ -1,4 +1,4 @@
-const service_components = new Map();
+import service_components from './components';
 
 const contextRequire = require.context('.', true, /\.vue$/);
 

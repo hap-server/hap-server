@@ -29,7 +29,7 @@
 </template>
 
 <script>
-    import Service, {type_names} from '../service';
+    import Service, {type_names} from '../../common/service';
 
     import service_components from './services';
     import ServiceComponent from './services/service.vue';

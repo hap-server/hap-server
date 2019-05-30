@@ -50,7 +50,7 @@
 
 <script>
     import Connection from '../../common/connection';
-    import Layout from '../layout';
+    import Layout from '../../common/layout';
 
     import axios from 'axios';
 

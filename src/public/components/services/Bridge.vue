@@ -5,7 +5,7 @@
 </template>
 
 <script>
-    import Service from '../../service';
+    import Service from '../../../common/service';
     import ServiceComponent from './service.vue';
     import BridgeIcon from '../icons/hub.vue';
 

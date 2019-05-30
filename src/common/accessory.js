@@ -1,11 +1,8 @@
 import EventEmitter from 'events';
 
-import Vue from 'vue';
-
-import Service, {type_uuids as service_types} from './service';
+import {$set, $delete} from './client';
 import CollapsedService from './collapsed-service';
-
-import service_components from './components/services';
+import Service, {type_uuids as service_types} from './service';
 
 export default class Accessory extends EventEmitter {
     /**
@@ -27,6 +24,14 @@ export default class Accessory extends EventEmitter {
         this._setPermissions(permissions || {});
         this._setData(data || {});
         this._setDetails(details || {});
+    }
+
+    static get service_components() {
+        try {
+            return require('../public/components/services/components').default;
+        } catch (err) {
+            return new Map();
+        }
     }
 
     get details() {
@@ -80,7 +85,7 @@ export default class Accessory extends EventEmitter {
 
         for (const service of added_services) {
             // Use Vue.set so Vue updates properly
-            Vue.set(this.services, service.uuid, service);
+            $set(this.services, service.uuid, service);
             this.emit('new-service', service);
         }
 
@@ -90,7 +95,7 @@ export default class Accessory extends EventEmitter {
 
         for (const service of removed_services) {
             // Use Vue.delete so Vue updates properly
-            Vue.delete(this.services, service.uuid);
+            $delete(this.services, service.uuid);
             this.emit('removed-service', service);
         }
 
@@ -109,7 +114,7 @@ export default class Accessory extends EventEmitter {
         const removed_collapsed_service_types = {};
 
         for (const service of added_services) {
-            if (service_components.has(service.type)) {
+            if (this.constructor.service_components.has(service.type)) {
                 added_display_services.push(service);
                 continue;
             }
@@ -133,7 +138,7 @@ export default class Accessory extends EventEmitter {
         }
 
         for (const service of removed_services) {
-            if (service_components.has(service.type)) {
+            if (this.constructor.service_components.has(service.type)) {
                 removed_display_services.push(service);
                 continue;
             }

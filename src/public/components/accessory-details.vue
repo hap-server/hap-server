@@ -32,7 +32,7 @@
 
 <script>
     import Connection from '../../common/connection';
-    import Service, {type_names} from '../service';
+    import Service, {type_names} from '../../common/service';
 
     import service_components from './accessory-details';
     import AccessoryDetails from './accessory-details/accessory-details.vue';

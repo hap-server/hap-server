@@ -33,7 +33,7 @@
 
 <script>
     import Connection from '../../common/connection';
-    import Service from '../service';
+    import Service from '../../common/service';
 
     import Panel from './panel.vue';
 

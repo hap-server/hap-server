@@ -1,3 +1,4 @@
+export const ClientSymbol = Symbol('Client');
 export const ConnectionSymbol = Symbol('Connection');
 export const AccessoriesSymbol = Symbol('Accessories');
 export const GetAllDisplayServicesSymbol = Symbol('GetAllDisplayServices');

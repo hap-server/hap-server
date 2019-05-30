@@ -40,7 +40,7 @@
 </template>
 
 <script>
-    import Service from '../../service';
+    import Service from '../../../common/service';
 
     import AccessoryDetails from './accessory-details.vue';
     import LightbulbIcon from '../icons/lightbulb.vue';

@@ -25,8 +25,8 @@
 </template>
 
 <script>
-    import {LayoutSection} from '../../layout';
-    import {UnavailableService} from '../../service';
+    import {LayoutSection} from '../../../common/layout';
+    import {UnavailableService} from '../../../common/service';
     import {ConnectionSymbol, GetServiceSymbol, LayoutSymbol} from '../../internal-symbols';
 
     import LayoutSectionComponent from '../layout-section.vue';
