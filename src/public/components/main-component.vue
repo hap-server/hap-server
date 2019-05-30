@@ -254,10 +254,10 @@
                 return this.client.connecting;
             },
             accessories() {
-                return this.client.accessories || (this.client.accessories = {});
+                return this.client.accessories || (this.client.accessories = {}); // eslint-disable-line vue/no-side-effects-in-computed-properties
             },
             layouts() {
-                return this.client.layouts || (this.client.layouts = {});
+                return this.client.layouts || (this.client.layouts = {}); // eslint-disable-line vue/no-side-effects-in-computed-properties
             },
         },
         watch: {
