@@ -1,10 +1,11 @@
 import EventEmitter from 'events';
 
+import Events from '../events';
 import AutomationTrigger from './trigger';
 import AutomationCondition from './condition';
 import AutomationAction from './action';
 
-export default class Automations {
+export default class Automations extends Events {
     /**
      * Creates an Automations group.
      *
@@ -12,6 +13,9 @@ export default class Automations {
      * @param {Logger} [log]
      */
     constructor(server, log) {
+        super();
+        this.parent_emitter = server;
+
         this.server = server;
         this.log = log || this.server.log.withPrefix('Automations');
 
@@ -349,7 +353,7 @@ export class AutomationRunner extends EventEmitter {
         super();
 
         Object.defineProperty(this, 'automation', {value: automation});
-        Object.defineProperty(this, 'id', {value: Automation.id++});
+        Object.defineProperty(this, 'id', {value: AutomationRunner.id++});
         Object.defineProperty(this, 'event', {enumerable: true, value: event});
 
         Object.defineProperty(this, 'log', {value: automation.log.withPrefix('Runner #' + this.id)});

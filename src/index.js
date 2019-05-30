@@ -1,3 +1,5 @@
+import Events, {Event, ExtendableEvent} from './events';
+
 import Server from './core/server';
 import * as HapAsync from './core/hap-async';
 import PluginManager from './core/plugins';
@@ -9,6 +11,10 @@ import AutomationCondition from './automations/condition';
 import AutomationAction from './automations/action';
 
 export {
+    Events,
+    Event,
+    ExtendableEvent,
+
     Server,
     HapAsync,
     PluginManager,
@@ -33,3 +39,5 @@ export const package_json = (() => {
 })();
 
 export const version = package_json.version;
+
+export const events = new Events();

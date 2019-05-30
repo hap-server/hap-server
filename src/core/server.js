@@ -2,7 +2,6 @@ import http from 'http';
 import https from 'https';
 import url from 'url';
 import path from 'path';
-import EventEmitter from 'events';
 import fs from 'fs';
 import os from 'os';
 import util from 'util';
@@ -18,6 +17,9 @@ import hap from 'hap-nodejs';
 
 import isEqual from 'lodash.isequal';
 
+import Events from '../events';
+import CharacteristicUpdateEvent from '../events/characteristic-update';
+
 import Connection from './connection';
 import PluginManager from './plugins';
 import Bridge from './bridge';
@@ -30,9 +32,11 @@ import {HAPIP as HAPIPDiscovery, HAPBLE as HAPBLEDiscovery} from '../accessory-d
 
 import Automations from '../automations';
 
+import {events} from '..';
+
 const DEVELOPMENT = true;
 
-export default class Server extends EventEmitter {
+export default class Server extends Events {
     /**
      * Creates a Server.
      *
@@ -46,6 +50,8 @@ export default class Server extends EventEmitter {
      */
     constructor(options, storage, log) {
         super();
+
+        this.parent_emitter = events;
 
         this.config = options.config || {};
         this.cli_auth_token = options.cli_auth_token;
@@ -1150,6 +1156,8 @@ export default class Server extends EventEmitter {
      * @return {Promise}
      */
     async handleCharacteristicUpdate(accessory, service, characteristic, value, old_value, context) {
+        this.emit(CharacteristicUpdateEvent, this, accessory, service, characteristic, value, old_value, context);
+
         if (this.hasOwnProperty('automations')) {
             this.automations.handleCharacteristicUpdate(accessory, service, characteristic, value, old_value, context);
         }

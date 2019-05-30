@@ -1,9 +1,12 @@
 import EventEmitter from 'events';
 import cron from 'node-cron';
 
+import Events from '../events';
+import TriggerEvent from '../events/automation-trigger';
+
 import PluginManager from '../core/plugins';
 
-export default class AutomationTrigger extends EventEmitter {
+export default class AutomationTrigger extends Events {
     /**
      * Creates an AutomationTrigger.
      *
@@ -17,6 +20,7 @@ export default class AutomationTrigger extends EventEmitter {
     constructor(automations, config, uuid, log) {
         super();
 
+        this.parent_emitter = automations;
         Object.defineProperty(this, 'automations', {value: automations});
 
         Object.defineProperty(this, 'id', {value: AutomationTrigger.id++});
@@ -101,9 +105,7 @@ export default class AutomationTrigger extends EventEmitter {
 
         const event = new TriggerEvent(this, context);
 
-        this.log.info('Triggered', event);
-
-        this.emit('trigger', event);
+        this.emit(event, this, context);
 
         return event;
     }
@@ -111,27 +113,6 @@ export default class AutomationTrigger extends EventEmitter {
 
 AutomationTrigger.id = 0;
 AutomationTrigger.types = {};
-
-export class TriggerEvent {
-    /**
-     * Creates a TriggerEvent.
-     *
-     * @param {AutomationTrigger} trigger
-     * @param {object} [context]
-     */
-    constructor(trigger, context) {
-        Object.defineProperty(this, 'trigger', {value: trigger});
-        this.context = context || {};
-    }
-
-    get automations() {
-        return this.trigger.automations;
-    }
-
-    get server() {
-        return this.automations.server;
-    }
-}
 
 /**
  * An AutomationTrigger that runs based on a cron schedule.
