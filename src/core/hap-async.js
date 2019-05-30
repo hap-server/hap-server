@@ -5,7 +5,7 @@
  */
 
 import Logger from './logger';
-import {Accessory, Service, Characteristic} from 'hap-nodejs';
+import {Characteristic} from 'hap-nodejs';
 
 const log = new Logger('hap-async');
 
@@ -19,13 +19,13 @@ Object.defineProperty(Characteristic.prototype, 'get_handler', {
         if (this._get_handler) this.removeListener('get', this._get_handler.listener);
 
         if (handler) {
-            const listener = async function (callback, context, connection_id) {
+            const listener = async function(callback, context, connection_id) {
                 try {
-                    const value = await handler.call(this, context, connection_id);
+                    const value = await handler.call(this, context, connection_id); // eslint-disable-line no-invalid-this
 
                     callback(null, value);
                 } catch (err) {
-                    log.error('Error in get handler', this, err);
+                    log.error('Error in get handler', this, err); // eslint-disable-line no-invalid-this
                     callback(err);
                 }
             };
@@ -38,7 +38,7 @@ Object.defineProperty(Characteristic.prototype, 'get_handler', {
     },
 });
 
-Characteristic.prototype.getHandler = function (handler) {
+Characteristic.prototype.getHandler = function(handler) {
     this.get_handler = handler;
     return this;
 };
@@ -53,13 +53,13 @@ Object.defineProperty(Characteristic.prototype, 'set_handler', {
         if (this._set_handler) this.removeListener('set', this._set_handler.listener);
 
         if (handler) {
-            const listener = async function (new_value, callback, context, connection_id) {
+            const listener = async function(new_value, callback, context, connection_id) {
                 try {
-                    const value = await handler.call(this, new_value, context, connection_id);
+                    const value = await handler.call(this, new_value, context, connection_id); // eslint-disable-line no-invalid-this
 
                     callback(null, value);
                 } catch (err) {
-                    log.error('Error in set handler', this, err);
+                    log.error('Error in set handler', this, err); // eslint-disable-line no-invalid-this
                     callback(err);
                 }
             };
@@ -72,7 +72,7 @@ Object.defineProperty(Characteristic.prototype, 'set_handler', {
     },
 });
 
-Characteristic.prototype.setHandler = function (handler) {
+Characteristic.prototype.setHandler = function(handler) {
     this.set_handler = handler;
     return this;
 };

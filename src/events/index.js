@@ -166,6 +166,7 @@ export default class Events extends EventEmitter {
      *
      * @param {(function|string)} type A class that extends Event or a string
      * @param {function} [handler]
+     * @return {?Promise<*>}
      */
     once(type, handler) {
         if (!handler) {

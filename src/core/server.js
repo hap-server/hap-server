@@ -468,11 +468,11 @@ export default class Server extends Events {
 
         for (const bridge of this.bridges.filter(bridge => bridge.accessory_uuids.find(accessory_uuid =>
             accessory_uuid instanceof Array ? accessory_uuid[0] === (plugin_accessory.plugin ?
-                    plugin_accessory.plugin.name : plugin_accessory instanceof HomebridgeAccessory ?
-                        'homebridge' : null) &&
+                plugin_accessory.plugin.name : plugin_accessory instanceof HomebridgeAccessory ?
+                    'homebridge' : null) &&
                 accessory_uuid[1] === (plugin_accessory instanceof PluginStandaloneAccessory ?
                     plugin_accessory.accessory_type : plugin_accessory instanceof PluginAccessoryPlatformAccessory ?
-                    plugin_accessory.accessory_platform : null) &&
+                        plugin_accessory.accessory_platform : null) &&
                 accessory_uuid[2] === plugin_accessory.accessory.displayName :
                 accessory_uuid === plugin_accessory.uuid
         ))) {
@@ -490,7 +490,8 @@ export default class Server extends Events {
     removeAccessory(plugin_accessory) {
         const characteristic_change_handler = this.characteristic_change_handlers.get(plugin_accessory.accessory);
         if (characteristic_change_handler) {
-            plugin_accessory.accessory.removeListener('service-characteristic-change', this.server.__handleCharacteristicUpdate);
+            plugin_accessory.accessory.removeListener('service-characteristic-change',
+                this.server.__handleCharacteristicUpdate);
         }
         const configuration_change_handler = this.configuration_change_handlers.get(plugin_accessory.accessory);
         if (configuration_change_handler) {

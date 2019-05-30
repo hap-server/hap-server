@@ -1,4 +1,3 @@
-import EventEmitter from 'events';
 import cron from 'node-cron';
 
 import Events from '../events';

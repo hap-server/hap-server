@@ -217,7 +217,7 @@ export async function handler(argv) {
 
     function saveCachedAccessories(event) {
         log.info('Saving cached accessories');
-        await server.saveCachedAccessories();
+        server.saveCachedAccessories();
     }
     server.on(Events.AddAccessoryEvent, saveCachedAccessories);
     server.on(Events.UpdateAccessoryConfigurationEvent, saveCachedAccessories);

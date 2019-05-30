@@ -7,7 +7,6 @@ import PluginManager, {Plugin, AccessoryPlatform, PluginAPI} from './plugins';
 export {
     Server,
     Connection,
-    HapAsync,
     PluginManager,
     Plugin,
     AccessoryPlatform,
