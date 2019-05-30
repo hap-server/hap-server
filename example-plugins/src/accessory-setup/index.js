@@ -1,5 +1,5 @@
 import hapserver, {AccessoryDiscovery, DiscoveredAccessory, AccessorySetup, AccessoryUI} from '@hap-server/api';
-import {Accessory} from '@hap-server/api/hap-async';
+import {Accessory} from '@hap-server/api/hap';
 
 //
 // Register the accessory

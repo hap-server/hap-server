@@ -1,7 +1,7 @@
 
 /* eslint prefer-rest-params: 'off' */
 
-import {Accessory, Service, Characteristic} from './hap-async';
+import {Accessory, Service, Characteristic} from 'hap-nodejs';
 
 export default class AccessoryProxy extends Accessory {
     constructor(accessory, permissions) {

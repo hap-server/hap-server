@@ -1,6 +1,7 @@
+import './hap-async';
+
 import Server from './server';
 import Connection from './connection';
-import * as HapAsync from './hap-async';
 import PluginManager, {Plugin, AccessoryPlatform, PluginAPI} from './plugins';
 
 export {

@@ -10,7 +10,6 @@ import semver from 'semver';
 import persist from 'node-persist';
 import express from 'express';
 import hap from 'hap-nodejs';
-import * as HapAsync from './hap-async';
 
 import {Plugin as HomebridgePluginManager} from 'homebridge/lib/plugin';
 
@@ -150,8 +149,6 @@ export class PluginManager {
             return plugin_storage;
         } else if (request === '@hap-server/api/hap') {
             return hap;
-        } else if (request === '@hap-server/api/hap-async') {
-            return HapAsync;
         } else if (request === '@hap-server/api/express') {
             return express;
         }

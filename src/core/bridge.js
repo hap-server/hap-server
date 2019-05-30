@@ -3,7 +3,7 @@ import os from 'os';
 import crypto from 'crypto';
 import chalk from 'chalk';
 import qrcode from 'qrcode-terminal';
-import {Bridge as HAPBridge, Accessory, Service, Characteristic} from './hap-async';
+import {Bridge as HAPBridge, Accessory, Service, Characteristic} from 'hap-nodejs';
 import HAPServer from './hap-server';
 
 import {AccessoryInfo} from 'hap-nodejs/lib/model/AccessoryInfo';

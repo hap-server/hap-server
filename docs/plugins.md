@@ -32,9 +32,8 @@ const {default: hapserver, log} = require('@hap-server/api');
 ```
 
 As well as the `@hap-server/api` module that contains the plugin API and logger `@hap-server/api/hap` has the
-`hap-nodejs` module, `@hap-server/api/hap-async` has the Accessory, Service and Characteristic classes from `hap-nodejs`
-but extended to use Promises instead of callbacks, `@hap-server/api/config` has the plugin configuration,
-`@hap-server/api/storage` has a `node-persist` object that can be used in handlers.
+`hap-nodejs` module, `@hap-server/api/config` has the plugin configuration, `@hap-server/api/storage` has a
+`node-persist` object that can be used in handlers.
 
 The `node-persist` object will be initialised *after* the plugin loads. If you need to do anything with `node-persit`
 when a plugin loads export an `init` function. Errors thrown while loading the module will be ignored (and will
@@ -49,6 +48,30 @@ export async function init() {
 }
 ```
 
+hap-server adds `get_handler` and `set_handler` helper properties to Characteristics that wrap characteristic get/set
+handlers for async functions.
+
+```js
+lightbulb_service.getCharacteristic(Characteristics.On)
+    .get_handler = async () => {
+        const value = await light.getPowerState();
+        return value;
+    };
+```
+
+You can also use the `getHandler` and `setHandler` methods for chaining.
+
+```js
+lightbulb_service.getCharacteristic(Characteristics.On)
+    .getHandler(async () => {
+        const value = await light.getPowerState();
+        return value;
+    })
+    .setHandler(async on => {
+        await light.setPowerState(on);
+    });
+```
+
 The `PluginAPI` instance (`hapserver`) has the following functions:
 
 #### `hapserver.registerAccessory`
@@ -59,7 +82,7 @@ return either an Accessory or a Promise which resolves to an Accessory.
 
 ```js
 import hapserver from '@hap-server/api';
-import {Accessory} from '@hap-server/api/hap-async';
+import {Accessory} from '@hap-server/api/hap';
 
 hapserver.registerAccessory('AccessoryType', config => {
     const accessory = new Accessory(config.name, config.uuid);
@@ -82,7 +105,7 @@ accessories. An accessory platform can work in three ways:
 
 ```js
 import hapserver from '@hap-server/api';
-import {uuid} from '@hap-server/api/hap';
+import {Accessory, uuid} from '@hap-server/api/hap';
 
 hapserver.registerAccessoryPlatform('AccessoryBridge', async (config, cached_accessories) => {
     // This accessory platform connects to a bridge and returns an array of accessories exposed by the bridge
@@ -106,7 +129,7 @@ Most accessory platforms should either use `hapserver.registerDynamicAccessoryPl
 
 ```js
 import hapserver, {AccessoryPlatform} from '@hap-server/api';
-import {uuid} from '@hap-server/api/hap';
+import {Accessory, uuid} from '@hap-server/api/hap';
 
 const light_accessories = new WeakMap();
 
@@ -149,7 +172,7 @@ register new accessories and use the
 
 ```js
 import hapserver from '@hap-server/api';
-import {uuid} from '@hap-server/api/hap';
+import {Accessory, uuid} from '@hap-server/api/hap';
 
 const light_accessories = new WeakMap();
 

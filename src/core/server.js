@@ -25,7 +25,7 @@ import PluginManager from './plugins';
 import Bridge from './bridge';
 import Homebridge from './homebridge';
 import Logger from './logger';
-import {Accessory, Service, Characteristic} from './hap-async';
+import {Accessory, Service, Characteristic} from 'hap-nodejs';
 
 import {builtin_accessory_types, builtin_accessory_platforms} from '../accessories';
 import {HAPIP as HAPIPDiscovery, HAPBLE as HAPBLEDiscovery} from '../accessory-discovery';

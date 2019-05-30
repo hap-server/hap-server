@@ -1,13 +1,11 @@
 
 // Module will be patched to add a virtual "homebridge-api" module
 // "homebridge-api/storage" is a node-persist instance (will be configured and initialised automatically)
-// "homebridge-api/hap" is hap-nodejs
-// "homebridge-api/hap-async" has the Accessory, Service and Characteristic classes from hap-nodejs but uses Promises instead of callbacks
+// "homebridge-api/hap" is hap-nodejs (hap-server adds the getHandler and setHandler methods of Characteristics)
 
 import hapserver, {log} from '@hap-server/api';
 import storage from '@hap-server/api/storage';
-import {uuid} from '@hap-server/api/hap';
-import {Accessory, Service, Characteristic} from '@hap-server/api/hap-async';
+import {Accessory, Service, Characteristic, uuid} from '@hap-server/api/hap';
 
 import globalconfig from '@hap-server/api/plugin-config';
 
@@ -35,7 +33,7 @@ hapserver.registerAccessory('VirtualSwitch', async config => {
     // Add the Switch service
     const switch_service = accessory.addService(Service.Switch);
     switch_service.getCharacteristic(Characteristic.On)
-        .on('set', async value => {
+        .setHandler(async value => {
             await storage.setItem('VirtualSwitch.' + config.uuid, value);
 
             _log.info('Switch', config.name, 'is now', value ? 'on' : 'off');
@@ -74,7 +72,7 @@ hapserver.registerAccessoryPlatform('VirtualSwitches', config => {
         // Add the Switch service
         const switch_service = accessory.addService(Service.Switch);
         switch_service.getCharacteristic(Characteristic.On)
-            .on('set', async value => {
+            .setHandler(async value => {
                 await storage.setItem('VirtualSwitch.' + switch_uuid, value);
 
                 _log.info('Switch', name, 'is now', value ? 'on' : 'off');

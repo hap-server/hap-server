@@ -1,5 +1,5 @@
 
-import {Accessory, Service, Characteristic} from '@hap-server/api/hap-async';
+import {Accessory, Service, Characteristic} from '@hap-server/api/hap';
 
 export default function createAccessory(name, uuid, log) {
     const accessory = new Accessory(name, uuid);
@@ -13,7 +13,7 @@ export default function createAccessory(name, uuid, log) {
     let locked = false;
 
     lock_mechanism.getCharacteristic(Characteristic.LockTargetState)
-        .on('set', async new_value => {
+        .setHandler(async new_value => {
             if (new_value === Characteristic.LockTargetState.UNSECURED) {
                 locked = false;
 
@@ -30,7 +30,7 @@ export default function createAccessory(name, uuid, log) {
     // We want to intercept requests for our current state so we can query the hardware itself instead of
     // allowing HAP-NodeJS to return the cached Characteristic.value.
     lock_mechanism.getCharacteristic(Characteristic.LockCurrentState)
-        .on('get', () => {
+        .getHandler(() => {
             if (locked) {
                 log.info('Are we locked? Yes.');
                 return Characteristic.LockCurrentState.SECURED;
