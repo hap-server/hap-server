@@ -321,7 +321,7 @@
                             !status.active_outlet_services.includes(s))) &&
                     status.outlet_rooms.length !== 1
                 ) {
-                    status_messages.outlets = 'status.active_outlet_rooms[0]' + ' power point' +
+                    status_messages.outlets = status.active_outlet_rooms[0] + ' power point' +
                         (status.active_outlets_count === 1 ? '' : 's') + ' on.';
                 } else if (status.active_outlets_count && status.outlets_count === status.active_outlets_count) {
                     status_messages.outlets = `Power point${status.active_outlets_count === 1 ? '' : 's'} on.`;
