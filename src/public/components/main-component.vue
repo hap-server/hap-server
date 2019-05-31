@@ -299,7 +299,7 @@
 
             window.addEventListener('scroll', this.onscroll);
             window.addEventListener('touchmove', this.onscroll);
-            document.body.scrollTo(0, 0);
+            document.scrollingElement.scrollTo(0, 0);
 
             this.client.on('connected', this.connected);
             this.client.on('disconnected', this.disconnected);
@@ -326,7 +326,7 @@
             window.removeEventListener('scroll', this.onscroll);
             window.removeEventListener('touchmove', this.onscroll);
 
-            this.connection.disconnect();
+            this.client.disconnect();
 
             instances.remove(this);
         },
@@ -480,7 +480,7 @@
                 await this.client.refreshAccessories(dont_emit_events);
             },
             onscroll() {
-                this.scrolled = document.body.scrollTop > 60;
+                this.scrolled = document.scrollingElement.scrollTop > 60;
             },
             findServices(callback) {
                 const services = [];
