@@ -9,12 +9,21 @@ import Connection from '../common/connection';
 import Vue from 'vue';
 import MainComponent from './components/main-component.vue';
 
+import PluginManager from './plugins';
+
 const native_hook = global.__HAP_SERVER_NATIVE_HOOK__ ? global.__HAP_SERVER_NATIVE_HOOK__({
+    PluginManager,
     Client,
     Connection,
     Vue,
     MainComponent,
 }) : null;
+
+Object.defineProperty(PluginManager, 'base_url', {
+    configurable: true,
+    enumerable: true,
+    get: () => native_hook && native_hook.base_url || '',
+});
 
 const client = new (native_hook ? native_hook.Client : Client)();
 

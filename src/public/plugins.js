@@ -1,5 +1,6 @@
 
 import path from 'path';
+import url from 'url';
 import axios from 'axios';
 
 import * as vue_module from 'vue';
@@ -52,6 +53,7 @@ export class PluginManager {
         // this.accessory_uis = new Set();
         this.require_caches = new WeakMap();
         this.plugin_apis = new Map();
+        this.base_url = '';
     }
 
     static get instance() {
@@ -178,7 +180,9 @@ export class PluginManager {
             return import(/* webpackChunkName: 'codemirror' */ 'vue-codemirror').then(m => vue_codemirror_module = m);
         }
 
-        const js = (await axios.get('./accessory-ui/' + accessory_ui.id + request)).data;
+        const relative_url = 'accessory-ui/' + accessory_ui.id + request;
+        const request_url = this.base_url ? url.resolve(this.base_url, relative_url) : relative_url;
+        const js = (await axios.get(request_url)).data;
 
         const wrapper = [
             '(function (exports, require, module, __filename, __dirname) { ',
@@ -188,6 +192,8 @@ export class PluginManager {
         const module_function = eval(wrapper[0] + js + wrapper[1]);
 
         const module = {
+            url: request_url,
+            relative_url,
             exports: {},
             require: undefined,
             import: undefined,
