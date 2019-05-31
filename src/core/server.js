@@ -446,21 +446,21 @@ export default class Server extends Events {
 
         plugin_accessory.accessory.bridges = true;
 
-        const prev_characteristic_change_handler = this.characteristic_change_handlers.get(accessory);
+        const prev_characteristic_change_handler = this.characteristic_change_handlers.get(plugin_accessory.accessory);
         if (prev_characteristic_change_handler) {
-            accessory.removeListener('service-characteristic-change', prev_characteristic_change_handler);
+            plugin_accessory.accessory.removeListener('service-characteristic-change', prev_characteristic_change_handler);
         }
-        const characteristic_change_handler = this.server._handleCharacteristicUpdate.bind(this.server, accessory);
-        this.characteristic_change_handlers.set(accessory, characteristic_change_handler);
-        accessory.on('service-characteristic-change', characteristic_change_handler);
+        const characteristic_change_handler = this._handleCharacteristicUpdate.bind(this.server, plugin_accessory.accessory);
+        this.characteristic_change_handlers.set(plugin_accessory.accessory, characteristic_change_handler);
+        plugin_accessory.accessory.on('service-characteristic-change', characteristic_change_handler);
 
-        const prev_configuration_change_handler = this.configuration_change_handlers.get(accessory);
+        const prev_configuration_change_handler = this.configuration_change_handlers.get(plugin_accessory.accessory);
         if (prev_configuration_change_handler) {
-            accessory.removeListener('service-configurationChange', prev_configuration_change_handler);
+            plugin_accessory.accessory.removeListener('service-configurationChange', prev_configuration_change_handler);
         }
-        const configuration_change_handler = this.server._handleConfigurationChange.bind(this.server, accessory);
-        this.configuration_change_handlers.set(accessory, configuration_change_handler);
-        accessory.on('service-configurationChange', configuration_change_handler);
+        const configuration_change_handler = this._handleConfigurationChange.bind(this.server, plugin_accessory.accessory);
+        this.configuration_change_handlers.set(plugin_accessory.accessory, configuration_change_handler);
+        plugin_accessory.accessory.on('service-configurationChange', configuration_change_handler);
 
         this.removeCachedAccessory(plugin_accessory.uuid);
 
