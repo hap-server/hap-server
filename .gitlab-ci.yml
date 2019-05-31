@@ -27,8 +27,8 @@ build:
             - package-lock.json
             - gulpfile.babel.js
             - .babelrc
-            - src
-            - example-plugins/src
+            - src/**/*
+            - example-plugins/src/**/*
 
 lint:
     script:
@@ -42,8 +42,10 @@ lint:
             - package-lock.json
             - .eslintrc.js
             - .sass-lint.yml
-            - src
-            - example-plugins/src
+            - src/**/*.js
+            - src/**/*.vue
+            - src/**/*.scss
+            - example-plugins/src/**/*.js
     cache:
         paths:
             - node_modules/
