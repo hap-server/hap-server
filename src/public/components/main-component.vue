@@ -113,7 +113,7 @@
     import PluginManager from '../plugins';
     import {
         ClientSymbol, ConnectionSymbol, AccessoriesSymbol, GetAllDisplayServicesSymbol, GetServiceSymbol,
-        PushModalSymbol,
+        PushModalSymbol, GetAssetURLSymbol,
     } from '../internal-symbols';
 
     import Authenticate from './authenticate.vue';
@@ -144,6 +144,7 @@
             ServiceSettings: () => import(/* webpackChunkName: 'settings' */ './service-settings.vue'),
         },
         inject: {
+            native_hook: {},
             client: {from: ClientSymbol},
         },
         data() {
@@ -178,12 +179,12 @@
         },
         provide() {
             return {
-                native_hook: {},
                 [ConnectionSymbol]: () => this.connection,
                 [AccessoriesSymbol]: this.accessories,
                 [GetAllDisplayServicesSymbol]: () => this.getAllServices(),
                 [GetServiceSymbol]: (uuid, service_uuid) => this.getService(uuid, service_uuid),
                 [PushModalSymbol]: modal => this.modals.push(modal),
+                [GetAssetURLSymbol]: asset => this.getAssetURL(asset),
             };
         },
         computed: {
@@ -226,8 +227,8 @@
             background_url() {
                 if (this.show_automations) return;
 
-                if (this.layout && this.layout.background_url) return 'assets/' + this.layout.background_url;
-                if (this.default_background_url) return 'assets/' + this.default_background_url;
+                if (this.layout && this.layout.background_url) return this.getAssetURL(this.layout.background_url);
+                if (this.default_background_url) return this.getAssetURL(this.default_background_url);
 
                 return require('../../../assets/default-wallpaper.jpg');
             },
@@ -243,9 +244,7 @@
 
                 for (const layout of Object.values(this.layouts)) {
                     if (layout.background_url && !preload_urls.includes(layout.background_url)) {
-                        preload_urls.push(this.native_hook && this.native_hook.base_url ?
-                            url.resolve(this.native_hook.base_url, 'assets/' + layout.background_url) :
-                            'assets/' + layout.background_url);
+                        preload_urls.push(this.getAssetURL(layout.background_url));
                     }
                 }
 
@@ -331,6 +330,13 @@
             instances.remove(this);
         },
         methods: {
+            getAssetURL(asset) {
+                if (this.native_hook && this.native_hook.base_url) {
+                    return url.resolve(this.native_hook.base_url, 'assets/' + asset);
+                }
+
+                return 'assets/' + asset;
+            },
             async connected(connection) {
                 this.connection = connection;
                 this.has_connected = true;

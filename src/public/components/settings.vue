@@ -28,7 +28,7 @@
                     <input v-if="background_url" :id="_uid + '-wallpaper'" :value="background_url" type="text"
                         class="form-control form-control-sm mt-3" disabled />
 
-                    <img v-if="background_url" class="mt-3" :src="'assets/' + background_url"
+                    <img v-if="background_url" class="mt-3" :src="getAssetURL(background_url)"
                         :style="{maxHeight: '300px', maxWidth: '100%'}" />
                 </div>
             </div>
@@ -98,6 +98,7 @@
     import {Terminal} from 'xterm';
 
     import Connection from '../../common/connection';
+    import {GetAssetURLSymbol} from '../internal-symbols';
 
     import Panel from './panel.vue';
     import PanelTabs from './panel-tabs.vue';
@@ -119,6 +120,9 @@
             loadingAccessories: Boolean,
             canAddAccessories: Boolean,
             canCreateBridges: Boolean,
+        },
+        inject: {
+            getAssetURL: {from: GetAssetURLSymbol},
         },
         data() {
             return {
@@ -249,7 +253,7 @@
                     const form_data = new FormData();
                     form_data.append('background', this.$refs.file.files[0]);
 
-                    const response = await axios.post('/assets/upload-layout-background', form_data, {
+                    const response = await axios.post(this.getAssetURL('upload-layout-background'), form_data, {
                         headers: {
                             'Content-Type': 'multipart/form-data',
                         },
