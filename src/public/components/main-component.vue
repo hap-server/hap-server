@@ -106,10 +106,9 @@
 </template>
 
 <script>
-    // import Client from '../../common/client';
-    import /* Connection, */ {AuthenticatedUser} from '../../common/connection';
-    // import Layout from '../../common/layout';
-    // import Accessory from '../../common/accessory';
+    import url from 'url';
+
+    import {AuthenticatedUser} from '../../common/connection';
     import {BridgeService, UnsupportedService} from '../../common/service';
     import PluginManager from '../plugins';
     import {
@@ -179,6 +178,7 @@
         },
         provide() {
             return {
+                native_hook: {},
                 [ConnectionSymbol]: () => this.connection,
                 [AccessoriesSymbol]: this.accessories,
                 [GetAllDisplayServicesSymbol]: () => this.getAllServices(),
@@ -243,7 +243,9 @@
 
                 for (const layout of Object.values(this.layouts)) {
                     if (layout.background_url && !preload_urls.includes(layout.background_url)) {
-                        preload_urls.push('assets/' + layout.background_url);
+                        preload_urls.push(this.native_hook && this.native_hook.base_url ?
+                            url.resolve(this.native_hook.base_url, 'assets/' + layout.background_url) :
+                            'assets/' + layout.background_url);
                     }
                 }
 
