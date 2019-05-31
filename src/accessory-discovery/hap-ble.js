@@ -1,13 +1,22 @@
 
 import Logger from '../core/logger';
 import {AccessoryDiscovery, DiscoveredAccessory} from '../core/plugins';
-import {BLEDiscovery} from 'hap-controller';
+
+const BLEDiscovery = (() => {
+    try {
+        return require('hap-controller').BLEDiscovery;
+    } catch (err) {}
+})();
 
 import setup from '../accessory-setup/hap-ble';
 
 const log = new Logger('HAP BLE Discovery');
 
 export const HAPBLEDiscovery = AccessoryDiscovery.withHandler(accessory_discovery => {
+    if (!BLEDiscovery) {
+        throw new Error('hap-controller is not available');
+    }
+
     log.info('Starting HAP BLE Discovery');
 
     const discovery = new BLEDiscovery();

@@ -2,7 +2,12 @@
 import Logger from '../core/logger';
 import {AccessoryPlatform} from '../core/plugins';
 import {Accessory, Service, Characteristic, uuid} from 'hap-nodejs';
-import {HttpClient} from 'hap-controller';
+
+const HttpClient = (() => {
+    try {
+        return require('hap-controller').HttpClient;
+    } catch (err) {}
+})();
 
 const log = new Logger('HAP IP Accessory');
 const ServiceMap = Symbol('ServiceMap');
@@ -10,6 +15,10 @@ const CharacteristicMap = Symbol('CharacteristicMap');
 
 export default class HAPIP extends AccessoryPlatform {
     async init(cached_accessories) {
+        if (!HttpClient) {
+            throw new Error('hap-controller is not available');
+        }
+
         this.client = new HttpClient(this.config.id, this.config.address, this.config.port, this.config.pairing_data);
 
         this.client.on('event', event => {

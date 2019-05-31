@@ -1,13 +1,22 @@
 
 import Logger from '../core/logger';
 import {AccessoryDiscovery, DiscoveredAccessory} from '../core/plugins';
-import {IPDiscovery} from 'hap-controller';
+
+const IPDiscovery = (() => {
+    try {
+        return require('hap-controller').IPDiscovery;
+    } catch (err) {}
+})();
 
 import setup from '../accessory-setup/hap-ip';
 
 const log = new Logger('HAP IP Discovery');
 
 export const HAPIPDiscovery = AccessoryDiscovery.withHandler(accessory_discovery => {
+    if (!IPDiscovery) {
+        throw new Error('hap-controller is not available');
+    }
+
     log.info('Starting HAP IP discovery');
 
     const discovery = new IPDiscovery();
