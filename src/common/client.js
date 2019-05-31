@@ -5,23 +5,27 @@ import Accessory from './accessory';
 import Layout from './layout';
 
 export function $set(object, key, value) {
-    if (require.cache[require.resolve('vue')]) {
-        const {default: Vue} = require('vue');
+    try {
+        if (require.cache[require.resolve('vue')]) {
+            const {default: Vue} = require('vue');
 
-        Vue.set(object, key, value);
-    } else {
-        object[key] = value;
-    }
+            return Vue.set(object, key, value);
+        }
+    } catch (err) {}
+
+    return object[key] = value;
 }
 
 export function $delete(object, key) {
-    if (require.cache[require.resolve('vue')]) {
-        const {default: Vue} = require('vue');
+    try {
+        if (require.cache[require.resolve('vue')]) {
+            const {default: Vue} = require('vue');
 
-        Vue.delete(object, key);
-    } else {
-        delete object[key];
-    }
+            return Vue.delete(object, key);
+        }
+    } catch (err) {}
+
+    delete object[key];
 }
 
 export default class Client extends EventEmitter {
