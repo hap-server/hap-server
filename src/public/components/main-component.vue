@@ -112,8 +112,8 @@
     import {BridgeService, UnsupportedService} from '../../common/service';
     import PluginManager from '../plugins';
     import {
-        ClientSymbol, ConnectionSymbol, AccessoriesSymbol, GetAllDisplayServicesSymbol, GetServiceSymbol,
-        PushModalSymbol, GetAssetURLSymbol,
+        NativeHookSymbol, ClientSymbol, ConnectionSymbol, AccessoriesSymbol, GetAllDisplayServicesSymbol,
+        GetServiceSymbol, PushModalSymbol, GetAssetURLSymbol,
     } from '../internal-symbols';
 
     import Authenticate from './authenticate.vue';
@@ -144,11 +144,16 @@
             ServiceSettings: () => import(/* webpackChunkName: 'settings' */ './service-settings.vue'),
         },
         inject: {
-            native_hook: {},
-            client: {from: ClientSymbol},
+            _native_hook: {from: NativeHookSymbol},
+            _client: {from: ClientSymbol},
         },
         data() {
             return {
+                // Vue doesn't watch injected properties
+                // This forces Vue to watch them
+                native_hook: this._native_hook,
+                client: this._client,
+
                 connection: null,
                 has_connected: false,
                 loading: false,

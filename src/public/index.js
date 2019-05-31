@@ -2,7 +2,7 @@ if (process.env.NODE_ENV === 'development') {
     require('@vue/devtools');
 }
 
-import {ClientSymbol} from './internal-symbols';
+import {NativeHookSymbol, ClientSymbol} from './internal-symbols';
 import Client from '../common/client';
 import Connection from '../common/connection';
 
@@ -30,7 +30,7 @@ const client = new (native_hook ? native_hook.Client : Client)();
 const vue = new Vue({
     provide() {
         return {
-            native_hook,
+            [NativeHookSymbol]: native_hook,
             [ClientSymbol]: client,
         };
     },

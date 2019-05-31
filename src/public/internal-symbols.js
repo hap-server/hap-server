@@ -1,3 +1,4 @@
+export const NativeHookSymbol = Symbol('NativeHook');
 export const ClientSymbol = Symbol('Client');
 export const ConnectionSymbol = Symbol('Connection');
 export const AccessoriesSymbol = Symbol('Accessories');

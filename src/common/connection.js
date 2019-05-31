@@ -86,6 +86,8 @@ export default class Connection extends EventEmitter {
 
             callback.call(this, data);
 
+            this.callbacks.delete(messageid);
+
             return;
         }
 
