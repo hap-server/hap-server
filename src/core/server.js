@@ -172,9 +172,10 @@ export default class Server extends Events {
                     const connection = Connection.getConnectionForWebSocket(ws);
                     if (connection && connection.enable_proxy_stdout) {
                         ws.send('**:' + JSON.stringify({
-                            type, data: util.formatWithOptions({
+                            type,
+                            data: util.formatWithOptions ? util.formatWithOptions({
                                 colors: true,
-                            }, data, ...args) + '\n',
+                            }, data, ...args) + '\n' : util.format(data, ...args) + '\n',
                         }));
                     }
                 }
