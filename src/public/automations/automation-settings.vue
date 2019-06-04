@@ -15,6 +15,12 @@
         <div v-if="tab === 'triggers'" class="automation-triggers">
             <p>The automation will run when any of these triggers run.</p>
 
+            <p v-if="other_automation_triggers.length">
+                {{ other_automation_triggers.length }} other automation{{ other_automation_triggers.length === 1 ? '' : 's' }}
+                will trigger this automation.
+            </p>
+            <p v-else>Other automations can also trigger this automation.</p>
+
             <template v-for="(trigger, id) in automation.data.triggers || {}">
                 <component
                     v-if="trigger_components.find(c => c.plugin === trigger.plugin && c.type === trigger.trigger)"
@@ -79,6 +85,7 @@
 
 <script>
     import Connection from '../../common/connection';
+    import {AutomationsSymbol, AutomationSymbol} from '../internal-symbols';
     import {StagedAutomation} from './automation';
 
     import Panel from '../components/panel.vue';
@@ -116,15 +123,37 @@
                 tab: 'general',
                 tabs: {
                     general: 'General',
-                    triggers: {label: 'Triggers', get badge() {return Object.keys($vm.automation.data.triggers).length + ''}},
-                    conditions: {label: 'Conditions', get badge() {return Object.keys($vm.automation.data.conditions).length + ''}},
-                    actions: {label: 'Actions', get badge() {return Object.keys($vm.automation.data.actions).length + ''}},
+                    triggers: {label: 'Triggers', get badge() {return Object.keys($vm.automation.data.triggers || {}).length + ''}},
+                    conditions: {label: 'Conditions', get badge() {return Object.keys($vm.automation.data.conditions || {}).length + ''}},
+                    actions: {label: 'Actions', get badge() {return Object.keys($vm.automation.data.actions || {}).length + ''}},
                 },
 
                 trigger_components,
                 condition_components,
                 action_components,
             };
+        },
+        inject: {
+            automations: {from: AutomationsSymbol},
+        },
+        provide() {
+            return {
+                [AutomationSymbol]: this.automation,
+            };
+        },
+        computed: {
+            other_automation_triggers() {
+                return Object.values(this.automations || {}).filter(other_automation => {
+                    if (other_automation.uuid === this.automation.uuid) return false;
+                    if (!other_automation.data.actions) return false;
+
+                    return Object.values(other_automation.data.actions).find(action => {
+                        if (action.plugin || action.type !== 'RunAutomation') return false;
+
+                        if (action.automation_uuid === this.automation.uuid) return true;
+                    });
+                });
+            },
         },
         methods: {
             addTrigger(data) {

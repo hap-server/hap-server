@@ -1,3 +1,5 @@
+import {TriggerEvent} from '../events/automation-trigger';
+import {AutomationRunner} from '.';
 import AutomationCondition from './condition';
 import PluginManager from '../core/plugins';
 
@@ -213,3 +215,33 @@ export class SetCharacteristicAction extends AutomationAction {
 }
 
 AutomationAction.types.SetCharacteristic = SetCharacteristicAction;
+
+/**
+ * An AutomationAction that triggers an automation.
+ */
+export class RunAutomationAction extends AutomationAction {
+    async run(parent_runner, setProgress, ...parent_actions) {
+        const automation = this.automations.getAutomationByUUID(this.config.automation_uuid);
+        if (!automation) return;
+
+        const event = new TriggerEvent(this, {
+            action: this,
+            parent_runner,
+        }, true);
+        automation.emit(event, this, event.context, true);
+
+        const conditions = automation.conditions;
+        if (this.config.skip_conditions) automation.conditions = [];
+
+        const runner = new AutomationRunner(automation, event);
+        automation.running.push(runner);
+        runner.on('finished', () => automation.running.splice(automation.running.indexOf(runner), 1));
+        runner.on('progress', progress => setProgress(progress));
+
+        automation.conditions = conditions;
+
+        await runner.run();
+    }
+}
+
+AutomationAction.types.RunAutomation = RunAutomationAction;

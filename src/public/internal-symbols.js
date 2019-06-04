@@ -2,6 +2,7 @@ export const NativeHookSymbol = Symbol('NativeHook');
 export const ClientSymbol = Symbol('Client');
 export const ConnectionSymbol = Symbol('Connection');
 export const AccessoriesSymbol = Symbol('Accessories');
+export const AutomationsSymbol = Symbol('Automations');
 export const GetAllDisplayServicesSymbol = Symbol('GetAllDisplayServices');
 export const GetServiceSymbol = Symbol('GetService');
 export const PushModalSymbol = Symbol('PushModal');
@@ -13,3 +14,5 @@ export const LayoutRemoveSectionSymbol = Symbol('LayoutRemoveSection');
 export const LayoutGetEditingSymbol = Symbol('LayoutGetEditing');
 export const LayoutGetCanEditSymbol = Symbol('LayoutGetCanEdit');
 export const LayoutSetEditingSymbol = Symbol('LayoutSetEditing');
+
+export const AutomationSymbol = Symbol('Automation');

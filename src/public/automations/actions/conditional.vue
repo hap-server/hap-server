@@ -1,6 +1,6 @@
 <template>
     <automation-action class="automation-action-conditional"
-        :id="id" :condition="condition" :editable="editable" :saving="saving" @delete="$emit('delete')"
+        :id="id" :action="action" :editable="editable" :saving="saving" @delete="$emit('delete')"
     >
         <p>These actions will only run if this condition passes.</p>
 

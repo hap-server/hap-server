@@ -170,7 +170,7 @@ export class AllCondition extends AutomationCondition {
                     return false;
                 }
 
-                this.log.debug('Condition #%d child #%n passed', this.id, condition.id);
+                this.log.debug('Condition #%d child #%d passed', this.id, condition.id);
             } catch (err) {
                 this.log.error('Error in automation condition', err);
                 throw err;

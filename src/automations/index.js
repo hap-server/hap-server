@@ -213,8 +213,11 @@ export class Automation {
      * Handles an event from a trigger.
      *
      * @param {TriggerEvent} event
+     * @param {boolean} dont_run
      */
-    handleTrigger(event) {
+    handleTrigger(event, dont_run) {
+        if (dont_run) return;
+
         this.log.info('Received automation trigger event', event);
 
         const runner = new AutomationRunner(this, event);

@@ -40,6 +40,7 @@
 
 <script>
     import Connection from '../../common/connection';
+    import {AutomationsSymbol} from '../internal-symbols';
     import Automation from './automation';
 
     import AutomationSettings from './automation-settings.vue';
@@ -59,6 +60,11 @@
                 open_automation: null,
                 saving_automation: false,
                 deleting_automation: false,
+            };
+        },
+        provide() {
+            return {
+                [AutomationsSymbol]: this.automations,
             };
         },
         watch: {
