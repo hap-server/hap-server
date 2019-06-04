@@ -4,7 +4,7 @@
     >
         <television-icon slot="icon" />
 
-        <p>{{ active ? input_label || 'On' : 'Off' }}</p>
+        <p>{{ active ? active_input_name || 'On' : 'Off' }}</p>
     </service>
 </template>
 
@@ -43,10 +43,10 @@
                 return this.service.services.find(service =>
                     service.getCharacteristicValueByName('Identifier') === active_identifier);
             },
-            input_label() {
+            active_input_name() {
                 if (!this.active_input) return;
 
-                return this.active_input.getCharacteristicValueByName('ConfiguredName');
+                return this.active_input.getCharacteristicValueByName('ConfiguredName') || this.active_input.name;
             },
         },
         methods: {

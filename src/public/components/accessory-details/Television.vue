@@ -6,7 +6,13 @@
 
         <p>Television</p>
         <p v-if="updating">Updating</p>
-        <p @click.stop="setActive(active ? 0 : 1)">{{ active ? input_label || 'On' : 'Off' }}</p>
+        <p class="clickable" @click.stop="setActive(active ? 0 : 1)">{{ active ? active_input_name || 'On' : 'Off' }}</p>
+
+        <dropdown v-if="inputs.length" slot="footer-left" :label="active_input_name || 'Input'" colour="dark" type="up">
+            <a v-for="input in inputs" class="dropdown-item" :class="{active: input === active_input}" href="#"
+                @click.prevent.stop="setActiveInput(input)"
+            >{{ input.getCharacteristicValueByName('ConfiguredName') || input.name }}</a>
+        </dropdown>
     </accessory-details>
 </template>
 
@@ -14,6 +20,7 @@
     import Service from '../../../common/service';
     import AccessoryDetails from './accessory-details.vue';
     import TelevisionIcon from '../icons/television.vue';
+    import Dropdown from '../dropdown.vue';
 
     export const uuid = 'CollapsedService.' + Service.Television;
 
@@ -21,6 +28,7 @@
         components: {
             AccessoryDetails,
             TelevisionIcon,
+            Dropdown,
         },
         props: {
             service: Service,
@@ -37,6 +45,9 @@
             active() {
                 return this.television_service.getCharacteristicValueByName('Active');
             },
+            inputs() {
+                return this.service.services.filter(service => service.type === Service.InputSource);
+            },
             active_input() {
                 if (!this.television_service) return;
 
@@ -45,10 +56,11 @@
                 return this.service.services
                     .find(service => service.getCharacteristicValueByName('Identifier') === active_identifier);
             },
-            input_label() {
+            active_input_name() {
                 if (!this.active_input) return;
 
-                return this.active_input.getCharacteristicValueByName('ConfiguredName');
+                return this.active_input.getCharacteristicValueByName('ConfiguredName') || this.active_input.name;
+            },
             },
         },
         methods: {
@@ -63,6 +75,10 @@
                 } finally {
                     this.updating = false;
                 }
+            },
+            async setActiveInput(input) {
+                await this.television_service.setCharacteristicByName('ActiveIdentifier',
+                    input.getCharacteristicValueByName('Identifier'));
             },
         },
     };
