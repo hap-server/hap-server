@@ -90,7 +90,7 @@ export default class Layout extends EventEmitter {
         $set(this.sections, uuid, section);
 
         if (typeof index !== 'undefined') {
-            const sections_order = this.layout && this.layout.sections_order || [];
+            const sections_order = this.staged_sections_order || this.sections_order || [];
 
             await this.updateData(Object.assign({}, this.data, {
                 sections_order: sections_order.slice(index, 0, uuid),
@@ -114,6 +114,14 @@ export default class Layout extends EventEmitter {
     async deleteSection(section) {
         await this.connection.deleteLayoutSection(this.uuid, section.uuid);
         $delete(this.sections, section.uuid);
+
+        const sections_order = this.staged_sections_order || this.sections_order || [];
+
+        if (sections_order.includes(section.uuid)) {
+            await this.updateData(Object.assign({}, this.data, {
+                sections_order: this.staged_sections_order = sections_order.filter(s => s.uuid !== section.uuid),
+            }));
+        }
     }
 
     _handleRemoveLayoutSection(uuid) {

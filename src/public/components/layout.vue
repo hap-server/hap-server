@@ -12,8 +12,8 @@
             :disabled="staged_sections_order"
         >
             <template v-for="section in effective_sections">
-                <component v-if="section_components.has(section.type || 'Accessories')"
-                    :is="section_components.get(section.type || 'Accessories').component" :key="section.uuid"
+                <component v-if="section_components.has(section.data.type || 'Accessories')"
+                    :is="section_components.get(section.data.type || 'Accessories').component" :key="section.uuid"
                     :accessories="accessories" :section="section" :accessories-draggable-group="'' + _uid"
                     :editing="edit" @edit="e => edit = e" @update-name="name => updateSectionName(section, name)"
                     @update-data="data => updateSectionData(section, data)" @modal="modal => $emit('modal', modal)" />
@@ -27,7 +27,7 @@
             </template>
         </component>
 
-        <div v-if="(!sections || !Object.keys(sections).length) && !edit && !showAllAccessories" class="section">
+        <div v-if="!accessories_count && !edit && !showAllAccessories" class="section">
             <p>This layout has no accessories.</p>
             <button v-if="canEdit" class="btn btn-primary btn-sm" @click="edit = true">Add accessories</button>
         </div>

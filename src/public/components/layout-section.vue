@@ -83,8 +83,8 @@
                 }
             },
             addSection(type) {
-                if (!this.layout.staged_sections_order) return;
-                this._addSection(this.layout.sections_order.indexOf(this.section.uuid) + 1, {type});
+                if (this.layout.staged_sections_order) return;
+                this._addSection((this.layout.staged_sections_order || this.layout.sections_order).indexOf(this.section.uuid) + 1, {type});
             },
             removeSection() {
                 this._removeSection(this.section);
