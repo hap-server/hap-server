@@ -2,7 +2,8 @@
     <div class="automation-action">
         <div class="automation-action-header">
             <div class="flex-fill">
-                <h4>Action #{{ id }}</h4>
+                <h4 v-if="action_component && action_component.name">{{ action_component.name }}</h4>
+                <h4 v-else>Action #{{ id }}</h4>
             </div>
 
             <slot name="header-right" />
@@ -17,12 +18,19 @@
 </template>
 
 <script>
+    import {action_components} from '.';
+
     export default {
         props: {
             id: String,
             action: Object,
             editable: Boolean,
             saving: Boolean,
+        },
+        computed: {
+            action_component() {
+                return action_components.find(c => c.plugin === this.action.plugin && c.type === this.action.action);
+            },
         },
     };
 </script>
