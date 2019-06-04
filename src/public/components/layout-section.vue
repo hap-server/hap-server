@@ -12,20 +12,11 @@
 
             <slot name="title-right">
                 <template v-if="editing">
-                    <div class="dropdown ml-3" :class="{show: addSectionDropdownOpen}">
-                        <button :id="_uid + '-dropdown'" class="btn btn-sm btn-dark dropdown-toggle" type="button"
-                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
-                            :disabled="layout.staged_sections_order"
-                            @click.stop="addSectionDropdownOpen = !addSectionDropdownOpen">Add section</button>
-
-                        <div class="dropdown-menu dropdown-menu-right" :class="{show: addSectionDropdownOpen}"
-                            :aria-labelledby="_uid + '-dropdown'"
-                        >
-                            <a v-for="[type, section_component] in layout_section_components.entries()" :key="type"
-                                class="dropdown-item" href="#" @click.prevent="addSection(type)"
-                            >{{ section_component.name }}</a>
-                        </div>
-                    </div>
+                    <dropdown class="ml-3" label="Add section" colour="dark" align="right">
+                        <a v-for="[type, section_component] in layout_section_components.entries()" :key="type"
+                            class="dropdown-item" href="#" @click.prevent="addSection(type)"
+                        >{{ section_component.name }}</a>
+                    </dropdown>
 
                     <button class="btn btn-danger btn-sm ml-3" type="button"
                         @click="removeSection">Remove section</button>
@@ -53,8 +44,12 @@
         LayoutSetEditingSymbol} from '../internal-symbols'; // eslint-disable-line vue/script-indent
 
     import layout_section_components from './layout-sections';
+    import Dropdown from './dropdown.vue';
 
     export default {
+        components: {
+            Dropdown,
+        },
         props: {
             section: LayoutSection,
             name: String,
@@ -63,7 +58,6 @@
         },
         data() {
             return {
-                addSectionDropdownOpen: false,
                 layout_section_components,
             };
         },
@@ -82,19 +76,7 @@
                 return this.getCanEdit();
             },
         },
-        watch: {
-            addSectionDropdownOpen(addSectionDropdownOpen) {
-                if (addSectionDropdownOpen) document.body.addEventListener('click', this.close, true);
-                else document.body.removeEventListener('click', this.close);
-            },
-        },
-        destroy() {
-            document.body.removeEventListener('click', this.close);
-        },
         methods: {
-            close() {
-                this.addSectionDropdownOpen = false;
-            },
             updateName() {
                 if (this.$refs.title_edit.value !== this.name) {
                     this.$emit('update-name', this.$refs.title_edit.value);
@@ -103,7 +85,6 @@
             addSection(type) {
                 if (!this.layout.staged_sections_order) return;
                 this._addSection(this.layout.sections_order.indexOf(this.section.uuid) + 1, {type});
-                this.addSectionDropdownOpen = false;
             },
             removeSection() {
                 this._removeSection(this.section);

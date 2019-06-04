@@ -21,40 +21,26 @@
         </template>
 
         <template v-if="editable" slot="header-right">
-            <div v-if="!action.condition || !condition_components.find(c => c.plugin === action.condition.plugin && c.type === action.condition.condition)"
-                class="dropdown" :class="{show: add_condition_dropdown_open}"
+            <dropdown v-if="!action.condition || !condition_components.find(c => c.plugin === action.condition.plugin && c.type === action.condition.condition)"
+                label="Add condition" :disabled="saving"
             >
-                <button :id="_uid + '-conditions-dropdown'" class="btn btn-sm btn-default dropdown-toggle" type="button"
-                    data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" :disabled="saving"
-                    @click.stop="add_condition_dropdown_open = !add_condition_dropdown_open">Add condition</button>
+                <a v-for="{plugin, type, name} in condition_components" :key="type" class="dropdown-item" href="#"
+                    @click.prevent="action.condition = {plugin, condition: type}; $forceUpdate()"
+                >{{ name }}</a>
+            </dropdown>
 
-                <div class="dropdown-menu" :class="{show: add_condition_dropdown_open}"
-                    :aria-labelledby="_uid + '-conditions-dropdown'"
-                >
-                    <a v-for="{plugin, type, name} in condition_components" :key="type" class="dropdown-item" href="#"
-                        @click.prevent="action.condition = {plugin, condition: type}; $forceUpdate()"
-                    >{{ name }}</a>
-                </div>
-            </div>
-
-            <div class="dropdown" :class="{show: add_action_dropdown_open}">
-                <button :id="_uid + '-actions-dropdown'" class="btn btn-sm btn-default dropdown-toggle" type="button"
-                    data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" :disabled="saving"
-                    @click.stop="add_action_dropdown_open = !add_action_dropdown_open">Add action</button>
-
-                <div class="dropdown-menu dropdown-menu-right" :class="{show: add_action_dropdown_open}"
-                    :aria-labelledby="_uid + '-actions-dropdown'"
-                >
-                    <a v-for="{plugin, type, name} in action_components" :key="type"
-                        class="dropdown-item" href="#" @click.prevent="addAction({plugin, action: type})"
-                    >{{ name }}</a>
-                </div>
-            </div>
+            <dropdown label="Add action" :disabled="saving">
+                <a v-for="{plugin, type, name} in action_components" :key="type"
+                    class="dropdown-item" href="#" @click.prevent="addAction({plugin, action: type})"
+                >{{ name }}</a>
+            </dropdown>
         </template>
     </automation-action>
 </template>
 
 <script>
+    import Dropdown from '../../components/dropdown.vue';
+
     import AutomationAction from '../action.vue';
     import {condition_components, action_components} from '..';
 
@@ -63,6 +49,7 @@
 
     export default {
         components: {
+            Dropdown,
             AutomationAction,
         },
         props: {
@@ -75,8 +62,6 @@
             return {
                 condition_components,
                 action_components,
-                add_condition_dropdown_open: false,
-                add_action_dropdown_open: false,
             };
         },
         methods: {

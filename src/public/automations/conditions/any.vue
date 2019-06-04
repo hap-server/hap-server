@@ -12,23 +12,17 @@
                 @delete="$delete(condition.conditions, id); $forceUpdate()" />
         </template>
 
-        <div v-if="editable" slot="header-right" class="dropdown" :class="{show: add_condition_dropdown_open}">
-            <button :id="_uid + '-dropdown'" class="btn btn-sm btn-default dropdown-toggle" type="button"
-                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" :disabled="saving"
-                @click.stop="add_condition_dropdown_open = !add_condition_dropdown_open">Add condition</button>
-
-            <div class="dropdown-menu dropdown-menu-right" :class="{show: add_condition_dropdown_open}"
-                :aria-labelledby="_uid + '-dropdown'"
-            >
-                <a v-for="{plugin, type, name} in condition_components" :key="type"
-                    class="dropdown-item" href="#" @click.prevent="addCondition({plugin, condition: type})"
-                >{{ name }}</a>
-            </div>
-        </div>
+        <dropdown v-if="editable" slot="header-right" label="Add condition" align="right" :disabled="saving">
+            <a v-for="{plugin, type, name} in condition_components" :key="type"
+                class="dropdown-item" href="#" @click.prevent="addCondition({plugin, condition: type})"
+            >{{ name }}</a>
+        </dropdown>
     </automation-condition>
 </template>
 
 <script>
+    import Dropdown from '../../components/dropdown.vue';
+
     import AutomationCondition from '../condition.vue';
     import {condition_components} from '..';
 
@@ -37,6 +31,7 @@
 
     export default {
         components: {
+            Dropdown,
             AutomationCondition,
         },
         props: {
@@ -48,7 +43,6 @@
         data() {
             return {
                 condition_components,
-                add_condition_dropdown_open: false,
             };
         },
         methods: {

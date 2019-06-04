@@ -15,6 +15,10 @@ import Characteristic from '../common/characteristic';
 
 import {AuthenticationHandlerConnection, AuthenticatedUser, AccessorySetupConnection} from '../common/connection';
 
+import * as sortable_component_module from './components/sortable.vue';
+import * as panel_tabs_component_module from './components/panel-tabs.vue';
+import * as dropdown_component_module from './components/dropdown.vue';
+
 import {instances as main_component_instances} from './components/main-component.vue';
 import service_components from './components/services';
 import * as service_component_module from './components/services/service.vue';
@@ -27,7 +31,6 @@ import * as layout_section_component_module from './components/layout-section.vu
 import accessory_discovery_components from './components/accessory-discovery';
 import * as accessory_discovery_component_module from './components/accessory-discovery/accessory-discovery.vue';
 import accessory_setup_components from './components/accessory-setup';
-import * as sortable_component_module from './components/sortable.vue';
 import * as vue_color_chrome_module from 'vue-color/src/components/Chrome.vue';
 import * as vue_color_swatches_module from 'vue-color/src/components/Swatches.vue';
 import * as vue_color_sketch_module from 'vue-color/src/components/Sketch.vue';
@@ -103,6 +106,10 @@ export class PluginManager {
             return accessory_discovery_component_module;
         } else if (request === '@hap-server/accessory-ui-api/sortable') {
             return sortable_component_module;
+        } else if (request === '@hap-server/accessory-ui-api/panel-tabs') {
+            return panel_tabs_component_module;
+        } else if (request === '@hap-server/accessory-ui-api/dropdown') {
+            return dropdown_component_module;
         } else if (request.startsWith('@hap-server/accessory-ui-api/icons/') &&
             icon_component_modules.has('./' + request.substr(35) + '.vue')
         ) {

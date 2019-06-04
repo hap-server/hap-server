@@ -1,17 +1,6 @@
 <template>
     <panel class="automation-settings" ref="panel" @close="$emit('close')">
-        <ul class="nav nav-tabs nav-sm mb-3">
-            <li class="nav-item"><a class="nav-link" :class="{active: tab === 'general'}" href="#" @click.prevent="tab = 'general'">General</a></li>
-            <li class="nav-item"><a class="nav-link" :class="{active: tab === 'triggers'}" href="#" @click.prevent="tab = 'triggers'">Triggers
-                <span v-if="Object.keys(automation.data.triggers || {}).length" class="badge badge-default">
-                    {{ Object.keys(automation.data.triggers || {}).length }}</span></a></li>
-            <li class="nav-item"><a class="nav-link" :class="{active: tab === 'conditions'}" href="#" @click.prevent="tab = 'conditions'">Conditions
-                <span v-if="Object.keys(automation.data.conditions || {}).length" class="badge badge-default">
-                    {{ Object.keys(automation.data.conditions || {}).length }}</span></a></li>
-            <li class="nav-item"><a class="nav-link" :class="{active: tab === 'actions'}" href="#" @click.prevent="tab = 'actions'">Actions
-                <span v-if="Object.keys(automation.data.actions || {}).length" class="badge badge-default">
-                    {{ Object.keys(automation.data.actions || {}).length }}</span></a></li>
-        </ul>
+        <panel-tabs v-model="tab" :tabs="tabs" />
 
         <form v-if="tab === 'general'" @submit.prevent="$emit('save', true)">
             <div class="form-group row">
@@ -58,50 +47,23 @@
         </div>
 
         <div class="d-flex">
-            <div v-if="tab === 'triggers' && editable" class="dropdown dropup" :class="{show: add_trigger_dropdown_open}">
-                <button :id="_uid + '-triggers-dropdown'" class="btn btn-sm btn-default dropdown-toggle" type="button"
-                    data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
-                    :disabled="saving || deleting"
-                    @click.stop="add_trigger_dropdown_open = !add_trigger_dropdown_open">Add trigger</button>
+            <dropdown v-if="tab === 'triggers' && editable" label="Add trigger" type="up" :disabled="saving || deleting">
+                <a v-for="{plugin, type, name} in trigger_components" :key="type"
+                    class="dropdown-item" href="#" @click.prevent="addTrigger({plugin, trigger: type})"
+                >{{ name }}</a>
+            </dropdown>
 
-                <div class="dropdown-menu" :class="{show: add_trigger_dropdown_open}"
-                    :aria-labelledby="_uid + '-triggers-dropdown'"
-                >
-                    <a v-for="{plugin, type, name} in trigger_components" :key="type"
-                        class="dropdown-item" href="#" @click.prevent="addTrigger({plugin, trigger: type})"
-                    >{{ name }}</a>
-                </div>
-            </div>
+            <dropdown v-if="tab === 'conditions' && editable" label="Add condition" type="up" :disabled="saving || deleting">
+                <a v-for="{plugin, type, name} in condition_components" :key="type"
+                    class="dropdown-item" href="#" @click.prevent="addCondition({plugin, condition: type})"
+                >{{ name }}</a>
+            </dropdown>
 
-            <div v-if="tab === 'conditions' && editable" class="dropdown dropup" :class="{show: add_condition_dropdown_open}">
-                <button :id="_uid + '-conditions-dropdown'" class="btn btn-sm btn-default dropdown-toggle" type="button"
-                    data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
-                    :disabled="saving || deleting"
-                    @click.stop="add_condition_dropdown_open = !add_condition_dropdown_open">Add condition</button>
-
-                <div class="dropdown-menu" :class="{show: add_condition_dropdown_open}"
-                    :aria-labelledby="_uid + '-conditions-dropdown'"
-                >
-                    <a v-for="{plugin, type, name} in condition_components" :key="type"
-                        class="dropdown-item" href="#" @click.prevent="addCondition({plugin, condition: type})"
-                    >{{ name }}</a>
-                </div>
-            </div>
-
-            <div v-if="tab === 'actions' && editable" class="dropdown dropup" :class="{show: add_action_dropdown_open}">
-                <button :id="_uid + '-actions-dropdown'" class="btn btn-sm btn-default dropdown-toggle" type="button"
-                    data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
-                    :disabled="saving || deleting"
-                    @click.stop="add_action_dropdown_open = !add_action_dropdown_open">Add action</button>
-
-                <div class="dropdown-menu" :class="{show: add_action_dropdown_open}"
-                    :aria-labelledby="_uid + '-actions-dropdown'"
-                >
-                    <a v-for="{plugin, type, name} in action_components" :key="type"
-                        class="dropdown-item" href="#" @click.prevent="addAction({plugin, action: type})"
-                    >{{ name }}</a>
-                </div>
-            </div>
+            <dropdown v-if="tab === 'actions' && editable" label="Add action" type="up" :disabled="saving || deleting">
+                <a v-for="{plugin, type, name} in action_components" :key="type"
+                    class="dropdown-item" href="#" @click.prevent="addAction({plugin, action: type})"
+                >{{ name }}</a>
+            </dropdown>
 
             <div v-if="saving">Saving</div>
             <div class="flex-fill"></div>
@@ -120,6 +82,8 @@
     import {StagedAutomation} from './automation';
 
     import Panel from '../components/panel.vue';
+    import PanelTabs from '../components/panel-tabs.vue';
+    import Dropdown from '../components/dropdown.vue';
 
     import Trigger from './trigger.vue';
 
@@ -131,6 +95,8 @@
     export default {
         components: {
             Panel,
+            PanelTabs,
+            Dropdown,
             Trigger,
         },
         props: {
@@ -144,15 +110,20 @@
             deleting: Boolean,
         },
         data() {
+            const $vm = this;
+
             return {
                 tab: 'general',
+                tabs: {
+                    general: 'General',
+                    triggers: {label: 'Triggers', get badge() {return Object.keys($vm.automation.data.triggers).length + ''}},
+                    conditions: {label: 'Conditions', get badge() {return Object.keys($vm.automation.data.conditions).length + ''}},
+                    actions: {label: 'Actions', get badge() {return Object.keys($vm.automation.data.actions).length + ''}},
+                },
 
                 trigger_components,
                 condition_components,
                 action_components,
-                add_trigger_dropdown_open: false,
-                add_condition_dropdown_open: false,
-                add_action_dropdown_open: false,
             };
         },
         methods: {

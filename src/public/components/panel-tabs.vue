@@ -4,6 +4,8 @@
         <li v-for="(tab, id) in tabs" v-if="!tab.if || tab.if()" :key="id" class="nav-item">
             <a class="nav-link" :class="{active: id === value}" href="#" @click.prevent="$emit('input', id)">
                 {{ tab.label || tab }}
+
+                <span v-if="tab.badge" class="badge badge-default">{{ tab.badge }}</span>
             </a>
         </li>
     </ul>
