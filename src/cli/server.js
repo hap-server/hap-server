@@ -264,6 +264,9 @@ export async function handler(argv) {
                     + ' shutting down...');
             } else log.info(`Got ${signal}, shutting down...`);
 
+            server.unpublish();
+            http_server.close();
+
             await Promise.all([
                 unlink(path.join(data_path, 'hap-server.pid')),
                 unlink(path.join(data_path, 'hap-server-port')),
@@ -277,9 +280,6 @@ export async function handler(argv) {
             server.removeListener(Events.AddAccessoryEvent, saveCachedAccessories);
             server.removeListener(Events.UpdateAccessoryConfigurationEvent, saveCachedAccessories);
             server.removeListener(Events.RemoveAccessoryEvent, saveCachedAccessories);
-
-            server.unpublish();
-            http_server.close();
 
             setTimeout(() => process.exit(128 + code), 1000);
         });

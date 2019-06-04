@@ -1377,7 +1377,7 @@ export default class Connection {
             this.permissions.checkCanDeleteBridge(uuid),
         ]);
 
-        return {get, set, delete: del, is_from_config};
+        return {get, set, delete: del, is_from_config: is_from_config || this.server.homebridge && this.server.homebridge.uuid === uuid};
     }
 
     /**
@@ -1394,8 +1394,9 @@ export default class Connection {
     async setBridgeConfiguration(uuid, data) {
         await this.permissions.assertCanSetBridgeConfiguration(uuid);
 
-        const is_from_config = this.server.config.bridges && this.server.config.bridges
-            .find(c => c.uuid ? c.uuid === uuid : hap.uuid.generate('hap-server:bridge:' + c.username) === uuid);
+        const is_from_config = (this.server.config.bridges && this.server.config.bridges
+            .find(c => c.uuid ? c.uuid === uuid : hap.uuid.generate('hap-server:bridge:' + c.username) === uuid)) ||
+            (this.server.homebridge && this.server.homebridge.uuid === uuid);
         if (is_from_config) throw new Error('Cannot update bridges not created in the web interface');
 
         if (!data.username || !data.username.toLowerCase().match(/^([0-9a-f]{2}:){5}[0-9a-f]{2}$/)) {
@@ -1467,8 +1468,9 @@ export default class Connection {
     async deleteBridge(uuid) {
         await this.permissions.assertCanDeleteBridge(uuid);
 
-        const is_from_config = this.server.config.bridges && this.server.config.bridges
-            .find(c => c.uuid ? c.uuid === uuid : hap.uuid.generate('hap-server:bridge:' + c.username) === uuid);
+        const is_from_config = (this.server.config.bridges && this.server.config.bridges
+            .find(c => c.uuid ? c.uuid === uuid : hap.uuid.generate('hap-server:bridge:' + c.username) === uuid)) ||
+            (this.server.homebridge && this.server.homebridge.uuid === uuid);
         if (is_from_config) throw new Error('Cannot delete bridges not created in the web interface');
 
         this.log.debug('Stopping bridge', uuid);

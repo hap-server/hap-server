@@ -61,7 +61,6 @@
 
                 return this.active_input.getCharacteristicValueByName('ConfiguredName') || this.active_input.name;
             },
-            },
         },
         methods: {
             async setActive(value) {
