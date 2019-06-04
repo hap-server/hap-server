@@ -1,6 +1,6 @@
 <template>
     <service class="service-lightbulb" :service="service" type="Lightbulb" :active="on" :updating="updating"
-        @click="setOn(!on)"
+        :background-colour="on && colour ? colour : null" @click="setOn(!on)"
     >
         <lightbulb-icon slot="icon" />
 
@@ -34,6 +34,14 @@
             },
             brightness() {
                 return this.service.getCharacteristicValueByName('Brightness');
+            },
+            colour() {
+                const hue = this.service.getCharacteristicByName('Hue');
+                const saturation = this.service.getCharacteristicByName('Saturation');
+
+                if (!hue || !saturation) return;
+
+                return `hsla(${hue.value}, ${saturation.value}%, ${60 + (this.brightness / 3)}%)`;
             },
         },
         methods: {

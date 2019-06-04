@@ -8,24 +8,38 @@
 }
 
 .service {
-    background-color: rgba(255, 255, 255, 0.9);
-
-    @supports (backdrop-filter: blur(20px)) or (-webkit-backdrop-filter: blur(20px)) {
-        background-color: rgba(255, 255, 255, 0.5);
-        -webkit-backdrop-filter: blur(20px);
-        backdrop-filter: blur(20px);
-    }
-
-    border-radius: 0.8em;
-
     width: 100%;
     height: 100%;
 
-    padding: 0.9em;
-    font-size: 0.8em;
+    .service-tile-background {
+        width: 100%;
+        height: 100%;
+        margin-bottom: -100%;
+        border-radius: 0.8em;
+        background-position: center;
+        background-size: cover;
+    }
 
-    display: flex;
-    flex-direction: column;
+    .service-tile-contents {
+        background-color: rgba(255, 255, 255, 0.9);
+
+        @supports (backdrop-filter: blur(20px)) or (-webkit-backdrop-filter: blur(20px)) {
+            background-color: rgba(255, 255, 255, 0.5);
+            -webkit-backdrop-filter: blur(20px);
+            backdrop-filter: blur(20px);
+        }
+
+        border-radius: 0.8em;
+
+        width: 100%;
+        height: 100%;
+
+        padding: 0.9em;
+        font-size: 0.8em;
+
+        display: flex;
+        flex-direction: column;
+    }
 
     .service-top {
         height: 30px;
@@ -71,7 +85,12 @@
     }
 
     &.active {
-        background-color: rgba(255, 255, 255, 0.9);
+        .service-tile-contents {
+            background-color: rgba(255, 255, 255, 0.9);
+        }
+        .service-tile-background + .service-tile-contents {
+            background-color: rgba(255, 255, 255, 0.7);
+        }
 
         svg.icon {
             fill: rgba(0, 0, 0, 1);
