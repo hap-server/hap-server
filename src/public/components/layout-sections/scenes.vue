@@ -18,8 +18,12 @@
             <button v-else class="btn btn-sm btn-dark ml-3" @click="createScene">Add scene</button>
         </template>
 
+        <draggable v-if="editing && show_remove_drop_target" class="draggable remove-drop-target" :list="[]"
+            :group="accessoriesDraggableGroup + '-scenes'" />
+
         <draggable v-if="editing" v-model="effective_scenes_order" class="draggable"
             :group="accessoriesDraggableGroup + '-scenes'" :disabled="staged_scenes_order"
+            @start="show_remove_drop_target = true" @end="show_remove_drop_target = false" @change="change"
         >
             <template v-for="id in effective_scenes_order">
                 <scene v-if="scenes[id]" :key="id" :scene="scenes[id]" :editing="editing" />
@@ -66,6 +70,7 @@
             return {
                 updating_scenes_order: null,
                 staged_scenes_order: null,
+                show_remove_drop_target: false,
             };
         },
         computed: {
@@ -105,6 +110,11 @@
             },
             addScene(scene) {
                 this.effective_scenes_order = this.effective_scenes_order.concat([scene.uuid]);
+            },
+            change(changes) {
+                if (changes.added && this.effective_scenes_order.includes(changes.added.element)) {
+                    this.effective_scenes_order.splice(changes.added.newIndex, 1);
+                }
             },
         },
     };

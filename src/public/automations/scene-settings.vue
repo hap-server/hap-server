@@ -7,7 +7,7 @@
                 <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-name'">Name</label>
                 <div class="col-sm-9">
                     <input :id="_uid + '-name'" v-model="data.name" type="text"
-                        class="form-control form-control-sm" :disabled="saving" />
+                        class="form-control form-control-sm" :disabled="saving || (scene && !scene.can_set)" />
                 </div>
             </div>
         </form>
@@ -67,14 +67,17 @@
                 >{{ name }}</a>
             </dropdown>
 
-            <div v-if="saving">Saving</div>
+            <div v-if="deleting">Deleting</div>
+            <div v-else-if="saving">Saving</div>
             <div class="flex-fill"></div>
-            <button class="btn btn-default btn-sm" type="button" :disabled="saving || deleting"
-                @click="() => ($emit('reset'), $refs.panel.close())">Cancel</button>&nbsp;
-            <!-- <button v-if="exists && deletable" class="btn btn-danger btn-sm" type="button"
-                :disabled="saving || deleting" @click="delete">Delete</button>&nbsp; -->
-            <button v-if="!scene || scene.can_set" class="btn btn-primary btn-sm" type="button"
-                :disabled="!changed || saving || deleting" @click="save">Save</button>
+            <button v-if="changed" class="btn btn-default btn-sm" type="button" :disabled="saving || deleting"
+                @click="() => $refs.panel.close()">Cancel</button>&nbsp;
+            <button v-if="scene && scene.can_delete" class="btn btn-danger btn-sm" type="button"
+                :disabled="saving || deleting" @click="deleteScene">Delete</button>&nbsp;
+            <button v-if="(!scene || scene.can_set) && changed" class="btn btn-primary btn-sm" type="button"
+                :disabled="saving || deleting" @click="save">Save</button>
+            <button v-else class="btn btn-primary btn-sm" type="button" :disabled="saving || deleting"
+                @click="() => $refs.panel.close()">Done</button>
         </div>
     </panel>
 </template>
@@ -173,8 +176,8 @@
                 this.$set(this.data.disable_actions, id, data || {});
                 this.$forceUpdate();
             },
-            async save() {
-                if (this.saving) throw new Error('Already saving');
+            async save(close) {
+                if (this.saving || this.deleting) throw new Error('Already saving');
                 this.saving = true;
 
                 try {
@@ -186,14 +189,29 @@
                             this.connection.getScenesPermissions(uuid),
                         ]);
 
-                        const scene = new Scene(this.connection, uuid, data, scene_permissions);
+                        const scene = new Scene(this.connection, uuid, data, false, scene_permissions);
 
                         this.$emit('created', scene);
                     } else {
                         await this.scene.updateData(this.data);
                     }
+
+                    if (close) this.$emit('close');
                 } finally {
                     this.saving = false;
+                }
+            },
+            async deleteScene() {
+                if (this.deleting || this.saving) throw new Error('Already deleting');
+                this.deleting = true;
+
+                try {
+                    await this.connection.deleteScenes(this.scene.uuid);
+
+                    this.$emit('remove', this.scene);
+                    this.$emit('close');
+                } finally {
+                    this.deleting = false;
                 }
             },
         },

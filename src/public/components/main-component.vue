@@ -95,7 +95,7 @@
                 @close="modals.splice(index, 1)" />
 
             <scene-settings v-else-if="modal.type === 'scene-settings'" :key="index" :ref="'modal-' + index"
-                :scene="modal.scene" @close="modals.splice(index, 1)" />
+                :scene="modal.scene" @remove="removeScene" @close="modals.splice(index, 1)" />
             <scene-settings v-else-if="modal.type === 'create-scene'" :key="index" :ref="'modal-' + index"
                 :create="true" @created="addScene" @close="modals.splice(index, 1)" />
         </template>

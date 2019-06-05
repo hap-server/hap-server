@@ -1,3 +1,39 @@
+.scene-container {
+    .draggable.remove-drop-target {
+        position: relative;
+        height: 7rem;
+        width: 12rem;
+        float: right;
+        margin: 1rem;
+        padding: 1rem;
+        border-radius: 0.2rem;
+        background-color: rgba(0, 0, 0, 0.2);
+        color: #fff;
+        -webkit-backdrop-filter: blur(20px);
+        font-size: 13px;
+        text-align: center;
+        vertical-align: middle;
+        transition: background-color 0.2s ease;
+
+        &::before {
+            content: 'Drag scenes here to remove them from this section without deleting them.';
+            vertical-align: middle;
+        }
+
+        > * {
+            display: none;
+        }
+
+        &:not(:empty) {
+            background-color: transparentize($warning, 0.8);
+
+            &::before {
+                content: 'Drop scenes here to remove them from this section without deleting them.';
+            }
+        }
+    }
+}
+
 .service-wrapper.scene {
     width: 14.6rem;
     height: 4rem;
