@@ -28,7 +28,8 @@
         </div>
 
         <keep-alive>
-            <automations v-if="show_automations" ref="automations" :connection="connection" />
+            <automations v-if="show_automations" ref="automations" :connection="connection"
+                @title="title => automations_title = title" />
         </keep-alive>
 
         <div v-if="!show_automations" class="main">
@@ -169,6 +170,7 @@
                 layout: null,
 
                 show_automations: false,
+                automations_title: null,
                 can_access_automations: false,
 
                 can_update_home_settings: false,
@@ -238,6 +240,10 @@
                     }
 
                     return modal.title;
+                }
+
+                if (this.show_automations) {
+                    return this.automations_title || 'Automations';
                 }
 
                 return this.name || 'Home';

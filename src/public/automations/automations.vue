@@ -67,6 +67,14 @@
                 [AutomationsSymbol]: this.automations,
             };
         },
+        computed: {
+            title() {
+                if (this.open_automation) {
+                    if (!this.open_automation.uuid) return 'New automation';
+                    return this.open_automation.data.name + ' Settings';
+                }
+            },
+        },
         watch: {
             connection(connection, old_connection) {
                 for (const automation of Object.values(this.automations)) {
@@ -89,6 +97,9 @@
             },
             open_automation() {
                 global.automation = this.open_automation;
+            },
+            title(title) {
+                this.$emit('title', title);
             },
         },
         methods: {
