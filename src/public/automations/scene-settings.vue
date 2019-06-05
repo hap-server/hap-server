@@ -85,7 +85,6 @@
 <script>
     import isEqual from 'lodash.isequal';
 
-    import Connection from '../../common/connection';
     import Scene from '../../common/scene';
     import {ConnectionSymbol} from '../internal-symbols';
 
@@ -114,9 +113,24 @@
                 tab: 'general',
                 tabs: {
                     general: 'General',
-                    conditions: {label: 'Active conditions', get badge() {return Object.keys($vm.data.conditions || {}).length}},
-                    activate_actions: {label: 'Activate actions', get badge() {return Object.keys($vm.data.enable_actions || {}).length}},
-                    deactivate_actions: {label: 'Deactivate actions', get badge() {return Object.keys($vm.data.disable_actions || {}).length}},
+                    conditions: {
+                        label: 'Active conditions',
+                        get badge() {
+                            return Object.keys($vm.data.conditions || {}).length;
+                        },
+                    },
+                    activate_actions: {
+                        label: 'Activate actions',
+                        get badge() {
+                            return Object.keys($vm.data.enable_actions || {}).length;
+                        },
+                    },
+                    deactivate_actions: {
+                        label: 'Deactivate actions',
+                        get badge() {
+                            return Object.keys($vm.data.disable_actions || {}).length;
+                        },
+                    },
                 },
 
                 condition_components,

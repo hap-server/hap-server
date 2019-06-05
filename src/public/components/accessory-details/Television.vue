@@ -9,8 +9,8 @@
         <p class="clickable" @click.stop="setActive(active ? 0 : 1)">{{ active ? active_input_name || 'On' : 'Off' }}</p>
 
         <dropdown v-if="inputs.length" slot="footer-left" :label="active_input_name || 'Input'" colour="dark" type="up">
-            <a v-for="input in inputs" class="dropdown-item" :class="{active: input === active_input}" href="#"
-                @click.prevent.stop="setActiveInput(input)"
+            <a v-for="input in inputs" :key="input.uuid" class="dropdown-item" :class="{active: input === active_input}"
+                href="#" @click.prevent.stop="setActiveInput(input)"
             >{{ input.getCharacteristicValueByName('ConfiguredName') || input.name }}</a>
         </dropdown>
     </accessory-details>

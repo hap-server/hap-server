@@ -636,7 +636,9 @@ export default class Permissions {
     }
 
     async assertCanGetPairing(username) {
-        if (!await this.checkCanGetPairing(username)) throw new Error('You don\'t have permission to access this pairing');
+        if (!await this.checkCanGetPairing(username)) {
+            throw new Error('You don\'t have permission to access this pairing');
+        }
     }
 
     /**
@@ -654,7 +656,9 @@ export default class Permissions {
     }
 
     async assertCanSetPairing(username) {
-        if (!await this.checkCanSetPairing(username)) throw new Error('You don\'t have permission to update this pairing');
+        if (!await this.checkCanSetPairing(username)) {
+            throw new Error('You don\'t have permission to update this pairing');
+        }
     }
 
     /**

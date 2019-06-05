@@ -73,6 +73,8 @@
                     if (!this.open_automation.uuid) return 'New automation';
                     return this.open_automation.data.name + ' Settings';
                 }
+
+                return 'Automations';
             },
         },
         watch: {

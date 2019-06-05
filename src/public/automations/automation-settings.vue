@@ -120,9 +120,24 @@
                 tab: 'general',
                 tabs: {
                     general: 'General',
-                    triggers: {label: 'Triggers', get badge() {return Object.keys($vm.automation.data.triggers || {}).length + ''}},
-                    conditions: {label: 'Conditions', get badge() {return Object.keys($vm.automation.data.conditions || {}).length + ''}},
-                    actions: {label: 'Actions', get badge() {return Object.keys($vm.automation.data.actions || {}).length + ''}},
+                    triggers: {
+                        label: 'Triggers',
+                        get badge() {
+                            return Object.keys($vm.automation.data.triggers || {}).length + '';
+                        },
+                    },
+                    conditions: {
+                        label: 'Conditions',
+                        get badge() {
+                            return Object.keys($vm.automation.data.conditions || {}).length + '';
+                        },
+                    },
+                    actions: {
+                        label: 'Actions',
+                        get badge() {
+                            return Object.keys($vm.automation.data.actions || {}).length + '';
+                        },
+                    },
                 },
 
                 trigger_components,

@@ -427,7 +427,7 @@ export default class Connection extends EventEmitter {
         return this.send({
             type: 'check-scenes-active',
             id,
-        })
+        });
     }
 
     activateScenes(...id_data) {

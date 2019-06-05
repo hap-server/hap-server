@@ -1615,7 +1615,10 @@ export default class Connection {
             this.permissions.checkCanDeleteBridge(uuid),
         ]);
 
-        return {get, set, delete: del, is_from_config: is_from_config || this.server.homebridge && this.server.homebridge.uuid === uuid};
+        return {
+            get, set, delete: del,
+            is_from_config: is_from_config || this.server.homebridge && this.server.homebridge.uuid === uuid,
+        };
     }
 
     /**

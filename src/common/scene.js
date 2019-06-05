@@ -1,7 +1,5 @@
 import EventEmitter from 'events';
 
-import {$set, $delete} from './client';
-
 export default class Scene extends EventEmitter {
     /**
      * Creates a Scene.
@@ -9,6 +7,7 @@ export default class Scene extends EventEmitter {
      * @param {Connection} connection
      * @param {string} uuid
      * @param {object} data
+     * @param {boolean} active
      * @param {object} permissions
      */
     constructor(connection, uuid, data, active, permissions) {

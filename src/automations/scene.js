@@ -3,7 +3,6 @@ import {
     SceneTriggerEvent, SceneActivateProgressEvent, SceneActivatedEvent, SceneDeactivateProgressEvent,
     SceneDeactivatedEvent,
 } from '../events/scenes';
-import {AutomationRunner} from '.';
 
 export default class Scene extends Events {
     /**
@@ -48,7 +47,9 @@ export default class Scene extends Events {
             this.emit('check-active-progress', progress);
             this.check_active_progress = progress;
         }).then(is_active => {
-            if (this.last_active !== is_active) this.emit(is_active ? SceneActivatedEvent : SceneDeactivatedEvent, this);
+            if (this.last_active !== is_active) {
+                this.emit(is_active ? SceneActivatedEvent : SceneDeactivatedEvent, this);
+            }
 
             this.last_active = is_active;
             this.last_active_time = Date.now();
