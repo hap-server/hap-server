@@ -323,7 +323,7 @@ export class Automation {
                 throw new Error('There is already a trigger with this UUID');
             }
 
-            trigger.on('trigger', this.handleTrigger);
+            trigger.on(Events.AutomationTriggerEvent, this.handleTrigger);
             this.triggers.push(trigger);
 
             if (this.automations.running && this.automations.automations.find(a => a === this)) await trigger.start();

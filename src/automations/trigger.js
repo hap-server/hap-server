@@ -134,3 +134,27 @@ export class CronTrigger extends AutomationTrigger {
 }
 
 AutomationTrigger.types.Cron = CronTrigger;
+
+/**
+ * An AutomationTrigger that runs when a scene is triggered.
+ */
+export class SceneTrigger extends AutomationTrigger {
+    onstart() {
+        if (this.listener) this.listener.cancel(), this.listener = null;
+
+        this.listener = this.automations.server.on(Events.SceneActivatedEvent, event => {
+            if (event.scene.uuid !== this.config.scene_uuid) return;
+
+            this.trigger({parent: event});
+        });
+    }
+
+    onstop() {
+        if (!this.listener) return;
+
+        this.listener.cancel();
+        this.listener = null;
+    }
+}
+
+AutomationTrigger.types.Scene = SceneTrigger;
