@@ -4,6 +4,7 @@ import Events from '../events';
 import AutomationTrigger from './trigger';
 import AutomationCondition from './condition';
 import AutomationAction from './action';
+import Scene from './scene';
 
 export default class Automations extends Events {
     /**
@@ -20,6 +21,7 @@ export default class Automations extends Events {
         this.log = log || this.server.log.withPrefix('Automations');
 
         this.automations = [];
+        this.scenes = [];
     }
 
     /**
@@ -114,6 +116,60 @@ export default class Automations extends Events {
     }
 
     /**
+     * Loads a scene.
+     *
+     * @param {object} config
+     * @param {string} [uuid]
+     * @return {Promise<Automation>}
+     */
+    async loadScene(config, uuid) {
+        const scene = new Scene(this, config, uuid);
+
+        this.addScene(scene);
+
+        return scene;
+    }
+
+    /**
+     * Adds a scene.
+     *
+     * @param {Scene} scene
+     * @return {Promise}
+     */
+    async addScene(...scenes) {
+        for (const scene of scenes) {
+            this.log.debug('Adding scene', scene);
+
+            if (scene.automations !== this) {
+                throw new Error('Cannot add a scene from a different automations group');
+            }
+
+            if (this.scenes.includes(scene)) continue;
+
+            if (scene.uuid && this.scenes.find(s => s.uuid === scene.uuid)) {
+                throw new Error('There is already a scene with this UUID');
+            }
+
+            this.scenes.push(scene);
+        }
+    }
+
+    /**
+     * Removes a scene.
+     *
+     * @param {Scene} scene
+     * @return {Promise}
+     */
+    async removeScene(...scenes) {
+        for (const scene of scenes) {
+            this.log.debug('Removing scene', scene);
+
+            let index;
+            while ((index = this.scenes.indexOf(scene)) > -1) this.scenes.splice(index, 1);
+        }
+    }
+
+    /**
      * Gets an Automation.
      *
      * @param {number} id
@@ -131,6 +187,26 @@ export default class Automations extends Events {
      */
     getAutomationByUUID(uuid) {
         return this.automations.find(automation => automation.uuid === uuid);
+    }
+
+    /**
+     * Gets a Scene.
+     *
+     * @param {number} id
+     * @return {Scene}
+     */
+    getScene(id) {
+        return this.scenes.find(scene => scene.id === id);
+    }
+
+    /**
+     * Gets a Scene by it's UUID.
+     *
+     * @param {string} uuid
+     * @return {Scene}
+     */
+    getSceneByUUID(uuid) {
+        return this.scenes.find(scene => scene.uuid === uuid);
     }
 
     /**

@@ -2,13 +2,13 @@
     <automation-action class="automation-action-run-automation"
         :id="id" :action="action" :editable="editable" :saving="saving" @delete="$emit('delete')"
     >
-        <template v-if="!Object.values(automations).filter(a => a.uuid !== this_automation.uuid).length">
+        <template v-if="!Object.values(automations || {}).filter(a => !this_automation || a.uuid !== this_automation.uuid).length">
             <p>You have no other automations.</p>
         </template>
 
         <template v-else>
             <select v-model="action.automation_uuid" class="custom-select custom-select-sm mb-3">
-                <option v-for="automation in automations" v-if="automation.uuid !== this_automation.uuid"
+                <option v-for="automation in automations" v-if="!this_automation || automation.uuid !== this_automation.uuid"
                     :key="automation.uuid">{{ automation.data.name || automation.uuid }}</option>
             </select>
 

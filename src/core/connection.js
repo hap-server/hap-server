@@ -92,6 +92,15 @@ const message_methods = {
     'get-automations-permissions': 'handleGetAutomationsPermissionsMessage',
     'set-automations': 'handleSetAutomationsMessage',
     'delete-automations': 'handleDeleteAutomationsMessage',
+    'list-scenes': 'handleListScenesMessage',
+    'create-scenes': 'handleCreateScenesMessage',
+    'get-scenes': 'handleGetScenesMessage',
+    'get-scenes-permissions': 'handleGetScenesPermissionsMessage',
+    'set-scenes': 'handleSetScenesMessage',
+    'check-scenes-active': 'handleCheckScenesActiveMessage',
+    'activate-scenes': 'handleActivateScenesMessage',
+    'deactivate-scenes': 'handleDeactivateScenesMessage',
+    'delete-scenes': 'handleDeleteScenesMessage',
     'get-command-line-flags': 'handleGetCommandLineFlagsMessage',
     'enable-proxy-stdout': 'handleEnableProxyStdoutMessage',
     'disable-proxy-stdout': 'handleDisableProxyStdoutMessage',
@@ -671,7 +680,6 @@ export default class Connection {
         }
 
         const uuid = genuuid();
-        // const uuid = 'test2';
 
         this.log.debug('Creating layout', uuid, data);
 
@@ -1204,6 +1212,236 @@ export default class Connection {
 
         this.server.sendBroadcast({
             type: 'remove-automation',
+            uuid,
+        }, this.ws);
+    }
+
+    /**
+     * Gets the UUID of every scene.
+     */
+    handleListScenesMessage(messageid, data) {
+        this.respond(messageid, this.listScenes());
+    }
+
+    async listScenes() {
+        const uuids = await this.server.storage.getItem('Scenes') || [];
+
+        const authorised_uuids = await this.permissions.getAuthorisedSceneUUIDs();
+        return uuids.filter(uuid => authorised_uuids.includes(uuid));
+    }
+
+    /**
+     * Creates scenes.
+     */
+    handleCreateScenesMessage(messageid, data) {
+        this.respond(messageid, this.createScenes(...data.data));
+    }
+
+    createScenes(...data) {
+        return Promise.all(data.map(data => this.createScene(data)));
+    }
+
+    async createScene(data) {
+        await this.permissions.assertCanCreateScenes();
+
+        const uuid = genuuid();
+
+        this.log.debug('Creating scene', uuid, data);
+
+        await this.server.storage.setItem('Scene.' + uuid, data);
+
+        // Don't wait for the automation to load
+        this.server.loadScene(uuid, data).catch(() => {});
+
+        const scene_uuids = await this.server.storage.getItem('Scenes') || [];
+        if (!scene_uuids.includes(uuid)) {
+            scene_uuids.push(uuid);
+            await this.server.storage.setItem('Scenes', scene_uuids);
+        }
+
+        this.server.sendBroadcast({
+            type: 'add-scene',
+            uuid,
+        }, this.ws);
+
+        return uuid;
+    }
+
+    /**
+     * Gets data of scenes.
+     */
+    handleGetScenesMessage(messageid, data) {
+        this.respond(messageid, this.getScenes(...data.id));
+    }
+
+    getScenes(...id) {
+        return Promise.all(id.map(id => this.getScene(id)));
+    }
+
+    async getScene(uuid) {
+        await this.permissions.assertCanGetScene(uuid);
+
+        this.log.debug('Getting data for scene', uuid);
+
+        return await this.server.storage.getItem('Scene.' + uuid) || {};
+    }
+
+    /**
+     * Gets the user's permissions for scenes.
+     */
+    handleGetScenesPermissionsMessage(messageid, data) {
+        this.respond(messageid, this.getScenesPermissions(...data.id));
+    }
+
+    getScenesPermissions(...id) {
+        return Promise.all(id.map(id => this.getScenePermissions(id)));
+    }
+
+    async getScenePermissions(uuid) {
+        const [get, activate, set, del] = await Promise.all([
+            this.permissions.checkCanGetScene(uuid),
+            this.permissions.checkCanActivateScene(uuid),
+            this.permissions.checkCanSetScene(uuid),
+            this.permissions.checkCanDeleteScene(uuid),
+        ]);
+
+        return {get, activate, set, delete: del};
+    }
+
+    /**
+     * Sets data of scenes.
+     */
+    handleSetScenesMessage(messageid, data) {
+        this.respond(messageid, this.setScenes(...data.id_data));
+    }
+
+    setScenes(...id_data) {
+        return Promise.all(id_data.map(([id, data]) => this.setScene(id, data)));
+    }
+
+    async setScene(uuid, data) {
+        await this.permissions.assertCanSetScene(uuid);
+
+        this.log.debug('Setting data for scene', uuid, data);
+
+        await this.server.storage.setItem('Scene.' + uuid, data);
+
+        // Don't wait for the scene to load
+        this.server.updateScene(uuid, data).catch(() => {});
+
+        const scene_uuids = await this.server.storage.getItem('Scenes') || [];
+        if (!scene_uuids.includes(uuid)) {
+            scene_uuids.push(uuid);
+            await this.server.storage.setItem('Scenes', scene_uuids);
+        }
+
+        this.server.sendBroadcast({
+            type: 'update-scene',
+            uuid,
+            data,
+        }, this.ws);
+    }
+
+    /**
+     * Checks if scenes are active.
+     */
+    handleCheckScenesActiveMessage(messageid, data) {
+        this.respond(messageid, this.checkScenesActive(...data.id));
+    }
+
+    checkScenesActive(...id) {
+        return Promise.all(id.map(id => this.checkSceneActive(id)));
+    }
+
+    async checkSceneActive(uuid) {
+        await this.permissions.assertCanGetScene(uuid);
+
+        this.log.debug('Checking if scene is active', uuid);
+
+        const scene = this.server.automations.getSceneByUUID(uuid);
+        if (!scene) throw new Error('Unknown scene');
+
+        return await scene.active;
+    }
+
+    /**
+     * Activates scenes.
+     */
+    handleActivateScenesMessage(messageid, data) {
+        this.respond(messageid, this.activateScenes(...data.id_data));
+    }
+
+    activateScenes(...id_data) {
+        return Promise.all(id_data.map(([id, data]) => this.activateScene(id, data)));
+    }
+
+    async activateScene(uuid, context) {
+        await this.permissions.assertCanGetScene(uuid);
+        await this.permissions.assertCanActivateScene(uuid);
+
+        this.log.debug('Activating scene', uuid, context);
+
+        const scene = this.server.automations.getSceneByUUID(uuid);
+        if (!scene) throw new Error('Unknown scene');
+
+        await scene.enable(context);
+    }
+
+    /**
+     * Deactivates scenes.
+     */
+    handleDeactivateScenesMessage(messageid, data) {
+        this.respond(messageid, this.deactivateScenes(...data.id_data));
+    }
+
+    deactivateScenes(...id_data) {
+        return Promise.all(id_data.map(([id, data]) => this.deactivateScene(id, data)));
+    }
+
+    async deactivateScene(uuid, context) {
+        await this.permissions.assertCanGetScene(uuid);
+        await this.permissions.assertCanActivateScene(uuid);
+
+        this.log.debug('Deactivating scene', uuid, context);
+
+        const scene = this.server.automations.getSceneByUUID(uuid);
+        if (!scene) throw new Error('Unknown scene');
+
+        await scene.disable(context);
+    }
+
+    /**
+     * Deletes scenes.
+     */
+    handleDeleteScenesMessage(messageid, data) {
+        this.respond(messageid, this.deleteScenes(...data.id));
+    }
+
+    deleteScenes(...id) {
+        return Promise.all(id.map(id => this.deleteScene(id)));
+    }
+
+    async deleteScene(uuid) {
+        await this.permissions.assertCanDeleteScene(uuid);
+
+        this.log.debug('Removing scene', uuid);
+
+        const scene = this.server.automations.getSceneByUUID(uuid);
+        await this.server.automations.removeScene(scene);
+
+        this.log.debug('Deleting scene', uuid);
+
+        await this.server.storage.removeItem('Scene.' + uuid);
+
+        const scene_uuids = await this.server.storage.getItem('Scenes') || [];
+        let index;
+        while ((index = scene_uuids.indexOf(uuid)) > -1) {
+            scene_uuids.splice(index, 1);
+        }
+        await this.server.storage.setItem('Scenes', scene_uuids);
+
+        this.server.sendBroadcast({
+            type: 'remove-scene',
             uuid,
         }, this.ws);
     }

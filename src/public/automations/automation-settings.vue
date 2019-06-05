@@ -92,8 +92,6 @@
     import PanelTabs from '../components/panel-tabs.vue';
     import Dropdown from '../components/dropdown.vue';
 
-    import Trigger from './trigger.vue';
-
     import {trigger_components, condition_components, action_components} from '.';
     import './triggers';
     import './conditions';
@@ -104,7 +102,6 @@
             Panel,
             PanelTabs,
             Dropdown,
-            Trigger,
         },
         props: {
             connection: Connection,

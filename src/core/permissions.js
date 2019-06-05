@@ -429,6 +429,120 @@ export default class Permissions {
     }
 
     /**
+     * Get the UUID of all scenes the user can see.
+     *
+     * @return {Promise<Array>}
+     */
+    async getAuthorisedSceneUUIDs() {
+        if (!DEVELOPMENT || !this.__development_allow_local()) {
+            if (!this.user) return [];
+        }
+
+        const uuids = await this.connection.server.storage.getItem('Scenes') || [];
+
+        return uuids;
+    }
+
+    /**
+     * Check if the user can create scenes.
+     *
+     * @return {Promise<boolean>}
+     */
+    checkCanCreateScenes() {
+        if (DEVELOPMENT && this.__development_allow_local()) return true;
+
+        if (!this.user) return false;
+
+        return true;
+    }
+
+    async assertCanCreateScenes() {
+        if (!await this.checkCanCreateScenes()) {
+            throw new Error('You don\'t have permission to create scenes');
+        }
+    }
+
+    /**
+     * Check if the user can see an scene.
+     *
+     * @param {string} uuid
+     * @return {Promise<boolean>}
+     */
+    checkCanGetScene(uuid) {
+        if (DEVELOPMENT && this.__development_allow_local()) return true;
+
+        if (!this.user) return false;
+
+        return true;
+    }
+
+    async assertCanGetScene(uuid) {
+        if (!await this.checkCanGetScene(uuid)) {
+            throw new Error('You don\'t have permission to access this scene');
+        }
+    }
+
+    /**
+     * Check if the user can see an scene.
+     *
+     * @param {string} uuid
+     * @return {Promise<boolean>}
+     */
+    checkCanActivateScene(uuid) {
+        if (DEVELOPMENT && this.__development_allow_local()) return true;
+
+        if (!this.user) return false;
+
+        return true;
+    }
+
+    async assertCanActivateScene(uuid) {
+        if (!await this.checkCanActivateScene(uuid)) {
+            throw new Error('You don\'t have permission to activate/deactivate this scene');
+        }
+    }
+
+    /**
+     * Check if the user can update an scene.
+     *
+     * @param {string} uuid
+     * @return {Promise<boolean>}
+     */
+    checkCanSetScene(uuid) {
+        if (DEVELOPMENT && this.__development_allow_local()) return true;
+
+        if (!this.user) return false;
+
+        return true;
+    }
+
+    async assertCanSetScene(uuid) {
+        if (!await this.checkCanSetScene(uuid)) {
+            throw new Error('You don\'t have permission to update this scene');
+        }
+    }
+
+    /**
+     * Check if the user can delete an scene.
+     *
+     * @param {string} uuid
+     * @return {Promise<boolean>}
+     */
+    checkCanDeleteScene(uuid) {
+        if (DEVELOPMENT && this.__development_allow_local()) return true;
+
+        if (!this.user) return false;
+
+        return true;
+    }
+
+    async assertCanDeleteScene(uuid) {
+        if (!await this.checkCanDeleteScene(uuid)) {
+            throw new Error('You don\'t have permission to delete this scene');
+        }
+    }
+
+    /**
      * Check if the user can create HAP bridges.
      *
      * @return {Promise<boolean>}

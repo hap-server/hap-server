@@ -3,6 +3,7 @@ import EventEmitter from 'events';
 import Connection from './connection';
 import Accessory from './accessory';
 import Layout from './layout';
+import Scene from './scene';
 
 export function $set(object, key, value) {
     try {
@@ -45,10 +46,13 @@ export default class Client extends EventEmitter {
         this.accessories = null;
         this.layouts = null;
         this.automations = null;
+        this.scenes = null;
 
         this.loading_home_settings = false;
         this.loading_accessories = false;
         this.loading_layouts = false;
+        this.loading_automations = false;
+        this.loading_scenes = false;
 
         this._handleBroadcastMessage = this.handleBroadcastMessage.bind(this);
         this._handleDisconnected = this.handleDisconnected.bind(this);
@@ -79,6 +83,9 @@ export default class Client extends EventEmitter {
             }
             for (const automation of Object.values(this.automations || {})) {
                 automation.connection = connection;
+            }
+            for (const scene of Object.values(this.scenes || {})) {
+                scene.connection = connection;
             }
 
             connection.on('received-broadcast', this._handleBroadcastMessage);
@@ -256,6 +263,53 @@ export default class Client extends EventEmitter {
 
             section._setData(data.data);
         }
+
+        if (this.scenes && data.type === 'add-scene') {
+            if (this.scenes[data.uuid]) return;
+
+            const [[scene_data], [scene_permissions]] = await Promise.all([
+                this.connection.getScenes(data.uuid),
+                this.connection.getScenesPermissions(data.uuid),
+            ]);
+
+            const scene = new Scene(this.connection, data.uuid, scene_data, scene_permissions);
+
+            $set(this.scene, scene.uuid, scene);
+            this.emit('new-scene', layout);
+            this.emit('new-scenes', [layout]);
+            this.emit('updated-scenes', [layout], []);
+        }
+
+        if (this.scenes && data.type === 'remove-scene') {
+            if (!this.scenes[data.uuid]) return;
+
+            const scene = this.scenes[data.uuid];
+
+            $delete(this.scenes, scene.uuid);
+            this.emit('removed-scene', scene);
+            this.emit('removed-scenes', [scene]);
+            this.emit('updated-scenes', [], [scene]);
+        }
+
+        if (this.scenes && data.type === 'update-scene') {
+            const scene = this.scenes[data.uuid];
+            scene._setData(scene);
+        }
+
+        if (this.scenes && data.type === 'scene-activated') {
+            const scene = this.scenes[data.uuid];
+            scene._handleActivated(data);
+        }
+
+        if (this.scenes && data.type === 'scene-deactivated') {
+            const scene = this.scenes[data.uuid];
+            scene._handleDeactivated(data);
+        }
+
+        if (this.scenes && data.type === 'scene-progress') {
+            const scene = this.scenes[data.uuid];
+            scene._handleProgress(data);
+        }
     }
 
     handleDisconnected(event) {
@@ -409,6 +463,69 @@ export default class Client extends EventEmitter {
             }
         } finally {
             this.loading_layouts = false;
+        }
+    }
+
+    async refreshAutomations(dont_emit_events) {
+        // ...
+    }
+
+    async refreshScenes(dont_emit_events) {
+        if (this.loading_scenes) throw new Error('Already loading scenes');
+        this.loading_scenes = true;
+
+        try {
+            const scene_uuids = await this.connection.listScenes();
+
+            const new_scene_uuids = [];
+            const removed_scene_uuids = [];
+
+            for (const uuid of scene_uuids) {
+                // Scene already exists
+                if (this.scenes[uuid]) continue;
+
+                // Add this scene to the list of scenes we don't yet know about
+                new_scene_uuids.push(uuid);
+            }
+
+            for (const uuid of Object.keys(this.scenes)) {
+                // Scene still exists
+                if (scene_uuids.includes(uuid)) continue;
+
+                // Add this scene to the list of scenes that have been removed
+                removed_scene_uuids.push(uuid);
+            }
+
+            const [new_scenes_data, new_scenes_active, new_scenes_permissions] = await Promise.all([
+                this.connection.getScenes(...new_scene_uuids),
+                this.connection.checkScenesActive(...new_scene_uuids),
+                this.connection.getScenesPermissions(...new_scene_uuids),
+            ]);
+
+            const new_scenes = new_scene_uuids.map((uuid, index) => new Scene(this.connection, uuid,
+                new_scenes_data[index], new_scenes_active[index], new_scenes_permissions[index]));
+
+            for (const scene of new_scenes) {
+                $set(this.scenes, scene.uuid, scene);
+                if (!dont_emit_events) this.emit('new-scene', scene);
+            }
+
+            if (new_scenes.length && !dont_emit_events) this.emit('new-scenes', new_scenes);
+
+            const removed_scenes = removed_scene_uuids.map(uuid => this.scenes[uuid]);
+
+            for (const scene of removed_scenes) {
+                $delete(this.scenes, scene.uuid);
+                if (!dont_emit_events) this.emit('removed-scene', scene);
+            }
+
+            if (removed_scenes.length && !dont_emit_events) this.emit('removed-scenes', removed_scenes);
+
+            if (new_scenes.length || removed_scenes.length) {
+                this.emit('updated-scenes', new_scenes, removed_scenes);
+            }
+        } finally {
+            this.loading_scenes = false;
         }
     }
 }

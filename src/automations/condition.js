@@ -59,7 +59,7 @@ export default class AutomationCondition extends EventEmitter {
     /**
      * Checks if an automation using this condition should trigger.
      *
-     * @param {AutomationRunner} runner
+     * @param {(AutomationRunner|Scene)} runner
      * @param {function} setProgress
      * @param {AutomationCondition} ...parent_conditions
      * @return {Promise<boolean>}

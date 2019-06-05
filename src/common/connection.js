@@ -18,6 +18,12 @@ const broadcast_message_methods = {
     'add-automation': 'handleAddAutomationMessage',
     'remove-automation': 'handleRemoveAutomationMessage',
     'update-automation': 'handleUpdateAutomationMessage',
+    'add-scene': 'handleAddSceneMessage',
+    'remove-scene': 'handleRemoveSceneMessage',
+    'update-scene': 'handleUpdateSceneMessage',
+    'scene-activated': 'handleSceneActivatedMessage',
+    'scene-deactivated': 'handleSceneDeactivatedMessage',
+    'scene-progress': 'handleSceneProgressMessage',
     'update-pairings': 'handleUpdatePairings',
     'update-pairing-data': 'handleUpdatePairingData',
     'stdout': 'handleStdout',
@@ -379,6 +385,80 @@ export default class Connection extends EventEmitter {
         });
     }
 
+    listScenes() {
+        return this.send({
+            type: 'list-scenes',
+        });
+    }
+
+    createScenes(...data) {
+        return this.send({
+            type: 'create-scenes',
+            data,
+        });
+    }
+
+    getScenes(...id) {
+        return this.send({
+            type: 'get-scenes',
+            id,
+        });
+    }
+
+    getScenesPermissions(...id) {
+        return this.send({
+            type: 'get-scenes-permissions',
+            id,
+        });
+    }
+
+    setScenes(...id_data) {
+        return this.send({
+            type: 'set-scenes',
+            id_data,
+        });
+    }
+
+    setScene(uuid, data) {
+        return this.setScenes([uuid, data]);
+    }
+
+    checkScenesActive(...id) {
+        return this.send({
+            type: 'check-scenes-active',
+            id,
+        })
+    }
+
+    activateScenes(...id_data) {
+        return this.send({
+            type: 'activate-scenes',
+            id_data,
+        });
+    }
+
+    activateScene(uuid, context) {
+        return this.activateScenes([uuid, context]);
+    }
+
+    deactivateScenes(...id_data) {
+        return this.send({
+            type: 'deactivate-scenes',
+            id_data,
+        });
+    }
+
+    deactivateScene(uuid, context) {
+        return this.deactivateScenes([uuid, context]);
+    }
+
+    deleteScenes(...id) {
+        return this.send({
+            type: 'delete-scenes',
+            id,
+        });
+    }
+
     getCommandLineFlags() {
         return this.send({
             type: 'get-command-line-flags',
@@ -584,6 +664,30 @@ export default class Connection extends EventEmitter {
 
     handleUpdateAutomationMessage(data) {
         this.emit('update-automation', data.uuid, data.data);
+    }
+
+    handleAddSceneMessage(data) {
+        this.emit('add-scene', data.uuid);
+    }
+
+    handleRemoveSceneMessage(data) {
+        this.emit('remove-scene', data.uuid);
+    }
+
+    handleUpdateSceneMessage(data) {
+        this.emit('update-scene', data.uuid, data.data);
+    }
+
+    handleSceneActivatedMessage(data) {
+        this.emit('scene-activated', data.uuid, data.context);
+    }
+
+    handleSceneDeactivatedMessage(data) {
+        this.emit('scene-deactivated', data.uuid, data.context);
+    }
+
+    handleSceneProgressMessage(data) {
+        this.emit('scene-progress', data.uuid, data.context);
     }
 
     handleUpdatePairings(data) {

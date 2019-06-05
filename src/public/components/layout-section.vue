@@ -11,6 +11,8 @@
             </div>
 
             <slot name="title-right">
+                <slot name="actions" />
+
                 <template v-if="editing">
                     <dropdown class="ml-3" label="Add section" colour="dark" align="right">
                         <a v-for="[type, section_component] in layout_section_components.entries()" :key="type"

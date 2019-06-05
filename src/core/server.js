@@ -133,6 +133,25 @@ export default class Server extends Events {
             this.handleUnregisterHomebridgePlatformAccessories.bind(this);
 
         Server.instances.add(this);
+
+        this.on(Events.SceneActivateProgressEvent, event => this.sendBroadcast({
+            type: 'scene-progress',
+            uuid: event.scene.uuid,
+            progress: event.progress,
+        }));
+        this.on(Events.SceneActivatedEvent, event => this.sendBroadcast({
+            type: 'scene-activated',
+            uuid: event.scene.uuid,
+        }));
+        this.on(Events.SceneDeactivateProgressEvent, event => this.sendBroadcast({
+            type: 'scene-progress',
+            uuid: event.scene.uuid,
+            progress: event.progress,
+        }));
+        this.on(Events.SceneDeactivatedEvent, event => this.sendBroadcast({
+            type: 'scene-deactivated',
+            uuid: event.scene.uuid,
+        }));
     }
 
     /**
@@ -851,6 +870,166 @@ export default class Server extends Events {
         return this.automations.getAutomation(id);
     }
 
+    async loadScenesFromStorage(dont_throw) {
+        const scene_uuids = await this.storage.getItem('Scenes') || [];
+
+        return Promise.all(scene_uuids.map(async uuid => {
+            const data = await this.storage.getItem('Scene.' + uuid) || {};
+            return this.loadScene(uuid, data);
+        }));
+    }
+
+    /**
+     * Loads or reloads a scene.
+     *
+     * @param {string} uuid
+     * @param {object} data
+     * @return {Promise<(Scene|object)>}
+     */
+    loadOrUpdateScene(uuid, data) {
+        if (this.automations.scenes.find(scene => scene.uuid === uuid)) {
+            return this.updateScene(uuid, data);
+        }
+
+        return this.loadScene(uuid, data);
+    }
+
+    /**
+     * Loads a scene.
+     *
+     * @param {string} uuid
+     * @param {object} data
+     * @return {Promise<Scene>}
+     */
+    async loadScene(uuid, data) {
+        const scene = await this.automations.loadScene(data, uuid);
+
+        for (const [condition_id, condition_config] of Object.entries(data.conditions || {})) {
+            const condition = await this.automations.loadAutomationCondition(condition_config, condition_id);
+            scene.addActiveCondition(condition);
+        }
+
+        for (const [action_id, action_config] of Object.entries(data.enable_actions || {})) {
+            const action = await this.automations.loadAutomationAction(action_config, action_id);
+            await scene.addEnableAction(action);
+        }
+
+        for (const [action_id, action_config] of Object.entries(data.disable_actions || {})) {
+            const action = await this.automations.loadAutomationAction(action_config, action_id);
+            await scene.addDisableAction(action);
+        }
+
+        return scene;
+    }
+
+    /**
+     * Reloads a scene.
+     *
+     * @param {string} uuid
+     * @param {object} data
+     * @return {Promise<(Scene|object)>}
+     */
+    async updateScene(uuid, data) {
+        const scene = this.automations.scenes.find(scene => scene.uuid === uuid);
+        if (!scene) throw new Error('Unknown scene "' + uuid + '"');
+
+        const nullchildren = {conditions: undefined, enable_actions: undefined, disable_actions: undefined};
+
+        if (!isEqual(
+            Object.assign({}, nullchildren, data, nullchildren),
+            Object.assign({}, nullchildren, scene.config, nullchildren)
+        )) {
+            // Top level configuration has changed
+            // This isn't actually used for anything yet
+            const scene = this.automations.scenes.find(scene => scene.uuid === uuid);
+            await this.automations.removeScene(scene);
+            return this.loadScene(uuid, data);
+        }
+
+        const added_conditions = [];
+        const removed_conditions = [];
+
+        for (const [condition_id, condition_config] of Object.entries(data.conditions || {})) {
+            const condition = scene.conditions.find(condition => condition.uuid === condition_id);
+            if (condition && isEqual(condition_config, condition.config)) continue;
+
+            if (condition) {
+                // Condition configuration has changed
+                await scene.removeActiveCondition(condition);
+                removed_conditions.push(condition);
+            }
+
+            const new_condition = await this.automations.loadAutomationCondition(condition_config, condition_id);
+            scene.addActiveCondition(new_condition);
+            added_conditions.push(new_condition);
+        }
+
+        for (const condition of scene.conditions) {
+            if ((data.conditions || {})[condition.uuid]) continue;
+
+            // Condition has been removed
+            await scene.removeActiveCondition(condition);
+            removed_conditions.push(condition);
+        }
+
+        const added_enable_actions = [];
+        const removed_enable_actions = [];
+
+        for (const [action_id, action_config] of Object.entries(data.enable_actions || {})) {
+            const action = scene.enable_actions.find(action => action.uuid === action_id);
+            if (action && isEqual(action_config, action.config)) continue;
+
+            if (action) {
+                // Action configuration has changed
+                await scene.removeEnableAction(action);
+                removed_enable_actions.push(action);
+            }
+
+            const new_action = await this.automations.loadAutomationAction(action_config, action_id);
+            await scene.addEnableAction(new_action);
+            added_enable_actions.push(new_action);
+        }
+
+        for (const action of scene.enable_actions) {
+            if ((data.enable_actions || {})[action.uuid]) continue;
+
+            // Action has been removed
+            await scene.removeEnableAction(action);
+            removed_enable_actions.push(action);
+        }
+
+        const added_disable_actions = [];
+        const removed_disable_actions = [];
+
+        for (const [action_id, action_config] of Object.entries(data.disable_actions || {})) {
+            const action = scene.disable_actions.find(action => action.uuid === action_id);
+            if (action && isEqual(action_config, action.config)) continue;
+
+            if (action) {
+                // Action configuration has changed
+                await scene.removeDisableAction(action);
+                removed_disable_actions.push(action);
+            }
+
+            const new_action = await this.automations.loadAutomationAction(action_config, action_id);
+            await scene.addDisableAction(new_action);
+            added_enable_actions.push(new_action);
+        }
+
+        for (const action of scene.disable_actions) {
+            if ((data.disable_actions || {})[action.uuid]) continue;
+
+            // Action has been removed
+            await scene.removeDisableAction(action);
+            removed_disable_actions.push(action);
+        }
+
+        return {
+            added_conditions, removed_conditions, added_enable_actions, removed_enable_actions,
+            added_disable_actions, removed_disable_actions,
+        };
+    }
+
     /**
      * Starts accessory discovery.
      */
@@ -1178,7 +1357,7 @@ export default class Server extends Events {
     /**
      * Sends a broadcast message.
      *
-     * @param {any} data
+     * @param {*} data
      * @param {Array} except An array of WebSocket clients to not send the message to
      */
     sendBroadcast(data, except) {

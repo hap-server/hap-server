@@ -92,6 +92,11 @@
                 @show-settings="modals.push({type: 'service-settings', service: modal.service})"
                 @show-accessory-settings="modals.push({type: 'accessory-settings', accessory: modal.service.accessory})"
                 @close="modals.splice(index, 1)" />
+
+            <scene-settings v-else-if="modal.type === 'scene-settings'" :key="index" :ref="'modal-' + index"
+                :scene="modal.scene" @close="modals.splice(index, 1)" />
+            <scene-settings v-else-if="modal.type === 'create-scene'" :key="index" :ref="'modal-' + index"
+                :create="true" @created="addScene" @close="modals.splice(index, 1)" />
         </template>
 
         <div v-if="!connection" class="connecting" :class="{reconnecting: has_connected}">
@@ -112,8 +117,8 @@
     import {BridgeService, UnsupportedService} from '../../common/service';
     import PluginManager from '../plugins';
     import {
-        NativeHookSymbol, ClientSymbol, ConnectionSymbol, AccessoriesSymbol, GetAllDisplayServicesSymbol,
-        GetServiceSymbol, PushModalSymbol, GetAssetURLSymbol,
+        NativeHookSymbol, ClientSymbol, ConnectionSymbol, AccessoriesSymbol, LayoutsSymbol, ScenesSymbol,
+        GetAllDisplayServicesSymbol, GetServiceSymbol, PushModalSymbol, GetAssetURLSymbol,
     } from '../internal-symbols';
 
     import Authenticate from './authenticate.vue';
@@ -135,6 +140,7 @@
             AccessoryDetails,
 
             Automations: () => import(/* webpackChunkName: 'automations' */ '../automations/automations.vue'),
+            SceneSettings: () => import(/* webpackChunkName: 'automations' */ '../automations/scene-settings.vue'),
 
             Settings: () => import(/* webpackChunkName: 'settings' */ './settings.vue'),
             AddAccessory: () => import(/* webpackChunkName: 'settings' */ './add-accessory.vue'),
@@ -186,6 +192,8 @@
             return {
                 [ConnectionSymbol]: () => this.connection,
                 [AccessoriesSymbol]: this.accessories,
+                [LayoutsSymbol]: this.layouts,
+                [ScenesSymbol]: this.scenes,
                 [GetAllDisplayServicesSymbol]: () => this.getAllServices(),
                 [GetServiceSymbol]: (uuid, service_uuid) => this.getService(uuid, service_uuid),
                 [PushModalSymbol]: modal => this.modals.push(modal),
@@ -222,6 +230,11 @@
                         if (modal.type === 'accessory-details') {
                             return modal.service.name || modal.service.accessory.name;
                         }
+
+                        if (modal.type === 'scene-settings') {
+                            return (modal.scene.data.name || modal.scene.uuid) + ' Settings';
+                        }
+                        if (modal.type === 'new-scene') return 'New scene';
                     }
 
                     return modal.title;
@@ -265,6 +278,9 @@
             layouts() {
                 return this.client.layouts || (this.client.layouts = {}); // eslint-disable-line vue/no-side-effects-in-computed-properties
             },
+            scenes() {
+                return this.client.scenes || (this.client.scenes = {}); // eslint-disable-line vue/no-side-effects-in-computed-properties
+            },
         },
         watch: {
             title(title) {
@@ -282,9 +298,10 @@
                 await Promise.all([
                     this.reload(),
                     this.reloadPermissions(),
-                    this.refreshLayouts(true),
+                    this.refreshLayouts(),
                     this.reloadBridges(),
-                    this.refreshAccessories(true),
+                    this.refreshAccessories(),
+                    this.client.refreshScenes(),
                 ]);
             },
             layout(layout) {
@@ -327,12 +344,14 @@
             this.refresh_accessories_timeout = setTimeout(refresh_accessories_function, 10000);
         },
         destroyed() {
+            clearTimeout(this.refresh_accessories_timeout);
+
             window.removeEventListener('scroll', this.onscroll);
             window.removeEventListener('touchmove', this.onscroll);
 
             this.client.disconnect();
 
-            instances.remove(this);
+            instances.delete(this);
         },
         methods: {
             getAssetURL(asset) {
@@ -478,6 +497,18 @@
                 this.$emit('removed-layout', layout);
                 this.$emit('removed-layouts', [layout]);
                 this.$emit('updated-layouts', [], [layout]);
+            },
+            addScene(scene) {
+                this.$set(this.scenes, scene.uuid, scene);
+                this.$emit('new-scene', scene);
+                this.$emit('new-scenes', [scene]);
+                this.$emit('updated-scenes', [scene], []);
+            },
+            removeScene(scene) {
+                this.$delete(this.scenes, scene.uuid);
+                this.$emit('removed-scene', scene);
+                this.$emit('removed-scenes', [scene]);
+                this.$emit('updated-scenes', [], [scene]);
             },
             async reloadBridges() {
                 if (this.loading_bridges) throw new Error('Already loading bridges');

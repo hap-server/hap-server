@@ -62,7 +62,7 @@ export default class AutomationAction extends EventEmitter {
     /**
      * Runs this action.
      *
-     * @param {AutomationRunner} runner
+     * @param {(AutomationRunner|Scene)} runner
      * @param {function} setProgress
      * @param {AutomationAction} ...parent_actions
      * @return {Promise}

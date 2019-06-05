@@ -226,6 +226,7 @@ export async function handler(argv) {
     log.info('Starting automations');
     await server.loadAutomationsFromConfig();
     await server.loadAutomationsFromStorage();
+    await server.loadScenesFromStorage();
     await server.automations.start();
 
     if (argv.group) process.setgid(argv.group);

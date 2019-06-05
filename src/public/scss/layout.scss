@@ -67,7 +67,8 @@
     }
 }
 
-.service-container {
+.service-container,
+.scene-container {
     @extend .layout-section;
 
     .service-wrapper {

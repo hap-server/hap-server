@@ -68,6 +68,31 @@ export class ExtendableEvent extends Event {
     }
 }
 
+export class EventListener {
+    constructor(emitter, event, handler) {
+        this.emitter = emitter;
+        this.event = event;
+        this.handler = handler;
+    }
+
+    cancel() {
+        this.emitter.removeListener(this.event, this.handler);
+    }
+}
+
+export class EventListenerPromise extends Promise {
+    constructor(emitter, event) {
+        super(resolve => this.handler = resolve);
+
+        this.emitter = emitter;
+        this.event = event;
+    }
+
+    cancel() {
+        this.emitter.removeListener(this.event, this.handler);
+    }
+}
+
 export default class Events extends EventEmitter {
     constructor(...args) {
         super(...args);
@@ -91,29 +116,7 @@ export default class Events extends EventEmitter {
             event.emitting++;
         }
 
-        if (!this._events || !this._events[event instanceof Event ? event.type : event]) {
-            const handled = this.parent_emitter ? this.parent_emitter.emit(event, ...data) : false;
-
-            if (event instanceof ExtendableEvent) {
-                event.emitting--;
-
-                return Promise.resolve(handled);
-            }
-
-            return handled;
-        }
-
-        if (event instanceof Event) {
-            this._emit(event.type, event, data);
-
-            for (const type of event.types || []) {
-                this._emit(type, event, data);
-            }
-        } else {
-            this._emit(event, null, data);
-        }
-
-        const handled = this.parent_emitter ? this.parent_emitter.emit(event, ...data) : false;
+        const handled = this._emit(event, ...data);
 
         if (event instanceof ExtendableEvent) {
             event.emitting--;
@@ -124,23 +127,41 @@ export default class Events extends EventEmitter {
         return handled;
     }
 
-    _emit(type, event, args) {
+    _emit(event, ...data) {
+        let handled = false;
+
+        if (event instanceof Event) {
+            handled = this._emit2(event.type, event, data) || handled;
+
+            for (const type of event.types || []) {
+                handled = this._emit2(type, event, data) || handled;
+            }
+        } else {
+            handled = this._emit2(event, null, data) || handled;
+        }
+
+        if (this.parent_emitter) handled = this.parent_emitter._emit(event, ...data) || handled;
+
+        return handled;
+    }
+
+    _emit2(type, event, args) {
         const handler = this._events[type];
 
         if (handler === undefined) return false;
 
         if (typeof handler === 'function') {
-            this._emit2(handler, event, args);
+            this._emit3(handler, event, args);
         } else {
             for (const listener of handler.slice()) {
-                this._emit2(listener, event, args);
+                this._emit3(listener, event, args);
             }
         }
 
         return true;
     }
 
-    _emit2(handler, event, args) {
+    _emit3(handler, event, args) {
         const listener = typeof handler === 'function' ? handler : handler.listener;
 
         Reflect.apply(listener, this, listener.expects_hap_event && event ? [event] : args);
@@ -151,6 +172,7 @@ export default class Events extends EventEmitter {
      *
      * @param {(function|string)} type A class that extends Event or a string
      * @param {function} handler
+     * @return {EventListener}
      */
     on(type, handler) {
         if (type.prototype instanceof Event) {
@@ -159,6 +181,8 @@ export default class Events extends EventEmitter {
         }
 
         EventEmitter.prototype.on.call(this, type, handler);
+
+        return new EventListener(this, type, handler);
     }
 
     /**
@@ -166,13 +190,13 @@ export default class Events extends EventEmitter {
      *
      * @param {(function|string)} type A class that extends Event or a string
      * @param {function} [handler]
-     * @return {?Promise<*>}
+     * @return {(EventListener|EventListenerPromise<*>)}
      */
     once(type, handler) {
         if (!handler) {
-            return new Promise(resolve => {
-                this.once(type, resolve);
-            });
+            const promise = new EventListenerPromise(this, type);
+            this.once(type, promise.handler);
+            return promise;
         }
 
         if (type.prototype instanceof Event) {
@@ -202,3 +226,4 @@ export default class Events extends EventEmitter {
 require('./accessories');
 require('./automation-trigger');
 require('./characteristic-update');
+require('./scenes');
