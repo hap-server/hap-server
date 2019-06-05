@@ -45,6 +45,10 @@ Stored in `ui-storage` in the data directory. node-persist uses the MD5 hash of 
     - Contains IDs of all automations.
 - `Automation.{automation_uuid}`
     - Automation configuration.
+- `Scenes`
+    - Contains IDs of all scenes.
+- `Scene.{scene_uuid}`
+    - Scene configuration.
 - `AccessoryData.{accessory_uuid}`
     - Extra data for accessories.
 - `Pairing.{username}`

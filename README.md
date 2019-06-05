@@ -18,7 +18,7 @@ A lot.
 - Web interface
     - [x] Layouts
         - Customisable by dragging sections and accessories in the web interface.
-        - [ ] Scenes
+        - [x] Scenes
         - [x] [Custom sections with plugins](docs/plugins.md#accessoryuiregisterlayoutsectioncomponent)
     - [x] Basic accessory control (on/off)
         - [x] Switch
@@ -36,6 +36,8 @@ A lot.
         - [ ] Programmable Switch
         - [x] Outlet
         - [ ] Television
+            - [x] Input selection
+            - [ ] Remote
         - [ ] Lock Mechanism
         - [ ] Garage Door Opener
         - [ ] [All other services supported by hap-nodejs](https://github.com/khaost/hap-nodejs/tree/master/lib/gen)
@@ -51,6 +53,10 @@ A lot.
         - This would allow you to configure all accessories in hap-server and then allow multiple people to create
             their own homes with read-only access (or no access) to other people's accessories instead of sharing a
             single home where everyone has permission to control all accessories.
+- [x] Scenes
+    - Works with automations. (Scenes just run automation conditions to check if they're enabled and automation
+        conditions to activate/deactivate them.)
+    - [ ] Simple scene editor. (Set accessories to create active conditions and activate/deactivate actions.)
 - [x] Automations
     - [x] Create automations that can run on the server
         - Useful if you don't have an Apple TV 4, HomePod or always home iPad.
