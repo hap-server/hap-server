@@ -203,7 +203,9 @@ const release_webpack_config = Object.assign({}, webpack_config, {
             chunkFilename: '[id].[hash].css',
         }),
     ]),
-    output: undefined,
+    output: {
+        crossOriginLoading: 'anonymous',
+    },
     optimization: Object.assign({}, webpack_config.optimization, {
         minimizer: [
             new TerserPlugin(),
