@@ -15,6 +15,7 @@ import markdownlinks from 'transform-markdown-links';
 import VueLoaderPlugin from 'vue-loader/lib/plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import SriPlugin from 'webpack-subresource-integrity';
+import ScriptExtHtmlPlugin from 'script-ext-html-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import TerserPlugin from 'terser-webpack-plugin';
 import OptimizeCSSAssetsPlugin from 'optimize-css-assets-webpack-plugin';
@@ -66,6 +67,17 @@ const webpack_config = {
         }),
         new SriPlugin({
             hashFuncNames: ['sha256', 'sha384'],
+        }),
+        new ScriptExtHtmlPlugin({
+            prefetch: {
+                test: /\.js$/,
+                chunks: 'async',
+            },
+            custom: {
+                test: /\.js$/,
+                attribute: 'crossorigin',
+                value: 'anonymous',
+            },
         }),
         new MiniCssExtractPlugin({
             // Options similar to the same options in webpackOptions.output
