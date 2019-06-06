@@ -110,8 +110,6 @@
 </template>
 
 <script>
-    import url from 'url';
-
     import {AuthenticatedUser} from '../../common/connection';
     import {BridgeService, UnsupportedService} from '../../common/service';
     import PluginManager from '../plugins';

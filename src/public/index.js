@@ -2,6 +2,8 @@ if (process.env.NODE_ENV === 'development') {
     require('@vue/devtools');
 }
 
+import url from 'url';
+
 import {NativeHookSymbol, ClientSymbol, GetAssetURLSymbol} from './internal-symbols';
 import * as InternalSymbols from './internal-symbols';
 import Client from '../common/client';

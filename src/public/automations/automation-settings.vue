@@ -28,7 +28,7 @@
                     :key="id" :id="id" :trigger="trigger" :editable="editable" :saving="saving || deleting"
                     @delete="$delete(automation.data.triggers, id); $forceUpdate()" />
 
-                <json-editor v-else v-model="automation.data.triggers[id]" :index="id"
+                <json-editor v-else v-model="automation.data.triggers[id]" :key="id" :index="id"
                     :name="trigger_components.find(c => c.plugin === trigger.plugin && c.type === trigger.trigger) &&
                         trigger_components.find(c => c.plugin === trigger.plugin && c.type === trigger.trigger).name"
                     type="trigger" :disabled="!editable || saving || deleting"
@@ -46,7 +46,7 @@
                     :key="id" :id="id" :condition="condition" :editable="editable" :saving="saving || deleting"
                     @delete="$delete(automation.data.conditions, id); $forceUpdate()" />
 
-                <json-editor v-else v-model="automation.data.conditions[id]" :index="id"
+                <json-editor v-else v-model="automation.data.conditions[id]" :key="id" :index="id"
                     :name="condition_components.find(c => c.plugin === condition.plugin && c.type === condition.condition) &&
                         condition_components.find(c => c.plugin === condition.plugin && c.type === condition.condition).name"
                     type="condition" :disabled="!editable || saving || deleting"
@@ -62,7 +62,7 @@
                     :key="id" :id="id" :action="action" :editable="editable" :saving="saving || deleting"
                     @delete="$delete(automation.data.actions, id); $forceUpdate()" />
 
-                <json-editor v-else v-model="automation.data.actions[id]" :index="id"
+                <json-editor v-else v-model="automation.data.actions[id]" :key="id" :index="id"
                     :name="action_components.find(c => c.plugin === action.plugin && c.type === action.action) &&
                         action_components.find(c => c.plugin === action.plugin && c.type === action.action).name"
                     type="action" :disabled="!editable || saving || deleting"

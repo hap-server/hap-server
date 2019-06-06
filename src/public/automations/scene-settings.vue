@@ -22,7 +22,7 @@
                     :key="id" :id="id" :condition="condition" :editable="!scene || scene.can_set" :saving="saving || deleting"
                     @delete="$delete(data.conditions, id); $forceUpdate()" />
 
-                <json-editor v-else v-model="data.conditions[id]" :index="id"
+                <json-editor v-else v-model="data.conditions[id]" :key="id" :index="id"
                     :name="condition_components.find(c => c.plugin === condition.plugin && c.type === condition.condition) &&
                         condition_components.find(c => c.plugin === condition.plugin && c.type === condition.condition).name"
                     type="condition" :disabled="(scene && !scene.can_set) || saving || deleting"
@@ -40,7 +40,7 @@
                     :key="id" :id="id" :action="action" :editable="!scene || scene.can_set" :saving="saving || deleting"
                     @delete="$delete(data.enable_actions, id); $forceUpdate()" />
 
-                <json-editor v-else v-model="data.enable_actions[id]" :index="id"
+                <json-editor v-else v-model="data.enable_actions[id]" :key="id" :index="id"
                     :name="action_components.find(c => c.plugin === action.plugin && c.type === action.action) &&
                         action_components.find(c => c.plugin === action.plugin && c.type === action.action).name"
                     type="action" :disabled="(scene && !scene.can_set) || saving || deleting"
@@ -58,7 +58,7 @@
                     :key="id" :id="id" :action="action" :editable="!scene || scene.can_set" :saving="saving || deleting"
                     @delete="$delete(data.disable_actions, id); $forceUpdate()" />
 
-                <json-editor v-else v-model="data.disable_actions[id]" :index="id"
+                <json-editor v-else v-model="data.disable_actions[id]" :key="id" :index="id"
                     :name="action_components.find(c => c.plugin === action.plugin && c.type === action.action) &&
                         action_components.find(c => c.plugin === action.plugin && c.type === action.action).name"
                     type="action" :disabled="(scene && !scene.can_set) || saving || deleting"

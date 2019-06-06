@@ -99,7 +99,7 @@ export default class Server extends Events {
                 req.url.match(/^\/automations$/)) req.url = '/';
 
             next();
-        })
+        });
 
         if (!DEVELOPMENT || !options.webpack_hot) {
             this.app.use(express.static(path.resolve(__dirname, '..', 'public')));
