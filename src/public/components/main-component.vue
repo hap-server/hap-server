@@ -34,9 +34,7 @@
 
         <div v-if="!show_automations" class="main">
             <layout ref="layout" :key="layout ? layout.uuid : ''" :layout="layout"
-                :connection="connection" :accessories="accessories" :bridge-uuids="bridge_uuids"
-                :title="(layout ? authenticated_user && layout.uuid === 'Overview.' + authenticated_user.id ? name : layout.name : name) || 'Home'" :sections="layout && layout.sections" :can-edit="layout && layout.can_set"
-                :can-delete="layout && layout.can_delete" :show-all-accessories="!layout"
+                :title="(layout ? authenticated_user && layout.uuid === 'Overview.' + authenticated_user.id ? name : layout.name : name) || 'Home'"
                 @modal="modal => modals.push(modal)" @ping="ping" />
         </div>
 
@@ -118,8 +116,8 @@
     import {BridgeService, UnsupportedService} from '../../common/service';
     import PluginManager from '../plugins';
     import {
-        NativeHookSymbol, ClientSymbol, ConnectionSymbol, AccessoriesSymbol, LayoutsSymbol, ScenesSymbol,
-        GetAllDisplayServicesSymbol, GetServiceSymbol, PushModalSymbol, GetAssetURLSymbol,
+        NativeHookSymbol, ClientSymbol, ConnectionSymbol, AccessoriesSymbol, BridgeUUIDsSymbol, LayoutsSymbol,
+        ScenesSymbol, GetAllDisplayServicesSymbol, GetServiceSymbol, PushModalSymbol, GetAssetURLSymbol,
     } from '../internal-symbols';
 
     import Authenticate from './authenticate.vue';
@@ -153,6 +151,7 @@
         inject: {
             _native_hook: {from: NativeHookSymbol},
             _client: {from: ClientSymbol},
+            getAssetURL: {from: GetAssetURLSymbol},
         },
         data() {
             return {
@@ -167,9 +166,9 @@
 
                 name: null,
                 default_background_url: null,
-                layout: null,
+                last_layout_uuid: null,
+                force_update_layout: false,
 
-                show_automations: false,
                 automations_title: null,
                 can_access_automations: false,
 
@@ -194,15 +193,58 @@
             return {
                 [ConnectionSymbol]: () => this.connection,
                 [AccessoriesSymbol]: this.accessories,
+                [BridgeUUIDsSymbol]: this.bridge_uuids,
                 [LayoutsSymbol]: this.layouts,
                 [ScenesSymbol]: this.scenes,
                 [GetAllDisplayServicesSymbol]: () => this.getAllServices(),
                 [GetServiceSymbol]: (uuid, service_uuid) => this.getService(uuid, service_uuid),
                 [PushModalSymbol]: modal => this.modals.push(modal),
-                [GetAssetURLSymbol]: asset => this.getAssetURL(asset),
             };
         },
         computed: {
+            layout_uuid: {
+                get() {
+                    if (this.$route.name === 'user-default-layout' && this.authenticated_user) {
+                        return 'Overview.' + this.authenticated_user.id;
+                    } else if (this.$route.name === 'layout') {
+                        return this.$route.params.layout_uuid;
+                    }
+
+                    return this.last_layout_uuid;
+                },
+                set(layout_uuid) {
+                    if (layout_uuid && this.authenticated_user && layout_uuid === 'Overview.' + this.authenticated_user.id) {
+                        this.$router.push({name: 'user-default-layout'});
+                    } else if (layout_uuid) {
+                        this.$router.push({name: 'layout', params: {layout_uuid: layout_uuid}});
+                    } else {
+                        this.$router.push({name: 'all-accessories'});
+                    }
+
+                    this.last_layout_uuid = layout_uuid;
+                },
+            },
+            layout: {
+                get() {
+                    // Forces Vue to update this when the layout has loaded
+                    this.force_update_layout;
+
+                    return this.layouts[this.layout_uuid];
+                },
+                set(layout) {
+                    this.layout_uuid = layout ? layout.uuid : null;
+                },
+            },
+            show_automations: {
+                get() {
+                    return this.$route.name === 'automations';
+                },
+                set(show_automations) {
+                    if (show_automations) this.$router.push({name: 'automations'});
+                    else this.layout = this.layouts[this.last_layout_uuid];
+                },
+            },
+
             title() {
                 if (this.modals.length) {
                     const modal = this.modals[this.modals.length - 1];
@@ -309,16 +351,29 @@
                     this.refreshAccessories(),
                     this.client.refreshScenes(),
                 ]);
+
+                // Force Vue to update the layout
+                this.force_update_layout = !this.force_update_layout;
             },
             layout(layout) {
+                // Only save the layout when using running as a web clip
+                if (!navigator.standalone) return;
+
                 // Save the current layout
                 if (layout) localStorage.setItem('layout', layout.uuid);
                 else localStorage.removeItem('layout');
             },
-            layouts(layouts, old_layouts) {
-                const layout_uuid = localStorage.getItem('layout') ||
-                    (this.authenticated_user ? 'Overview.' + this.authenticated_user.id : null);
-                if (layout_uuid && this.layouts[layout_uuid] && !this.layout) this.layout = this.layouts[layout_uuid];
+            layouts: {
+                handler(layouts, old_layouts) {
+                    const layout_uuid = localStorage.getItem('layout');
+                    if (layout_uuid && this.layouts[layout_uuid] && !this.layout) this.layout_uuid = layout_uuid;
+
+                    if (!navigator.standalone && layout_uuid) localStorage.removeItem('layout');
+
+                    // Force Vue to update the layout
+                    this.force_update_layout = !this.force_update_layout;
+                },
+                deep: true,
             },
         },
         async created() {
@@ -360,13 +415,6 @@
             instances.delete(this);
         },
         methods: {
-            getAssetURL(asset) {
-                if (this.native_hook && this.native_hook.base_url) {
-                    return url.resolve(this.native_hook.base_url, 'assets/' + asset);
-                }
-
-                return 'assets/' + asset;
-            },
             async connected(connection) {
                 this.connection = connection;
                 this.has_connected = true;
@@ -473,10 +521,6 @@
             },
             async refreshLayouts(dont_emit_events) {
                 await this.client.refreshLayouts(dont_emit_events);
-
-                const layout_uuid = localStorage.getItem('layout') ||
-                    (this.authenticated_user ? 'Overview.' + this.authenticated_user.id : null);
-                if (layout_uuid && this.layouts[layout_uuid] && !this.layout) this.layout = this.layouts[layout_uuid];
             },
             addAccessory(accessory) {
                 this.$set(this.accessories, accessory.uuid, accessory);
@@ -521,7 +565,9 @@
                 this.loading_bridges = true;
 
                 try {
-                    this.bridge_uuids = await this.connection.listBridges(true);
+                    const new_bridge_uuids = await this.connection.listBridges(true);
+                    this.bridge_uuids.splice(0, this.bridge_uuids.length);
+                    this.bridge_uuids.push(new_bridge_uuids);
                 } finally {
                     this.loading_bridges = false;
                 }

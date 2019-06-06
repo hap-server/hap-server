@@ -2,6 +2,7 @@ export const NativeHookSymbol = Symbol('NativeHook');
 export const ClientSymbol = Symbol('Client');
 export const ConnectionSymbol = Symbol('Connection');
 export const AccessoriesSymbol = Symbol('Accessories');
+export const BridgeUUIDsSymbol = Symbol('BridgeUUIDs');
 export const LayoutsSymbol = Symbol('Layouts');
 export const AutomationsSymbol = Symbol('Automations');
 export const ScenesSymbol = Symbol('Scenes');

@@ -27,16 +27,16 @@
             </template>
         </component>
 
-        <div v-if="!accessories_count && !edit && !showAllAccessories" class="section">
+        <div v-if="!accessories_count && !edit && !show_all_accessories" class="section">
             <p>This layout has no accessories.</p>
-            <button v-if="canEdit" class="btn btn-primary btn-sm" @click="edit = true">Add accessories</button>
+            <button v-if="can_edit" class="btn btn-primary btn-sm" @click="edit = true">Add accessories</button>
         </div>
 
         <service-container v-if="edit" title="Other accessories" :accessories="accessories" :sorted="other_accessories"
             :edit="true" :group="'' + _uid"
         >
             <template v-slot="{id}">
-                <service :key="id" :connection="connection" :service="getService(id)" :edit="edit"
+                <service :key="id" :connection="client.connection" :service="getService(id)" :edit="edit"
                     @show-details="closing => $emit('modal', {type: 'accessory-details', service: getService(id), closing})"
                     @show-settings="$emit('modal', {type: 'service-settings', service: getService(id)})" />
             </template>
@@ -55,7 +55,7 @@
         </service-container> -->
 
         <div class="section">
-            <p v-if="showAllAccessories || accessories_count === total_accessories_count">
+            <p v-if="show_all_accessories || accessories_count === total_accessories_count">
                 {{ total_accessories_count }} accessor{{ total_accessories_count === 1 ? 'y' : 'ies' }}</p>
             <p v-else>{{ accessories_count }} of {{ total_accessories_count }}
                 accessor{{ total_accessories_count === 1 ? 'y' : 'ies' }}</p>
@@ -64,12 +64,12 @@
 </template>
 
 <script>
-    import Connection from '../../common/connection';
     import Layout, {LayoutSection} from '../../common/layout';
     import Service from '../../common/service';
     import {
-        GetAllDisplayServicesSymbol, GetServiceSymbol, LayoutSymbol, LayoutAddSectionSymbol,
-        LayoutRemoveSectionSymbol, LayoutGetEditingSymbol, LayoutGetCanEditSymbol, LayoutSetEditingSymbol,
+        ClientSymbol, AccessoriesSymbol, BridgeUUIDsSymbol, GetAllDisplayServicesSymbol, GetServiceSymbol,
+        LayoutSymbol, LayoutAddSectionSymbol, LayoutRemoveSectionSymbol, LayoutGetEditingSymbol,
+        LayoutGetCanEditSymbol, LayoutSetEditingSymbol,
     } from '../internal-symbols';
 
     import LayoutSectionComponent from './layout-section.vue';
@@ -86,15 +86,8 @@
             Draggable: () => import(/* webpackChunkName: 'layout-editor' */ 'vuedraggable'),
         },
         props: {
-            connection: Connection,
             layout: Layout,
             title: {type: String, default: 'Home'},
-            sections: Object,
-            accessories: Object,
-            bridgeUuids: {type: Array, default: () => []},
-            showAllAccessories: Boolean,
-            canEdit: Boolean,
-            canDelete: Boolean,
         },
         data() {
             return {
@@ -106,6 +99,9 @@
             };
         },
         inject: {
+            client: {from: ClientSymbol},
+            accessories: {from: AccessoriesSymbol},
+            bridgeUuids: {from: BridgeUUIDsSymbol},
             getAllServices: {from: GetAllDisplayServicesSymbol},
             getService: {from: GetServiceSymbol},
         },
@@ -113,7 +109,7 @@
             return {
                 layout: this.layout,
                 editing: () => this.edit,
-                connection: this.connection,
+                connection: this.client.connection,
                 addSection: (index, data) => this.addSection(index, data),
                 removeSection: index => this.deleteSection(index),
                 getService: uuid => this.getService(uuid),
@@ -122,14 +118,23 @@
                 [LayoutAddSectionSymbol]: (index, data) => this.addSection(index, data),
                 [LayoutRemoveSectionSymbol]: index => this.deleteSection(index),
                 [LayoutGetEditingSymbol]: () => this.edit,
-                [LayoutGetCanEditSymbol]: () => this.canEdit,
+                [LayoutGetCanEditSymbol]: () => this.can_edit,
                 [LayoutSetEditingSymbol]: edit => this.edit = edit,
             };
         },
         computed: {
+            sections() {
+                return this.layout && this.layout.sections;
+            },
+            can_edit() {
+                return this.layout && this.layout.can_set;
+            },
+            show_all_accessories() {
+                return !this.layout;
+            },
             effective_sections: {
                 get() {
-                    if (this.showAllAccessories && !this.edit) return [this.all_accessories_section];
+                    if (this.show_all_accessories && !this.edit) return [this.all_accessories_section];
 
                     return (this.staged_sections_order || this.sections_order).map(uuid => this.sections[uuid]);
                 },
