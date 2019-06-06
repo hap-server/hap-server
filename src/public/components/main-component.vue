@@ -241,7 +241,7 @@
                 },
                 set(show_automations) {
                     if (show_automations) this.$router.push({name: 'automations'});
-                    else this.layout = this.layouts[this.last_layout_uuid];
+                    else this.layout_uuid = this.last_layout_uuid;
                 },
             },
 

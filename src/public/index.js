@@ -15,6 +15,7 @@ Vue.use(VueRouter);
 import MainComponent from './components/main-component.vue';
 
 const router = new VueRouter({
+    mode: 'history',
     routes: [
         {name: 'user-default-layout', path: '/'},
         {name: 'layout', path: '/layout/:layout_uuid'},
@@ -34,6 +35,12 @@ const native_hook = global.__HAP_SERVER_NATIVE_HOOK__ ? global.__HAP_SERVER_NATI
     MainComponent,
     router,
 }) : null;
+
+if (native_hook && native_hook.router_mode !== 'history') {
+    // Re-initialise the router using the hash mode
+    router.options.mode = 'hash';
+    router.constructor.call(router, router.options);
+}
 
 Object.defineProperty(PluginManager, 'base_url', {
     configurable: true,

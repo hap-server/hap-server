@@ -59,6 +59,10 @@ const webpack_config = {
         new HtmlWebpackPlugin({
             template: 'src/public/index.html',
         }),
+        new HtmlWebpackPlugin({
+            template: 'src/public/app.html',
+            filename: 'app.html',
+        }),
         new MiniCssExtractPlugin({
             // Options similar to the same options in webpackOptions.output
             // both options are optional

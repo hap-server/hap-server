@@ -93,6 +93,14 @@ export default class Server extends Events {
         this.app.post('/assets/upload-layout-background', this.multer.single('background'),
             Connection.handleUploadLayoutBackground.bind(Connection, this));
 
+        this.app.use((req, res, next) => {
+            if (req.url.match(/^\/layout\/[^/]+/) ||
+                req.url.match(/^\/all-accessories$/) ||
+                req.url.match(/^\/automations$/)) req.url = '/';
+
+            next();
+        })
+
         if (!DEVELOPMENT || !options.webpack_hot) {
             this.app.use(express.static(path.resolve(__dirname, '..', 'public')));
         }
