@@ -12,7 +12,7 @@
             <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-timezone'">Timezone</label>
             <div class="col-sm-9">
                 <select :id="_uid + '-timezone'" v-model="trigger.timezone"
-                    class="form-control form-control-sm" :disabled="saving"
+                    class="custom-select custom-select-sm" :disabled="saving"
                 >
                     <option v-for="timezone in timezones.filter(t => t.startsWith('Etc/'))" :key="timezone"
                         :value="timezone">{{ timezone.substr(4) }}</option>

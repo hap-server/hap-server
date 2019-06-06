@@ -7,6 +7,10 @@ $header-z-index: 200;
 $modal-z-index: 300;
 $connecting-modal-z-index: 400;
 
+.custom-select {
+    -webkit-appearance: none;
+}
+
 html,
 body,
 .root {
