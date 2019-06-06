@@ -23,9 +23,15 @@
 
             <template v-for="(trigger, id) in automation.data.triggers || {}">
                 <component
-                    v-if="trigger_components.find(c => c.plugin === trigger.plugin && c.type === trigger.trigger)"
+                    v-if="trigger_components.find(c => c.plugin === trigger.plugin && c.type === trigger.trigger) && simple_editor"
                     :is="trigger_components.find(c => c.plugin === trigger.plugin && c.type === trigger.trigger).component"
                     :key="id" :id="id" :trigger="trigger" :editable="editable" :saving="saving || deleting"
+                    @delete="$delete(automation.data.triggers, id); $forceUpdate()" />
+
+                <json-editor v-else v-model="automation.data.triggers[id]" :index="id"
+                    :name="trigger_components.find(c => c.plugin === trigger.plugin && c.type === trigger.trigger) &&
+                        trigger_components.find(c => c.plugin === trigger.plugin && c.type === trigger.trigger).name"
+                    type="trigger" :disabled="!editable || saving || deleting"
                     @delete="$delete(automation.data.triggers, id); $forceUpdate()" />
             </template>
         </div>
@@ -35,9 +41,15 @@
 
             <template v-for="(condition, id) in automation.data.conditions || {}">
                 <component
-                    v-if="condition_components.find(c => c.plugin === condition.plugin && c.type === condition.condition)"
+                    v-if="condition_components.find(c => c.plugin === condition.plugin && c.type === condition.condition) && simple_editor"
                     :is="condition_components.find(c => c.plugin === condition.plugin && c.type === condition.condition).component"
                     :key="id" :id="id" :condition="condition" :editable="editable" :saving="saving || deleting"
+                    @delete="$delete(automation.data.conditions, id); $forceUpdate()" />
+
+                <json-editor v-else v-model="automation.data.conditions[id]" :index="id"
+                    :name="condition_components.find(c => c.plugin === condition.plugin && c.type === condition.condition) &&
+                        condition_components.find(c => c.plugin === condition.plugin && c.type === condition.condition).name"
+                    type="condition" :disabled="!editable || saving || deleting"
                     @delete="$delete(automation.data.conditions, id); $forceUpdate()" />
             </template>
         </div>
@@ -45,30 +57,48 @@
         <div v-if="tab === 'actions'" class="automation-actions">
             <template v-for="(action, id) in automation.data.actions || {}">
                 <component
-                    v-if="action_components.find(c => c.plugin === action.plugin && c.type === action.action)"
+                    v-if="action_components.find(c => c.plugin === action.plugin && c.type === action.action) && simple_editor"
                     :is="action_components.find(c => c.plugin === action.plugin && c.type === action.action).component"
                     :key="id" :id="id" :action="action" :editable="editable" :saving="saving || deleting"
+                    @delete="$delete(automation.data.actions, id); $forceUpdate()" />
+
+                <json-editor v-else v-model="automation.data.actions[id]" :index="id"
+                    :name="action_components.find(c => c.plugin === action.plugin && c.type === action.action) &&
+                        action_components.find(c => c.plugin === action.plugin && c.type === action.action).name"
+                    type="action" :disabled="!editable || saving || deleting"
                     @delete="$delete(automation.data.actions, id); $forceUpdate()" />
             </template>
         </div>
 
         <div class="d-flex">
+            <div v-if="['triggers', 'conditions', 'actions'].includes(tab)" class="form-group custom-control custom-checkbox mb-0">
+                <input v-model="simple_editor" :id="_uid + '-editor'" type="checkbox"
+                    class="custom-control-input" />
+                <label class="custom-control-label" :for="_uid + '-editor'">Editor</label>
+            </div>
+
             <dropdown v-if="tab === 'triggers' && editable" label="Add trigger" type="up" :disabled="saving || deleting">
                 <a v-for="{plugin, type, name} in trigger_components" :key="type"
                     class="dropdown-item" href="#" @click.prevent="addTrigger({plugin, trigger: type})"
                 >{{ name }}</a>
+                <div v-if="!simple_editor" class="dropdown-divider" />
+                <a v-if="!simple_editor" class="dropdown-item" href="#" @click.prevent="addTrigger({plugin: null, trigger: null})">Other</a>
             </dropdown>
 
             <dropdown v-if="tab === 'conditions' && editable" label="Add condition" type="up" :disabled="saving || deleting">
                 <a v-for="{plugin, type, name} in condition_components" :key="type"
                     class="dropdown-item" href="#" @click.prevent="addCondition({plugin, condition: type})"
                 >{{ name }}</a>
+                <div v-if="!simple_editor" class="dropdown-divider" />
+                <a v-if="!simple_editor" class="dropdown-item" href="#" @click.prevent="addCondition({plugin: null, condition: null})">Other</a>
             </dropdown>
 
             <dropdown v-if="tab === 'actions' && editable" label="Add action" type="up" :disabled="saving || deleting">
                 <a v-for="{plugin, type, name} in action_components" :key="type"
                     class="dropdown-item" href="#" @click.prevent="addAction({plugin, action: type})"
                 >{{ name }}</a>
+                <div v-if="!simple_editor" class="dropdown-divider" />
+                <a v-if="!simple_editor" class="dropdown-item" href="#" @click.prevent="addAction({plugin: null, action: null})">Other</a>
             </dropdown>
 
             <div v-if="saving">Saving</div>
@@ -91,6 +121,7 @@
     import Panel from '../components/panel.vue';
     import PanelTabs from '../components/panel-tabs.vue';
     import Dropdown from '../components/dropdown.vue';
+    import JsonEditor from './json-editor.vue';
 
     import {trigger_components, condition_components, action_components} from '.';
     import './triggers';
@@ -102,6 +133,7 @@
             Panel,
             PanelTabs,
             Dropdown,
+            JsonEditor,
         },
         props: {
             connection: Connection,
@@ -143,6 +175,8 @@
                 trigger_components,
                 condition_components,
                 action_components,
+
+                simple_editor: true,
             };
         },
         inject: {

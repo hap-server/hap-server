@@ -17,9 +17,15 @@
 
             <template v-for="(condition, id) in data.conditions || {}">
                 <component
-                    v-if="condition_components.find(c => c.plugin === condition.plugin && c.type === condition.condition)"
+                    v-if="condition_components.find(c => c.plugin === condition.plugin && c.type === condition.condition) && simple_editor"
                     :is="condition_components.find(c => c.plugin === condition.plugin && c.type === condition.condition).component"
                     :key="id" :id="id" :condition="condition" :editable="!scene || scene.can_set" :saving="saving || deleting"
+                    @delete="$delete(data.conditions, id); $forceUpdate()" />
+
+                <json-editor v-else v-model="data.conditions[id]" :index="id"
+                    :name="condition_components.find(c => c.plugin === condition.plugin && c.type === condition.condition) &&
+                        condition_components.find(c => c.plugin === condition.plugin && c.type === condition.condition).name"
+                    type="condition" :disabled="(scene && !scene.can_set) || saving || deleting"
                     @delete="$delete(data.conditions, id); $forceUpdate()" />
             </template>
         </div>
@@ -29,9 +35,15 @@
 
             <template v-for="(action, id) in data.enable_actions || {}">
                 <component
-                    v-if="action_components.find(c => c.plugin === action.plugin && c.type === action.action)"
+                    v-if="action_components.find(c => c.plugin === action.plugin && c.type === action.action) && simple_editor"
                     :is="action_components.find(c => c.plugin === action.plugin && c.type === action.action).component"
                     :key="id" :id="id" :action="action" :editable="!scene || scene.can_set" :saving="saving || deleting"
+                    @delete="$delete(data.enable_actions, id); $forceUpdate()" />
+
+                <json-editor v-else v-model="data.enable_actions[id]" :index="id"
+                    :name="action_components.find(c => c.plugin === action.plugin && c.type === action.action) &&
+                        action_components.find(c => c.plugin === action.plugin && c.type === action.action).name"
+                    type="action" :disabled="(scene && !scene.can_set) || saving || deleting"
                     @delete="$delete(data.enable_actions, id); $forceUpdate()" />
             </template>
         </div>
@@ -41,30 +53,48 @@
 
             <template v-for="(action, id) in data.disable_actions || {}">
                 <component
-                    v-if="action_components.find(c => c.plugin === action.plugin && c.type === action.action)"
+                    v-if="action_components.find(c => c.plugin === action.plugin && c.type === action.action) && simple_editor"
                     :is="action_components.find(c => c.plugin === action.plugin && c.type === action.action).component"
                     :key="id" :id="id" :action="action" :editable="!scene || scene.can_set" :saving="saving || deleting"
+                    @delete="$delete(data.disable_actions, id); $forceUpdate()" />
+
+                <json-editor v-else v-model="data.disable_actions[id]" :index="id"
+                    :name="action_components.find(c => c.plugin === action.plugin && c.type === action.action) &&
+                        action_components.find(c => c.plugin === action.plugin && c.type === action.action).name"
+                    type="action" :disabled="(scene && !scene.can_set) || saving || deleting"
                     @delete="$delete(data.disable_actions, id); $forceUpdate()" />
             </template>
         </div>
 
         <div class="d-flex">
+            <div v-if="['conditions', 'activate_actions', 'deactivate_actions'].includes(tab)" class="form-group custom-control custom-checkbox mb-0">
+                <input v-model="simple_editor" :id="_uid + '-editor'" type="checkbox"
+                    class="custom-control-input" />
+                <label class="custom-control-label" :for="_uid + '-editor'">Editor</label>
+            </div>
+
             <dropdown v-if="tab === 'conditions' && (!scene || scene.can_set)" label="Add condition" type="up" :disabled="saving || deleting">
                 <a v-for="{plugin, type, name} in condition_components" :key="type"
                     class="dropdown-item" href="#" @click.prevent="addCondition({plugin, condition: type})"
                 >{{ name }}</a>
+                <div v-if="!simple_editor" class="dropdown-divider" />
+                <a v-if="!simple_editor" class="dropdown-item" href="#" @click.prevent="addCondition({plugin: null, condition: null})">Other</a>
             </dropdown>
 
             <dropdown v-if="tab === 'activate_actions' && (!scene || scene.can_set)" label="Add action" type="up" :disabled="saving || deleting">
                 <a v-for="{plugin, type, name} in action_components" :key="type"
                     class="dropdown-item" href="#" @click.prevent="addActivateAction({plugin, action: type})"
                 >{{ name }}</a>
+                <div v-if="!simple_editor" class="dropdown-divider" />
+                <a v-if="!simple_editor" class="dropdown-item" href="#" @click.prevent="addActivateAction({plugin: null, action: null})">Other</a>
             </dropdown>
 
             <dropdown v-if="tab === 'deactivate_actions' && (!scene || scene.can_set)" label="Add action" type="up" :disabled="saving || deleting">
                 <a v-for="{plugin, type, name} in action_components" :key="type"
                     class="dropdown-item" href="#" @click.prevent="addDeactivateAction({plugin, action: type})"
                 >{{ name }}</a>
+                <div v-if="!simple_editor" class="dropdown-divider" />
+                <a v-if="!simple_editor" class="dropdown-item" href="#" @click.prevent="addDeactivateAction({plugin: null, action: null})">Other</a>
             </dropdown>
 
             <div v-if="deleting">Deleting</div>
@@ -91,6 +121,7 @@
     import Panel from '../components/panel.vue';
     import PanelTabs from '../components/panel-tabs.vue';
     import Dropdown from '../components/dropdown.vue';
+    import JsonEditor from './json-editor.vue';
 
     import {condition_components, action_components} from '.';
     import './conditions';
@@ -101,6 +132,7 @@
             Panel,
             PanelTabs,
             Dropdown,
+            JsonEditor,
         },
         props: {
             scene: Scene,
@@ -139,6 +171,7 @@
                 data: null,
                 saving: false,
                 deleting: false,
+                simple_editor: true,
             };
         },
         inject: {
