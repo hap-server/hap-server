@@ -14,6 +14,7 @@ import markdownlinks from 'transform-markdown-links';
 
 import VueLoaderPlugin from 'vue-loader/lib/plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
+import SriPlugin from 'webpack-subresource-integrity';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import TerserPlugin from 'terser-webpack-plugin';
 import OptimizeCSSAssetsPlugin from 'optimize-css-assets-webpack-plugin';
@@ -63,6 +64,9 @@ const webpack_config = {
             template: 'src/public/app.html',
             filename: 'app.html',
         }),
+        new SriPlugin({
+            hashFuncNames: ['sha256', 'sha384'],
+        }),
         new MiniCssExtractPlugin({
             // Options similar to the same options in webpackOptions.output
             // both options are optional
@@ -78,6 +82,7 @@ const webpack_config = {
     },
     output: {
         filename: '[name].js',
+        crossOriginLoading: 'anonymous',
     },
     optimization: {
         runtimeChunk: 'single',
@@ -109,7 +114,7 @@ export const webpack_hot_config = Object.assign({}, webpack_config, {
             ],
         } : rule),
     }),
-    plugins: webpack_config.plugins.concat([
+    plugins: webpack_config.plugins.filter(p => !(p instanceof SriPlugin)).concat([
         new HotModuleReplacementPlugin(),
     ]),
 });
