@@ -30,14 +30,9 @@ export {
 
 export const DEVELOPMENT = true;
 
-export const package_json = (() => {
-    if (DEVELOPMENT) {
-        return require('../package');
-    }
-
-    return require('./package');
-})();
-
+export const package_json = DEVELOPMENT ? require('../package') : require('./package');
 export const version = package_json.version;
+export const package_path = DEVELOPMENT ? require('path').resolve(__dirname, '..') : __dirname;
+export const path = __dirname;
 
 export const events = new Events();
