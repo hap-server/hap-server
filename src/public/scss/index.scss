@@ -23,6 +23,10 @@ body,
     cursor: default;
 }
 
+html {
+    overflow-y: scroll;
+}
+
 .selectable {
     -moz-user-select: text;
     -webkit-user-select: text;
@@ -63,7 +67,7 @@ body,
 }
 
 .root {
-    margin-top: 73px;
+    padding-top: 73px;
 }
 
 .header {
@@ -126,6 +130,10 @@ body,
 .main {
     position: relative;
     z-index: $main-z-index;
+
+    &.has-open-modals {
+        overflow: hidden;
+    }
 
     h1,
     h2,

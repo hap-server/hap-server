@@ -1,5 +1,5 @@
 <template>
-    <div class="root" :class="{scrolled}">
+    <div class="root" :class="{scrolled, 'has-open-modals': modal_open}">
         <transition name="fade">
             <div :key="background_url" class="background"
                 :style="{'background-image': background_url ? `url(${JSON.stringify(background_url)})` : 'none'}" />
@@ -126,7 +126,7 @@
 
     export const instances = new Set();
 
-    document.cookie = 'asset_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    document.cookie = 'asset_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
 
     export default {
         components: {
@@ -332,12 +332,10 @@
             title(title) {
                 document.title = title;
             },
-            modal_open() {
-                document.body.style.overflow = this.modal_open ? 'hidden' : 'auto';
-            },
             async authenticated_user(authenticated_user) {
                 document.cookie = 'asset_token=' + (authenticated_user ?
-                    encodeURIComponent(authenticated_user.asset_token) : '; expires=Thu, 01 Jan 1970 00:00:00 GMT');
+                    encodeURIComponent(authenticated_user.asset_token) : '; expires=Thu, 01 Jan 1970 00:00:00 GMT') +
+                    '; path=/';
 
                 if (!authenticated_user) return;
 
