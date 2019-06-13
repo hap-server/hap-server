@@ -29,6 +29,11 @@
         height: 100% !important;
     }
 
+    @media (prefers-color-scheme: dark) {
+        background-color: darken($dark, 10%);
+        color: $gray-100;
+    }
+
     &.show,
     &.v-enter-active {
         animation: mobile-panel-in 0.3s ease-in forwards;
@@ -54,6 +59,10 @@
         max-height: 90%;
         border: darken($light, 20%) 1px solid;
         border-top-width: 0;
+
+        @media (prefers-color-scheme: dark) {
+            border-color: darken($dark, 20%);
+        }
 
         &.show,
         &.v-enter-active {

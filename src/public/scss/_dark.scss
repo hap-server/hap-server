@@ -1,0 +1,86 @@
+.dropdown-menu {
+    background-color: darken($dark, 10%);
+    border-color: darken($dark, 20%);
+}
+
+.dropdown-item {
+    color: $gray-300;
+
+    &:hover,
+    &:focus {
+        background-color: darken($dark, 20%);
+        color: #ffffff;
+    }
+
+    &.active {
+        background-color: $primary;
+        color: #ffffff;
+    }
+}
+
+.dropdown-divider {
+    border-color: darken($dark, 20%);
+}
+
+.nav-tabs {
+    border-color: darken($dark, 20%);
+
+    .nav-link:hover,
+    .nav-link:focus {
+        border-color: darken($dark, 15%) darken($dark, 15%) darken($dark, 20%);
+    }
+
+    .nav-link.active {
+        background-color: darken($dark, 10%);
+        border-color: darken($dark, 20%);
+        color: #ffffff;
+    }
+}
+
+.form-control,
+.custom-select,
+.custom-file-label {
+    background-color: darken($dark, 20%);
+    border-color: darken($dark, 30%);
+    color: $gray-100;
+
+    &:focus {
+        background-color: darken($dark, 20%);
+        border-color: darken($primary, 40%);
+        color: #ffffff;
+    }
+
+    &:disabled,
+    &[readonly] {
+        background-color: darken($dark, 30%);
+    }
+}
+
+.custom-select {
+    background-image: url("data:image/svg+xml,%3csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%204%205'%3e%3cpath%20fill='#{$gray-300}'%20d='M2%200L0%202h4zm0%205L0%203h4z'/%3e%3c/svg%3e");
+}
+
+.custom-file-label::after {
+    background-color: darken($dark, 30%);
+        color: $gray-300;
+}
+
+.btn-default {
+    color: $gray-300;
+
+    &:hover {
+        color: #ffffff;
+    }
+}
+
+.list-group-item {
+    background-color: darken($dark, 20%);
+    color: $gray-300;
+}
+
+.list-group-item-action:hover,
+.list-group-item-action:focus,
+.list-group-item-action:active {
+    background-color: darken($dark, 30%);
+    color: #ffffff;
+}

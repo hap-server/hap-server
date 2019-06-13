@@ -1,6 +1,10 @@
 @import '../../../node_modules/bootstrap/scss/bootstrap';
 @import '../../../node_modules/xterm/src/xterm';
 
+@media (prefers-color-scheme: dark) {
+    @import 'dark';
+}
+
 $background-z-index: 0;
 $main-z-index: 100;
 $header-z-index: 200;
@@ -47,6 +51,10 @@ body,
     background-position: center;
 
     z-index: $background-z-index;
+
+    @media (prefers-color-scheme: dark) {
+        background-color: $dark;
+    }
 }
 
 .background {

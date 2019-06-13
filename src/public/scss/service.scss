@@ -23,10 +23,19 @@
     .service-tile-contents {
         background-color: rgba(255, 255, 255, 0.9);
 
+        @media (prefers-color-scheme: dark) {
+            background-color: transparentize($dark, 0.1);
+            color: $gray-200;
+        }
+
         @supports (backdrop-filter: blur(20px)) or (-webkit-backdrop-filter: blur(20px)) {
             background-color: rgba(255, 255, 255, 0.5);
             -webkit-backdrop-filter: blur(20px);
             backdrop-filter: blur(20px);
+
+            @media (prefers-color-scheme: dark) {
+                background-color: transparentize($dark, 0.5);
+            }
         }
 
         border-radius: 0.8em;
@@ -59,6 +68,16 @@
         filter: brightness(0) opacity(0.7);
     }
 
+    @media (prefers-color-scheme: dark) {
+        svg.icon {
+            fill: rgba(255, 255, 255, 0.7);
+        }
+
+        img.icon {
+            filter: brightness(0) opacity(0.7) invert(1);
+        }
+    }
+
     .service-info {
         flex: 0 0 auto;
     }
@@ -87,9 +106,18 @@
     &.active {
         .service-tile-contents {
             background-color: rgba(255, 255, 255, 0.9);
+            color: $gray-900;
+
+            // @media (prefers-color-scheme: dark) {
+            //     background-color: rgba(0, 0, 0, 0.9);
+            // }
         }
         .service-tile-background + .service-tile-contents {
             background-color: rgba(255, 255, 255, 0.7);
+
+            // @media (prefers-color-scheme: dark) {
+            //     background-color: rgba(0, 0, 0, 0.7);
+            // }
         }
 
         svg.icon {
@@ -99,6 +127,16 @@
         img.icon {
             filter: opacity(1);
         }
+
+        // @media (prefers-color-scheme: dark) {
+        //     svg.icon {
+        //         fill: rgba(255, 255, 255, 1);
+        //     }
+        //
+        //     img.icon {
+        //         filter: opacity(1) invert(1);
+        //     }
+        // }
     }
 
     transition: opacity 0.1s ease;
