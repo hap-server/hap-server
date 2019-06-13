@@ -313,3 +313,4 @@ require('./automation-trigger');
 require('./characteristic-update');
 require('./plugins');
 require('./scenes');
+require('./server');

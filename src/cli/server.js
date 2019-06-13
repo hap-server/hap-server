@@ -237,6 +237,8 @@ export async function handler(argv) {
     if (argv.group) process.setgid(argv.group);
     if (argv.user) process.setuid(argv.user);
 
+    server.emit(Events.ServerStartupFinishedEvent, server);
+
     log.info('Running', server.accessories.length, 'accessories',
         server.cached_accessories.length, 'cached accessories');
 
@@ -269,6 +271,8 @@ export async function handler(argv) {
                 log.info(`Got ${signal} (x${exit_attempts} - ${3 - exit_attempts} left to force exit),` +
                     + ' shutting down...');
             } else log.info(`Got ${signal}, shutting down...`);
+
+            server.emit(Events.ServerStoppingEvent, server);
 
             server.unpublish();
             http_server.close();
