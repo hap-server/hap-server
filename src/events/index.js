@@ -2,16 +2,17 @@ import EventEmitter from 'events';
 
 export class Event {
     constructor(...args) {
+        Object.defineProperty(this, 'emitter', {configurable: true, value: null});
         Object.defineProperty(this, 'args', {value: args});
-        Object.defineProperty(this, '_throw', {value: false});
-        Object.defineProperty(this, '_returnValue', {value: null});
+        Object.defineProperty(this, '_throw', {writable: true, value: false});
+        Object.defineProperty(this, '_returnValue', {writable: true, value: null});
     }
 
     static get type() {
         if (this._type) return this._type;
 
         // If a type hasn't been set add one now
-        this.type = Symbol('Event.' + this.name);
+        return this.type = Symbol('Event.' + this.name);
     }
     static set type(value) {
         // Don't allow the type to be set multiple times so it can't be changed after any listeners have been added
@@ -49,6 +50,11 @@ export class Event {
     }
 }
 
+Object.defineProperty(Event.prototype, 'returnValue',
+    Object.assign(Object.getOwnPropertyDescriptor(Event.prototype, 'returnValue'), {enumerable: true}));
+Object.defineProperty(Event.prototype, 'throw',
+    Object.assign(Object.getOwnPropertyDescriptor(Event.prototype, 'throw'), {enumerable: true}));
+
 export class ExtendableEvent extends Event {
     constructor(args) {
         super();
@@ -73,23 +79,96 @@ export class EventListener {
         this.emitter = emitter;
         this.event = event;
         this.handler = handler;
+        this.canceled = false;
+        this.groups = [];
+
+        EventEmitter.prototype.on.call(this.emitter, this.event, this.handler);
+        EventEmitter.prototype.on.call(this.emitter, 'removeListener', this.removeListenerHandler = (event, handler) => {
+            if (this.event !== event || this.handler !== handler) return;
+
+            this.canceled = true;
+            this.emitter.removeListener('removeListener', this.removeListenerHandler);
+        });
+    }
+
+    get listener() {
+        return this.handler;
     }
 
     cancel() {
+        this.canceled = true;
         this.emitter.removeListener(this.event, this.handler);
+        this.emitter.removeListener('removeListener', this.removeListenerHandler);
+
+        let index;
+        for (const group of this.groups) {
+            while ((index = group.listeners.indexOf(this)) >= 0) group.listeners.splice(index, 1);
+        }
     }
 }
 
 export class EventListenerPromise extends Promise {
     constructor(emitter, event) {
-        super(resolve => this.handler = resolve);
+        super((rs, rj) => (this.resolve = rs, this.reject = rj));
 
         this.emitter = emitter;
         this.event = event;
+        this.handler = (...args) => (this.cancel(), this.resolve(...args));
+        this.canceled = false;
+        this.groups = [];
+
+        EventEmitter.prototype.on.call(this.emitter, this.event, this.handler);
+        EventEmitter.prototype.on.call(this.emitter, 'removeListener', this.removeListenerHandler = (event, handler) => {
+            if (this.event !== event || this.handler !== handler) return;
+
+            this.canceled = true;
+            this.emitter.removeListener('removeListener', this.removeListenerHandler);
+        });
+    }
+
+    get listener() {
+        return this.handler;
     }
 
     cancel() {
+        this.canceled = true;
         this.emitter.removeListener(this.event, this.handler);
+        this.emitter.removeListener('removeListener', this.removeListenerHandler);
+
+        let index;
+        for (const group of this.groups) {
+            while ((index = group.listeners.indexOf(this)) >= 0) group.listeners.splice(index, 1);
+        }
+    }
+}
+
+export class EventListeners {
+    constructor(...listeners) {
+        this.listeners = [];
+        this.groups = [];
+
+        this.add(...listeners);
+    }
+
+    add(...listeners) {
+        for (const listener of listeners) {
+            if (this.listeners.includes(listener)) continue;
+
+            this.listeners.push(listener);
+            listener.groups.push(this);
+        }
+    }
+
+    cancel(remove_all) {
+        let index;
+
+        for (const listener of this.listeners) {
+            listener.cancel();
+
+            if (!(listener instanceof EventListeners) || remove_all) {
+                while ((index = this.listeners.indexOf(listener)) >= 0) this.listeners.splice(index, 1);
+            }
+        }
     }
 }
 
@@ -110,6 +189,10 @@ export default class Events extends EventEmitter {
     emit(event, ...data) {
         if (event.prototype instanceof Event) {
             event = new event(...data); // eslint-disable-line new-cap
+        }
+
+        if (event instanceof Event) {
+            Object.defineProperty(event, 'emitter', {value: this});
         }
 
         if (event instanceof ExtendableEvent) {
@@ -172,17 +255,20 @@ export default class Events extends EventEmitter {
      *
      * @param {(function|string)} type A class that extends Event or a string
      * @param {function} handler
+     * @param {EventListeners} [event_listeners] An EventListener group to add the listener to
      * @return {EventListener}
      */
-    on(type, handler) {
+    on(type, handler, event_listeners) {
         if (type.prototype instanceof Event) {
             type = type.type;
             handler.expects_hap_event = true;
         }
 
-        EventEmitter.prototype.on.call(this, type, handler);
+        const event_listener = new EventListener(this, type, handler);
 
-        return new EventListener(this, type, handler);
+        if (event_listeners) event_listeners.add(event_listener);
+
+        return event_listener;
     }
 
     /**
@@ -195,7 +281,6 @@ export default class Events extends EventEmitter {
     once(type, handler) {
         if (!handler) {
             const promise = new EventListenerPromise(this, type);
-            this.once(type, promise.handler);
             return promise;
         }
 

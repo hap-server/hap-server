@@ -13,13 +13,14 @@ import hap from 'hap-nodejs';
 
 import {Plugin as HomebridgePluginManager} from 'homebridge/lib/plugin';
 
+import Events, {Event, EventListener, EventListenerPromise, EventListeners} from '../events';
 import {PluginAccessoryPlatformAccessory} from './server';
 import Logger from './logger';
 import AutomationTrigger from '../automations/trigger';
 import AutomationCondition from '../automations/condition';
 import AutomationAction from '../automations/action';
 
-import {version as hap_server_version} from '..';
+import {events, version as hap_server_version} from '..';
 
 const fs_stat = util.promisify(fs.stat);
 const fs_readdir = util.promisify(fs.readdir);
@@ -116,6 +117,12 @@ export class PluginManager {
                 AutomationTrigger,
                 AutomationCondition,
                 AutomationAction,
+                Events,
+                Event,
+                EventListener,
+                EventListenerPromise,
+                EventListeners,
+                events,
             }));
 
             return plugin_api;
@@ -196,7 +203,7 @@ export class PluginManager {
         const name = package_json ? package_json.name : plugin_path;
 
         if (this.plugins.find(plugin => plugin.name === name)) {
-            console.error('Already loaded a plugin with the same name as "' + plugin_path + '"');
+            log.warn('Already loaded a plugin with the same name as "' + plugin_path + '"');
             return;
         }
 

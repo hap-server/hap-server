@@ -1,6 +1,6 @@
 import './core/hap-async';
 
-import Events, {Event, ExtendableEvent} from './events';
+import Events, {Event, ExtendableEvent, EventListeners} from './events';
 
 import Server from './core/server';
 import PluginManager from './core/plugins';
@@ -15,6 +15,7 @@ export {
     Events,
     Event,
     ExtendableEvent,
+    EventListeners,
 
     Server,
     PluginManager,
