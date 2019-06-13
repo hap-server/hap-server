@@ -10,7 +10,7 @@ import {User as HomebridgeUser} from 'homebridge/lib/user';
 import HomebridgeLogger from 'homebridge/lib/logger';
 import hap from 'hap-nodejs';
 
-import {Events, Server, PluginManager, Logger, forceColourLogs} from '..';
+import {Events, Server, PluginManager, Logger, forceColourLogs, events} from '..';
 import {getConfig, log} from '.';
 
 const randomBytes = util.promisify(crypto.randomBytes);
@@ -153,6 +153,11 @@ export async function handler(argv) {
         config,
         cli_auth_token,
         webpack_hot: DEVELOPMENT && argv.webpackHot,
+    });
+
+    await server.loadPlugins();
+    events.on(Events.ServerPluginRegisteredEvent, event => {
+        server.loadPlugin(event.server_plugin);
     });
 
     (async () => {

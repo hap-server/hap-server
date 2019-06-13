@@ -311,4 +311,5 @@ export default class Events extends EventEmitter {
 require('./accessories');
 require('./automation-trigger');
 require('./characteristic-update');
+require('./plugins');
 require('./scenes');

@@ -21,7 +21,7 @@ import Events from '../events';
 import CharacteristicUpdateEvent from '../events/characteristic-update';
 
 import Connection from './connection';
-import PluginManager from './plugins';
+import PluginManager, {ServerPlugin} from './plugins';
 import Bridge from './bridge';
 import Homebridge from './homebridge';
 import Logger from './logger';
@@ -160,6 +160,8 @@ export default class Server extends Events {
             type: 'scene-deactivated',
             uuid: event.scene.uuid,
         }));
+
+        this.plugins = new Map();
     }
 
     /**
@@ -223,6 +225,47 @@ export default class Server extends Events {
 
     destructor() {
         // Server.instances.remove(this);
+    }
+
+    async loadPlugins() {
+        for (const server_plugin of PluginManager.getServerPlugins()) {
+            await this.loadPlugin(server_plugin);
+        }
+    }
+
+    /**
+     * Loads a server plugin.
+     *
+     * @param {function} server_plugin A class that extends ServerPlugin (and binds a plugin)
+     * @param {object} [config]
+     * @return {Promise}
+     */
+    async loadPlugin(server_plugin, config) {
+        if (typeof server_plugin !== 'function' || !(server_plugin.prototype instanceof ServerPlugin)) {
+            throw new Error('server_plugin must be a class that extends ServerPlugin');
+        }
+
+        if (this.plugins.has(server_plugin.id)) {
+            throw new Error('Already have a server plugin with the ID "' + server_plugin.id + '"');
+        }
+
+        const instance = new server_plugin(this, config);
+
+        this.plugins.set(server_plugin.id, instance);
+
+        await instance.load();
+    }
+
+    /**
+     * Gets a server plugin instance.
+     *
+     * @param {(function|number)} id A class that extends ServerPlugin or an ID
+     * @return {ServerPlugin}
+     */
+    getPlugin(id) {
+        if (typeof id === 'function' || typeof id === 'object') id = id.id;
+
+        return this.plugins.get(id);
     }
 
     loadBridgesFromConfig() {

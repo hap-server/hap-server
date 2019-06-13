@@ -30,14 +30,20 @@ const log = new Logger('Plugins');
 let instance;
 let storage_path;
 
-export class PluginManager {
+export class PluginManager extends Events {
     constructor() {
+        super();
+
         this.plugins = [];
         this.plugin_paths = PluginManager.getDefaultPaths();
         this.plugin_apis = new WeakMap();
         this.plugin_storage = new Map();
         this.plugin_config = new Map();
         this.default_plugin_config = {};
+    }
+
+    get parent_emitter() {
+        return events;
     }
 
     static get instance() {
@@ -96,6 +102,15 @@ export class PluginManager {
             module.filename.startsWith(plugin.path + path.sep));
     }
 
+    static bindConstructor(constructor, ...args) {
+        const bound = constructor.bind(constructor, ...args);
+
+        bound.prototype = Object.create(constructor.prototype);
+        bound.prototype.constructor = bound;
+
+        return bound;
+    }
+
     static requireApi(request, plugin, parent) {
         if (request === '@hap-server/api') {
             let plugin_api = PluginManager.instance.plugin_apis.get(plugin);
@@ -107,13 +122,14 @@ export class PluginManager {
                 parent_module: parent,
                 default: new PluginAPI(plugin, parent),
                 log: new Logger(plugin.name),
-                AccessoryPlatform: AccessoryPlatform.bind(AccessoryPlatform, plugin),
-                AccessoryUI: AccessoryUI.bind(AccessoryUI, plugin),
-                AccessoryDiscovery: AccessoryDiscovery.bind(AccessoryDiscovery, plugin),
-                DiscoveredAccessory: DiscoveredAccessory.bind(DiscoveredAccessory, plugin),
-                AccessorySetup: AccessorySetup.bind(AccessorySetup, plugin),
-                AuthenticationHandler: AuthenticationHandler.bind(AuthenticationHandler, plugin),
-                AuthenticatedUser: AuthenticatedUser.bind(AuthenticatedUser, plugin),
+                AccessoryPlatform: this.bindConstructor(AccessoryPlatform, plugin),
+                ServerPlugin: this.bindConstructor(ServerPlugin, plugin),
+                AccessoryUI: this.bindConstructor(AccessoryUI, plugin),
+                AccessoryDiscovery: this.bindConstructor(AccessoryDiscovery, plugin),
+                DiscoveredAccessory: this.bindConstructor(DiscoveredAccessory, plugin),
+                AccessorySetup: this.bindConstructor(AccessorySetup, plugin),
+                AuthenticationHandler: this.bindConstructor(AuthenticationHandler, plugin),
+                AuthenticatedUser: this.bindConstructor(AuthenticatedUser, plugin),
                 AutomationTrigger,
                 AutomationCondition,
                 AutomationAction,
@@ -286,6 +302,11 @@ export class PluginManager {
         this.plugin_config.set(plugin_name, config);
     }
 
+    getServerPlugins(include_disabled) {
+        return this.plugins.map(plugin => plugin.enabled || include_disabled ?
+            plugin.getServerPlugins() : []).reduce((acc, val) => acc.concat(val), []);
+    }
+
     getAccessoryUIs(include_disabled) {
         return this.plugins.map(plugin => plugin.enabled || include_disabled ?
             plugin.getAccessoryUIs(include_disabled) : []).reduce((acc, val) => acc.concat(val), []);
@@ -339,14 +360,19 @@ export class PluginManager {
 
 export default PluginManager.instance;
 
-export class Plugin {
+export class Plugin extends Events {
     constructor(plugin_manager, path, name) {
+        super();
+
         this.plugin_manager = plugin_manager;
         this.path = path;
         this.name = name;
 
+        this.parent_emitter = plugin_manager;
+
         this.accessories = new Map();
         this.accessory_platforms = new Map();
+        this.server_plugins = new Set();
         this.accessory_ui = new Set();
         this.accessory_discovery = new Map();
         this.accessory_setup = new Map();
@@ -421,6 +447,28 @@ export class Plugin {
         this.accessory_platforms.set(name, handler);
 
         return handler;
+    }
+
+    getServerPlugins() {
+        return [...this.server_plugins];
+    }
+
+    getServerPlugin(id) {
+        for (const server_plugin of this.server_plugins) {
+            if (server_plugin.id == id) return server_plugin;
+        }
+    }
+
+    registerServerPlugin(handler) {
+        if (!(handler.prototype instanceof ServerPlugin)) {
+            throw new Error('handler must be a class that extends ServerPlugin');
+        }
+
+        log.info('Registering server plugin from plugin', this.name);
+
+        this.emit(Events.ServerPluginRegisteredEvent, this, handler);
+
+        this.server_plugins.add(handler);
     }
 
     getAccessoryUIs(include_disabled) {
@@ -697,6 +745,32 @@ export class AccessoryPlatform {
         this.cached_accessories.splice(0, this.cached_accessories.length);
     }
 }
+
+export class ServerPlugin {
+    constructor(plugin, server, config) {
+        Object.defineProperty(this, 'instance_id', {value: ServerPlugin.next_instance_id++});
+        Object.defineProperty(this, 'plugin', {value: plugin});
+        Object.defineProperty(this, 'server', {value: server});
+        Object.defineProperty(this, 'config', {enumerable: true, value: config});
+    }
+
+    static get id() {
+        if (typeof this._id !== 'undefined') return this._id;
+
+        return Object.defineProperty(this, '_id', {value: ServerPlugin.next_id++})._id;
+    }
+
+    get id() {
+        return this.constructor.id;
+    }
+
+    async load() {
+        throw new Error('The server plugin didn\'t override the load method');
+    }
+}
+
+ServerPlugin.next_id = 0;
+ServerPlugin.next_instance_id = 0;
 
 export class AccessoryUI {
     constructor(plugin) {
@@ -1107,6 +1181,10 @@ export class PluginAPI {
 
     registerDynamicAccessoryPlatform(name, handler) {
         return this.registerAccessoryPlatform(name, AccessoryPlatform.withDynamicHandler(handler));
+    }
+
+    registerServerPlugin(handler) {
+        return this.plugin.registerServerPlugin(handler);
     }
 
     registerAccessoryUI(handler) {
