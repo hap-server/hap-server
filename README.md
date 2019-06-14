@@ -11,6 +11,8 @@ All Homebridge plugins are supported.
 
 ![Screenshot](assets/screenshot-layout-1.png)
 
+![Screenshot](assets/screenshot-layout-2.jpg)
+
 ### TODO
 
 A lot.
