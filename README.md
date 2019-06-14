@@ -20,6 +20,7 @@ A lot.
         - Customisable by dragging sections and accessories in the web interface.
         - [x] Scenes
         - [x] [Custom sections with plugins](docs/plugins.md#accessoryuiregisterlayoutsectioncomponent)
+        - [ ] Accessory groups (one tile controls multiple accessories)
     - [x] Basic accessory control (on/off)
         - [x] Switch
         - [x] Lightbulb
@@ -42,6 +43,13 @@ A lot.
         - [ ] Garage Door Opener
         - [ ] [All other services supported by hap-nodejs](https://github.com/khaost/hap-nodejs/tree/master/lib/gen)
         - [x] [Other services with plugins](docs/plugins.md#accessoryuiregisteraccessorydetailscomponent)
+    - [x] Dark theme [(system wide)](https://caniuse.com/#search=prefers-color-scheme)
+    - [ ] Notifications
+- [x] [Desktop app](https://gitlab.fancy.org.uk/hap-server/electron-app)
+    - Electron app that wraps the web interface and provides notifications in the background.
+    - Supports all operating systems supported by Electron (though for macOS you probably want to use the built in
+        Home app).
+    - Uses a local copy of the web interface instead of using the server's.
 - [ ] Historical data
     - [ ] Store changes to an accessory's state
     - [ ] Elgato Eve???
@@ -52,7 +60,8 @@ A lot.
     - [ ] Per-user HomeKit bridges
         - This would allow you to configure all accessories in hap-server and then allow multiple people to create
             their own homes with read-only access (or no access) to other people's accessories instead of sharing a
-            single home where everyone has permission to control all accessories.
+            single home where everyone has permission to control all accessories. Also allows users to choose
+            their own favourite accessories/scenes/colours and using multiple devices without an Apple ID.
 - [x] Scenes
     - Works with automations. (Scenes just run automation conditions to check if they're enabled and automation
         conditions to activate/deactivate them.)
@@ -69,6 +78,7 @@ A lot.
     - [x] Triggers
         - [x] Cron expressions
         - [ ] Characteristic changes
+            - [ ] Any change
             - [ ] Set to value
             - [ ] Set below/above value
     - [x] Conditions

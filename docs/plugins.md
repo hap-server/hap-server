@@ -213,6 +213,65 @@ hapserver.registerDynamicAccessoryPlatform('AccessoryBridge', async (accessory_p
 });
 ```
 
+#### `hapserver.registerServerPlugin`
+
+Registers a server plugin. Server plugins can be used to access the `Server` instance as there can be multiple
+`Server`s in the same process.
+
+```js
+import hapserver, {ServerPlugin} from '@hap-server/api';
+
+class AServerPlugin extends ServerPlugin {
+    async load() {
+        // ...
+    }
+
+    async unload() {
+        // ...
+    }
+}
+
+hapserver.registerServerPlugin(AServerPlugin);
+```
+
+To listen to events use the global events object which emits all events from `Server` instances.
+
+```js
+import {Events, events} from '@hap-server/api';
+
+events.on(Events.AddAccessoryEvent, event => {
+    // event.server is the Server instance event.accessory was added to
+});
+
+// Events.prototype.on returns an EventListener which has a cancel method to remove the listener
+// You can still use Events.prototype.removeListener - the EventListener object just helps keep a reference to the
+// listener function
+```
+
+#### `hapserver.registerAccessoryUI`
+
+Registers an Accessory UI object. Accessory UIs should load one or more scripts with `accessory_ui.loadScript` which
+register UI components. In this example the `ui` directory will be available at `/accessory-ui/{accessory_ui.id}` and
+the web interface will try to load `/accessory-ui/{accessory_ui.id}/index.js`.
+
+```js
+import hapserver, {AccessoryUI} from '@hap-server/api';
+import path from 'path';
+
+const accessory_ui = new AccessoryUI();
+
+accessory_ui.loadScript('/index.js');
+accessory_ui.static('/', path.join(__dirname, 'ui'));
+
+hapserver.registerAccessoryUI(accessory_ui);
+```
+
+Accessory UIs have an [Express](https://expressjs.com) server at `accessory_ui.express`, which handles requests to
+`/accessory-ui/{accessory_ui.id}`.
+
+See [Accessory UIs](#accessory-uis) for information about what scripts can do once they're loaded into the web
+interface.
+
 #### `hapserver.registerAccessoryDiscovery`
 
 Registers an accessory discovery handler. All accessory discovery handlers must have an accessory setup handler and
@@ -259,38 +318,6 @@ const accessory_setup = new AccessorySetup('AccessoryType', async data => {
 
 hapserver.registerAccessorySetup(accessory_setup);
 ```
-
-#### `hapserver.registerAccessoryUI`
-
-Registers an Accessory UI object. Accessory UIs should load one or more scripts with `accessory_ui.loadScript` which
-register UI components. In this example the `ui` directory will be available at `/accessory-ui/{accessory_ui.id}` and
-the web interface will try to load `/accessory-ui/{accessory_ui.id}/index.js`.
-
-```js
-import hapserver, {AccessoryUI} from '@hap-server/api';
-import path from 'path';
-
-const accessory_ui = new AccessoryUI();
-
-accessory_ui.loadScript('/index.js');
-accessory_ui.static('/', path.join(__dirname, 'ui'));
-
-hapserver.registerAccessoryUI(accessory_ui);
-```
-
-Accessory UIs have an [Express](https://expressjs.com) server at `accessory_ui.express`, which handles requests to
-`/accessory-ui/{accessory_ui.id}`.
-
-See [Accessory UIs](#accessory-uis) for information about what scripts can do once they're loaded into the web
-interface.
-
-#### `hapserver.registerAccessoryDiscovery`
-
-TODO
-
-#### `hapserver.registerAccessorySetup`
-
-TODO
 
 #### `hapserver.registerAuthenticationHandler`
 
