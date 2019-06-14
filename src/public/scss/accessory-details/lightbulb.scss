@@ -58,6 +58,10 @@
     .vc-swatches,
     .vc-chrome {
         border-radius: 3px;
+
+        @media (prefers-color-scheme: dark) {
+            background-color: $dark;
+        }
     }
 
     .vc-swatches {
@@ -72,8 +76,16 @@
             flex: 1;
         }
 
+        .vc-saturation-circle {
+            box-shadow: 0 0 0 1.5px $dark, inset 0 0 1px 1px rgba(0, 0, 0, 0.3), 0 0 1px 2px rgba(0, 0, 0, 0.4);
+        }
+
         .vc-chrome-body {
             @include border-bottom-radius(3px);
+
+            @media (prefers-color-scheme: dark) {
+                background-color: $dark;
+            }
         }
     }
 }
