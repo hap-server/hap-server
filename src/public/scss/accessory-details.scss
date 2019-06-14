@@ -33,10 +33,18 @@
 
     background-color: transparentize($gray-800, 0.2);
 
+    @media (prefers-reduced-transparency: reduce) {
+        background-color: $gray-800;
+    }
+
     @supports (backdrop-filter: blur(20px)) or (-webkit-backdrop-filter: blur(20px)) {
         background-color: transparentize($gray-800, 0.5);
         -webkit-backdrop-filter: blur(20px);
         backdrop-filter: blur(20px);
+
+        @media (prefers-reduced-transparency: reduce) {
+            background-color: $gray-800;
+        }
     }
 
     color: $white;
