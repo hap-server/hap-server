@@ -110,8 +110,8 @@
 </template>
 
 <script>
-    import {AuthenticatedUser} from '../../common/connection';
-    import {BridgeService, UnsupportedService} from '../../common/service';
+    import {AuthenticatedUser} from '../../client/connection';
+    import {BridgeService, UnsupportedService} from '../../client/service';
     import PluginManager from '../plugins';
     import {
         NativeHookSymbol, ClientSymbol, ConnectionSymbol, AccessoriesSymbol, BridgeUUIDsSymbol, LayoutsSymbol,

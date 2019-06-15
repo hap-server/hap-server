@@ -60,8 +60,8 @@
 </template>
 
 <script>
-    import {AuthenticatedUser} from '../../common/connection';
-    import Layout from '../../common/layout';
+    import {AuthenticatedUser} from '../../client/connection';
+    import Layout from '../../client/layout';
     import Dropdown from './dropdown.vue';
 
     export default {

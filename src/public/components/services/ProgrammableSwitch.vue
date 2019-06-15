@@ -10,7 +10,7 @@
 </template>
 
 <script>
-    import Service from '../../../common/service';
+    import Service from '../../../client/service';
     import ServiceComponent from './service.vue';
     import ButtonIcon from '../icons/button.vue';
 

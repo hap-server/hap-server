@@ -50,7 +50,7 @@
 </template>
 
 <script>
-    import Connection, {AccessorySetupConnection} from '../../common/connection';
+    import Connection, {AccessorySetupConnection} from '../../client/connection';
     import accessory_discovery_components from './accessory-discovery';
 
     import Panel from './panel.vue';

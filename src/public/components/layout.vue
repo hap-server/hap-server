@@ -64,8 +64,8 @@
 </template>
 
 <script>
-    import Layout, {LayoutSection} from '../../common/layout';
-    import Service from '../../common/service';
+    import Layout, {LayoutSection} from '../../client/layout';
+    import Service from '../../client/service';
     import {
         ClientSymbol, AccessoriesSymbol, BridgeUUIDsSymbol, GetAllDisplayServicesSymbol, GetServiceSymbol,
         LayoutSymbol, LayoutAddSectionSymbol, LayoutRemoveSectionSymbol, LayoutGetEditingSymbol,

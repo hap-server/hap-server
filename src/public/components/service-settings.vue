@@ -32,8 +32,8 @@
 </template>
 
 <script>
-    import Connection from '../../common/connection';
-    import Service from '../../common/service';
+    import Connection from '../../client/connection';
+    import Service from '../../client/service';
 
     import Panel from './panel.vue';
 

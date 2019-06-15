@@ -39,7 +39,7 @@
 </template>
 
 <script>
-    import Connection from '../../common/connection';
+    import Connection from '../../client/connection';
     import {AutomationsSymbol} from '../internal-symbols';
     import Automation from './automation';
 

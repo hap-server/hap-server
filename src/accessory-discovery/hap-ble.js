@@ -1,6 +1,6 @@
 
-import Logger from '../core/logger';
-import {AccessoryDiscovery, DiscoveredAccessory} from '../core/plugins';
+import Logger from '../common/logger';
+import {AccessoryDiscovery, DiscoveredAccessory} from '../server/plugins';
 
 const BLEDiscovery = (() => {
     try {

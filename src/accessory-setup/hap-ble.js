@@ -1,5 +1,5 @@
 
-import {AccessorySetup} from '../core/plugins';
+import {AccessorySetup} from '../server/plugins';
 
 const setup = new AccessorySetup(null, 'HAPBLE');
 

@@ -10,10 +10,10 @@ import Service, {
     type_names as service_type_names,
     system_types as system_service_types,
     collapsed_services,
-} from '../common/service';
-import Characteristic from '../common/characteristic';
+} from '../client/service';
+import Characteristic from '../client/characteristic';
 
-import {AuthenticationHandlerConnection, AuthenticatedUser, AccessorySetupConnection} from '../common/connection';
+import {AuthenticationHandlerConnection, AuthenticatedUser, AccessorySetupConnection} from '../client/connection';
 
 import * as sortable_component_module from './components/sortable.vue';
 import * as panel_tabs_component_module from './components/panel-tabs.vue';

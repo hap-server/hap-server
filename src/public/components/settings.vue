@@ -97,7 +97,7 @@
     import axios from 'axios';
     import {Terminal} from 'xterm';
 
-    import Connection from '../../common/connection';
+    import Connection from '../../client/connection';
     import {GetAssetURLSymbol} from '../internal-symbols';
 
     import Panel from './panel.vue';

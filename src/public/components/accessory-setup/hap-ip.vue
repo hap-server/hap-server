@@ -12,7 +12,7 @@
 </template>
 
 <script>
-    import {AccessorySetupConnection} from '../../../common/connection';
+    import {AccessorySetupConnection} from '../../../client/connection';
     import {DiscoveredAccessory} from '../add-accessory.vue';
 
     export const id = 0;

@@ -114,7 +114,7 @@
 </template>
 
 <script>
-    import Connection from '../../common/connection';
+    import Connection from '../../client/connection';
     import {AutomationsSymbol, AutomationSymbol} from '../internal-symbols';
     import {StagedAutomation} from './automation';
 

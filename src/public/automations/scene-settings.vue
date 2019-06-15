@@ -115,7 +115,7 @@
 <script>
     import isEqual from 'lodash.isequal';
 
-    import Scene from '../../common/scene';
+    import Scene from '../../client/scene';
     import {ConnectionSymbol} from '../internal-symbols';
 
     import Panel from '../components/panel.vue';

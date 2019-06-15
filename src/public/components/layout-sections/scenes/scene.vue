@@ -33,7 +33,7 @@
 </template>
 
 <script>
-    import Scene from '../../../../common/scene';
+    import Scene from '../../../../client/scene';
     import {PushModalSymbol} from '../../../internal-symbols';
 
     import HomeIcon from '../../icons/home.vue';

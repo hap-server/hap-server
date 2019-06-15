@@ -6,8 +6,8 @@ import url from 'url';
 
 import {NativeHookSymbol, ClientSymbol, GetAssetURLSymbol} from './internal-symbols';
 import * as InternalSymbols from './internal-symbols';
-import Client from '../common/client';
-import Connection from '../common/connection';
+import Client from '../client/client';
+import Connection from '../client/connection';
 
 import Vue from 'vue';
 import VueRouter from 'vue-router';

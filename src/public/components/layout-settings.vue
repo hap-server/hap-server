@@ -49,8 +49,8 @@
 </template>
 
 <script>
-    import Connection from '../../common/connection';
-    import Layout from '../../common/layout';
+    import Connection from '../../client/connection';
+    import Layout from '../../client/layout';
     import {GetAssetURLSymbol} from '../internal-symbols';
 
     import axios from 'axios';

@@ -3,7 +3,7 @@ import cron from 'node-cron';
 import Events from '../events';
 import TriggerEvent from '../events/automation-trigger';
 
-import PluginManager from '../core/plugins';
+import PluginManager from '../server/plugins';
 
 export default class AutomationTrigger extends Events {
     /**

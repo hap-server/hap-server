@@ -1,13 +1,13 @@
-import Logger from './core/logger';
+import Logger from './common/logger';
 
-import Client from './common/client';
-import Connection, {AuthenticatedUser} from './common/connection';
-import Accessory from './common/accessory';
-import Service from './common/service';
-import CollapsedService from './common/collapsed-service';
-import Characteristic from './common/characteristic';
-import Layout from './common/layout';
-import Scene from './common/scene';
+import Client from './client/client';
+import Connection, {AuthenticatedUser} from './client/connection';
+import Accessory from './client/accessory';
+import Service from './client/service';
+import CollapsedService from './client/collapsed-service';
+import Characteristic from './client/characteristic';
+import Layout from './client/layout';
+import Scene from './client/scene';
 
 export {
     Logger,

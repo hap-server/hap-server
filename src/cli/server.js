@@ -92,7 +92,7 @@ export function builder(yargs) {
 
 export async function handler(argv) {
     if (DEVELOPMENT && argv.vueDevtoolsPort) {
-        const {enableVueDevtools} = require('../core/connection');
+        const {enableVueDevtools} = require('../server/connection');
         enableVueDevtools(argv.vueDevtoolsHost, argv.vueDevtoolsPort);
     }
 

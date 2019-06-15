@@ -1,10 +1,10 @@
-import './core/hap-async';
+import './server/hap-async';
 
 import Events, {Event, ExtendableEvent, EventListeners} from './events';
 
-import Server from './core/server';
-import PluginManager from './core/plugins';
-import Logger, {forceColour as forceColourLogs} from './core/logger';
+import Server from './server/server';
+import PluginManager from './server/plugins';
+import Logger, {forceColour as forceColourLogs} from './common/logger';
 
 import Automations from './automations';
 import AutomationTrigger, {TriggerEvent} from './automations/trigger';

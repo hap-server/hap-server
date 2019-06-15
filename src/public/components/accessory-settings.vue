@@ -196,8 +196,8 @@
 </template>
 
 <script>
-    import Connection from '../../common/connection';
-    import Accessory from '../../common/accessory';
+    import Connection from '../../client/connection';
+    import Accessory from '../../client/accessory';
 
     import Panel from './panel.vue';
     import PanelTabs from './panel-tabs.vue';

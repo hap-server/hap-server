@@ -1,6 +1,6 @@
 
-import Logger from '../core/logger';
-import {AccessoryPlatform} from '../core/plugins';
+import Logger from '../common/logger';
+import {AccessoryPlatform} from '../server/plugins';
 import {Accessory, Service, Characteristic, uuid} from 'hap-nodejs';
 
 const HttpClient = (() => {

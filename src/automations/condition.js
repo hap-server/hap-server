@@ -1,4 +1,4 @@
-import PluginManager from '../core/plugins';
+import PluginManager from '../server/plugins';
 
 import EventEmitter from 'events';
 import vm from 'vm';

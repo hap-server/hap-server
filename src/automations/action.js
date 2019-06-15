@@ -1,7 +1,7 @@
 import {TriggerEvent} from '../events/automation-trigger';
 import {AutomationRunner} from '.';
 import AutomationCondition from './condition';
-import PluginManager from '../core/plugins';
+import PluginManager from '../server/plugins';
 
 import EventEmitter from 'events';
 import vm from 'vm';
