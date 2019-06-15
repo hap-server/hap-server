@@ -249,7 +249,7 @@ export default class Server extends Events {
             throw new Error('Already have a server plugin with the ID "' + server_plugin.id + '"');
         }
 
-        const instance = new server_plugin(this, config);
+        const instance = new server_plugin(this, config); // eslint-disable-line new-cap
 
         this.plugins.set(server_plugin.id, instance);
 
