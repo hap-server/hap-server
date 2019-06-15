@@ -1,4 +1,4 @@
-import Events, {Event} from '.';
+import {Event} from '..';
 
 export class SceneTriggerEvent extends Event {
     get scene() {
@@ -27,7 +27,6 @@ export class SceneTriggerEvent extends Event {
 }
 
 SceneTriggerEvent.type = 'scene-triggered';
-Events.SceneTriggerEvent = SceneTriggerEvent;
 
 export class SceneActivateProgressEvent extends Event {
     get scene() {
@@ -56,7 +55,6 @@ export class SceneActivateProgressEvent extends Event {
 }
 
 SceneActivateProgressEvent.type = 'scene-activate-progress';
-Events.SceneActivateProgressEvent = SceneActivateProgressEvent;
 
 export class SceneActivatedEvent extends Event {
     get scene() {
@@ -81,7 +79,6 @@ export class SceneActivatedEvent extends Event {
 }
 
 SceneActivatedEvent.type = 'scene-activated';
-Events.SceneActivatedEvent = SceneActivatedEvent;
 
 export class SceneDeactivateProgressEvent extends Event {
     get scene() {
@@ -110,7 +107,6 @@ export class SceneDeactivateProgressEvent extends Event {
 }
 
 SceneDeactivateProgressEvent.type = 'scene-deactivate-progress';
-Events.SceneDeactivateProgressEvent = SceneDeactivateProgressEvent;
 
 export class SceneDeactivatedEvent extends Event {
     get scene() {
@@ -135,4 +131,3 @@ export class SceneDeactivatedEvent extends Event {
 }
 
 SceneDeactivatedEvent.type = 'scene-deactivated';
-Events.SceneDeactivatedEvent = SceneDeactivatedEvent;

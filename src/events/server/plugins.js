@@ -1,4 +1,4 @@
-import Events, {Event} from '.';
+import {Event} from '..';
 
 export class ServerPluginRegisteredEvent extends Event {
     get plugin() {
@@ -15,4 +15,3 @@ export class ServerPluginRegisteredEvent extends Event {
 }
 
 // ServerPluginRegisteredEvent.type = 'server-plugin-registered';
-Events.ServerPluginRegisteredEvent = ServerPluginRegisteredEvent;

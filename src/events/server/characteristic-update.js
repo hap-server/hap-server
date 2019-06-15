@@ -1,6 +1,6 @@
-import Events, {Event} from '.';
+import {Event} from '..';
 
-export default class CharacteristicUpdateEvent extends Event {
+export class CharacteristicUpdateEvent extends Event {
     get server() {
         return this.args[0];
     }
@@ -31,4 +31,3 @@ export default class CharacteristicUpdateEvent extends Event {
 }
 
 CharacteristicUpdateEvent.type = 'characteristic-update';
-Events.CharacteristicUpdateEvent = CharacteristicUpdateEvent;

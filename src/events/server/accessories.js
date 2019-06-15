@@ -1,4 +1,4 @@
-import Events, {Event} from '.';
+import {Event} from '..';
 
 export class AddAccessoryEvent extends Event {
     get server() {
@@ -14,8 +14,6 @@ export class AddAccessoryEvent extends Event {
     }
 }
 
-Events.AddAccessoryEvent = AddAccessoryEvent;
-
 export class RemoveAccessoryEvent extends Event {
     get server() {
         return this.args[0];
@@ -29,8 +27,6 @@ export class RemoveAccessoryEvent extends Event {
         return this.plugin_accessory.accessory;
     }
 }
-
-Events.RemoveAccessoryEvent = RemoveAccessoryEvent;
 
 export class UpdateAccessoryConfigurationEvent extends Event {
     get server() {
@@ -49,5 +45,3 @@ export class UpdateAccessoryConfigurationEvent extends Event {
         return this.args[3];
     }
 }
-
-Events.UpdateAccessoryConfigurationEvent = UpdateAccessoryConfigurationEvent;

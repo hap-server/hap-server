@@ -1,4 +1,4 @@
-import Events, {Event} from '.';
+import {Event} from '..';
 
 export class ServerStartupFinishedEvent extends Event {
     get server() {
@@ -7,7 +7,6 @@ export class ServerStartupFinishedEvent extends Event {
 }
 
 // ServerStartupFinishedEvent.type = 'server-startup-finished';
-Events.ServerStartupFinishedEvent = ServerStartupFinishedEvent;
 
 export class ServerStoppingEvent extends Event {
     get server() {
@@ -16,4 +15,3 @@ export class ServerStoppingEvent extends Event {
 }
 
 // ServerStoppingEvent.type = 'server-stopping';
-Events.ServerStoppingEvent = ServerStoppingEvent;

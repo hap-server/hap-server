@@ -1,7 +1,7 @@
 import cron from 'node-cron';
 
 import Events from '../events';
-import TriggerEvent from '../events/automation-trigger';
+import {AutomationTriggerEvent as TriggerEvent, SceneActivatedEvent} from '../events/server';
 
 import PluginManager from '../server/plugins';
 
@@ -142,7 +142,7 @@ export class SceneTrigger extends AutomationTrigger {
     onstart() {
         if (this.listener) this.listener.cancel(), this.listener = null;
 
-        this.listener = this.automations.server.on(Events.SceneActivatedEvent, event => {
+        this.listener = this.automations.server.on(SceneActivatedEvent, event => {
             if (event.scene.uuid !== this.config.scene_uuid) return;
 
             this.trigger({parent: event});

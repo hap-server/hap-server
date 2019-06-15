@@ -1,6 +1,7 @@
 import EventEmitter from 'events';
 
 import Events from '../events';
+import {AutomationTriggerEvent} from '../events/server';
 import AutomationTrigger from './trigger';
 import AutomationCondition from './condition';
 import AutomationAction from './action';
@@ -323,7 +324,7 @@ export class Automation {
                 throw new Error('There is already a trigger with this UUID');
             }
 
-            trigger.on(Events.AutomationTriggerEvent, this.handleTrigger);
+            trigger.on(AutomationTriggerEvent, this.handleTrigger);
             this.triggers.push(trigger);
 
             if (this.automations.running && this.automations.automations.find(a => a === this)) await trigger.start();

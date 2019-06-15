@@ -14,6 +14,8 @@ import hap from 'hap-nodejs';
 import {Plugin as HomebridgePluginManager} from 'homebridge/lib/plugin';
 
 import Events, {Event, EventListener, EventListenerPromise, EventListeners} from '../events';
+import {ServerPluginRegisteredEvent} from '../events/server';
+import * as ServerEvents from '../events/server';
 import {PluginAccessoryPlatformAccessory} from './server';
 import Logger from './logger';
 import AutomationTrigger from '../automations/trigger';
@@ -135,6 +137,7 @@ export class PluginManager extends Events {
                 AutomationAction,
                 Events,
                 Event,
+                ServerEvents,
                 EventListener,
                 EventListenerPromise,
                 EventListeners,
@@ -142,6 +145,8 @@ export class PluginManager extends Events {
             }));
 
             return plugin_api;
+        } else if (request === '@hap-server/api/events') {
+            return ServerEvents;
         } else if (request === '@hap-server/api/plugin-config') {
             if (!plugin.name) {
                 throw new Error('Plugin configuration is only available for plugins with a name');
@@ -466,7 +471,7 @@ export class Plugin extends Events {
 
         log.info('Registering server plugin from plugin', this.name);
 
-        this.emit(Events.ServerPluginRegisteredEvent, this, handler);
+        this.emit(ServerPluginRegisteredEvent, this, handler);
 
         this.server_plugins.add(handler);
     }

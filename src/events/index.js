@@ -306,11 +306,3 @@ export default class Events extends EventEmitter {
         EventEmitter.prototype.removeListener.call(this, type, handler);
     }
 }
-
-// Use require instead of import so this isn't hoisted and run before the Event class is defined
-require('./accessories');
-require('./automation-trigger');
-require('./characteristic-update');
-require('./plugins');
-require('./scenes');
-require('./server');

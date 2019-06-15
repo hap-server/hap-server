@@ -1,6 +1,7 @@
 import './server/hap-async';
 
 import Events, {Event, ExtendableEvent, EventListeners} from './events';
+import * as ServerEvents from './events/server';
 
 import Server from './server/server';
 import PluginManager from './server/plugins';
@@ -14,6 +15,7 @@ import AutomationAction from './automations/action';
 export {
     Events,
     Event,
+    ServerEvents,
     ExtendableEvent,
     EventListeners,
 

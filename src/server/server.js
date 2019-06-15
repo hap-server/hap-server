@@ -18,6 +18,10 @@ import hap from 'hap-nodejs';
 import isEqual from 'lodash.isequal';
 
 import Events from '../events';
+import {
+    AddAccessoryEvent, RemoveAccessoryEvent, UpdateAccessoryConfigurationEvent,
+    SceneActivateProgressEvent, SceneActivatedEvent, SceneDeactivateProgressEvent, SceneDeactivatedEvent,
+} from '../events/server';
 import CharacteristicUpdateEvent from '../events/characteristic-update';
 
 import Connection from './connection';
@@ -142,21 +146,21 @@ export default class Server extends Events {
 
         Server.instances.add(this);
 
-        this.on(Events.SceneActivateProgressEvent, event => this.sendBroadcast({
+        this.on(SceneActivateProgressEvent, event => this.sendBroadcast({
             type: 'scene-progress',
             uuid: event.scene.uuid,
             progress: event.progress,
         }));
-        this.on(Events.SceneActivatedEvent, event => this.sendBroadcast({
+        this.on(SceneActivatedEvent, event => this.sendBroadcast({
             type: 'scene-activated',
             uuid: event.scene.uuid,
         }));
-        this.on(Events.SceneDeactivateProgressEvent, event => this.sendBroadcast({
+        this.on(SceneDeactivateProgressEvent, event => this.sendBroadcast({
             type: 'scene-progress',
             uuid: event.scene.uuid,
             progress: event.progress,
         }));
-        this.on(Events.SceneDeactivatedEvent, event => this.sendBroadcast({
+        this.on(SceneDeactivatedEvent, event => this.sendBroadcast({
             type: 'scene-deactivated',
             uuid: event.scene.uuid,
         }));
@@ -550,7 +554,7 @@ export default class Server extends Events {
             bridge.addAccessory(plugin_accessory.accessory);
         }
 
-        this.emit(Events.AddAccessoryEvent, this, plugin_accessory);
+        this.emit(AddAccessoryEvent, this, plugin_accessory);
     }
 
     /**
@@ -580,7 +584,7 @@ export default class Server extends Events {
             bridge.removeAccessory(plugin_accessory.accessory);
         }
 
-        this.emit(Events.RemoveAccessoryEvent, this, plugin_accessory);
+        this.emit(RemoveAccessoryEvent, this, plugin_accessory);
     }
 
     async loadAccessoriesFromConfig() {
@@ -1478,7 +1482,7 @@ export default class Server extends Events {
      * @param {Characteristic} characteristic
      */
     handleConfigurationChange(accessory, service, characteristic) {
-        this.emit(Events.UpdateAccessoryConfigurationEvent, this, accessory, service, characteristic);
+        this.emit(UpdateAccessoryConfigurationEvent, this, accessory, service, characteristic);
 
         // ...
     }

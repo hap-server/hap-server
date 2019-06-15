@@ -1,6 +1,6 @@
-import Events, {Event} from '.';
+import {Event} from '..';
 
-export default class AutomationTriggerEvent extends Event {
+export class AutomationTriggerEvent extends Event {
     /**
      * Creates a TriggerEvent.
      *
@@ -25,4 +25,3 @@ export default class AutomationTriggerEvent extends Event {
 
 AutomationTriggerEvent.type = 'automation-trigger';
 AutomationTriggerEvent.types = ['trigger'];
-Events.AutomationTriggerEvent = AutomationTriggerEvent;

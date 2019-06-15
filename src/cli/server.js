@@ -11,6 +11,10 @@ import HomebridgeLogger from 'homebridge/lib/logger';
 import hap from 'hap-nodejs';
 
 import {Events, Server, PluginManager, Logger, forceColourLogs, events} from '..';
+import {
+    ServerStartupFinishedEvent, ServerStoppingEvent, ServerPluginRegisteredEvent,
+    AddAccessoryEvent, RemoveAccessoryEvent, UpdateAccessoryConfigurationEvent,
+} from '../events/server';
 import {getConfig, log} from '.';
 
 const randomBytes = util.promisify(crypto.randomBytes);
@@ -156,7 +160,7 @@ export async function handler(argv) {
     });
 
     await server.loadPlugins();
-    events.on(Events.ServerPluginRegisteredEvent, event => {
+    events.on(ServerPluginRegisteredEvent, event => {
         server.loadPlugin(event.server_plugin);
     });
 
@@ -224,9 +228,9 @@ export async function handler(argv) {
         log.info('Saving cached accessories');
         server.saveCachedAccessories();
     }
-    server.on(Events.AddAccessoryEvent, saveCachedAccessories);
-    server.on(Events.UpdateAccessoryConfigurationEvent, saveCachedAccessories);
-    server.on(Events.RemoveAccessoryEvent, saveCachedAccessories);
+    server.on(AddAccessoryEvent, saveCachedAccessories);
+    server.on(UpdateAccessoryConfigurationEvent, saveCachedAccessories);
+    server.on(RemoveAccessoryEvent, saveCachedAccessories);
 
     log.info('Starting automations');
     await server.loadAutomationsFromConfig();
@@ -237,7 +241,7 @@ export async function handler(argv) {
     if (argv.group) process.setgid(argv.group);
     if (argv.user) process.setuid(argv.user);
 
-    server.emit(Events.ServerStartupFinishedEvent, server);
+    server.emit(ServerStartupFinishedEvent, server);
 
     log.info('Running', server.accessories.length, 'accessories',
         server.cached_accessories.length, 'cached accessories');
@@ -272,7 +276,7 @@ export async function handler(argv) {
                     + ' shutting down...');
             } else log.info(`Got ${signal}, shutting down...`);
 
-            server.emit(Events.ServerStoppingEvent, server);
+            server.emit(ServerStoppingEvent, server);
 
             server.unpublish();
             http_server.close();
@@ -287,9 +291,9 @@ export async function handler(argv) {
                 new Promise((rs, rj) => server.wss.close(err => err ? rj(err) : rs())),
             ]);
 
-            server.removeListener(Events.AddAccessoryEvent, saveCachedAccessories);
-            server.removeListener(Events.UpdateAccessoryConfigurationEvent, saveCachedAccessories);
-            server.removeListener(Events.RemoveAccessoryEvent, saveCachedAccessories);
+            server.removeListener(AddAccessoryEvent, saveCachedAccessories);
+            server.removeListener(UpdateAccessoryConfigurationEvent, saveCachedAccessories);
+            server.removeListener(RemoveAccessoryEvent, saveCachedAccessories);
 
             setTimeout(() => process.exit(128 + code), 1000);
         });
