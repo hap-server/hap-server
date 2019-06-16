@@ -59,7 +59,7 @@
     .vc-chrome {
         border-radius: 3px;
 
-        @media (prefers-color-scheme: dark) {
+        @include dark-theme {
             background-color: $dark;
         }
     }
@@ -83,7 +83,7 @@
         .vc-chrome-body {
             @include border-bottom-radius(3px);
 
-            @media (prefers-color-scheme: dark) {
+            @include dark-theme {
                 background-color: $dark;
             }
         }

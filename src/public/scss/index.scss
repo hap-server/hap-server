@@ -1,7 +1,19 @@
 @import '../../../node_modules/bootstrap/scss/bootstrap';
 @import '../../../node_modules/xterm/src/xterm';
 
-@media (prefers-color-scheme: dark) {
+@mixin dark-theme($at-root: false) {
+    @media (prefers-color-scheme: dark) {
+        html:not(.theme-light) #{if($at-root, '', '&')} {
+            @content;
+        }
+    }
+
+    html.theme-dark #{if($at-root, '', '&')} {
+        @content;
+    }
+}
+
+@include dark-theme(true) {
     @import 'dark';
 }
 
@@ -52,7 +64,7 @@ body,
 
     z-index: $background-z-index;
 
-    @media (prefers-color-scheme: dark) {
+    @include dark-theme {
         background-color: $dark;
     }
 }
@@ -75,7 +87,7 @@ body,
 }
 
 .root {
-    padding-top: 73px;
+    padding-top: 57px;
 }
 
 .header {

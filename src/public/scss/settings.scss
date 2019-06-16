@@ -29,7 +29,7 @@
         height: 100% !important;
     }
 
-    @media (prefers-color-scheme: dark) {
+    @include dark-theme {
         background-color: darken($dark, 10%);
         color: $gray-100;
     }
@@ -60,7 +60,7 @@
         border: darken($light, 20%) 1px solid;
         border-top-width: 0;
 
-        @media (prefers-color-scheme: dark) {
+        @include dark-theme {
             border-color: darken($dark, 20%);
         }
 

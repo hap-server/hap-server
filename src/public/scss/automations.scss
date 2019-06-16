@@ -10,14 +10,14 @@
         border-bottom: 1px solid $gray-800;
         color: #ffffff;
 
-        @media (prefers-color-scheme: dark) {
+        @include dark-theme {
             background-color: transparentize(darken($dark, 20%), 0.5);
         }
 
         &:hover {
             background-color: transparentize($gray-600, 0.2);
 
-            @media (prefers-color-scheme: dark) {
+            @include dark-theme {
                 background-color: transparentize(darken($dark, 20%), 0.2);
             }
         }
@@ -58,7 +58,7 @@
     margin-bottom: 1rem;
     border-bottom: 1px solid #dee2e6;
 
-    @media (prefers-color-scheme: dark) {
+    @include dark-theme {
         border-color: darken($dark, 20%);
     }
 
@@ -78,7 +78,7 @@
         padding-left: 1rem;
         border-left: 1px solid #dee2e6;
 
-        @media (prefers-color-scheme: dark) {
+        @include dark-theme {
             border-color: darken($dark, 20%);
         }
     }

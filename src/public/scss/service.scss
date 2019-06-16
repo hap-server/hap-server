@@ -27,7 +27,7 @@
             background-color: #ffffff;
         }
 
-        @media (prefers-color-scheme: dark) {
+        @include dark-theme {
             background-color: transparentize($dark, 0.1);
             color: $gray-200;
 
@@ -45,7 +45,7 @@
                 background-color: #ffffff;
             }
 
-            @media (prefers-color-scheme: dark) {
+            @include dark-theme {
                 background-color: transparentize($dark, 0.5);
 
                 @media (prefers-reduced-transparency: reduce) {
@@ -84,7 +84,7 @@
         filter: brightness(0) opacity(0.7);
     }
 
-    @media (prefers-color-scheme: dark) {
+    @include dark-theme {
         svg.icon {
             fill: rgba(255, 255, 255, 0.7);
         }
@@ -124,16 +124,23 @@
             background-color: rgba(255, 255, 255, 0.9);
             color: $gray-900;
 
-            // @media (prefers-color-scheme: dark) {
-            //     background-color: rgba(0, 0, 0, 0.9);
-            // }
+            @include dark-theme {
+                // background-color: rgba(0, 0, 0, 0.9);
+
+                // Same as before because specificity
+                background-color: rgba(255, 255, 255, 0.9);
+                color: $gray-900;
+            }
         }
         .service-tile-background + .service-tile-contents {
             background-color: rgba(255, 255, 255, 0.7);
 
-            // @media (prefers-color-scheme: dark) {
-            //     background-color: rgba(0, 0, 0, 0.7);
-            // }
+            @include dark-theme {
+                // background-color: rgba(0, 0, 0, 0.7);
+
+                // Same as before because specificity
+                background-color: rgba(255, 255, 255, 0.7);
+            }
         }
 
         svg.icon {
@@ -144,15 +151,21 @@
             filter: opacity(1);
         }
 
-        // @media (prefers-color-scheme: dark) {
-        //     svg.icon {
-        //         fill: rgba(255, 255, 255, 1);
-        //     }
-        //
-        //     img.icon {
-        //         filter: opacity(1) invert(1);
-        //     }
-        // }
+        @include dark-theme {
+            svg.icon {
+                // fill: rgba(255, 255, 255, 1);
+
+                // Same as before because specificity
+                fill: rgba(0, 0, 0, 1);
+            }
+
+            img.icon {
+                // filter: opacity(1) invert(1);
+
+                // Same as before because specificity
+                filter: opacity(1);
+            }
+        }
     }
 
     transition: opacity 0.1s ease;
