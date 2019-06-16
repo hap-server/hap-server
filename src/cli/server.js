@@ -10,7 +10,7 @@ import {User as HomebridgeUser} from 'homebridge/lib/user';
 import HomebridgeLogger from 'homebridge/lib/logger';
 import hap from 'hap-nodejs';
 
-import {Events, Server, PluginManager, Logger, forceColourLogs, events} from '..';
+import {Server, PluginManager, Logger, forceColourLogs, events} from '..';
 import {
     ServerStartupFinishedEvent, ServerStoppingEvent, ServerPluginRegisteredEvent,
     AddAccessoryEvent, RemoveAccessoryEvent, UpdateAccessoryConfigurationEvent,
