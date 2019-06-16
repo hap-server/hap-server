@@ -4,6 +4,7 @@ import os from 'os';
 import fs from 'fs';
 import crypto from 'crypto';
 import util from 'util';
+import net from 'net';
 
 import {Plugin as HomebridgePluginManager} from 'homebridge/lib/plugin';
 import {User as HomebridgeUser} from 'homebridge/lib/user';
@@ -18,6 +19,7 @@ import {
 import {getConfig, log} from '.';
 
 const randomBytes = util.promisify(crypto.randomBytes);
+const readFile = util.promisify(fs.readFile);
 const writeFile = util.promisify(fs.writeFile);
 const unlink = util.promisify(fs.unlink);
 
@@ -92,6 +94,68 @@ export function builder(yargs) {
             default: true,
         });
     }
+}
+
+/**
+ * Returns an array with a full address (and port number?) from a string.
+ *
+ * @param {(string|number)} address
+ * @param {string} [base_path]
+ * @return {Array}
+ */
+function parseAddress(address, base_path) {
+    let match;
+
+    if (typeof address === 'number' || address.match(/^\d+$/)) {
+        return ['net', '::', parseInt(address)];
+    } else if ((match = address.match(/^([0-9.]+):(\d+)$/)) && net.isIPv4(match[1])) {
+        return ['net', match[1], match[2]];
+    } else if ((match = address.match(/^\[([0-9a-f:.]+)\]:(\d+)$/i)) && net.isIPv6(match[1])) {
+        return ['net', match[1], match[2]];
+    } else if (address.startsWith('unix:')) {
+        return ['unix', path.resolve(base_path, address.substr(5))];
+    } else if (address.startsWith('./') || address.startsWith('../') || address.startsWith('/')) {
+        return ['unix', path.resolve(base_path, address)];
+    }
+
+    throw new Error('Invalid address string');
+}
+
+/**
+ * Returns a string from an array returned by parseAddress.
+ *
+ * @param {Array} address
+ * @return {string}
+ */
+function addressToString(address) {
+    if (address[0] === 'net' && net.isIPv4(address[1])) {
+        return `${address[1]}:${address[2]}`;
+    } else if (address[0] === 'net' && net.isIPv6(address[1])) {
+        return `[${address[1]}]:${address[2]}`;
+    } else if (address[0] === 'unix') {
+        return `unix:${address[1]}`;
+    }
+
+    throw new Error('Invalid address array');
+}
+
+function normaliseAddress(address, base_path) {
+    return addressToString(parseAddress(address, base_path));
+}
+
+/**
+ * Returns an array of certificates.
+ *
+ * @param {(string|string[])} certificates
+ * @param {string} [base_path]
+ * @return {Promise<string[]>}
+ */
+function getCertificates(certificates, base_path) {
+    return Promise.all([].concat(certificates || []).map(async certificate => {
+        if (certificate.startsWith('-----')) return certificate;
+
+        return readFile(path.resolve(base_path, certificate), 'utf-8');
+    }));
 }
 
 export async function handler(argv) {
@@ -171,18 +235,75 @@ export async function handler(argv) {
     })().catch(err => log.error('Error cleaning assets directory', err));
 
     log.info('Starting web server');
-    const http_server = server.createServer();
-    await new Promise((rs, rj) => http_server.listen(config.http_port || 0, config.http_host || '::',
-        err => err ? rj(err) : rs()));
 
-    const http_host = config.http_host || '::';
-    const http_port = http_server.address().port;
-    log.info(`Listening on ${http_host} port ${http_port}`);
+    const listen_addresses = [].concat(config.listen || []).map(address => parseAddress(address, data_path));
+    const https_addresses = {};
+    for (const [address, certificate] of Object.entries(config['listen-https'] || {})) {
+        https_addresses[normaliseAddress(address, data_path)] = certificate;
+    }
+    const https_request_client_certificate_addresses = {};
+    for (const [address, certificate] of config['listen-https+request-client-certificate'] instanceof Array ?
+        config['listen-https+request-client-certificate'].map(address => [address, true]) :
+        Object.entries(config['listen-https+request-client-certificate'] || {})
+    ) {
+        https_request_client_certificate_addresses[normaliseAddress(address, data_path)] = certificate;
+    }
+    const https_require_client_certificate_addresses = {};
+    for (const [address, certificate] of Object.entries(config['listen-https+require-client-certificate'] || {})) {
+        https_require_client_certificate_addresses[normaliseAddress(address, data_path)] = certificate;
+    }
+    const https_address_passphrases = {};
+    for (const [address, passphrase] of Object.entries(config['listen-https+passphrase'] || {})) {
+        https_address_passphrases[normaliseAddress(address, data_path)] = passphrase;
+    }
 
-    await Promise.all([
-        writeFile(path.join(data_path, 'hap-server.pid'), process.pid),
-        writeFile(path.join(data_path, 'hap-server-port'), http_port),
-    ]);
+    if (!config.listen && !listen_addresses.length) {
+        log.warn('No listening addresses - using a random port');
+        listen_addresses.push(['net', '::', 0]);
+    }
+
+    log.info('Listen addresses', listen_addresses, https_addresses, https_request_client_certificate_addresses,
+        https_require_client_certificate_addresses);
+    const listening_servers = [];
+    let wrote_port_file = false;
+
+    for (const address of listen_addresses) {
+        const address_string = addressToString(address);
+        const https = https_addresses[address_string];
+        const https_request_client_certificate = https_request_client_certificate_addresses[address_string];
+        const https_require_client_certificate = https_require_client_certificate_addresses[address_string];
+        const https_passphrase = https_address_passphrases[address_string];
+
+        const http_server = https ? server.createSecureServer({
+            ca: await getCertificates(https_require_client_certificate || https_request_client_certificate, data_path),
+            cert: await getCertificates(https, data_path),
+            key: await getCertificates(https, data_path),
+            passphrase: https_passphrase,
+
+            requestCert: !!https_request_client_certificate || !!https_require_client_certificate,
+            rejectUnauthorized: !!https_require_client_certificate,
+        }) : server.createServer();
+
+        if (address[0] === 'net') {
+            await new Promise((rs, rj) => http_server.listen(address[2], address[1], err => err ? rj(err) : rs()));
+
+            const http_port = http_server.address().port;
+            log.info(`Listening on ${address[1]} port ${http_port}`);
+
+            if (address[1] === '::' && !wrote_port_file) {
+                await writeFile(path.join(data_path, 'hap-server-port'), http_port);
+                wrote_port_file = true;
+            }
+        } else if (address[0] === 'unix') {
+            await new Promise((rs, rj) => http_server.listen(address[1], err => err ? rj(err) : rs()));
+
+            log.info(`Listening on UNIX socket ${address[1]}`);
+        }
+
+        listening_servers.push(http_server);
+    }
+
+    await writeFile(path.join(data_path, 'hap-server.pid'), process.pid);
 
     log.info('Loading cached accessories');
     await server.loadCachedAccessories();
@@ -238,6 +359,7 @@ export async function handler(argv) {
     await server.loadScenesFromStorage();
     await server.automations.start();
 
+    if (argv.user || argv.group) log.info('Setting uid/gid');
     if (argv.group) process.setgid(argv.group);
     if (argv.user) process.setuid(argv.user);
 
@@ -279,7 +401,9 @@ export async function handler(argv) {
             server.emit(ServerStoppingEvent, server);
 
             server.unpublish();
-            http_server.close();
+            for (const http_server of listening_servers) {
+                http_server.close();
+            }
 
             await Promise.all([
                 unlink(path.join(data_path, 'hap-server.pid')),
