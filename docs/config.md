@@ -3,7 +3,7 @@ Configuration
 
 hap-server stores data in the same default location as Homebridge and supports the same configuration. Using the same
 configuration as Homebridge, hap-server will behave exactly like Homebridge but will have a web interface for
-controlling accessories. Using Homebridge and hap-server plugins at the same time are supported, however you shouldn't
+controlling accessories. Using Homebridge and hap-server plugins at the same time is supported, however you shouldn't
 run multiple instances of hap-server/Homebridge using the same data location.
 
 <!-- When using Homebridge accessories in the web interface, you can control, rename and move Homebridge accessories, but
@@ -34,17 +34,164 @@ not configure them. Configuring Homebridge accessories must be done by editing t
 
 ### `bridge`, `accessories` and `platforms`
 
-All configuration options of Homebridge are supported. hap-server will only load Homebridge when the `bridge` property
-exists.
+All configuration options of Homebridge are supported. hap-server will only load Homebridge when any of these
+properties exist.
 
-### `http_host`
+### `listen`
 
-The host to listen to connections for the web interface on. By default hap-server will bind to all addresses.
+An array of IP addresses + port numbers, port numbers and socket paths to listen on. By default hap-server will bind
+to a random port on all addresses, so you will probably want to set this. You can also set this to an empty array
+to disable the web interface.
 
-### `http_port`
+```json
+{
+    "listen": [
+        "8082",
+        "127.0.0.1:8082",
+        "[::1]:8082",
+        "unix:hap-server.sock",
+        "unix:/Users/samuel/Documents/Projects/hap-server/data/hap-server.sock"
+    ]
+}
+```
 
-The port to listen to connections for the web interface on. By default hap-server will use any available port, so you
-will probably want to set this.
+Setting only a port number will bind to that port on all addresses. (`8082` is the same as `[::]:8082`.)
+
+UNIX socket paths are relative to the data directory.
+
+### `listen-https`
+
+An object mapping IP addresses + port numbers, port numbers and socket paths set in [`listen`](#listen) to
+certificates. Certificates can be the path of a certificate and private key, the paths of a certificate and private
+key in separate files or a certificate and private key. Paths are relative to the data path.
+
+Certificate files will be read before setting the user/group, so you can set the certificate files to only be readable
+by root.
+
+```json
+{
+    "listen": [
+        "8082"
+    ],
+    "listen-https": {
+        "8082": "certificate.pem",
+        "8082": "/Users/samuel/Documents/Projects/hap-server/data/certificate.pem",
+        "8082": ["certificate.pem", "private-key.pem"],
+        "8082": "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----\n-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----",
+        "8082": [
+            "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----",
+            "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----"
+        ],
+        "8082": [
+            "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----",
+            "private-key.pem"
+        ]
+    }
+}
+```
+
+If using a certificate signed by a CA (not self signed) you should include the full certificate chain with the
+certificate.
+
+### `listen-https+request-client-certificate`
+
+An array of IP addresses + port numbers, port numbers and socket paths in [`listen`](#listen) to request a client
+certificate for, or an object mapping IP addresses + port numbers, port numbers and socket paths set in
+[`listen`](#listen) to certificate authorities to allow certificates from, or `true` to allow any certificate.
+
+This doesn't authenticate users to the web interface, but plugins can access the client certificate to authenticate
+users.
+
+```json
+{
+    "listen": [
+        "8082"
+    ],
+    "listen-https": {
+        "8082": "certificate.pem"
+    },
+    "listen-https+request-client-certificate": [
+        "8082"
+    ],
+    "listen-https+request-client-certificate": {
+        "8082": true
+    }
+}
+```
+
+```json
+{
+    "listen": [
+        "8082"
+    ],
+    "listen-https": {
+        "8082": "certificate.pem"
+    },
+    "listen-https+request-client-certificate": {
+        "8082": "ca.pem"
+    }
+}
+```
+
+### `listen-https+require-client-certificate`
+
+An object mapping IP addresses + port numbers, port numbers and socket paths set in [`listen`](#listen) to
+certificate authorities to require certificates from.
+
+This doesn't authenticate users to the web interface, but plugins can access the client certificate to authenticate
+users.
+
+```json
+{
+    "listen": [
+        "8082"
+    ],
+    "listen-https": {
+        "8082": "certificate.pem"
+    },
+    "listen-https+require-client-certificate": {
+        "8082": "ca.pem"
+    }
+}
+```
+
+### `listen-https+crl`
+
+An object mapping IP addresses + port numbers, port numbers and socket paths set in [`listen`](#listen) to
+certificate revocation lists.
+
+```json
+{
+    "listen": [
+        "8082"
+    ],
+    "listen-https": {
+        "8082": "certificate.pem"
+    },
+    "listen-https+crl": {
+        "8082": "crl.pem"
+    }
+}
+```
+
+### `listen-https+passphrase`
+
+An object mapping IP addresses + port numbers, port numbers and socket paths set in [`listen`](#listen) to
+passphrases to decrypt private keys.
+
+```json
+{
+    "listen": [
+        "8082"
+    ],
+    "listen-https": {
+        "8082": "certificate.pem"
+    },
+    "listen-https+passphrase": {
+        "8082": "..."
+    }
+}
+```
 
 ### `data-path`
 
@@ -148,15 +295,21 @@ Accessory UI.
 
 ##### `plugins[]['accessory-uis'][]['service-tiles']`
 
+> TODO
+
 Whether [service tile components](plugins.md#accessoryuiregisterservicecomponent) from this Accessory UI should be
 enabled.
 
 ##### `plugins[]['accessory-uis'][]['accessory-details']`
 
+> TODO
+
 Whether [accessory details components](plugins.md#accessoryuiregisteraccessorydetailscomponent) from this Accessory UI
 should be enabled.
 
 ##### `plugins[]['accessory-uis'][]['collapsed-services']`
+
+> TODO
 
 Whether [collapsed services](plugins.md#accessoryuiregistercollapsedservicescomponent) from this Accessory UI should
 be enabled.
@@ -183,6 +336,12 @@ have global numeric IDs so want to use `"*"` as IDs can change when updating plu
     }
 }
 ```
+
+### `server-plugins`
+
+> TODO
+
+The `server-plugins` property contains configuration of server plugins.
 
 ### `bridges`
 

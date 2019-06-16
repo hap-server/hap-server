@@ -5,7 +5,7 @@ Run the web server on port `8082`.
 
 ```json
 {
-    "http_port": 8082
+    "listen": 8082
 }
 ```
 
@@ -82,80 +82,6 @@ Configure a VirtualSwitches accessory platform.
 
 ```json
 {
-    "platforms2": [
-        {
-            "plugin": "virtual-switches",
-            "platform": "VirtualSwitches",
-            "switches": [
-                "Switch #2",
-                "Switch #3",
-                "Switch #4"
-            ]
-        }
-    ]
-}
-```
-
---------
-
-```json
-{
-    "": "
-        Run the web server or port `8082`.
-    ",
-    "http_port": 8082,
-
-    "": "
-        Load plugins (or a plugin) from `../example-plugins/dist` and store data in the same directory as this configuration file.
-    ",
-    "plugin-path": [
-        "../example-plugins/dist"
-    ],
-    "data-path": ".",
-
-    "": "
-        Configure the bridge for Homebridge accessories.
-    ",
-    "bridge": {
-        "name": "Homebridge",
-        "username": "CC:22:3D:E3:CE:30",
-        "port": 51826,
-        "pin": "031-45-154"
-    },
-
-    "accessories": [
-        "Homebridge accessory platforms here"
-    ],
-
-    "platforms": [
-        "Homebridge platforms here"
-    ],
-
-    "bridges": [
-        {
-            "name": "Bridge #2",
-            "username": "00:00:00:00:00:02",
-            "pin": "031-45-154",
-            "accessories": [
-                ["virtual-switches", "VirtualSwitch", "Switch #1"]
-            ],
-            "port": 8081
-        }
-    ],
-
-    "accessories2": [
-        {
-            "plugin": "virtual-switches",
-            "accessory": "VirtualSwitch",
-            "name": "Switch #1"
-        },
-        {
-            "plugin": "fake-accessories",
-            "accessory": "Television",
-            "name": "Television"
-        }
-    ],
-
     "platforms2": [
         {
             "plugin": "virtual-switches",

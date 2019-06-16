@@ -252,6 +252,10 @@ export async function handler(argv) {
     for (const [address, certificate] of Object.entries(config['listen-https+require-client-certificate'] || {})) {
         https_require_client_certificate_addresses[normaliseAddress(address, data_path)] = certificate;
     }
+    const https_address_crls = {};
+    for (const [address, crl] of Object.entries(config['listen-https+crl'] || {})) {
+        https_address_crls[normaliseAddress(address, data_path)] = crl;
+    }
     const https_address_passphrases = {};
     for (const [address, passphrase] of Object.entries(config['listen-https+passphrase'] || {})) {
         https_address_passphrases[normaliseAddress(address, data_path)] = passphrase;
@@ -272,12 +276,14 @@ export async function handler(argv) {
         const https = https_addresses[address_string];
         const https_request_client_certificate = https_request_client_certificate_addresses[address_string];
         const https_require_client_certificate = https_require_client_certificate_addresses[address_string];
+        const https_crl = https_address_crls[address_string];
         const https_passphrase = https_address_passphrases[address_string];
 
         const http_server = https ? server.createSecureServer({
             ca: await getCertificates(https_require_client_certificate || https_request_client_certificate, data_path),
             cert: await getCertificates(https, data_path),
             key: await getCertificates(https, data_path),
+            crl: await getCertificates(https_crl, data_path),
             passphrase: https_passphrase,
 
             requestCert: !!https_request_client_certificate || !!https_require_client_certificate,
