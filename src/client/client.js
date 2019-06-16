@@ -136,7 +136,7 @@ export default class Client extends EventEmitter {
             connection.removeListener('received-broadcast', this._handleBroadcastMessage);
             connection.removeListener('disconnected', this._handleDisconnected);
 
-            connection.close();
+            connection.ws.close();
 
             this.emit('disconnected');
         }).then(() => {

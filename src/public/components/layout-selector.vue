@@ -15,7 +15,7 @@
             <div class="dropdown-divider"></div>
 
             <!-- eslint-disable-next-line vue/no-use-v-if-with-v-for -->
-            <a v-for="layout in layouts" v-if="layout.uuid !== 'Overview.' + authenticatedUser.id"
+            <a v-for="layout in layouts" v-if="!authenticatedUser || layout.uuid !== 'Overview.' + authenticatedUser.id"
                 :key="layout.uuid" class="dropdown-item"
                 :class="{active: value && value.uuid === layout.uuid && !showAutomations}" href="#"
                 @click.prevent="setLayout(layout)">{{ layout.name || layout.uuid }}</a>
