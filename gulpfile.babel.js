@@ -65,9 +65,6 @@ const webpack_config = {
             template: 'src/public/app.html',
             filename: 'app.html',
         }),
-        new SriPlugin({
-            hashFuncNames: ['sha256', 'sha384'],
-        }),
         new ScriptExtHtmlPlugin({
             prefetch: {
                 test: /\.js$/,
@@ -126,7 +123,7 @@ export const webpack_hot_config = Object.assign({}, webpack_config, {
             ],
         } : rule),
     }),
-    plugins: webpack_config.plugins.filter(p => !(p instanceof SriPlugin)).concat([
+    plugins: webpack_config.plugins.concat([
         new HotModuleReplacementPlugin(),
     ]),
 });
@@ -201,6 +198,9 @@ const release_webpack_config = Object.assign({}, webpack_config, {
             // both options are optional
             filename: '[hash].css',
             chunkFilename: '[id].[hash].css',
+        }),
+        new SriPlugin({
+            hashFuncNames: ['sha256', 'sha384'],
         }),
     ]),
     output: {

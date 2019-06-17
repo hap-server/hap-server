@@ -314,6 +314,8 @@ export default class Client extends EventEmitter {
 
     handleDisconnected(event) {
         console.log('Disconnected');
+        this.connection.removeListener('received-broadcast', this._handleBroadcastMessage);
+        this.connection.removeListener('disconnected', this._handleDisconnected);
         this.connection = null;
         this.connected = false;
         this.connect_error = event;
@@ -347,11 +349,13 @@ export default class Client extends EventEmitter {
                 removed_accessories.push(accessory_uuid);
             }
 
-            const [new_accessory_details, new_accessory_data, new_accessory_permissions] = await Promise.all([
+            const [
+                new_accessory_details, new_accessory_data, new_accessory_permissions,
+            ] = new_accessories.length ? await Promise.all([
                 this.connection.getAccessories(...new_accessories),
                 this.connection.getAccessoriesData(...new_accessories),
                 this.connection.getAccessoriesPermissions(...new_accessories),
-            ]);
+            ]) : [[], [], []];
 
             const added_accessories = new_accessories.map((uuid, index) =>
                 new Accessory(this.connection, uuid, new_accessory_details[index], new_accessory_data[index],
@@ -409,7 +413,9 @@ export default class Client extends EventEmitter {
                 removed_layout_uuids.push(uuid);
             }
 
-            const [new_layouts_data, new_layouts_sections, new_layouts_permissions] = await Promise.all([
+            const [
+                new_layouts_data, new_layouts_sections, new_layouts_permissions,
+            ] = new_layout_uuids.length ? await Promise.all([
                 this.connection.getLayouts(...new_layout_uuids),
                 this.connection.listLayoutSections(...new_layout_uuids).then(section_uuids => {
                     const flat_section_uuids = section_uuids.map((section_uuids, index) => {
@@ -437,7 +443,7 @@ export default class Client extends EventEmitter {
                     });
                 }),
                 this.connection.getLayoutsPermissions(...new_layout_uuids),
-            ]);
+            ]) : [[], [], []];
 
             const new_layouts = new_layout_uuids.map((uuid, index) => new Layout(this.connection, uuid,
                 new_layouts_data[index], new_layouts_sections[index], new_layouts_permissions[index]));
@@ -496,11 +502,13 @@ export default class Client extends EventEmitter {
                 removed_scene_uuids.push(uuid);
             }
 
-            const [new_scenes_data, new_scenes_active, new_scenes_permissions] = await Promise.all([
+            const [
+                new_scenes_data, new_scenes_active, new_scenes_permissions,
+            ] = new_scene_uuids.length ? await Promise.all([
                 this.connection.getScenes(...new_scene_uuids),
                 this.connection.checkScenesActive(...new_scene_uuids),
                 this.connection.getScenesPermissions(...new_scene_uuids),
-            ]);
+            ]) : [[], [], []];
 
             const new_scenes = new_scene_uuids.map((uuid, index) => new Scene(this.connection, uuid,
                 new_scenes_data[index], new_scenes_active[index], new_scenes_permissions[index]));
