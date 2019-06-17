@@ -214,6 +214,7 @@ export async function handler(argv) {
     const cli_auth_token = cli_auth_token_bytes.toString('hex');
 
     await writeFile(path.join(data_path, 'cli-token'), cli_auth_token_bytes);
+    await writeFile(path.join(data_path, 'hap-server.pid'), process.pid);
 
     const server = await Server.createServer({
         data_path,
@@ -301,6 +302,9 @@ export async function handler(argv) {
                 wrote_port_file = true;
             }
         } else if (address[0] === 'unix') {
+            try {
+                await unlink(address[1]);
+            } catch (err) {}
             await new Promise((rs, rj) => http_server.listen(address[1], err => err ? rj(err) : rs()));
 
             log.info(`Listening on UNIX socket ${address[1]}`);
@@ -308,8 +312,6 @@ export async function handler(argv) {
 
         listening_servers.push(http_server);
     }
-
-    await writeFile(path.join(data_path, 'hap-server.pid'), process.pid);
 
     log.info('Loading cached accessories');
     await server.loadCachedAccessories();
