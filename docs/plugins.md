@@ -32,10 +32,10 @@ const {default: hapserver, log} = require('@hap-server/api');
 ```
 
 As well as the `@hap-server/api` module that contains the plugin API and logger `@hap-server/api/hap` has the
-`hap-nodejs` module, `@hap-server/api/config` has the plugin configuration, `@hap-server/api/storage` has a
+`hap-nodejs` module, `@hap-server/api/plugin-config` has the plugin configuration, `@hap-server/api/storage` has a
 `node-persist` object that can be used in handlers.
 
-The `node-persist` object will be initialised *after* the plugin loads. If you need to do anything with `node-persit`
+The `node-persist` object will be initialised *after* the plugin loads. If you need to do anything with `node-persist`
 when a plugin loads export an `init` function. Errors thrown while loading the module will be ignored (and will
 prevent the `init` function from being exported) but errors thrown from the `init` function will prevent the plugin
 from loading.
@@ -93,7 +93,7 @@ hapserver.registerAccessory('AccessoryType', config => {
 });
 ```
 
-Most plugins will need to listen to the `destroy` event to disconnect from the accessory it it's removed from the
+Most plugins will need to listen to the `destroy` event to disconnect from the accessory if it's removed from the
 server.
 
 ```js
@@ -177,7 +177,7 @@ hapserver.registerAccessoryPlatform(AccessoryBridge);
 #### `hapserver.registerDynamicAccessoryPlatform`
 
 Registers an accessory platform and provides the AccessoryPlatform instance. This allows the accessory platform to
-register new accessories and use the
+register new accessories.
 
 ```js
 import hapserver from '@hap-server/api';
@@ -237,9 +237,10 @@ hapserver.registerServerPlugin(AServerPlugin);
 To listen to events use the global events object which emits all events from `Server` instances.
 
 ```js
-import {Events, events} from '@hap-server/api';
+import {ServerEvents, events} from '@hap-server/api';
+import {AddAccessoryEvent} from '@hap-server/api/events';
 
-events.on(Events.AddAccessoryEvent, event => {
+events.on(AddAccessoryEvent, event => {
     // event.server is the Server instance event.accessory was added to
 });
 
@@ -287,13 +288,13 @@ hapserver.registerAccessorySetup(accessory_setup);
 
 const accessory_discovery = new AccessoryDiscovery(accessory_setup);
 // Or if the accessory discovery handler's name should be different to the accessory setup handler's name:
-// const discovery = new AccessoryDiscovery('AccessoryType', setup);
+// const accessory_discovery = new AccessoryDiscovery('AccessoryType', setup);
 
-discovery.onstart = async () => {
+accessory_discovery.onstart = async () => {
     //
 };
 
-discovery.onstop = async () => {
+accessory_discovery.onstop = async () => {
     //
 };
 
@@ -308,7 +309,7 @@ setup component.
 [See `accessoryui.registerAccessorySetupComponent`.](#accessoryuiregisteraccessorysetupcomponent)
 
 ```js
-import hapserver, {AccessoryDiscovery, AccessorySetup} from '@hap-server/api';
+import hapserver, {AccessorySetup} from '@hap-server/api';
 
 const accessory_setup = new AccessorySetup('AccessoryType', async data => {
     // Handle messages from the accessory setup component
@@ -484,6 +485,12 @@ import axios from 'axios';
 import ChromeColourPicker from 'vue-color/chrome';
 import SwatchesColourPicker from 'vue-color/swatches';
 import SketchColourPicker from 'vue-color/sketch';
+```
+
+You can also use the included `vuedraggable`, `codemirror` and `vue-codemirror` modules with `require.import`.
+
+```js
+const Draggable = await require.import('vuedraggable');
 ```
 
 #### `accessoryui.registerServiceComponent`

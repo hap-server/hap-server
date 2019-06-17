@@ -45,7 +45,10 @@ to disable the web interface.
 
 ```json
 {
+    "listen": 8082,
+
     "listen": [
+        8082,
         "8082",
         "127.0.0.1:8082",
         "[::1]:8082",
@@ -224,7 +227,7 @@ To use single file plugins use the full path of the plugin instead of a name.
 
 ### `plugins`
 
-The `plugins` property can be used to enable/disable features of and configure plugins. Useful if you have are running
+The `plugins` property can be used to enable/disable features of and configure plugins. Useful if you are running
 multiple instances.
 
 Keys are plugin names or the special value `"*"` which applies to plugins that aren't listed.
@@ -232,7 +235,7 @@ Keys are plugin names or the special value `"*"` which applies to plugins that a
 ```json
 {
     "plugins": {
-        "hap-server-authenticate-pam": true,
+        "@hap-server/authenticate-pam": true,
         "authentication-handler": {
             ...
         }
@@ -248,7 +251,7 @@ If `false` the plugin will be disabled. When a plugin is disabled it will not be
 
 ```json
 {
-    "hap-server-authenticate-pam": false
+    "@hap-server/authenticate-pam": false
 }
 ```
 
@@ -279,6 +282,8 @@ have global numeric IDs so want to use `"*"` as IDs can change when updating plu
 ```
 
 ##### `plugins[]['accessory-uis'][]`
+
+> TODO
 
 Either a boolean (`true`/`false`) or an object containing specific Accessory UI features to enable.
 
@@ -405,6 +410,8 @@ The `accessories2` property is an array of accessory configuration objects. Plug
 
 The name of the plugin providing this accessory.
 
+This is required unless using a built in accessory type.
+
 #### `accessories2[].accessory`
 
 The type of accessory.
@@ -421,6 +428,10 @@ The name to display in HomeKit (can be changed in both HomeKit and the web inter
 
 Optional. If not provided a UUID will be generated from the plugin name, accessory type and accessory name.
 
+#### `HomeKitBLE`
+
+> TODO
+
 ### `platforms2`
 
 The `platforms2` property is an array of accessory platform configuration objects. Plugins can use any additional
@@ -431,6 +442,8 @@ properties.
 #### `platforms2[].plugin`
 
 The name of the plugin providing this accessory platform.
+
+This is required unless using a built in accessory platform.
 
 #### `platforms2[].platform`
 
@@ -449,7 +462,7 @@ A name used to identify this accessory platform instance.
 Optional. If not provided a UUID will be generated from the plugin name, accessory platform type and accessory
 platform name. This isn't a real UUID, it's used to generate UUIDs for individual accessories.
 
-##### `HomeKitIP`
+#### `HomeKitIP`
 
 > `!platforms2[].plugin && platforms2[].platform === 'HomeKitIP'`
 
@@ -469,19 +482,20 @@ platform name. This isn't a real UUID, it's used to generate UUIDs for individua
     }
 }
 ```
-###### `platforms2[].username`
+
+##### `platforms2[].username`
 
 The accessory ID. [This is the same as the username property of a HAP bridge.](#bridgesusername)
 
-###### `platforms2[].host`
+##### `platforms2[].host`
 
 The hostname/IP address of the accessory.
 
-###### `platforms2[].port`
+##### `platforms2[].port`
 
 The port number of the HAP service.
 
-###### `platforms2[].pairing_data`
+##### `platforms2[].pairing_data`
 
 [hap-controller](https://github.com/mrstegeman/hap-controller-node) pairing data.
 

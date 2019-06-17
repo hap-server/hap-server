@@ -66,7 +66,7 @@ A lot.
             their own favourite accessories/scenes/colours and using multiple devices without an Apple ID.
 - [x] Scenes
     - Works with automations. (Scenes just run automation conditions to check if they're enabled and automation
-        conditions to activate/deactivate them.)
+        actions to activate/deactivate them.)
     - [ ] Simple scene editor. (Set accessories to create active conditions and activate/deactivate actions.)
 - [x] Automations
     - [x] Create automations that can run on the server
@@ -75,7 +75,7 @@ A lot.
     - [x] Manage automations in the web interface
         - TODO:
             - [ ] Better error handling
-            - [ ] Handle triggers/conditions/actions that don't have an editor component
+            - [x] Handle triggers/conditions/actions that don't have an editor component
             - [ ] Set characteristic action editor
     - [x] Triggers
         - [x] Cron expressions
@@ -256,7 +256,7 @@ Development
 
 ```
 # Clone the git repository
-git clone https://gitlab.fancy.org.uk/samuel/hap-server
+git clone https://gitlab.fancy.org.uk/hap-server/hap-server.git
 cd hap-server
 
 # Install dependencies
