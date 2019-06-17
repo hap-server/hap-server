@@ -48,7 +48,7 @@
         "@vue/devtools": "^5.1.0",
         "axios": "^0.18.1",
         "babel-core": "^6.26.3",
-        "babel-eslint": "^10.0.1",
+        "babel-eslint": "^10.0.2",
         "babel-preset-env": "^1.6.1",
         "bcrypt": "^3.0.6",
         "bootstrap": "^4.3.1",
