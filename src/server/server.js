@@ -21,8 +21,8 @@ import Events from '../events';
 import {
     AddAccessoryEvent, RemoveAccessoryEvent, UpdateAccessoryConfigurationEvent,
     SceneActivateProgressEvent, SceneActivatedEvent, SceneDeactivateProgressEvent, SceneDeactivatedEvent,
+    CharacteristicUpdateEvent,
 } from '../events/server';
-import CharacteristicUpdateEvent from '../events/characteristic-update';
 
 import Connection from './connection';
 import PluginManager, {ServerPlugin} from './plugins';

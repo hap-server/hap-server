@@ -1,4 +1,4 @@
-import {TriggerEvent} from '../events/automation-trigger';
+import {AutomationTriggerEvent as TriggerEvent} from '../events/server';
 import {AutomationRunner} from '.';
 import AutomationCondition from './condition';
 import PluginManager from '../server/plugins';

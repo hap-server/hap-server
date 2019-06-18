@@ -2,7 +2,7 @@ import Events from '../events';
 import {
     SceneTriggerEvent, SceneActivateProgressEvent, SceneActivatedEvent, SceneDeactivateProgressEvent,
     SceneDeactivatedEvent,
-} from '../events/scenes';
+} from '../events/server';
 
 export default class Scene extends Events {
     /**
