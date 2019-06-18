@@ -28,7 +28,7 @@ import Connection from './connection';
 import PluginManager, {ServerPlugin} from './plugins';
 import Bridge from './bridge';
 import Homebridge from './homebridge';
-import Logger from './logger';
+import Logger from '../common/logger';
 import {Accessory, Service, Characteristic} from 'hap-nodejs';
 
 import {builtin_accessory_types, builtin_accessory_platforms} from '../accessories';

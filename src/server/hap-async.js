@@ -4,7 +4,7 @@
  * that wrap handlers so they can return a Promise/a value.
  */
 
-import Logger from './logger';
+import Logger from '../common/logger';
 import {Characteristic} from 'hap-nodejs';
 
 const log = new Logger('hap-async');

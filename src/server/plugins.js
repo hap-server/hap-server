@@ -17,7 +17,7 @@ import Events, {Event, EventListener, EventListenerPromise, EventListeners} from
 import {ServerPluginRegisteredEvent} from '../events/server';
 import * as ServerEvents from '../events/server';
 import {PluginAccessoryPlatformAccessory} from './server';
-import Logger from './logger';
+import Logger from '../common/logger';
 import AutomationTrigger from '../automations/trigger';
 import AutomationCondition from '../automations/condition';
 import AutomationAction from '../automations/action';
