@@ -178,11 +178,11 @@ Samuels-MacBook-Air:~ samuel$ hap-server
 ```
 
 hap-server will exit with an error if the configuration file doesn't exist. To use a custom configuration file path
-pass it as the first argument.
+pass it as the first argument. hap-server allows you to write your configuration file in either JSON or YAML.
 
 ```
-Samuels-MacBook-Air:hap-server samuel$ hap-server data/config.json
-[28/02/2019, 01:56:01] Starting hap-server with configuration file /Users/samuel/Documents/Projects/hap-server/data/config.json
+Samuels-MacBook-Air:hap-server samuel$ hap-server data/config.yaml
+[28/02/2019, 01:56:01] Starting hap-server with configuration file /Users/samuel/Documents/Projects/hap-server/data/config.yaml
 ...
 ```
 
@@ -266,10 +266,11 @@ npm install
 npx gulp watch-backend watch-example-plugins &
 
 # Copy the example configuration
-cp -r example-config data
+mkdir -p data
+cp example-config/config.yaml data
 
 # Run the server (this will build the frontend)
-bin/hap-server data/config.json
+bin/hap-server data/config.yaml
 ```
 
 To build the frontend in Gulp instead of the hap-server process (and disable webpack hot module replacement) add
@@ -281,9 +282,9 @@ run `npx vue-devtools` and pass the `--vue-devtools-port` flag to `hap-server`.
 ```
 npx vue-devtools &
 
-bin/hap-server data/config.json --vue-devtools-port 8098
+bin/hap-server data/config.yaml --vue-devtools-port 8098
 # Also pass --vue-devtools-host if you want to use the Vue devtools to work on other devices
-bin/hap-server data/config.json --vue-devtools-host samuels-macbook-air.local --vue-devtools-port 8098
+bin/hap-server data/config.yaml --vue-devtools-host samuels-macbook-air.local --vue-devtools-port 8098
 ```
 
 Plugins

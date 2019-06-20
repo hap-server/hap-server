@@ -1,40 +1,18 @@
-Example configuration
----
-
-Run the web server on port `8082`.
-
-```yaml
 listen: 8082
-```
 
-Load plugins (or a plugin) from `../example-plugins/dist` and store data in the same directory as this
-configuration file.
-
-```yaml
 plugin-path:
     - ../example-plugins/dist
+
 data-path: .
-```
 
-Configure Homebridge accessories. This is passed directly to Homebridge.
-
-```yaml
 bridge:
     name: Homebridge
     username: CC:22:3D:E3:CE:30
     port: 51826
     pin: 031-45-154
 
-accessories:
-    - Homebridge accessory platforms here
+platforms: []
 
-platforms:
-    - Homebridge platforms here
-```
-
-Configure a HAP bridge and add the accessory `Switch #1`.
-
-```yaml
 bridges:
     -   name: "Bridge #2"
         username: 00:00:00:00:00:02
@@ -42,11 +20,7 @@ bridges:
         accessories:
             - [virtual-switches, VirtualSwitch, "Switch #1"]
         port: 8081
-```
 
-Configure two fake accessories - a VirtualSwitch accessory and a Television accessory.
-
-```yaml
 accessories2:
     -   plugin: virtual-switches
         accessory: VirtualSwitch
@@ -54,11 +28,7 @@ accessories2:
     -   plugin: fake-accessories
         accessory: Television
         name: Television
-```
 
-Configure a VirtualSwitches accessory platform.
-
-```yaml
 platforms2:
     -   plugin: virtual-switches
         platform: VirtualSwitches
@@ -66,4 +36,3 @@ platforms2:
             - "Switch #2"
             - "Switch #3"
             - "Switch #4"
-```

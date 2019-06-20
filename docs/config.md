@@ -198,7 +198,7 @@ passphrases to decrypt private keys.
 
 ### `data-path`
 
-The `data-path` property sets the base path for storing data. By default this is the directory your `config.json` file
+The `data-path` property sets the base path for storing data. By default this is the directory your configuration file
 is in.
 
 ### `plugin-path`

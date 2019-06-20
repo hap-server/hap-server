@@ -5,6 +5,7 @@ import util from 'util';
 
 import yargs from 'yargs';
 import chalk from 'chalk';
+import yaml from 'yaml';
 
 import {PluginManager, Logger, forceColourLogs, version} from '..';
 
@@ -44,8 +45,16 @@ export function getConfig(argv) {
     let config;
 
     try {
-        const config_json = fs.readFileSync(config_path);
-        config = JSON.parse(config_json);
+        const config_string = fs.readFileSync(config_path, 'utf-8');
+
+        if (['.yml', '.yaml'].includes(path.extname(config_path))) {
+            config = yaml.parse(config_string, {
+                prettyErrors: true,
+            });
+            console.log(config);
+        } else {
+            config = JSON.parse(config_string);
+        }
     } catch (error) {
         if (error && error.code === 'ENOENT') {
             console.error(chalk.red(`The configuration file (${config_path}) doesn\'t exist.`));

@@ -39,6 +39,7 @@
         "semver": "^5.7.0",
         "uuid": "^3.3.2",
         "ws": "^6.2.1",
+        "yaml": "^1.6.0",
         "yargs": "^13.2.4"
     },
     "optionalDependencies": {
