@@ -28,6 +28,7 @@ const broadcast_message_methods = {
     'update-pairing-data': 'handleUpdatePairingData',
     'stdout': 'handleStdout',
     'stderr': 'handleStderr',
+    'console-output': 'handleConsoleOutput',
 };
 
 export default class Connection extends EventEmitter {
@@ -38,6 +39,7 @@ export default class Connection extends EventEmitter {
         this.messageid = 0;
         this.callbacks = new Map();
         this.authenticated_user = null;
+        this.open_consoles = new Set();
 
         // this.ws.send('something');
 
@@ -589,6 +591,27 @@ export default class Connection extends EventEmitter {
         });
     }
 
+    openConsole() {
+        return this.send({
+            type: 'open-console',
+        });
+    }
+
+    closeConsole(id) {
+        return this.send({
+            type: 'close-console',
+            id,
+        });
+    }
+
+    sendConsoleInput(id, data) {
+        return this.send({
+            type: 'console-input',
+            id,
+            data,
+        });
+    }
+
     handleBroadcastMessage(data) {
         // console.log('Received broadcast message', data);
 
@@ -704,6 +727,56 @@ export default class Connection extends EventEmitter {
 
     handleStderr(data) {
         this.emit('stderr', data.data);
+    }
+
+    handleConsoleOutput(data) {
+        this.emit('console-output', data.id, data.stream, data.data);
+    }
+}
+
+export class Console extends EventEmitter {
+    constructor(connection, id) {
+        super();
+
+        Object.defineProperty(this, 'connection', {value: connection});
+        Object.defineProperty(this, 'id', {value: id});
+
+        this._handleData = this.handleData.bind(this);
+        this._handleDisconnected = this.handleDisconnected.bind(this);
+
+        this.connection.on('console-output', this._handleData);
+        this.connection.on('disconnected', this._handleDisconnected);
+
+        this.connection.open_consoles.add(this);
+    }
+
+    handleData(id, stream, data) {
+        if (id !== this.id) return;
+
+        if (stream === 'out') this.emit('out', data);
+        if (stream === 'err') this.emit('err', data);
+    }
+
+    handleDisconnected() {
+        this.closing = null;
+        this.closed = true;
+        this.connection.removeListener('console-output', this._handleData);
+        this.connection.removeListener('disconnected', this._handleDisconnected);
+
+        this.connection.open_consoles.delete(this);
+    }
+
+    write(data) {
+        return this.connection.sendConsoleInput(this.id, data);
+    }
+
+    close() {
+        if (this.closed) return Promise.resolve();
+        if (this.closing) return this.closing;
+
+        return this.closing = this.connection.closeConsole(this.id).then(() => {
+            this.handleDisconnected();
+        });
     }
 }
 

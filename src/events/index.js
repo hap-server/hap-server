@@ -176,6 +176,11 @@ export default class Events extends EventEmitter {
     constructor(...args) {
         super(...args);
 
+        Object.defineProperty(this, 'domain', {enumerable: false, writable: true, value: this.domain});
+        Object.defineProperty(this, '_events', {enumerable: false, writable: true, value: this._events});
+        Object.defineProperty(this, '_eventsCount', {enumerable: false, writable: true, value: this._eventsCount});
+        Object.defineProperty(this, '_maxListeners', {enumerable: false, writable: true, value: this._maxListeners});
+
         Object.defineProperty(this, 'parent_emitter', {configurable: true, writable: true});
     }
 

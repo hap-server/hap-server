@@ -1,13 +1,13 @@
 import EventEmitter from 'events';
 
-import Connection from './connection';
+import Connection, {Console} from './connection';
 import Accessory from './accessory';
 import Layout from './layout';
 import Scene from './scene';
 
 export function $set(object, key, value) {
     try {
-        if (require.cache[require.resolve('vue')]) {
+        if (require.cache[require.resolveWeak('vue')]) {
             const {default: Vue} = require('vue');
 
             return Vue.set(object, key, value);
@@ -535,5 +535,11 @@ export default class Client extends EventEmitter {
         } finally {
             this.loading_scenes = false;
         }
+    }
+
+    async openConsole() {
+        const id = await this.connection.openConsole();
+
+        return new Console(this.connection, id);
     }
 }

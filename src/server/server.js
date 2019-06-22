@@ -57,21 +57,26 @@ export default class Server extends Events {
 
         this.parent_emitter = events;
 
-        this.config = options.config || {};
-        this.cli_auth_token = options.cli_auth_token;
-        this.storage = storage;
-        this.log = log || new Logger();
+        Object.defineProperty(this, 'config', {enumerable: true, value: options.config || {}});
+        Object.defineProperty(this, 'cli_auth_token', {value: options.cli_auth_token});
+        Object.defineProperty(this, 'storage', {value: storage});
+        Object.defineProperty(this, 'log', {value: log || new Logger()});
 
-        this.accessories = [];
-        this.accessory_platforms = [];
-        this.cached_accessories = [];
-        this.bridges = [];
+        Object.defineProperty(this, 'accessories', {value: []});
+        Object.defineProperty(this, 'accessory_platforms', {value: []});
+        Object.defineProperty(this, 'cached_accessories', {value: []});
+        Object.defineProperty(this, 'bridges', {value: []});
 
-        this.accessory_discovery_counter = 0;
-        this.accessory_discovery_handlers = new Set();
-        this.accessory_discovery_handlers_events = new WeakMap();
+        Object.defineProperty(this, 'homebridge', {writable: true});
+        Object.defineProperty(this, 'config_automation_triggers', {writable: true});
+        Object.defineProperty(this, 'config_automation_conditions', {writable: true});
+        Object.defineProperty(this, 'config_automation_actions', {writable: true});
 
-        this.app = express();
+        Object.defineProperty(this, 'accessory_discovery_counter', {value: 0});
+        Object.defineProperty(this, 'accessory_discovery_handlers', {value: new Set()});
+        Object.defineProperty(this, 'accessory_discovery_handlers_events', {value: new WeakMap()});
+
+        Object.defineProperty(this, 'app', {value: express()});
 
         csp.extend(this.app, {
             policy: {
@@ -93,7 +98,7 @@ export default class Server extends Events {
             next();
         }, express.static(this.assets_path));
 
-        this.multer = multer({dest: os.tmpdir()});
+        Object.defineProperty(this, 'multer', {value: multer({dest: os.tmpdir()})});
         this.app.post('/assets/upload-layout-background', this.multer.single('background'),
             Connection.handleUploadLayoutBackground.bind(Connection, this));
 
@@ -121,28 +126,28 @@ export default class Server extends Events {
             this.app.use(hotmiddleware(compiler));
         }
 
-        this.wss = new WebSocket.Server({noServer: true});
+        Object.defineProperty(this, 'wss', {value: new WebSocket.Server({noServer: true})});
         this.wss.on('connection', (ws, req) => this.handleWebsocketConnection(ws, req));
 
         this.handle = this.handle.bind(this);
         this.upgrade = this.upgrade.bind(this);
 
-        this.characteristic_change_handlers = new WeakMap();
-        this._handleCharacteristicUpdate = (default_accessory, event) => {
+        Object.defineProperty(this, 'characteristic_change_handlers', {value: new WeakMap()});
+        Object.defineProperty(this, '_handleCharacteristicUpdate', {value: (default_accessory, event) => {
             // this.log.info('Updating characteristic', event);
             this.handleCharacteristicUpdate(event.accessory || default_accessory, event.service,
                 event.characteristic, event.newValue, event.oldValue, event.context);
-        };
+        }});
 
-        this.configuration_change_handlers = new WeakMap();
-        this._handleConfigurationChange = (default_accessory, event) => {
+        Object.defineProperty(this, 'configuration_change_handlers', {value: new WeakMap()});
+        Object.defineProperty(this, '_handleConfigurationChange', {value: (default_accessory, event) => {
             this.log.debug('Updating accessory configuration', event);
             this.handleConfigurationChange(event.accessory || default_accessory, event.service, event.characteristic);
-        };
+        }});
 
-        this._handleRegisterHomebridgePlatformAccessories = this.handleRegisterHomebridgePlatformAccessories.bind(this);
-        this._handleUnregisterHomebridgePlatformAccessories =
-            this.handleUnregisterHomebridgePlatformAccessories.bind(this);
+        Object.defineProperty(this, '_handleRegisterHomebridgePlatformAccessories', {value: this.handleRegisterHomebridgePlatformAccessories.bind(this)});
+        Object.defineProperty(this, '_handleUnregisterHomebridgePlatformAccessories', {value:
+            this.handleUnregisterHomebridgePlatformAccessories.bind(this)});
 
         Server.instances.add(this);
 
@@ -165,7 +170,7 @@ export default class Server extends Events {
             uuid: event.scene.uuid,
         }));
 
-        this.plugins = new Map();
+        Object.defineProperty(this, 'plugins', {value: new Map()});
     }
 
     /**

@@ -8,8 +8,12 @@ import url from 'url';
 import querystring from 'querystring';
 import fs from 'fs';
 import util from 'util';
+import stream from 'stream';
+import repl from 'repl';
+import child_process from 'child_process';
 import genuuid from 'uuid/v4';
 import mkdirp from 'mkdirp';
+import chalk from 'chalk';
 
 import hap from 'hap-nodejs';
 
@@ -121,6 +125,9 @@ const message_methods = {
     'get-accessory-uis': 'handleGetAccessoryUIsMessage',
     'authenticate': 'handleAuthenticateMessage',
     'accessory-setup': 'handleAccessorySetupMessage',
+    'open-console': 'handleOpenConsoleMessage',
+    'close-console': 'handleCloseConsoleMessage',
+    'console-input': 'handleConsoleInputMessage',
 };
 
 const hide_authentication_keys = [
@@ -133,17 +140,19 @@ const DEVELOPMENT = true;
 
 export default class Connection {
     constructor(server, ws, req) {
-        this.server = server;
-        this.ws = ws;
-        this.id = id++;
-        this.log = server.log.withPrefix('Connection #' + this.id);
+        Object.defineProperty(this, 'server', {value: server});
+        Object.defineProperty(this, 'ws', {value: ws});
+        Object.defineProperty(this, 'id', {enumerable: true, value: id++});
+        Object.defineProperty(this, 'log', {value: server.log.withPrefix('Connection #' + this.id)});
         this.authenticated_user = null;
         this.enable_accessory_discovery = false;
         this.enable_proxy_stdout = false;
         this.last_message = null;
         this.closed = false;
-        this.req = req;
+        Object.defineProperty(this, 'req', {value: req});
         this.uploads = [];
+        this.open_consoles = new Map();
+        this.console_id = 0;
 
         this.permissions = new Permissions(this);
 
@@ -2075,6 +2084,113 @@ export default class Connection {
                 data: err instanceof Error ? {message: err.message, code: err.code, stack: err.stack} : err,
             });
         }
+    }
+
+    handleOpenConsoleMessage(messageid, data) {
+        this.respond(messageid, this.openConsole());
+    }
+
+    async openConsole() {
+        const id = this.console_id++;
+
+        const input = new stream.Readable({
+            read: () => {},
+        });
+        const output = new stream.Writable({
+            write: (data, encoding, callback) => {
+                this.sendBroadcast({
+                    type: 'console-output',
+                    id,
+                    stream: 'out',
+                    data: data.toString('utf-8'),
+                });
+                callback();
+            },
+        });
+
+        const console = {input, output, subprocesses: new Set()};
+        this.open_consoles.set(id, console);
+
+        setTimeout(() => {
+            const repl_server = repl.start({
+                input,
+                output,
+                terminal: true,
+                useColors: true,
+            });
+
+            repl_server.context.PluginManager = PluginManager;
+            repl_server.context.server = this.server;
+            repl_server.context.connection = this;
+
+            repl_server.on('reset', () => {
+                repl_server.context.PluginManager = PluginManager;
+                repl_server.context.server = this.server;
+                repl_server.context.connection = this;
+            });
+
+            repl_server.defineCommand('exec', {
+                help: 'Execute a command on the host',
+                action: async command => {
+                    if (!command) {
+                        repl_server.clearBufferedCommand();
+                        output.write(chalk.red('Must provide a command to run') + '\n');
+                        repl_server.displayPrompt();
+                        return;
+                    }
+
+                    this.log.info('Running command %s', command);
+                    repl_server.clearBufferedCommand();
+                    repl_server.pause();
+                    const subprocess = child_process.exec(command);
+                    console.subprocesses.add(subprocess);
+                    subprocess.stdout.on('data', data => output.write(data));
+                    subprocess.stderr.on('data', data => output.write(data));
+                    console.input = subprocess.stdin;
+                    const {code, signal} = await new Promise(rs =>
+                        subprocess.on('exit', (code, signal) => rs({code, signal})));
+                    console.input = input;
+                    console.subprocesses.delete(subprocess);
+                    repl_server.resume();
+                    this.log.info('Command %s exited with %s %d', command, signal ? 'signal' : 'code', signal ? signal : code);
+                    if (signal) output.write(chalk.yellow('Killed with signal ' + signal) + '\n');
+                    else output.write(chalk[code === 0 ? 'grey' : 'red']('Exit code ' + code) + '\n');
+                    repl_server.displayPrompt();
+                },
+            });
+
+            console.repl_server = repl_server;
+        }, 0);
+
+        return id;
+    }
+
+    handleCloseConsoleMessage(messageid, data) {
+        this.respond(messageid, this.closeConsole(data.id));
+    }
+
+    async closeConsole(id) {
+        const {repl_server, subprocesses} = this.open_consoles.get(id) || {};
+        if (!repl_server) throw new Error('Unknown console with ID "' + id + '"');
+
+        repl_server.close();
+        this.open_consoles.delete(id);
+
+        for (const subprocess of subprocesses) {
+            subprocess.kill();
+        }
+    }
+
+    handleConsoleInputMessage(messageid, data) {
+        this.respond(messageid, this.handleConsoleInput(data.id, data.data));
+    }
+
+    async handleConsoleInput(id, data) {
+        const {repl_server, input} = this.open_consoles.get(id) || {};
+        if (!repl_server) throw new Error('Unknown console with ID "' + id + '"');
+
+        if (input.writable) input.write(data, 'utf-8');
+        else input.push(data, 'utf-8');
     }
 }
 

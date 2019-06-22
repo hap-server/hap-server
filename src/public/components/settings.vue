@@ -52,7 +52,7 @@
             </list-item>
         </list-group>
 
-        <div v-if="tab === 'output'" class="form-group">
+        <div v-if="tab === 'output'" key="output" class="form-group">
             <dl v-if="command_line_flags.length" class="row">
                 <dt class="col-sm-3">Command</dt>
                 <dd class="col-sm-9 text-right selectable">
@@ -63,6 +63,15 @@
             </dl>
 
             <terminal :terminal="terminal" />
+        </div>
+
+        <div v-if="tab === 'console'" key="console" class="form-group">
+            <dl v-if="!console" class="row">
+                <dt class="col-sm-3">Status</dt>
+                <dd class="col-sm-9 text-right">{{ opening_console ? 'Starting' : 'Stopped' }}</dd>
+            </dl>
+
+            <terminal :terminal="console_terminal" />
         </div>
 
         <div class="d-flex">
@@ -98,7 +107,7 @@
     import {Terminal} from 'xterm';
 
     import Connection from '../../client/connection';
-    import {GetAssetURLSymbol} from '../internal-symbols';
+    import {ClientSymbol, GetAssetURLSymbol} from '../internal-symbols';
 
     import Panel from './panel.vue';
     import PanelTabs from './panel-tabs.vue';
@@ -122,6 +131,7 @@
             canCreateBridges: Boolean,
         },
         inject: {
+            client: {from: ClientSymbol},
             getAssetURL: {from: GetAssetURLSymbol},
         },
         data() {
@@ -139,6 +149,7 @@
                     accessories: 'Accessories',
                     bridges: 'Bridges',
                     output: 'Output',
+                    console: 'Console',
                 },
 
                 terminal: null,
@@ -147,6 +158,10 @@
                 name: null,
                 background_url: null,
                 bridges: [],
+
+                opening_console: false,
+                console: null,
+                console_terminal: null,
             };
         },
         watch: {
@@ -163,6 +178,19 @@
 
                     await connection.enableProxyStdout().then(() => this.terminal.write('\nStarted stdout proxy...\n'));
                 };
+
+                if (this.console) {
+                    this.console.close();
+                    this.console = null;
+                    this.terminal.setOption('disableStdin', true);
+                }
+
+                if (connection && this.tab === 'console') this.openConsole();
+            },
+            tab(tab) {
+                if (tab === 'console' && !this.console && !this.opening_console) {
+                    this.openConsole();
+                }
             },
         },
         async created() {
@@ -182,6 +210,18 @@
             this.connection.on('stdout', this.stdout);
             this.connection.on('stderr', this.stderr);
 
+            this.console_terminal = new Terminal({
+                disableStdin: true,
+                fontSize: 12,
+                convertEol: true,
+                columns: 20,
+            });
+            this.console_terminal.write('Hello from \x1B[1;3;31mxterm.js\x1B[0m $ ');
+
+            this.console_terminal.onData(data => {
+                this.console.write(data);
+            });
+
             await Promise.all([
                 this.reload(),
                 this.loadCommandLineFlags(),
@@ -193,10 +233,13 @@
             // this.connection.removeListener('added-bridge', this.addedBridge);
             // this.connection.removeListener('removed-bridge', this.removedBridge);
 
-            return this.connection.disableProxyStdout().then(() => {
-                this.connection.removeListener('stdout', this.stdout);
-                this.connection.removeListener('stderr', this.stderr);
-            });
+            return Promise.all([
+                this.connection.disableProxyStdout().then(() => {
+                    this.connection.removeListener('stdout', this.stdout);
+                    this.connection.removeListener('stderr', this.stderr);
+                }),
+                this.console ? this.console.close() : null,
+            ]);
         },
         methods: {
             async reload() {
@@ -274,6 +317,30 @@
             stderr(data) {
                 console.error('stderr', data);
                 this.terminal.write(data);
+            },
+            async openConsole() {
+                if (this.opening_console) throw new Error('Already opening console');
+                this.opening_console = true;
+
+                try {
+                    this.console = await this.client.openConsole();
+
+                    if (this._isDestroyed) {
+                        await this.console.close();
+                        return;
+                    }
+
+                    this.console.on('out', data => {
+                        this.console_terminal.write(data);
+                    });
+                    this.console.on('err', data => {
+                        this.console_terminal.write(data);
+                    });
+
+                    this.console_terminal.setOption('disableStdin', false);
+                } finally {
+                    this.opening_console = false;
+                }
             },
         },
     };
