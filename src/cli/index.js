@@ -45,23 +45,68 @@ export function getConfig(argv) {
     let config;
 
     try {
-        const config_string = fs.readFileSync(config_path, 'utf-8');
+        const config_cache = {};
 
-        if (['.yml', '.yaml'].includes(path.extname(config_path))) {
-            config = yaml.parse(config_string, {
-                prettyErrors: true,
-            });
-            console.log(config);
-        } else {
-            config = JSON.parse(config_string);
+        function requireConfig(config_path) {
+            if (config_cache[config_path]) {
+                return config_cache[config_path];
+            }
+
+            try {
+                const config_string = fs.readFileSync(config_path, 'utf-8');
+
+                if (['.yml', '.yaml'].includes(path.extname(config_path))) {
+                    return config_cache[config_path] = yaml.parse(config_string, {
+                        prettyErrors: true,
+                    });
+                } else {
+                    return config_cache[config_path] = JSON.parse(config_string);
+                }
+            } catch (err) {
+                err.config_path = config_path;
+                throw err;
+            }
         }
+
+        function mapIncludes(config_path, value) {
+            if (typeof value === 'string' && value.startsWith('include ')) {
+                return requireConfig(path.resolve(path.dirname(config_path), value.substr(8)));
+            } else if (Object.keys(value).length === 1 && value.include) {
+                return requireConfig(path.resolve(path.dirname(config_path), value.include));
+            }
+
+            return value;
+        }
+
+        config = requireConfig(config_path);
+
+        if (config.plugins) config.plugins = Object.entries(config.plugins)
+            .map(([key, value]) => [key, mapIncludes(config_path, value)])
+            .reduce((acc, [key, value]) => (acc[key] = value, acc), {});
+        if (config.accessories) config.accessories = config.accessories.map(mapIncludes.bind(null, config_path));
+        if (config.platforms) config.platforms = config.platforms.map(mapIncludes.bind(null, config_path));
+        if (config.bridges) config.bridges = config.bridges.map(mapIncludes.bind(null, config_path));
+        if (config.accessories2) config.accessories2 = config.accessories2.map(mapIncludes.bind(null, config_path));
+        if (config.platforms2) config.platforms2 = config.platforms2.map(mapIncludes.bind(null, config_path));
+        if (config.automations) config.automations = config.automations.map(mapIncludes.bind(null, config_path));
+        if (config['automation-triggers']) config['automation-triggers'] = Object.entries(config['automation-triggers'])
+            .map(([key, value]) => [key, mapIncludes(config_path, value)])
+            .reduce((acc, [key, value]) => (acc[key] = value, acc), {});
+        if (config['automation-conditions']) config['automation-conditions'] = Object.entries(config['automation-conditions'])
+            .map(([key, value]) => [key, mapIncludes(config_path, value)])
+            .reduce((acc, [key, value]) => (acc[key] = value, acc), {});
+        if (config['automation-actions']) config['automation-actions'] = Object.entries(config['automation-actions'])
+            .map(([key, value]) => [key, mapIncludes(config_path, value)])
+            .reduce((acc, [key, value]) => (acc[key] = value, acc), {});
+
+        console.log(config);
     } catch (error) {
         if (error && error.code === 'ENOENT') {
-            console.error(chalk.red(`The configuration file (${config_path}) doesn\'t exist.`));
+            console.error(chalk.red(`The configuration file (${error.config_path}) doesn\'t exist.`));
         } else if (error instanceof SyntaxError) {
-            console.error(chalk.red(`Syntax error reading configuration file (${config_path}):`), error.message);
+            console.error(chalk.red(`Syntax error reading configuration file (${error.config_path}):`), error.message);
         } else {
-            console.error(chalk.red(`Error reading configuration file (${config_path}):`), error);
+            console.error(chalk.red(`Error reading configuration file (${error.config_path}):`), error);
         }
 
         throw process.exit(1);
