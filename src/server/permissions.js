@@ -681,6 +681,25 @@ export default class Permissions {
     }
 
     /**
+     * Check if the user can use web consoles.
+     *
+     * @return {Promise<boolean>}
+     */
+    checkCanOpenWebConsole() {
+        return false;
+
+        if (!this.user) return false;
+
+        return true;
+    }
+
+    async assertCanOpenWebConsole() {
+        if (!await this.checkCanOpenWebConsole()) {
+            throw new Error('You don\'t have permission to open a console');
+        }
+    }
+
+    /**
      * Check if the user should receive a broadcast message.
      *
      * @param {Object} data
@@ -709,6 +728,9 @@ export default class Permissions {
         if (data.type === 'update-pairing-data') {
             return this.checkCanGetPairing(data.id) && this.checkCanAccessServerRuntimeInfo();
         }
+
+        // Always sent to a single client
+        if (data.type === 'console-output') return false;
 
         if (DEVELOPMENT && this.__development_allow_local()) return true;
 

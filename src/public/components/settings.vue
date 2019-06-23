@@ -129,6 +129,7 @@
             loadingAccessories: Boolean,
             canAddAccessories: Boolean,
             canCreateBridges: Boolean,
+            canOpenConsole: Boolean,
         },
         inject: {
             client: {from: ClientSymbol},
@@ -149,7 +150,7 @@
                     accessories: 'Accessories',
                     bridges: 'Bridges',
                     output: 'Output',
-                    console: 'Console',
+                    console: {label: 'Console', if: () => this.canOpenConsole},
                 },
 
                 terminal: null,

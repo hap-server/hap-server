@@ -45,6 +45,7 @@
             <settings v-else-if="modal.type === 'settings'" :key="index" :ref="'modal-' + index"
                 :connection="connection" :accessories="accessories" :loading-accessories="loading_accessories"
                 :can-add-accessories="can_add_accessories" :can-create-bridges="can_create_bridges"
+                :can-open-console="can_open_console"
                 @modal="modal => modals.push(modal)"
                 @show-accessory-settings="accessory => modals.push({type: 'accessory-settings', accessory})"
                 @refresh-accessories="refreshAccessories()"
@@ -172,6 +173,7 @@
 
                 can_update_home_settings: false,
                 can_access_server_settings: false,
+                can_open_console: false,
                 can_add_accessories: false,
                 can_create_bridges: false,
                 can_create_layouts: false,
@@ -495,6 +497,7 @@
 
                     this.can_update_home_settings = !!permissions.set;
                     this.can_access_server_settings = !!permissions.server;
+                    this.can_open_console = !!permissions.console;
                     this.can_add_accessories = !!permissions.add_accessories;
                     this.can_create_bridges = !!permissions.create_bridges;
                     this.can_create_layouts = !!permissions.create_layouts;

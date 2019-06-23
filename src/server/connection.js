@@ -594,7 +594,8 @@ export default class Connection {
 
     async getHomePermissions() {
         const [
-            get, set, add_accessories, create_layouts, has_automations, create_automations, create_bridges, server,
+            get, set, add_accessories, create_layouts, has_automations, create_automations, create_bridges,
+            server, console,
         ] = await Promise.all([
             this.permissions.checkCanGetHomeSettings(),
             this.permissions.checkCanSetHomeSettings(),
@@ -604,9 +605,13 @@ export default class Connection {
             this.permissions.checkCanCreateAutomations(),
             this.permissions.checkCanCreateBridges(),
             this.permissions.checkCanAccessServerRuntimeInfo(),
+            this.permissions.checkCanOpenWebConsole(),
         ]);
 
-        return {get, set, add_accessories, create_layouts, has_automations, create_automations, create_bridges, server};
+        return {
+            get, set, add_accessories, create_layouts, has_automations, create_automations, create_bridges,
+            server, console,
+        };
     }
 
     /**
@@ -2091,6 +2096,8 @@ export default class Connection {
     }
 
     async openConsole() {
+        await this.permissions.assertCanOpenWebConsole();
+
         const id = this.console_id++;
 
         const input = new stream.Readable({
