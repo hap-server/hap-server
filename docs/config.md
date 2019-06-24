@@ -7,29 +7,21 @@ controlling accessories. Using Homebridge and hap-server plugins at the same tim
 run multiple instances of hap-server/Homebridge using the same data location.
 
 <!-- When using Homebridge accessories in the web interface, you can control, rename and move Homebridge accessories, but
-not configure them. Configuring Homebridge accessories must be done by editing the `config.json` file. -->
+not configure them. Configuring Homebridge accessories must be done by editing the configuration file. -->
 
-```json
-{
-    "http_host": "127.0.0.1",
-    "http_port": "8080",
-    "bridges": [
-        {
-            "username": "00:00:00:00:00:10",
-            "name": "Bridge 0010",
-            "accessories": [
-                ["virtual-switches", "VirtualSwitch", "Switch #1"]
-            ]
-        }
-    ],
-    "accessories2": [
-        {
-            "plugin": "virtual-switches",
-            "accessory": "VirtualSwitch",
-            "name": "Switch #1"
-        }
-    ]
-}
+```yaml
+listen: [::1]:8080
+
+bridges:
+    -   username: 00:00:00:00:00:10
+        name: Bridge 0010
+        accessories:
+            - [virtual-switches, VirtualSwitch, "Switch #1"]
+
+accessories2:
+    -   plugin: virtual-switches
+        accessory: VirtualSwitch
+        name: "Switch #1"
 ```
 
 ### `bridge`, `accessories` and `platforms`
@@ -43,19 +35,15 @@ An array of IP addresses + port numbers, port numbers and socket paths to listen
 to a random port on all addresses, so you will probably want to set this. You can also set this to an empty array
 to disable the web interface.
 
-```json
-{
-    "listen": 8082,
+```yaml
+listen: 8082
 
-    "listen": [
-        8082,
-        "8082",
-        "127.0.0.1:8082",
-        "[::1]:8082",
-        "unix:hap-server.sock",
-        "unix:/Users/samuel/Documents/Projects/hap-server/data/hap-server.sock"
-    ]
-}
+listen:
+    - 8082
+    - 127.0.0.1:8082
+    - [::1]:8082
+    - unix:hap-server.sock
+    - unix:/Users/samuel/Documents/Projects/hap-server/data/hap-server.sock
 ```
 
 Setting only a port number will bind to that port on all addresses. (`8082` is the same as `[::]:8082`.)
@@ -71,26 +59,38 @@ key in separate files or a certificate and private key. Paths are relative to th
 Certificate files will be read before setting the user/group, so you can set the certificate files to only be readable
 by root.
 
-```json
-{
-    "listen": [
-        "8082"
-    ],
-    "listen-https": {
-        "8082": "certificate.pem",
-        "8082": "/Users/samuel/Documents/Projects/hap-server/data/certificate.pem",
-        "8082": ["certificate.pem", "private-key.pem"],
-        "8082": "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----\n-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----",
-        "8082": [
-            "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----",
-            "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----"
-        ],
-        "8082": [
-            "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----",
-            "private-key.pem"
-        ]
-    }
-}
+```yaml
+listen:
+    - 8082
+
+listen-https:
+    8082: certificate.pem
+    8082: /Users/samuel/Documents/Projects/hap-server/data/certificate.pem
+    8082:
+        - certificate.pem
+        - private-key.pem
+    8082: |
+        -----BEGIN CERTIFICATE-----
+        ...
+        -----END CERTIFICATE-----
+        -----BEGIN RSA PRIVATE KEY-----
+        ...
+        -----END RSA PRIVATE KEY-----
+    8082:
+        - |
+            -----BEGIN CERTIFICATE-----
+            ...
+            -----END CERTIFICATE-----
+        - |
+            -----BEGIN RSA PRIVATE KEY-----
+            ...
+            -----END RSA PRIVATE KEY-----
+    8082:
+        - |
+            -----BEGIN CERTIFICATE-----
+            ...
+            -----END CERTIFICATE-----
+        - private-key.pem
 ```
 
 If using a certificate signed by a CA (not self signed) you should include the full certificate chain with the
@@ -105,35 +105,28 @@ certificate for, or an object mapping IP addresses + port numbers, port numbers 
 This doesn't authenticate users to the web interface, but plugins can access the client certificate to authenticate
 users.
 
-```json
-{
-    "listen": [
-        "8082"
-    ],
-    "listen-https": {
-        "8082": "certificate.pem"
-    },
-    "listen-https+request-client-certificate": [
-        "8082"
-    ],
-    "listen-https+request-client-certificate": {
-        "8082": true
-    }
-}
+```yaml
+listen:
+    - 8082
+listen-https:
+    8082: certificate.pem
+
+listen-https+request-client-certificate:
+    - 8082
+
+listen-https+request-client-certificate:
+    8082: true
 ```
 
-```json
-{
-    "listen": [
-        "8082"
-    ],
-    "listen-https": {
-        "8082": "certificate.pem"
-    },
-    "listen-https+request-client-certificate": {
-        "8082": "ca.pem"
-    }
-}
+```yaml
+listen:
+    - 8082
+
+listen-https:
+    8082: certificate.pem
+
+listen-https+request-client-certificate:
+    8082: ca.pem
 ```
 
 ### `listen-https+require-client-certificate`
@@ -144,18 +137,14 @@ certificate authorities to require certificates from.
 This doesn't authenticate users to the web interface, but plugins can access the client certificate to authenticate
 users.
 
-```json
-{
-    "listen": [
-        "8082"
-    ],
-    "listen-https": {
-        "8082": "certificate.pem"
-    },
-    "listen-https+require-client-certificate": {
-        "8082": "ca.pem"
-    }
-}
+```yaml
+listen:
+    - 8082
+listen-https:
+    8082: certificate.pem
+
+listen-https+require-client-certificate:
+    8082: ca.pem
 ```
 
 ### `listen-https+crl`
@@ -163,18 +152,14 @@ users.
 An object mapping IP addresses + port numbers, port numbers and socket paths set in [`listen`](#listen) to
 certificate revocation lists.
 
-```json
-{
-    "listen": [
-        "8082"
-    ],
-    "listen-https": {
-        "8082": "certificate.pem"
-    },
-    "listen-https+crl": {
-        "8082": "crl.pem"
-    }
-}
+```yaml
+listen":
+    - 8082
+listen-https:
+    8082: certificate.pem
+
+listen-https+crl:
+    8082: crl.pem
 ```
 
 ### `listen-https+passphrase`
@@ -182,18 +167,14 @@ certificate revocation lists.
 An object mapping IP addresses + port numbers, port numbers and socket paths set in [`listen`](#listen) to
 passphrases to decrypt private keys.
 
-```json
-{
-    "listen": [
-        "8082"
-    ],
-    "listen-https": {
-        "8082": "certificate.pem"
-    },
-    "listen-https+passphrase": {
-        "8082": "..."
-    }
-}
+```yaml
+listen:
+    - 8082
+listen-https:
+    8082: certificate.pem
+
+listen-https+passphrase:
+    8082: ...
 ```
 
 ### `data-path`
@@ -205,17 +186,12 @@ is in.
 
 An array of plugin paths to add or a single plugin path.
 
-```json
-{
-    "plugin-path": [
-        "../example-plugins/dist/virtual-switches"
-    ]
-}
+```yaml
+plugin-path:
+    - ../example-plugins/dist/virtual-switches
 ```
-```json
-{
-    "plugin-path": "../example-plugins/dist/virtual-switches"
-}
+```yaml
+plugin-path: ../example-plugins/dist/virtual-switches
 ```
 
 #### Single file plugins
@@ -232,15 +208,11 @@ multiple instances.
 
 Keys are plugin names or the special value `"*"` which applies to plugins that aren't listed.
 
-```json
-{
-    "plugins": {
-        "@hap-server/authenticate-pam": true,
-        "authentication-handler": {
-            ...
-        }
-    }
-}
+```yaml
+plugins:
+    "@hap-server/authenticate-pam": true
+    authentication-handler":
+        ...
 ```
 
 #### `plugins[]`
@@ -249,21 +221,16 @@ Either a boolean (`true`/`false`) or an object containing plugin configuration a
 
 If `false` the plugin will be disabled. When a plugin is disabled it will not be loaded.
 
-```json
-{
-    "@hap-server/authenticate-pam": false
-}
+```yaml
+"@hap-server/authenticate-pam": false
 ```
 
 Valid keys are `"accessory-uis"`, `"accessory-discovery"`, `"accessory-setup"` and `"authentication-handlers"`. Other
 options are passed to the plugin.
 
-```json
-{
-    "example-plugin": {
-        "accessory-uis": false
-    }
-}
+```yaml
+example-plugin:
+    accessory-uis: false
 ```
 
 #### `plugins[]['accessory-uis']`
@@ -273,12 +240,9 @@ Either a boolean (`true`/`false`) or an object containing specific Accessory UIs
 Keys are Accessory UI IDs or the special value `"*"` which applies to Accessory UIs that aren't listed. Accessory UIs
 have global numeric IDs so want to use `"*"` as IDs can change when updating plugins, hap-server or your configuration.
 
-```json
-{
-    "accessory-uis": {
-        "*": false
-    }
-}
+```yaml
+accessory-uis:
+    "*": false
 ```
 
 ##### `plugins[]['accessory-uis'][]`
@@ -290,12 +254,9 @@ Either a boolean (`true`/`false`) or an object containing specific Accessory UI 
 Valid keys are `"service-tiles"`, `"accessory-details"` and `"collapsed-services"`. Other options are passed to the
 Accessory UI.
 
-```json
-{
-    "*": {
-        "service-tiles": false
-    }
-}
+```yaml
+"*":
+    service-tiles: false
 ```
 
 ##### `plugins[]['accessory-uis'][]['service-tiles']`
@@ -334,12 +295,9 @@ Either a boolean (`true`/`false`) or an object containing specific authenticatio
 Keys are Accessory UI IDs or the special value `"*"` which applies to Accessory UIs that aren't listed. Accessory UIs
 have global numeric IDs so want to use `"*"` as IDs can change when updating plugins, hap-server or your configuration.
 
-```json
-{
-    "authentication-handlers": {
-        "LocalStorage": false
-    }
-}
+```yaml
+authentication-handlers:
+    LocalStorage: false
 ```
 
 ### `server-plugins`
@@ -385,19 +343,17 @@ When `true` the `unauthenticated_access` flag will allow access to the HAP serve
 An array of accessory UUIDs/plugin-accessory-name arrays. By default accessories will not be added to a bridge, so you
 will have to add them manually.
 
-```json
-"accessories": [
-    "108ee027-3c7e-4852-ac2e-016543f46fb9",
-    ["virtual-switches", "VirtualSwitch", "Switch #1"]
-]
+```yaml
+accessories:
+    - 108ee027-3c7e-4852-ac2e-016543f46fb9
+    - [virtual-switches, VirtualSwitch, "Switch #1"]
 ```
 
 You can register accessories from Homebridge plugins by using the plugin `"homebridge"` and accessory type `null`.
 
-```json
-[
-    ["homebridge", null, "Accessory from Homebridge plugin"]
-]
+```yaml
+accessories:
+    - [homebridge, null, Accessory from Homebridge plugin]
 ```
 
 ### `accessories2`
@@ -466,21 +422,18 @@ platform name. This isn't a real UUID, it's used to generate UUIDs for individua
 
 > `!platforms2[].plugin && platforms2[].platform === 'HomeKitIP'`
 
-```json
-{
-    "platform": "HomeKitIP",
-    "name": "HAP over IP Accessory",
-    "username": "00:00:00:00:00:00",
-    "host": "samuels-macbook-air.local",
-    "port": 49682,
-    "pairing_data": {
-        "AccessoryPairingID": ...,
-        "AccessoryLTPK": ...,
-        "iOSDevicePairingID": ...,
-        "iOSDeviceLTSK": ...,
-        "iOSDeviceLTPK": ...
-    }
-}
+```yaml
+platform: HomeKitIP
+name: HAP over IP Accessory
+username: 00:00:00:00:00:00
+host: samuels-macbook-air.local
+port: 49682
+pairing_data:
+    AccessoryPairingID: ...
+    AccessoryLTPK: ...
+    iOSDevicePairingID: ...
+    iOSDeviceLTSK: ...
+    iOSDeviceLTPK: ...
 ```
 
 ##### `platforms2[].username`
@@ -552,14 +505,11 @@ A string to evalute. This can also be an array, which will be joined by newlines
 
 The script will be wrapped in an async function, so it can use the `await` keyword:
 
-```json
-{
-    "condition": "Script",
-    "script": [
-        "const response = await axios.get('...');",
-        "return response.data;"
-    ]
-}
+```yaml
+condition: Script
+script: |
+    const response = await axios.get('...');
+    return response.data;
 ```
 
 ### `automation-actions`
@@ -595,14 +545,11 @@ A string to evalute. This can also be an array, which will be joined by newlines
 
 The script will be wrapped in an async function, so it can use the `await` keyword:
 
-```json
-{
-    "condition": "Script",
-    "script": [
-        "const response = await axios.get('...');",
-        "return response.data;"
-    ]
-}
+```yaml
+condition: Script
+script: |
+    const response = await axios.get('...');
+    return response.data;
 ```
 
 #### `automation-actions[].characteristic`
