@@ -93,6 +93,35 @@
     }
 }
 
+.list-group-group {
+    margin-bottom: 1rem;
+
+    > .list-group-group-item > h4 {
+        position: -webkit-sticky;
+        position: sticky;
+        top: 0;
+        margin-bottom: 0;
+        padding-top: 1rem;
+        padding-bottom: 0.5rem;
+        z-index: 2;
+    }
+    > .list-group-group-item:first-child > h4 {
+        margin-top: -1rem;
+    }
+
+    > * + * > .list-group:first-child {
+        margin-top: 1rem;
+    }
+
+    .settings-window & > .list-group-group-item > h4 {
+        background-color: $light;
+
+        @include dark-theme {
+            background-color: darken($dark, 10%);
+        }
+    }
+}
+
 @keyframes mobile-panel-in {
     0% {
         margin-top: 100vh;

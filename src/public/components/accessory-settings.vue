@@ -28,7 +28,8 @@
                     @click="$emit('show-service-settings', service)"
                 >
                     {{ service.name || service.uuid }}
-                    <small v-if="service.name" class="text-muted">{{ service.type_name }} {{ service.uuid }}</small>
+                    <small v-if="service.name" class="text-muted">{{ service.uuid }}</small>
+                    <p v-if="service.type_name" class="mb-0"><small>{{ service.type_name }}</small></p>
                 </list-item>
             </list-group>
 
@@ -97,40 +98,50 @@
             </div>
         </form>
 
-        <list-group v-if="!createBridge && !deleteBridge && tab === 'accessories'" class="mb-3">
-            <template v-if="config && can_set_config">
-                <draggable class="draggable" :list="config.accessories || $set(config, 'accessories', [])"
-                    :group="_uid + '-accessories-draggable-group'"
-                >
-                    <list-item v-for="[uuid, accessory] in config.accessories.map(uuid => [uuid, accessories[uuid]])"
-                        :key="uuid" @click="$emit('show-accessory-settings', accessory)"
+        <div v-if="!createBridge && !deleteBridge && tab === 'accessories'" class="list-group-group">
+            <div v-if="config && can_set_config" class="list-group-group-item">
+                <list-group>
+                    <draggable class="draggable" :list="config.accessories || $set(config, 'accessories', [])"
+                        :group="_uid + '-accessories-draggable-group'"
                     >
-                        {{ accessory ? accessory.name : uuid }}
-                        <small v-if="accessory" class="text-muted">{{ uuid }}</small>
-                    </list-item>
-                </draggable>
+                        <list-item v-for="[uuid, accessory] in config.accessories.map(uuid => [uuid, accessories[uuid]])"
+                            :key="uuid" @click="$emit('show-accessory-settings', accessory)"
+                        >
+                            {{ accessory ? accessory.name : uuid }}
+                            <small v-if="accessory" class="text-muted">{{ uuid }}</small>
+                        </list-item>
+                    </draggable>
+                </list-group>
+            </div>
 
-                <list-item class="heading"><h4>Other accessories</h4></list-item>
+            <div v-if="config && can_set_config" class="list-group-group-item">
+                <h4>Other accessories</h4>
 
-                <draggable class="draggable" :value="accessories_available_to_bridge"
-                    :group="_uid + '-accessories-draggable-group'"
-                >
-                    <list-item v-for="[uuid, accessory] in accessories_available_to_bridge.map(uuid => [uuid, accessories[uuid]])"
-                        :key="uuid"
+                <list-group>
+                    <draggable class="draggable" :value="accessories_available_to_bridge"
+                        :group="_uid + '-accessories-draggable-group'"
                     >
-                        {{ accessory ? accessory.name : uuid }}
-                        <small v-if="accessory" class="text-muted">{{ uuid }}</small>
-                    </list-item>
-                </draggable>
-            </template>
+                        <list-item v-for="[uuid, accessory] in accessories_available_to_bridge.map(uuid => [uuid, accessories[uuid]])"
+                            :key="uuid"
+                        >
+                            {{ accessory ? accessory.name : uuid }}
+                            <small v-if="accessory" class="text-muted">{{ uuid }}</small>
+                        </list-item>
+                    </draggable>
+                </list-group>
+            </div>
 
-            <list-item v-else v-for="accessory in bridged_accessories" :key="accessory.uuid"
-                @click="$emit('show-accessory-settings', accessory)"
-            >
-                {{ accessory.name }}
-                <small class="text-muted">{{ accessory.uuid }}</small>
-            </list-item>
-        </list-group>
+            <div v-else class="list-group-group-item">
+                <list-group>
+                    <list-item v-for="accessory in bridged_accessories" :key="accessory.uuid"
+                        @click="$emit('show-accessory-settings', accessory)"
+                    >
+                        {{ accessory.name }}
+                        <small class="text-muted">{{ accessory.uuid }}</small>
+                    </list-item>
+                </list-group>
+            </div>
+        </div>
 
         <template v-if="!createBridge && !deleteBridge && tab === 'pairings'">
             <div v-if="pairing_details && !pairings.length">
