@@ -45,6 +45,7 @@ A lot.
         - [ ] Garage Door Opener
         - [ ] [All other services supported by hap-nodejs](https://github.com/khaost/hap-nodejs/tree/master/lib/gen)
         - [x] [Other services with plugins](docs/plugins.md#accessoryuiregisteraccessorydetailscomponent)
+    - [ ] Accessory groups
     - [x] Dark theme [(system wide)](https://caniuse.com/#search=prefers-color-scheme)
     - [ ] Notifications
 - [x] [Desktop app](https://gitlab.fancy.org.uk/hap-server/electron-app)
@@ -68,6 +69,7 @@ A lot.
     - Works with automations. (Scenes just run automation conditions to check if they're enabled and automation
         actions to activate/deactivate them.)
     - [ ] Simple scene editor. (Set accessories to create active conditions and activate/deactivate actions.)
+    - [ ] Restore state before scene was enabled (using existing historical data)
 - [x] Automations
     - [x] Create automations that can run on the server
         - Useful if you don't have an Apple TV 4, HomePod or always home iPad.
