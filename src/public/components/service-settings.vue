@@ -22,8 +22,11 @@
         <div class="d-flex">
             <div v-if="saving">Saving</div>
             <div class="flex-fill"></div>
-            <button class="btn btn-default btn-sm" type="button" @click="$emit('show-accessory-settings')">
-                Accessory settings</button>&nbsp;
+            <button v-if="!fromAccessorySettings" class="btn btn-default btn-sm" type="button"
+                @click="$emit('show-accessory-settings')"
+            >
+                Accessory settings
+            </button>&nbsp;
             <button class="btn btn-default btn-sm" type="button" :disabled="saving" @click="() => $refs.panel.close()">
                 Cancel</button>&nbsp;
             <button class="btn btn-primary btn-sm" type="button" :disabled="saving" @click="save(true)">Save</button>
@@ -44,6 +47,7 @@
         props: {
             connection: Connection,
             service: Service,
+            fromAccessorySettings: Boolean,
         },
         data() {
             return {

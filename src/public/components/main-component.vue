@@ -68,7 +68,7 @@
                 :connection="connection" :accessory="modal.accessory" :accessories="accessories"
                 :bridge-uuids="bridge_uuids"
                 @show-accessory-settings="accessory => modals.push({type: 'accessory-settings', accessory})"
-                @show-service-settings="service => modals.push({type: 'service-settings', service})"
+                @show-service-settings="service => modals.push({type: 'service-settings', service, fromAccessorySettings: () => modals[index] === modal})"
                 @modal="modal => modals.push(modal)" @close="modals.splice(index, 1)" />
             <accessory-settings v-else-if="modal.type === 'new-bridge'" :key="index" :ref="'modal-' + index"
                 :connection="connection" :accessories="accessories" :bridge-uuids="bridge_uuids" :create-bridge="true"
@@ -84,6 +84,7 @@
 
             <service-settings v-else-if="modal.type === 'service-settings'" :key="index" :ref="'modal-' + index"
                 :connection="connection" :service="modal.service"
+                :from-accessory-settings="typeof modal.fromAccessorySettings === 'function' ? modal.fromAccessorySettings() : modal.fromAccessorySettings"
                 @show-accessory-settings="modals.push({type: 'accessory-settings', accessory: modal.service.accessory})"
                 @close="modals.splice(index, 1)" />
 
