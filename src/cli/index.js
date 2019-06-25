@@ -80,24 +80,32 @@ export function getConfig(argv) {
 
         config = requireConfig(config_path);
 
-        if (config.plugins) config.plugins = Object.entries(config.plugins)
-            .map(([key, value]) => [key, mapIncludes(config_path, value)])
-            .reduce((acc, [key, value]) => (acc[key] = value, acc), {});
+        if (config.plugins) {
+            config.plugins = Object.entries(config.plugins)
+                .map(([key, value]) => [key, mapIncludes(config_path, value)])
+                .reduce((acc, [key, value]) => (acc[key] = value, acc), {});
+        }
         if (config.accessories) config.accessories = config.accessories.map(mapIncludes.bind(null, config_path));
         if (config.platforms) config.platforms = config.platforms.map(mapIncludes.bind(null, config_path));
         if (config.bridges) config.bridges = config.bridges.map(mapIncludes.bind(null, config_path));
         if (config.accessories2) config.accessories2 = config.accessories2.map(mapIncludes.bind(null, config_path));
         if (config.platforms2) config.platforms2 = config.platforms2.map(mapIncludes.bind(null, config_path));
         if (config.automations) config.automations = config.automations.map(mapIncludes.bind(null, config_path));
-        if (config['automation-triggers']) config['automation-triggers'] = Object.entries(config['automation-triggers'])
-            .map(([key, value]) => [key, mapIncludes(config_path, value)])
-            .reduce((acc, [key, value]) => (acc[key] = value, acc), {});
-        if (config['automation-conditions']) config['automation-conditions'] = Object.entries(config['automation-conditions'])
-            .map(([key, value]) => [key, mapIncludes(config_path, value)])
-            .reduce((acc, [key, value]) => (acc[key] = value, acc), {});
-        if (config['automation-actions']) config['automation-actions'] = Object.entries(config['automation-actions'])
-            .map(([key, value]) => [key, mapIncludes(config_path, value)])
-            .reduce((acc, [key, value]) => (acc[key] = value, acc), {});
+        if (config['automation-triggers']) {
+            config['automation-triggers'] = Object.entries(config['automation-triggers'])
+                .map(([key, value]) => [key, mapIncludes(config_path, value)])
+                .reduce((acc, [key, value]) => (acc[key] = value, acc), {});
+        }
+        if (config['automation-conditions']) {
+            config['automation-conditions'] = Object.entries(config['automation-conditions'])
+                .map(([key, value]) => [key, mapIncludes(config_path, value)])
+                .reduce((acc, [key, value]) => (acc[key] = value, acc), {});
+        }
+        if (config['automation-actions']) {
+            config['automation-actions'] = Object.entries(config['automation-actions'])
+                .map(([key, value]) => [key, mapIncludes(config_path, value)])
+                .reduce((acc, [key, value]) => (acc[key] = value, acc), {});
+        }
 
         console.log(config);
     } catch (error) {

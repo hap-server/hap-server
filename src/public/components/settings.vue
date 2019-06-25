@@ -35,7 +35,7 @@
         </form>
 
         <div v-if="tab === 'accessories'" class="list-group-group">
-            <div v-for="group in accessory_groups" class="list-group-group-item">
+            <div v-for="group in accessory_groups" :key="group.name" class="list-group-group-item">
                 <h4 v-if="group.name">{{ group.name }}</h4>
                 <list-group>
                     <list-item v-for="accessory in group.accessories" :key="accessory.uuid"
