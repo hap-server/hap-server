@@ -62,6 +62,26 @@
                 return this.active_input.getCharacteristicValueByName('ConfiguredName') || this.active_input.name;
             },
         },
+        created() {
+            for (const characteristic of [
+                this.television_service.getCharacteristicByName('Active'),
+                this.television_service.getCharacteristicByName('ActiveIdentifier'),
+            ]) {
+                if (!characteristic) continue;
+
+                characteristic.subscribe(this);
+            }
+        },
+        destroyed() {
+            for (const characteristic of [
+                this.television_service.getCharacteristicByName('Active'),
+                this.television_service.getCharacteristicByName('ActiveIdentifier'),
+            ]) {
+                if (!characteristic) continue;
+
+                characteristic.unsubscribe(this);
+            }
+        },
         methods: {
             async setActive(value) {
                 if (this.updating) return;

@@ -44,6 +44,30 @@
                 return `hsla(${hue.value}, ${saturation.value}%, ${60 + (this.brightness / 3)}%)`;
             },
         },
+        created() {
+            for (const characteristic of [
+                this.service.getCharacteristicByName('On'),
+                this.service.getCharacteristicByName('Brightness'),
+                this.service.getCharacteristicByName('Hue'),
+                this.service.getCharacteristicByName('Saturation'),
+            ]) {
+                if (!characteristic) continue;
+
+                characteristic.subscribe(this);
+            }
+        },
+        destroyed() {
+            for (const characteristic of [
+                this.service.getCharacteristicByName('On'),
+                this.service.getCharacteristicByName('Brightness'),
+                this.service.getCharacteristicByName('Hue'),
+                this.service.getCharacteristicByName('Saturation'),
+            ]) {
+                if (!characteristic) continue;
+
+                characteristic.unsubscribe(this);
+            }
+        },
         methods: {
             async setOn(value) {
                 if (this.updating) return;

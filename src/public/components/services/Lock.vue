@@ -61,6 +61,26 @@
                 return this.target_state === LockState.SECURED;
             },
         },
+        created() {
+            for (const characteristic of [
+                this.service.getCharacteristicByName('LockCurrentState'),
+                this.service.getCharacteristicByName('LockTargetState'),
+            ]) {
+                if (!characteristic) continue;
+
+                characteristic.subscribe(this);
+            }
+        },
+        destroyed() {
+            for (const characteristic of [
+                this.service.getCharacteristicByName('LockCurrentState'),
+                this.service.getCharacteristicByName('LockTargetState'),
+            ]) {
+                if (!characteristic) continue;
+
+                characteristic.unsubscribe(this);
+            }
+        },
         methods: {
             async setLocking(value) {
                 if (this.updating) return;

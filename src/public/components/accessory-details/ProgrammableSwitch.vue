@@ -1,5 +1,5 @@
 <template>
-    <accessory-details class="accessory-details-programmable-switch" :active="on" :updating="updating"
+    <accessory-details class="accessory-details-programmable-switch"
         :name="service.name || service.accessory.name" @show-settings="$emit('show-settings')"
     >
         <button-icon slot="icon" />
@@ -37,22 +37,31 @@
                 updating: false,
             };
         },
-        computed: {
-            on() {
-                return this.service.getCharacteristicValueByName('On');
-            },
+        created() {
+            this.subscribeToNewServices(this.service.services);
+            this.service.on('new-services', this.subscribeToNewServices);
+            this.service.on('removed-services', this.unsubscribeFromRemovedServices);
+        },
+        destroyed() {
+            this.unsubscribeFromRemovedServices(this.service.services);
+            this.service.removeListener('new-services', this.subscribeToNewServices);
+            this.service.removeListener('removed-services', this.unsubscribeFromRemovedServices);
         },
         methods: {
-            async setOn(value) {
-                if (this.updating) return;
-                this.updating = true;
+            subscribeToNewServices(services) {
+                for (const service of this.service.services) {
+                    const characteristic = service.getCharacteristicByName('ProgrammableSwitchEvent');
+                    if (!characteristic) continue;
 
-                try {
-                    await this.service.setCharacteristicByName('On', value);
-                    console.log('Turning %s %s',
-                        this.service.name || this.service.accessory.name, value ? 'on' : 'off');
-                } finally {
-                    this.updating = false;
+                    characteristic.subscribe(this);
+                }
+            },
+            unsubscribeFromRemovedServices(services) {
+                for (const service of services) {
+                    const characteristic = service.getCharacteristicByName('ProgrammableSwitchEvent');
+                    if (!characteristic) continue;
+
+                    characteristic.unsubscribe(this);
                 }
             },
             getButtonName(button, index) {

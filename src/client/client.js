@@ -77,6 +77,15 @@ export default class Client extends EventEmitter {
 
             for (const accessory of Object.values(this.accessories || {})) {
                 accessory.connection = connection;
+
+                // Resubscribe to any characteristics
+                for (const service of accessory.services) {
+                    for (const characteristic of accessory.characteristics) {
+                        if (!characteristic.subscription_dependencies.size) continue;
+
+                        characteristic.subscribe();
+                    }
+                }
             }
             for (const layout of Object.values(this.layouts || {})) {
                 layout.connection = connection;
@@ -534,6 +543,180 @@ export default class Client extends EventEmitter {
             }
         } finally {
             this.loading_scenes = false;
+        }
+    }
+
+    /**
+     * Subscribes to characteristic updates.
+     *
+     * @param {Characteristic[]} characteristics
+     * @return {Promise}
+     */
+    async subscribeCharacteristics(characteristics) {
+        const uuids = characteristics.map(characteristic => [
+            characteristic.service.accessory.uuid, characteristic.service.uuid, characteristic.uuid,
+        ]);
+
+        await this.connection.subscribeCharacteristics(...uuids);
+
+        for (const characteristic of characteristics) {
+            this.connection.subscribed_characteristics.add(characteristic);
+        }
+
+        for (const characteristic of characteristics) {
+            // Force Vue to update the subscribed property, as Vue doesn't support Sets
+            characteristic._subscribed = !characteristic._subscribed;
+        }
+    }
+
+    subscribeCharacteristic(characteristic) {
+        return this.subscribeCharacteristics([characteristic]);
+    }
+
+    static queueSubscribeCharacteristic(characteristic) {
+        return new Promise((resolve, reject) => {
+            const connection = characteristic.service.accessory.connection;
+            const queue = connection.subscribe_queue || (connection.subscribe_queue = []);
+
+            queue.push([characteristic, resolve, reject]);
+
+            if (typeof connection.subscribe_queue_timeout === 'undefined' ||
+                connection.subscribe_queue_timeout === null
+            ) {
+                connection.subscribe_queue_timeout = setTimeout(() =>
+                    this.processCharacteristicSubscribeQueue(connection), 100);
+            }
+
+            if (connection.unsubscribe_queue) {
+                let index;
+                while ((index = connection.unsubscribe_queue.findIndex(q => q[0] === characteristic)) > -1) {
+                    connection.unsubscribe_queue[2].call(null, new Error('Canceled by call to subscribe'));
+                    connection.unsubscribe_queue.splice(index, 1);
+                }
+
+                if (!connection.unsubscribe_queue.length) {
+                    clearTimeout(connection.unsubscribe_queue_timeout);
+
+                    connection.unsubscribe_queue = null;
+                    connection.unsubscribe_queue_timeout = null;
+                }
+            }
+        });
+    }
+
+    static async processCharacteristicSubscribeQueue(connection) {
+        const queue = connection.subscribe_queue || [];
+        clearTimeout(connection.subscribe_queue_timeout);
+
+        connection.subscribe_queue = null;
+        connection.subscribe_queue_timeout = null;
+
+        try {
+            const uuids = queue.map(q => [
+                q[0].service.accessory.uuid, q[0].service.uuid, q[0].uuid,
+            ]);
+
+            await connection.subscribeCharacteristics(...uuids);
+
+            // eslint-disable-next-line guard-for-in
+            for (const index in queue) {
+                connection.subscribed_characteristics.add(queue[index][0]);
+
+                // Force Vue to update the subscribed property, as Vue doesn't support Sets
+                queue[index][0]._subscribed = !queue[index][0]._subscribed;
+
+                queue[index][1].call(null, queue[index]);
+            }
+        } catch (err) {
+            for (const q of queue) {
+                q[2].call(null, err);
+            }
+        }
+    }
+
+    /**
+     * Subscribes to characteristic updates.
+     *
+     * @param {Characteristic[]} characteristics
+     * @return {Promise}
+     */
+    async unsubscribeCharacteristics(characteristics) {
+        const uuids = characteristics.map(characteristic => [
+            characteristic.service.accessory.uuid, characteristic.service.uuid, characteristic.uuid,
+        ]);
+
+        await this.connection.unsubscribeCharacteristics(...uuids);
+
+        for (const characteristic of characteristics) {
+            this.connection.subscribed_characteristics.delete(characteristic);
+        }
+
+        for (const characteristic of characteristics) {
+            // Force Vue to update the subscribed property, as Vue doesn't support Sets
+            characteristic._subscribed = !characteristic._subscribed;
+        }
+    }
+
+    unsubscribeCharacteristic(characteristic) {
+        return this.unsubscribeCharacteristics([characteristic]);
+    }
+
+    static queueUnsubscribeCharacteristic(characteristic) {
+        return new Promise((resolve, reject) => {
+            const connection = characteristic.service.accessory.connection;
+            const queue = connection.unsubscribe_queue || (connection.unsubscribe_queue = []);
+
+            queue.push([characteristic, resolve, reject]);
+
+            if (typeof connection.unsubscribe_queue_timeout === 'undefined' ||
+                connection.unsubscribe_queue_timeout === null
+            ) {
+                connection.unsubscribe_queue_timeout = setTimeout(() =>
+                    this.processCharacteristicUnsubscribeQueue(connection), 100);
+            }
+
+            if (connection.subscribe_queue) {
+                let index;
+                while ((index = connection.subscribe_queue.findIndex(q => q[0] === characteristic)) > -1) {
+                    connection.subscribe_queue[2].call(null, new Error('Canceled by call to unsubscribe'));
+                    connection.subscribe_queue.splice(index, 1);
+                }
+
+                if (!connection.subscribe_queue.length) {
+                    clearTimeout(connection.subscribe_queue_timeout);
+
+                    connection.subscribe_queue = null;
+                    connection.subscribe_queue_timeout = null;
+                }
+            }
+        });
+    }
+
+    static async processCharacteristicUnsubscribeQueue(connection) {
+        const queue = connection.unsubscribe_queue || [];
+        clearTimeout(connection.unsubscribe_queue_timeout);
+
+        connection.unsubscribe_queue = null;
+        connection.unsubscribe_queue_timeout = null;
+
+        try {
+            const uuids = queue.map(q => [q[0].service.accessory.uuid, q[0].service.uuid, q[0].uuid]);
+
+            await connection.unsubscribeCharacteristics(...uuids);
+
+            // eslint-disable-next-line guard-for-in
+            for (const index in queue) {
+                connection.subscribed_characteristics.delete(queue[index][0]);
+
+                // Force Vue to update the subscribed property, as Vue doesn't support Sets
+                queue[index][0]._subscribed = !queue[index][0]._subscribed;
+
+                queue[index][1].call(null, queue[index]);
+            }
+        } catch (err) {
+            for (const q of queue) {
+                q[2].call(null, err);
+            }
         }
     }
 

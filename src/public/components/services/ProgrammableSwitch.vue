@@ -26,6 +26,8 @@
         },
         data() {
             return {
+                programmable_switch_events_listeners: new WeakMap(),
+
                 active: false,
                 last_characteristic: null,
                 last_event: null,
@@ -50,25 +52,74 @@
             programmable_switch_events(programmable_switch_events, old_programmable_switch_events) {
                 for (const programmable_switch_event of old_programmable_switch_events) {
                     programmable_switch_event.removeListener('value-updated',
-                        this.handleSwitchEvent.bind(null, programmable_switch_event));
+                        this.programmable_switch_events_listeners.get(programmable_switch_event));
+                    this.programmable_switch_events_listeners.delete(programmable_switch_event);
+
+                    for (const characteristic of [
+                        this.service.getCharacteristicByName('CurrentDoorState'),
+                        this.service.getCharacteristicByName('TargetDoorState'),
+                        this.service.getCharacteristicByName('LockCurrentState'),
+                        this.service.getCharacteristicByName('LockTargetState'),
+                    ]) {
+                        if (!characteristic) continue;
+
+                        characteristic.unsubscribe(this);
+                    }
                 }
 
                 for (const programmable_switch_event of programmable_switch_events) {
-                    programmable_switch_event.on('value-updated',
-                        this.handleSwitchEvent.bind(null, programmable_switch_event));
+                    let listener = this.programmable_switch_events_listeners.get(programmable_switch_event);
+                    if (!listener) this.programmable_switch_events_listeners.set(programmable_switch_event,
+                        listener = this.handleSwitchEvent.bind(null, programmable_switch_event));
+                    programmable_switch_event.on('value-updated', listener);
+
+                    for (const characteristic of [
+                        this.service.getCharacteristicByName('CurrentDoorState'),
+                        this.service.getCharacteristicByName('TargetDoorState'),
+                        this.service.getCharacteristicByName('LockCurrentState'),
+                        this.service.getCharacteristicByName('LockTargetState'),
+                    ]) {
+                        if (!characteristic) continue;
+
+                        characteristic.subscribe(this);
+                    }
                 }
             },
         },
         created() {
             for (const programmable_switch_event of this.programmable_switch_events) {
-                programmable_switch_event.on('value-updated',
-                    this.handleSwitchEvent.bind(null, programmable_switch_event));
+                let listener = this.programmable_switch_events_listeners.get(programmable_switch_event);
+                if (!listener) this.programmable_switch_events_listeners.set(programmable_switch_event,
+                    listener = this.handleSwitchEvent.bind(null, programmable_switch_event));
+                programmable_switch_event.on('value-updated', listener);
+
+                for (const characteristic of [
+                    this.service.getCharacteristicByName('CurrentDoorState'),
+                    this.service.getCharacteristicByName('TargetDoorState'),
+                    this.service.getCharacteristicByName('LockCurrentState'),
+                    this.service.getCharacteristicByName('LockTargetState'),
+                ]) {
+                    if (!characteristic) continue;
+
+                    characteristic.subscribe(this);
+                }
             }
         },
-        destroy() {
+        destroyed() {
             for (const programmable_switch_event of this.programmable_switch_events) {
                 programmable_switch_event.removeListener('value-updated',
-                    this.handleSwitchEvent.bind(null, programmable_switch_event));
+                    this.programmable_switch_events_listeners.get(programmable_switch_event));
+
+                for (const characteristic of [
+                    this.service.getCharacteristicByName('CurrentDoorState'),
+                    this.service.getCharacteristicByName('TargetDoorState'),
+                    this.service.getCharacteristicByName('LockCurrentState'),
+                    this.service.getCharacteristicByName('LockTargetState'),
+                ]) {
+                    if (!characteristic) continue;
+
+                    characteristic.unsubscribe(this);
+                }
             }
         },
         methods: {

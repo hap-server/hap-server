@@ -103,6 +103,30 @@
                 return this.target_lock_state === LockState.SECURED;
             },
         },
+        created() {
+            for (const characteristic of [
+                this.service.getCharacteristicByName('CurrentDoorState'),
+                this.service.getCharacteristicByName('TargetDoorState'),
+                this.service.getCharacteristicByName('LockCurrentState'),
+                this.service.getCharacteristicByName('LockTargetState'),
+            ]) {
+                if (!characteristic) continue;
+
+                characteristic.subscribe(this);
+            }
+        },
+        destroyed() {
+            for (const characteristic of [
+                this.service.getCharacteristicByName('CurrentDoorState'),
+                this.service.getCharacteristicByName('TargetDoorState'),
+                this.service.getCharacteristicByName('LockCurrentState'),
+                this.service.getCharacteristicByName('LockTargetState'),
+            ]) {
+                if (!characteristic) continue;
+
+                characteristic.unsubscribe(this);
+            }
+        },
         methods: {
             async setOpening(value) {
                 if (this.updating) return;

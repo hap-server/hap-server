@@ -1,4 +1,5 @@
 import EventEmitter from 'events';
+import Client from './client';
 
 export default class Characteristic extends EventEmitter {
     /**
@@ -16,6 +17,8 @@ export default class Characteristic extends EventEmitter {
         this.uuid = uuid;
         this._setDetails(details || {});
         this._setPermissions(permissions);
+        this._subscribed = false;
+        this.subscription_dependencies = new Set();
     }
 
     get details() {
@@ -64,6 +67,46 @@ export default class Characteristic extends EventEmitter {
     setValue(value) {
         return this.service.accessory.connection.setCharacteristic(
             this.service.accessory.uuid, this.service.uuid, this.uuid, value);
+    }
+
+    get subscribed() {
+        // Force Vue to watch this property, as Vue doesn't support Sets
+        this._subscribed;
+
+        return this.service.accessory.connection.subscribed_characteristics.has(this);
+    }
+
+    get subscribing() {
+        return this.service.accessory.connection.subscribe_queue &&
+            !!this.service.accessory.connection.subscribe_queue.find(q => q[0] === this);
+    }
+
+    get unsubscribing() {
+        return this.service.accessory.connection.unsubscribe_queue &&
+            !!this.service.accessory.connection.unsubscribe_queue.find(q => q[0] === this);
+    }
+
+    subscribe(dep) {
+        if (dep) {
+            this.subscription_dependencies.add(dep);
+        }
+
+        if (this.subscribed) return true;
+
+        return Client.queueSubscribeCharacteristic(this);
+    }
+
+    unsubscribe(dep) {
+        if (dep) {
+            this.subscription_dependencies.delete(dep);
+
+            // If there are more dependencies don't unsubscribe yet
+            if (this.subscription_dependencies.size) return;
+        }
+
+        if (!this.subscribed) return true;
+
+        return Client.queueUnsubscribeCharacteristic(this);
     }
 
     _setPermissions(permissions) {

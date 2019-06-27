@@ -41,6 +41,12 @@ export default class Connection extends EventEmitter {
         this.authenticated_user = null;
         this.open_consoles = new Set();
 
+        this.subscribed_characteristics = new Set();
+        this.subscribe_queue = null;
+        this.subscribe_queue_timeout = null;
+        this.unsubscribe_queue = null;
+        this.unsubscribe_queue_timeout = null;
+
         // this.ws.send('something');
 
         if (is_ws) {
@@ -189,6 +195,28 @@ export default class Connection extends EventEmitter {
 
     setCharacteristic(accessory_uuid, service_id, characteristic_id, value) {
         return this.setCharacteristics([accessory_uuid, service_id, characteristic_id, value]);
+    }
+
+    subscribeCharacteristics(...ids) {
+        return this.send({
+            type: 'subscribe-characteristics',
+            ids,
+        });
+    }
+
+    subscribeCharacteristic(accessory_uuid, service_id, characteristic_id) {
+        return this.subscribeCharacteristics([accessory_uuid, service_uid, characteristic_id]);
+    }
+
+    unsubscribeCharacteristics(...ids) {
+        return this.send({
+            type: 'unsubscribe-characteristics',
+            ids,
+        });
+    }
+
+    unsubscribeCharacteristic(accessory_uuid, service_id, characteristic_id) {
+        return this.unsubscribeCharacteristics([accessory_uuid, service_uid, characteristic_id]);
     }
 
     getAccessoriesData(...id) {

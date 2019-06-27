@@ -71,6 +71,8 @@ const message_methods = {
     'get-accessories-permissions': 'handleGetAccessoriesPermissionsMessage',
     'get-characteristics': 'handleGetCharacteristicsMessage',
     'set-characteristics': 'handleSetCharacteristicsMessage',
+    'subscribe-characteristics': 'handleSubscribeCharacteristicsMessage',
+    'unsubscribe-characteristics': 'handleUnsubscribeCharacteristicsMessage',
     'get-accessories-data': 'handleGetAccessoriesDataMessage',
     'set-accessories-data': 'handleSetAccessoriesDataMessage',
     'start-accessory-discovery': 'handleStartAccessoryDiscoveryMessage',
@@ -153,6 +155,7 @@ export default class Connection {
         this.uploads = [];
         this.open_consoles = new Map();
         this.console_id = 0;
+        this.events = new Set(); // Characteristics the client has subscribed to updates for
 
         this.permissions = new Permissions(this);
 
@@ -202,6 +205,17 @@ export default class Connection {
                 }
             } catch (err) {
                 this.log.error('Error in disconnect handler', err);
+            }
+
+            for (const event_name of this.events) {
+                const characteristic = this.server.getCharacteristic(event_name);
+                if (!characteristic) {
+                    this.log.warn('Unknown characteristic %s', event_name);
+                    continue;
+                }
+
+                characteristic.unsubscribe();
+                this.events.delete(event_name);
             }
 
             if (this.enable_accessory_discovery) {
@@ -467,6 +481,88 @@ export default class Connection {
         return new Promise((resolve, reject) => {
             characteristic.setValue(value, (err, r) => err ? reject(err) : resolve(r));
         });
+    }
+
+    /**
+     * Subscribes to characteristic updates.
+     */
+    handleSubscribeCharacteristicsMessage(messageid, data) {
+        this.respond(messageid, this.subscribeCharacteristics(...data.ids));
+    }
+
+    subscribeCharacteristics(...ids) {
+        return Promise.all(ids.map(ids => this.subscribeCharacteristic(...ids)));
+    }
+
+    async subscribeCharacteristic(accessory_uuid, service_uuid, characteristic_uuid) {
+        await this.permissions.assertCanGetAccessory(accessory_uuid);
+
+        const accessory = this.server.getAccessory(accessory_uuid);
+        if (!accessory) return this.log.warn('Unknown accessory %s', accessory_uuid);
+
+        const service_type = service_uuid.indexOf('.') !== -1 ?
+            service_uuid.substr(0, service_uuid.indexOf('.')) : service_uuid;
+        const service_subtype = service_uuid.indexOf('.') !== -1 ?
+            service_uuid.substr(service_uuid.indexOf('.') + 1) : undefined;
+
+        const service = accessory.services.find(service => service.UUID === service_type &&
+            ((!service.subtype && !service_subtype) || service.subtype === service_subtype));
+        if (!service) return this.log.warn('Unknown service %s', service_uuid);
+
+        const characteristic = service.characteristics.find(c => c.UUID === characteristic_uuid);
+        if (!characteristic) return this.log.warn('Unknown characteristic %s', characteristic_uuid);
+
+        const event_name = accessory.UUID + '.' + service.UUID + (service.subtype ? '.' + service.subtype : '') + '.' +
+            characteristic.UUID;
+
+        if (this.events.has(event_name)) {
+            this.log.warn('Already subscribed to characteristic', accessory_uuid, service_uuid, characteristic_uuid);
+            return;
+        }
+
+        this.events.add(event_name);
+        characteristic.subscribe();
+    }
+
+    /**
+     * Unsubscribes from characteristic updates.
+     */
+    handleUnsubscribeCharacteristicsMessage(messageid, data) {
+        this.respond(messageid, this.unsubscribeCharacteristics(...data.ids));
+    }
+
+    unsubscribeCharacteristics(...ids) {
+        return Promise.all(ids.map(ids => this.unsubscribeCharacteristic(...ids)));
+    }
+
+    async unsubscribeCharacteristic(accessory_uuid, service_uuid, characteristic_uuid) {
+        await this.permissions.assertCanGetAccessory(accessory_uuid);
+
+        const accessory = this.server.getAccessory(accessory_uuid);
+        if (!accessory) return this.log.warn('Unknown accessory %s', accessory_uuid);
+
+        const service_type = service_uuid.indexOf('.') !== -1 ?
+            service_uuid.substr(0, service_uuid.indexOf('.')) : service_uuid;
+        const service_subtype = service_uuid.indexOf('.') !== -1 ?
+            service_uuid.substr(service_uuid.indexOf('.') + 1) : undefined;
+
+        const service = accessory.services.find(service => service.UUID === service_type &&
+            ((!service.subtype && !service_subtype) || service.subtype === service_subtype));
+        if (!service) return this.log.warn('Unknown service %s', service_uuid);
+
+        const characteristic = service.characteristics.find(c => c.UUID === characteristic_uuid);
+        if (!characteristic) return this.log.warn('Unknown characteristic %s', characteristic_uuid);
+
+        const event_name = accessory.UUID + '.' + service.UUID + (service.subtype ? '.' + service.subtype : '') + '.' +
+            characteristic.UUID;
+
+        if (!this.events.has(event_name)) {
+            this.log.warn('Not subscribed to characteristic', accessory_uuid, service_uuid, characteristic_uuid);
+            return;
+        }
+
+        characteristic.unsubscribe();
+        this.events.delete(event_name);
     }
 
     /**

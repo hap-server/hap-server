@@ -35,6 +35,24 @@
                 return this.service.getCharacteristicValueByName('On');
             },
         },
+        created() {
+            for (const characteristic of [
+                this.service.getCharacteristicByName('On'),
+            ]) {
+                if (!characteristic) continue;
+
+                characteristic.subscribe(this);
+            }
+        },
+        destroyed() {
+            for (const characteristic of [
+                this.service.getCharacteristicByName('On'),
+            ]) {
+                if (!characteristic) continue;
+
+                characteristic.unsubscribe(this);
+            }
+        },
         methods: {
             async setOn(value) {
                 if (this.updating) return;

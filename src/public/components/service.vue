@@ -1,5 +1,6 @@
 <template>
-    <div class="service-wrapper" :class="{'service-wrapper-editing': edit}"
+    <div :key="service.accessory.uuid + '.' + service.uuid"
+        class="service-wrapper" :class="{'service-wrapper-editing': edit}"
         :data-accessory-uuid="service.accessory.uuid" :data-service-uuid="service.uuid"
         :data-service-type="service.type" @contextmenu.prevent="showDetails"
         @touchstart="touchstart" @touchend="touchend" @click="() => edit ? showSettings() : null"
@@ -20,7 +21,8 @@
             <p>Not available</p>
         </service>
 
-        <service v-else class="unsupported-service" :class="{'details-open': details_open}"
+        <service v-else :key="service.accessory.uuid + '.' + service.uuid"
+            class="unsupported-service" :class="{'details-open': details_open}"
             :service="service" :type="service_name"
         >
             <p>Not supported</p>
