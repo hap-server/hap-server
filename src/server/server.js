@@ -103,9 +103,9 @@ export default class Server extends Events {
             Connection.handleUploadLayoutBackground.bind(Connection, this));
 
         this.app.use((req, res, next) => {
-            if (req.url.match(/^\/layout\/[^/]+/) ||
+            if (req.url.match(/^\/layout\/[^/]+$/) ||
                 req.url.match(/^\/all-accessories$/) ||
-                req.url.match(/^\/automations$/)) req.url = '/';
+                req.url.match(/^\/automations$/)) req.url = '/index.html';
 
             next();
         });
@@ -1316,7 +1316,7 @@ export default class Server extends Events {
         const service = this.getService(accessory_uuid, service_uuid);
         if (!service) return;
 
-        return service.characteristics.find(s => s.UUID === characteristic_uuid);
+        return service.characteristics.find(c => c.UUID === characteristic_uuid);
     }
 
     /**
