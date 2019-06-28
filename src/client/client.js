@@ -80,7 +80,7 @@ export default class Client extends EventEmitter {
 
                 // Resubscribe to any characteristics
                 for (const service of accessory.services) {
-                    for (const characteristic of accessory.characteristics) {
+                    for (const characteristic of service.characteristics) {
                         if (!characteristic.subscription_dependencies.size) continue;
 
                         characteristic.subscribe();
