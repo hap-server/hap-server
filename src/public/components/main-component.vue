@@ -588,6 +588,9 @@
                 return services;
             },
             getAllServices() {
+                // Forces Vue to update this when the layout has loaded
+                this.force_update_layout;
+
                 const services = [];
 
                 for (const accessory of Object.values(this.accessories)) {
