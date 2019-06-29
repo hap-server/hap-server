@@ -622,11 +622,9 @@ export default class Permissions {
         const permissions = await this.permissions || {};
         if (permissions['*']) return true;
 
-        const _default = permissions.scenes && permissions.scenes['*'] &&
-            permissions.scenes['*'].get && permissions.scenes['*'].delete;
+        const _default = permissions.scenes && permissions.scenes['*'] && permissions.scenes['*'].get;
 
-        return permissions.scenes && permissions.scenes[uuid] ?
-            permissions.scenes[uuid].get && permissions.scenes[uuid].delete : _default;
+        return permissions.scenes && permissions.scenes[uuid] ? permissions.scenes[uuid].get : _default;
     }
 
     async assertCanGetScene(uuid) {
