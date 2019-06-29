@@ -575,8 +575,7 @@
 
                 try {
                     const new_bridge_uuids = await this.connection.listBridges(true);
-                    this.bridge_uuids.splice(0, this.bridge_uuids.length);
-                    this.bridge_uuids.push(new_bridge_uuids);
+                    this.bridge_uuids.splice(0, this.bridge_uuids.length, ...new_bridge_uuids);
                 } finally {
                     this.loading_bridges = false;
                 }
