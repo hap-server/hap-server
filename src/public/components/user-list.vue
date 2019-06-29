@@ -2,10 +2,12 @@
     <div class="list-group list-group-sm user-management-list">
         <div class="user-management-list-scroller-wrap">
             <div class="user-management-list-scroller list-group-contents user-management-list-items">
+                <!-- eslint-disable-next-line vue/no-use-v-if-with-v-for -->
                 <template v-for="(users, handler_id) in handler_users" v-if="users.length">
-                    <h4>{{ getHandlerName(handler_id) || handler_id }}</h4>
-                    <div v-for="user in users" class="list-group-item list-group-item-action clickable"
-                        :class="{active: value === user}" @click="$emit('input', user)"
+                    <h4 :key="handler_id">{{ getHandlerName(handler_id) || handler_id }}</h4>
+                    <div v-for="user in users" :key="handler_id + '-' + user.id"
+                        class="list-group-item list-group-item-action clickable" :class="{active: value === user}"
+                        @click="$emit('input', user)"
                     >
                         <div class="list-group-item-contents">{{ user.name || user.id }}</div>
                     </div>
@@ -20,7 +22,8 @@
                         data-toggle="dropdown" aria-haspopup="true" :disabled="!create_handlers.length"
                         :aria-expanded="$refs.dropdown && $refs.dropdown.open ? 'true' : 'false'"
                         @click.stop="$refs.dropdown.open = !$refs.dropdown.open">+</button>
-                    <a v-for="handler in create_handlers" class="dropdown-item" href="#"
+
+                    <a v-for="handler in create_handlers" :key="handler.id" class="dropdown-item" href="#"
                         @click.prevent="$emit('create', handler)"
                     >
                         {{ getHandlerName(handler.id) || handler.id }}
@@ -54,7 +57,7 @@
         computed: {
             handlers() {
                 return [...user_management_components.values()].map(handler => {
-                    return new handler(this.client.connection);
+                    return new handler(this.client.connection); // eslint-disable-line new-cap
                 });
             },
             create_handlers() {
@@ -65,6 +68,9 @@
             'client.connection'(connection) {
                 if (connection) this.reload();
             },
+        },
+        created() {
+            this.reload();
         },
         methods: {
             async reload() {
@@ -91,9 +97,6 @@
 
                 return handler.constructor.name || handler.name;
             },
-        },
-        created() {
-            this.reload();
         },
     };
 </script>
