@@ -631,7 +631,7 @@ export default class Server extends Events {
             cached_accessory ? cached_accessory.accessory : undefined);
 
         const plugin_accessory = new PluginStandaloneAccessory(this, accessory, plugin, accessory_type,
-            accessory_config.uuid);
+            accessory_config, accessory_config.uuid);
 
         this.addAccessory(plugin_accessory);
     }
@@ -1652,16 +1652,17 @@ export class PluginAccessory {
 
         const plugin_accessory = accessory_platform_handler ?
             new PluginAccessoryPlatformAccessory(server, accessory, plugin, cache.accessory_platform, cache.base_uuid) :
-            new PluginStandaloneAccessory(server, accessory, plugin, cache.accessory_type, cache.uuid);
+            new PluginStandaloneAccessory(server, accessory, plugin, cache.accessory_type, null, cache.uuid);
 
         return plugin_accessory;
     }
 }
 
 export class PluginStandaloneAccessory extends PluginAccessory {
-    constructor(server, accessory, plugin, accessory_type, uuid) {
+    constructor(server, accessory, plugin, accessory_type, config, uuid) {
         super(server, accessory, plugin);
 
+        Object.defineProperty(this, 'config', {value: config});
         Object.defineProperty(this, 'uuid', {value: uuid || accessory.UUID});
         Object.defineProperty(this, 'accessory_type', {value: accessory_type});
     }

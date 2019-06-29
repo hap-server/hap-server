@@ -13,6 +13,25 @@ export default class Permissions {
         return this.connection.authenticated_user;
     }
 
+    get permissions() {
+        if (!this.user.id) return;
+
+        return Object.defineProperty(this, 'permissions', {
+            configurable: true,
+            value: this.connection.server.storage.getItem('Permissions.' + this.user.id).then(p => p || {
+                '*': ['root', 'cli-token'].includes(this.user.id),
+                get_home_settings: true,
+                create_accessories: true,
+                create_layouts: true,
+                create_bridges: true,
+                accessories: {'*': {get: true, set: true}},
+                layouts: {'*': {get: true}},
+                automations: {'*': {get: false}},
+                scenes: {'*': {get: true, activate: true}},
+            }),
+        }).permissions;
+    }
+
     /**
      * Get the UUID of all accessories the user can see.
      *

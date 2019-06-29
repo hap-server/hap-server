@@ -88,3 +88,13 @@
 pre {
     color: $light;
 }
+
+.table {
+    color: $light;
+
+    th,
+    td,
+    thead th {
+        border-color: darken($dark, 30%);
+    }
+}

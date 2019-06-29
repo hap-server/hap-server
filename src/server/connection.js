@@ -127,6 +127,8 @@ const message_methods = {
     'get-accessory-uis': 'handleGetAccessoryUIsMessage',
     'authenticate': 'handleAuthenticateMessage',
     'user-management': 'handleUserManagementMessage',
+    'get-users-permissions': 'handleGetUsersPermissionsMessage',
+    'set-users-permissions': 'handleSetUsersPermissionsMessage',
     'accessory-setup': 'handleAccessorySetupMessage',
     'open-console': 'handleOpenConsoleMessage',
     'close-console': 'handleCloseConsoleMessage',
@@ -2195,6 +2197,58 @@ export default class Connection {
                 error: err instanceof Error,
                 constructor: err.constructor.name,
                 data: err instanceof Error ? {message: err.message, code: err.code, stack: err.stack} : err,
+            });
+        }
+    }
+
+    /**
+     * Gets user permissions.
+     */
+    handleGetUsersPermissionsMessage(messageid, data) {
+        this.respond(messageid, this.getUsersPermissions(data.id));
+    }
+
+    async getUsersPermissions(id) {
+        return Promise.all(id.map(id => this.getUserPermissions(id)));
+    }
+
+    async getUserPermissions(user_id) {
+        await this.permissions.assertCanManageUsers();
+        await this.permissions.assertCanManagePermissions();
+
+        return this.server.storage.getItem('Permissions.' + user_id);
+    }
+
+    /**
+     * Sets user permissions.
+     */
+    handleSetUsersPermissionsMessage(messageid, data) {
+        this.respond(messageid, this.setUsersPermissions(data.id_data));
+    }
+
+    async setUsersPermissions(id_data) {
+        return Promise.all(id_data.map(([id, data]) => this.setUserPermissions(id, data)));
+    }
+
+    async setUserPermissions(user_id, data) {
+        await this.permissions.assertCanManageUsers();
+        await this.permissions.assertCanManagePermissions();
+
+        await this.server.storage.setItem('Permissions.' + user_id, data);
+
+        for (const ws of this.server.wss.clients) {
+            const connection = Connection.getConnectionForWebSocket(ws);
+
+            if (ws.readyState !== 1 || !connection.authenticated_user ||
+                connection.authenticated_user.id !== user_id
+            ) continue;
+
+            // Clear the cached permissions
+            delete connection.permissions.permissions;
+
+            connection.sendBroadcast({
+                type: 'update-permissions',
+                data: await this.getHomePermissions(),
             });
         }
     }

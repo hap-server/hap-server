@@ -1,5 +1,6 @@
 .user-management-container {
     display: flex;
+    max-height: calc(90vh - /* panel padding */ 4rem - /* tabs */ 42px - /* buttons */ 31px - 2rem - 1px);
 
     .user-management-list {
         flex: 0 0 auto;
@@ -13,7 +14,7 @@
 
 .user-management-list {
     width: 170px;
-    height: 300px;
+    min-height: 300px;
     display: flex;
     flex-direction: column;
     background-color: #ffffff;
@@ -101,7 +102,6 @@
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overflow-scrolling: touch;
-    height: 300px;
     margin-left: -15px;
     margin-right: -15px;
     padding-left: 15px;
@@ -181,6 +181,22 @@
 
         .user-management-name {
             font-size: 1rem;
+        }
+    }
+}
+
+.user-permissions {
+    h4 {
+        position: -webkit-sticky;
+        position: sticky;
+        top: 0;
+        background-color: $light;
+        margin-bottom: 0;
+        padding-bottom: 0.5rem;
+        z-index: 40;
+
+        @include dark-theme {
+            background-color: darken($dark, 10%);
         }
     }
 }

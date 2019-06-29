@@ -61,6 +61,10 @@ Stored in `ui-storage` in the data directory. node-persist uses the MD5 hash of 
     - Bridge configuration.
 - `OUI`
     - Stores the Organisationally Unique Identifier used for generating MAC addresses for new bridge usernames.
+- `Session.{token}`
+    - Stores an authenticated user for automatic authentication.
+- `Permissions.{user_id}`
+    - Stores user permissions.
 
 #### hap-nodejs storage
 

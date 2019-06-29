@@ -619,6 +619,24 @@ export default class Connection extends EventEmitter {
         });
     }
 
+    getUsersPermissions(...id) {
+        return this.send({
+            type: 'get-users-permissions',
+            id,
+        });
+    }
+
+    setUsersPermissions(...id_data) {
+        return this.send({
+            type: 'set-users-permissions',
+            id_data,
+        });
+    }
+
+    setUserPermissions(id, data) {
+        return this.setUsersPermissions([id, data]);
+    }
+
     openConsole() {
         return this.send({
             type: 'open-console',

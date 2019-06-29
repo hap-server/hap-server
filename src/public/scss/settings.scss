@@ -77,6 +77,10 @@
         .accessory-settings & {
             max-width: 626px;
         }
+
+        .home-settings.wide & {
+            max-width: 900px;
+        }
     }
 }
 

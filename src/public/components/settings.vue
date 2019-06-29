@@ -1,5 +1,5 @@
 <template>
-    <panel ref="panel" class="home-settings" @close="$emit('close')">
+    <panel ref="panel" class="home-settings" :class="{wide: tab === 'users'}" @close="$emit('close')">
         <panel-tabs v-model="tab" :tabs="tabs" />
 
         <form v-if="tab === 'general'" @submit.prevent="save(true)">
@@ -70,7 +70,9 @@
                     </template>
 
                     <template v-if="canEditUserPermissions" v-slot:permissions="{id}">
-                        <user-permissions :id="id || editing_user.id" />
+                        <user-permissions ref="user-permissions" :id="id || editing_user.id"
+                            @changed="c => editing_user_permissions_changed = c"
+                            @saving="s => editing_user_permissions_saving = s" />
                     </template>
                 </component>
             </div>
@@ -157,6 +159,15 @@
                 <button key="primary" class="btn btn-primary btn-sm" type="button" :disabled="editing_user_saving"
                     @click="() => $refs['user-component'].save()">Save</button>
             </template>
+            <template v-else-if="tab === 'users' && editing_user &&
+                (editing_user_permissions_changed || editing_user_permissions_saving)"
+            >
+                <button class="btn btn-default btn-sm" type="button" :disabled="editing_user_permissions_saving"
+                    @click="() => $refs.panel.close()">Cancel</button>&nbsp;
+                <button key="primary" class="btn btn-primary btn-sm" type="button"
+                    :disabled="editing_user_permissions_saving"
+                    @click="() => $refs['user-permissions'].save()">Save permissions</button>
+            </template>
             <button v-else key="primary" class="btn btn-primary btn-sm" type="button" :disabled="loading || saving"
                 @click="() => $refs.panel.close()">Done</button>
         </div>
@@ -240,6 +251,8 @@
                 editing_user_can_scroll: false,
                 editing_user_changed: false,
                 editing_user_saving: false,
+                editing_user_permissions_changed: false,
+                editing_user_permissions_saving: false,
             };
         },
         computed: {
@@ -304,6 +317,8 @@
             editing_user(editing_user) {
                 this.editing_user_changed = false;
                 this.editing_user_saving = false;
+                this.editing_user_permissions_changed = false;
+                this.editing_user_permissions_saving = false;
 
                 if (editing_user) return this.$nextTick(() => this.onscrollEditingUser({target: this.$refs.user}));
 

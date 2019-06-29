@@ -27,6 +27,14 @@ $connecting-modal-z-index: 400;
     -webkit-appearance: none;
 }
 
+.table-responsive {
+    margin-bottom: 1rem;
+
+    > .table {
+        margin-bottom: 0;
+    }
+}
+
 html,
 body,
 .root {
