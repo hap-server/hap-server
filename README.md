@@ -123,7 +123,7 @@ A lot.
             - Discovery + setup UI works but accessories aren't actually created yet.
         - [ ] Accessory + accessory platform configuration
         - [x] Authentication
-        - [ ] User management
+        - [x] User management
         - [x] Automation trigger configuration
         - [x] Automation condition configuration
         - [x] Automation action configuration

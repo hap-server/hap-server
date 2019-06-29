@@ -386,6 +386,25 @@ authentication_handler.disconnect_handler = async (authenticated_user, disconnec
 hapserver.registerAuthenticationHandler(authentication_handler);
 ```
 
+#### `hapserver.registerUserManagementHandler`
+
+Registers a user management handler. User management handlers run on the server and the web interface. User management
+handlers aren't linked to authenticate handlers and don't have to have the same IDs.
+
+See [`accessoryui.registerUserManagementHandler`](#accessoryui-registerusermanagementhandler).
+
+```js
+import hapserver, {UserManagementHandler} from '@hap-server/api';
+
+const user_management_handler = new UserManagementHandler('PAM');
+
+user_management_handler.handler = async request => {
+    // ...
+};
+
+hapserver.registerUserManagementHandler(user_management_handler);
+```
+
 #### `hapserver.registerAutomationTrigger`
 
 Registers an automation trigger.
@@ -677,7 +696,7 @@ pluginapi.registerAccessorySetupComponent('AccessoryType', AccessorySetupCompone
 
 Registers an authentication handler component.
 
-[See `hapserver.registerAuthenticationHandler`.](#hapserver-registerauthenticationhandler).
+See [`hapserver.registerAuthenticationHandler`](#hapserver-registerauthenticationhandler).
 
 ```js
 import accessoryui, {AuthenticationHandlerConnection} from '@hap-server/accessory-ui-api';
@@ -734,6 +753,79 @@ const AuthenticationHandlerComponent = {
 
 // First argument is the same ID passed to hapserver.registerAuthenticationHandler, second is a Vue component and the third is an optional display name for when multiple authentication handlers are available
 accessoryui.registerAuthenticationHandlerComponent('LocalStorage', AuthenticationHandlerComponent, 'Local Storage');
+```
+
+#### `accessoryui.registerUserManagementHandler`
+
+Registers a user management handler component.
+
+See [`hapserver.registerUserManagementHandler`](#hapserver-registerusermanagementhandler).
+
+```js
+import
+
+const UserManagementComponent = {
+    template: `<div>
+        <slot name="info" />
+
+        <!-- ... -->
+
+        <slot name="location" />
+        <slot name="permissions" />
+    </div>`,
+    props: {
+        userManagementHandler: BaseUserManagementHandler,
+        user: UserManagementUser,
+    },
+    data() {
+        return {
+            saving: false,
+            error: null,
+
+            // ...
+        };
+    },
+    computed: {
+        changed() {
+            // ...
+        },
+    },
+    watch: {
+        changed(changed) {
+            this.$emit('changed', changed);
+        },
+        saving(saving) {
+            this.$emit('saving', saving);
+        },
+    },
+    methods: {
+        async save() {
+            if (this.saving) throw new Error('Already saving');
+            this.saving = true;
+            this.error = null;
+
+            try {
+                await this.userManagementHandler.connection.send({
+                    // ...
+                });
+            } catch (err) {
+                this.error = err;
+            } finally {
+                this.saving = false;
+            }
+        },
+    },
+};
+
+class LocalUsersManagementHandler extends UserManagementHandler {
+    async getUsers() {
+        // ...
+    }
+}
+
+LocalUsersManagementHandler.component = UserManagementComponent;
+
+accessoryui.registerUserManagementHandler('LocalUsers', LocalUsersManagementHandler, 'Local users');
 ```
 
 #### `accessoryui.registerLayoutSectionComponent`
