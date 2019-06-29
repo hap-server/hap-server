@@ -34,6 +34,50 @@
             </div>
         </form>
 
+        <div v-if="tab === 'users'" class="user-management-container mb-3">
+            <user-list v-model="editing_user" @create="handler => creating_user = handler" />
+
+            <div v-if="editing_user" ref="user" class="user-management-current-user"
+                :class="{scrolled: editing_user_scrolled, 'can-scroll': editing_user_can_scroll}"
+                @scroll="onscrollEditingUser"
+            >
+                <component ref="user-component" :is="editing_user.component"
+                    :user-management-handler="editing_user.user_management_handler" :user="editing_user"
+                    @changed="c => editing_user_changed = c" @saving="s => editing_user_saving = s"
+                >
+                    <template v-slot:info="{id, name}">
+                        <div class="user-management-info">
+                            <div class="user-management-picture" />
+                            <h4 class="user-management-name">
+                                {{ name || editing_user.name || id || editing_user.id }}
+                                <small v-if="name || editing_user.name" class="d-block">
+                                    {{ id || editing_user.id }}
+                                </small>
+                            </h4>
+                        </div>
+                    </template>
+
+                    <template v-slot:location>
+                        <h4>Location</h4>
+
+                        <div class="form-group">
+                            <input type="text" class="form-control form-control-sm" disabled />
+
+                            <small class="text-muted">
+                                This device will be used to track this user's location for location based automations.
+                            </small>
+                        </div>
+                    </template>
+
+                    <template v-if="canEditUserPermissions" v-slot:permissions="{id}">
+                        <user-permissions :id="id || editing_user.id" />
+                    </template>
+                </component>
+            </div>
+
+            <component v-else-if="creating_user" :is="creating_user.create_component" />
+        </div>
+
         <div v-if="tab === 'accessories'" class="list-group-group">
             <div v-for="group in accessory_groups" :key="group.name" class="list-group-group-item">
                 <h4 v-if="group.name">{{ group.name }}</h4>
@@ -107,6 +151,12 @@
                 <button key="primary" class="btn btn-primary btn-sm" type="button" :disabled="loading || saving"
                     @click="save(true)">Save</button>
             </template>
+            <template v-else-if="tab === 'users' && editing_user && (editing_user_changed || editing_user_saving)">
+                <button class="btn btn-default btn-sm" type="button" :disabled="editing_user_saving"
+                    @click="() => $refs.panel.close()">Cancel</button>&nbsp;
+                <button key="primary" class="btn btn-primary btn-sm" type="button" :disabled="editing_user_saving"
+                    @click="() => $refs['user-component'].save()">Save</button>
+            </template>
             <button v-else key="primary" class="btn btn-primary btn-sm" type="button" :disabled="loading || saving"
                 @click="() => $refs.panel.close()">Done</button>
         </div>
@@ -125,6 +175,10 @@
     import TerminalComponent from './terminal.vue';
     import ListGroup from './list-group.vue';
     import ListItem from './list-item.vue';
+    import UserList from './user-list.vue';
+    import UserPermissions from './user-permissions.vue';
+
+    import user_management_components from './user-management';
 
     export default {
         components: {
@@ -133,6 +187,8 @@
             Terminal: TerminalComponent,
             ListGroup,
             ListItem,
+            UserList,
+            UserPermissions,
         },
         props: {
             connection: Connection,
@@ -141,6 +197,8 @@
             canAddAccessories: Boolean,
             canCreateBridges: Boolean,
             canOpenConsole: Boolean,
+            canManageUsers: Boolean,
+            canEditUserPermissions: Boolean,
         },
         inject: {
             client: {from: ClientSymbol},
@@ -158,6 +216,7 @@
                 tab: 'general',
                 tabs: {
                     general: 'General',
+                    users: {label: 'Users', if: () => this.canManageUsers && user_management_components.size},
                     accessories: 'Accessories',
                     bridges: 'Bridges',
                     output: 'Output',
@@ -174,6 +233,13 @@
                 opening_console: false,
                 console: null,
                 console_terminal: null,
+
+                editing_user: null,
+                creating_user: null,
+                editing_user_scrolled: false,
+                editing_user_can_scroll: false,
+                editing_user_changed: false,
+                editing_user_saving: false,
             };
         },
         computed: {
@@ -228,6 +294,21 @@
                 if (tab === 'console' && !this.console && !this.opening_console) {
                     this.openConsole();
                 }
+            },
+            tab() {
+                this.name = this.data ? this.data.name : null;
+                this.background_url = this.data ? this.data.background_url : null;
+                this.editing_user = null;
+                this.creating_user = null;
+            },
+            editing_user(editing_user) {
+                this.editing_user_changed = false;
+                this.editing_user_saving = false;
+
+                if (editing_user) return this.$nextTick(() => this.onscrollEditingUser({target: this.$refs.user}));
+
+                this.editing_user_scrolled = false;
+                this.editing_user_can_scroll = false;
             },
         },
         async created() {
@@ -346,6 +427,11 @@
                 } finally {
                     this.uploading = false;
                 }
+            },
+            onscrollEditingUser(event) {
+                this.editing_user_scrolled = event.target.scrollTop > 0;
+                this.editing_user_can_scroll = event.target.scrollTop <
+                    (event.target.scrollHeight - event.target.clientHeight);
             },
             stdout(data) {
                 console.log('stdout', data);

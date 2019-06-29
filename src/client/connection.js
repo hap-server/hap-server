@@ -858,6 +858,48 @@ export class AuthenticatedUser {
     }
 }
 
+export class UserManagementConnection {
+    constructor(connection, user_management_handler_id) {
+        Object.defineProperty(this, 'connection', {value: connection});
+        Object.defineProperty(this, 'user_management_handler_id', {value: user_management_handler_id});
+    }
+
+    /**
+     * Send data to an authentication handler on the server.
+     *
+     * @param {*} data
+     * @return {Promise<*>}
+     */
+    async send(data) {
+        const response = await this.connection.send({
+            type: 'user-management',
+            user_management_handler_id: this.user_management_handler_id,
+            data,
+        });
+
+        if (response.reject) {
+            if (response.error) {
+                const error = new (global[response.constructor] || Error)(response.data.message);
+                error.code = response.data.code;
+                throw error;
+            }
+
+            throw response.data;
+        }
+
+        return response.data;
+    }
+}
+
+export class UserManagementUser {
+    constructor(user_management_handler, id, component) {
+        Object.defineProperty(this, 'user_management_handler', {value: user_management_handler});
+        Object.defineProperty(this, 'id', {configurable: true, writable: true, value: id});
+        Object.defineProperty(this, 'component', {value: component || user_management_handler.component ||
+            user_management_handler.constructor.component});
+    }
+}
+
 export class AccessorySetupConnection {
     constructor(connection, accessory_setup_id) {
         Object.defineProperty(this, 'connection', {value: connection});

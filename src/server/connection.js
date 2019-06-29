@@ -126,6 +126,7 @@ const message_methods = {
     'set-pairings-data': 'handleSetPairingsDataMessage',
     'get-accessory-uis': 'handleGetAccessoryUIsMessage',
     'authenticate': 'handleAuthenticateMessage',
+    'user-management': 'handleUserManagementMessage',
     'accessory-setup': 'handleAccessorySetupMessage',
     'open-console': 'handleOpenConsoleMessage',
     'close-console': 'handleCloseConsoleMessage',
@@ -691,7 +692,7 @@ export default class Connection {
     async getHomePermissions() {
         const [
             get, set, add_accessories, create_layouts, has_automations, create_automations, create_bridges,
-            server, console,
+            server, users, permissions, console,
         ] = await Promise.all([
             this.permissions.checkCanGetHomeSettings(),
             this.permissions.checkCanSetHomeSettings(),
@@ -701,12 +702,14 @@ export default class Connection {
             this.permissions.checkCanCreateAutomations(),
             this.permissions.checkCanCreateBridges(),
             this.permissions.checkCanAccessServerRuntimeInfo(),
+            this.permissions.checkCanManageUsers(),
+            this.permissions.checkCanManagePermissions(),
             this.permissions.checkCanOpenWebConsole(),
         ]);
 
         return {
             get, set, add_accessories, create_layouts, has_automations, create_automations, create_bridges,
-            server, console,
+            server, users, permissions, console,
         };
     }
 
@@ -2031,6 +2034,11 @@ export default class Connection {
                 plugin_authentication_handlers[localid] = authentication_handler.id;
             }
 
+            const plugin_user_management_handlers = {};
+            for (const [localid, user_management_handler] of accessory_ui.plugin.user_management_handlers.entries()) {
+                plugin_user_management_handlers[localid] = user_management_handler.id;
+            }
+
             const plugin_accessory_discovery_handlers = {};
             const plugin_accessory_discovery_handler_setup_handlers = {};
             for (const [localid, accessory_discovery] of accessory_ui.plugin.accessory_discovery.entries()) {
@@ -2049,6 +2057,7 @@ export default class Connection {
 
                 plugin: accessory_ui.plugin.name,
                 plugin_authentication_handlers,
+                plugin_user_management_handlers,
                 plugin_accessory_discovery_handlers,
                 plugin_accessory_discovery_handler_setup_handlers,
                 plugin_accessory_setup_handlers,
@@ -2062,10 +2071,10 @@ export default class Connection {
                 const id = data.authentication_handler_id;
                 const authentication_handler = PluginManager.getAuthenticationHandler(id);
 
-                const logdata = Object.assign({}, data);
+                const logdata = Object.assign({}, data.data);
                 for (const k of hide_authentication_keys) if (logdata.hasOwnProperty(k)) logdata[k] = null;
 
-                this.log.info('Received authenticate message', messageid, logdata, authentication_handler);
+                this.log.debug('Received authenticate message', messageid, logdata, authentication_handler);
 
                 if (!authentication_handler) {
                     throw new Error('Unknown authentication handler');
@@ -2160,8 +2169,40 @@ export default class Connection {
         });
     }
 
+    async handleUserManagementMessage(messageid, data) {
+        try {
+            await this.permissions.assertCanManageUsers();
+
+            const id = data.user_management_handler_id;
+            const user_management_handler = PluginManager.getUserManagementHandler(id);
+
+            this.log.debug('Received user management message', messageid, data, user_management_handler);
+
+            if (!user_management_handler) {
+                throw new Error('Unknown user management handler');
+            }
+
+            const response = await user_management_handler.handleMessage(data.data, this);
+
+            return this.respond(messageid, {
+                data: response,
+            });
+        } catch (err) {
+            this.log.error('Error in user management handler', err);
+
+            this.respond(messageid, {
+                reject: true,
+                error: err instanceof Error,
+                constructor: err.constructor.name,
+                data: err instanceof Error ? {message: err.message, code: err.code, stack: err.stack} : err,
+            });
+        }
+    }
+
     async handleAccessorySetupMessage(messageid, data) {
         try {
+            await this.permissions.assertCanCreateAccessories();
+
             const accessory_setup = PluginManager.getAccessorySetupHandler(data.accessory_setup_id);
 
             this.log.info('Received accessory setup message', messageid, data, accessory_setup);

@@ -1,0 +1,186 @@
+.user-management-container {
+    display: flex;
+
+    .user-management-list {
+        flex: 0 0 auto;
+        margin-right: 2em;
+    }
+
+    .user-management-current-user {
+        flex: 1 1 auto;
+    }
+}
+
+.user-management-list {
+    width: 170px;
+    height: 300px;
+    display: flex;
+    flex-direction: column;
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    font-size: 0.95rem;
+
+    @include dark-theme {
+        background-color: $gray-700;
+        border-color: $gray-900;
+    }
+
+    .user-management-list-scroller-wrap {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .user-management-list-buttons {
+        flex: 0 0 auto;
+        border-top: 1px solid #dee2e6;
+
+        @include dark-theme {
+            border-color: $gray-900;
+        }
+    }
+
+    .list-group-item {
+        border-left: 0;
+        border-right: 0;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0;
+
+        &.list-group-item-action:hover,
+        &.list-group-item-action:focus,
+        &.list-group-item-action.active {
+            background-color: $primary;
+            color: #ffffff;
+        }
+    }
+
+    h4 {
+        position: -webkit-sticky;
+        position: sticky;
+        top: 0;
+        z-index: 3;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
+        background-color: #ffffff;
+        margin-bottom: 0;
+        color: #6c757d;
+
+        @include dark-theme {
+            background-color: $gray-700;
+            color: $light;
+        }
+    }
+}
+
+.user-management-list-buttons {
+    display: flex;
+    background-color: #f8f9fa;
+
+    @include dark-theme {
+        background-color: $gray-800;
+    }
+
+    button {
+        padding: 0.1rem 0.5rem;
+        border: 0;
+        background-color: transparent;
+    }
+
+    .user-management-list-buttons-left {
+        button {
+            border-right: 1px solid #dee2e6;
+
+            @include dark-theme {
+                border-color: $gray-900;
+            }
+        }
+    }
+}
+
+.user-management-current-user {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overflow-scrolling: touch;
+    height: 300px;
+    margin-left: -15px;
+    margin-right: -15px;
+    padding-left: 15px;
+    padding-right: 15px;
+
+    &::before {
+        content: '';
+        display: block;
+        width: 100%;
+        height: 1px;
+        position: -webkit-sticky;
+        top: 0;
+        margin-bottom: -1px;
+        z-index: 30;
+        transition: background-color 0.2s ease;
+    }
+    &.scrolled::before {
+        background-color: #eeeeee;
+
+        @include dark-theme {
+            background-color: darken($dark, 20%);
+        }
+    }
+
+    &::after {
+        content: '';
+        display: block;
+        width: 100%;
+        height: 1px;
+        position: -webkit-sticky;
+        bottom: 0;
+        margin-top: -1px;
+        z-index: 30;
+        transition: background-color 0.2s ease;
+    }
+    &.can-scroll::after {
+        background-color: #eeeeee;
+
+        @include dark-theme {
+            background-color: darken($dark, 20%);
+        }
+    }
+
+    .user-management-info {
+        background-color: #ffffff;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        margin-bottom: 1rem;
+        padding: 1rem;
+        display: flex;
+
+        @include dark-theme {
+            background-color: darken($dark, 20%);
+            border-color: darken($dark, 30%);
+        }
+
+        .user-management-picture {
+            width: 50px;
+            height: 50px;
+            margin-right: 1rem;
+            border-radius: 50%;
+            background-color: $gray-400;
+            transition: background-color 0.2s ease;
+
+            &:hover {
+                background-color: $gray-500;
+            }
+
+            @include dark-theme {
+                background-color: $gray-800;
+
+                &:hover {
+                    background-color: $gray-900;
+                }
+            }
+        }
+
+        .user-management-name {
+            font-size: 1rem;
+        }
+    }
+}

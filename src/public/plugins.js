@@ -13,7 +13,11 @@ import Service, {
 } from '../client/service';
 import Characteristic from '../client/characteristic';
 
-import {AuthenticationHandlerConnection, AuthenticatedUser, AccessorySetupConnection} from '../client/connection';
+import {
+    AuthenticationHandlerConnection, AuthenticatedUser,
+    UserManagementConnection, UserManagementUser,
+    AccessorySetupConnection,
+} from '../client/connection';
 
 import * as sortable_component_module from './components/sortable.vue';
 import * as panel_tabs_component_module from './components/panel-tabs.vue';
@@ -31,6 +35,8 @@ import * as layout_section_component_module from './components/layout-section.vu
 import accessory_discovery_components from './components/accessory-discovery';
 import * as accessory_discovery_component_module from './components/accessory-discovery/accessory-discovery.vue';
 import accessory_setup_components from './components/accessory-setup';
+import user_management_handlers from './components/user-management';
+
 import * as vue_color_chrome_module from 'vue-color/src/components/Chrome.vue';
 import * as vue_color_swatches_module from 'vue-color/src/components/Swatches.vue';
 import * as vue_color_sketch_module from 'vue-color/src/components/Sketch.vue';
@@ -258,6 +264,14 @@ export class PluginManager {
             AuthenticationHandlerConnection,
             AuthenticatedUser,
 
+            UserManagementHandler: class extends UserManagementHandler {
+                constructor(...args) {
+                    super(accessory_ui, ...args);
+                }
+            },
+            UserManagementConnection,
+            UserManagementUser,
+
             AccessorySetupConnection,
             DiscoveredAccessory,
 
@@ -466,6 +480,37 @@ export class PluginAPI {
     }
 
     /**
+     * Registers a user management handler.
+     *
+     * @param {string} localid
+     * @param {function} handler A class that extends UserManagementHandler
+     * @param {string} [name]
+     */
+    registerUserManagementHandler(localid, handler, name) {
+        const id = this.accessory_ui.plugin_user_management_handlers[localid];
+
+        if (typeof id === 'undefined') {
+            throw new Error('Unknown user management handler "' + localid + '"');
+        }
+
+        if (user_management_handlers.has(id)) {
+            throw new Error('There is already a user management handler with the ID "' + localid +
+                '" (global ID of "' + id + '")');
+        }
+
+        if (!(handler.prototype instanceof UserManagementHandler)) {
+            throw new Error('handler must be a class that extends UserManagementHandler');
+        }
+
+        if (name || !handler.name) Object.defineProperty(handler, 'name', {configurable: true, value: name || localid});
+
+        Object.defineProperty(handler, 'user_management_handler_id', {value: id});
+        Object.defineProperty(handler, 'user_management_handler_localid', {value: localid});
+
+        user_management_handlers.set(id, handler);
+    }
+
+    /**
      * Registers a layout section component.
      *
      * @param {string} type The section type ID
@@ -556,3 +601,31 @@ export class PluginAPI {
         automation_action_components.push({component, plugin, type, name});
     }
 }
+
+export class UserManagementHandler {
+    constructor(accessory_ui, /* id, */ connection) {
+        Object.defineProperty(this, 'id', {value: UserManagementHandler.id++});
+        Object.defineProperty(this, 'accessory_ui', {value: accessory_ui});
+        Object.defineProperty(this, 'connection', {value: new UserManagementConnection(connection, this.user_management_handler_id)});
+    }
+
+    get user_management_handler_id() {
+        return this.constructor.user_management_handler_id;
+    }
+    get user_management_handler_localid() {
+        return this.constructor.user_management_handler_localid;
+    }
+
+    static get component() {
+        throw new Error('The user management handler didn\'t set the component property');
+    }
+    static set component(value) {
+        Object.defineProperty(this, 'component', {writable: true, value});
+    }
+
+    async getUsers() {
+        throw new Error('The user management handler didn\'t override the getUsers method');
+    }
+}
+
+UserManagementHandler.id = 0;

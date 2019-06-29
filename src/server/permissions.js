@@ -124,8 +124,8 @@ export default class Permissions {
         return true;
     }
 
-    async assertCanCreateAccessories(accessory_uuid) {
-        if (!await this.checkCanCreateAccessories(accessory_uuid)) {
+    async assertCanCreateAccessories() {
+        if (!await this.checkCanCreateAccessories()) {
             throw new Error('You don\'t have permission to add accessories');
         }
     }
@@ -677,6 +677,44 @@ export default class Permissions {
     async assertCanAccessServerRuntimeInfo() {
         if (!await this.checkCanAccessServerRuntimeInfo()) {
             throw new Error('You don\'t have permission to manage this home');
+        }
+    }
+
+    /**
+     * Check if the user can manage users.
+     *
+     * @return {Promise<boolean>}
+     */
+    checkCanManageUsers() {
+        if (DEVELOPMENT && this.__development_allow_local()) return true;
+
+        if (!this.user) return false;
+
+        return true;
+    }
+
+    async assertCanManageUsers() {
+        if (!await this.checkCanManageUsers()) {
+            throw new Error('You don\'t have permission to manage users');
+        }
+    }
+
+    /**
+     * Check if the user can manage permissions.
+     *
+     * @return {Promise<boolean>}
+     */
+    checkCanManagePermissions() {
+        if (DEVELOPMENT && this.__development_allow_local()) return true;
+
+        if (!this.user) return false;
+
+        return true;
+    }
+
+    async assertCanManagePermissions() {
+        if (!await this.checkCanManagePermissions()) {
+            throw new Error('You don\'t have permission to manage user permissions');
         }
     }
 

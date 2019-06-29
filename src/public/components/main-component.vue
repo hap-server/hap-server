@@ -45,8 +45,8 @@
             <settings v-else-if="modal.type === 'settings'" :key="index" :ref="'modal-' + index"
                 :connection="connection" :accessories="accessories" :loading-accessories="loading_accessories"
                 :can-add-accessories="can_add_accessories" :can-create-bridges="can_create_bridges"
-                :can-open-console="can_open_console"
-                @modal="modal => modals.push(modal)"
+                :can-open-console="can_open_console" :can-manage-users="can_manage_users"
+                :can-edit-user-permissions="can_manage_permissions" @modal="modal => modals.push(modal)"
                 @show-accessory-settings="accessory => modals.push({type: 'accessory-settings', accessory})"
                 @refresh-accessories="refreshAccessories()"
                 @updated-settings="reload" @close="modals.splice(index, 1)" />
@@ -178,6 +178,8 @@
                 can_add_accessories: false,
                 can_create_bridges: false,
                 can_create_layouts: false,
+                can_manage_users: false,
+                can_manage_permissions: false,
                 loading_permissions: false,
 
                 refresh_accessories_timeout: null,
@@ -503,6 +505,8 @@
                     this.can_create_bridges = !!permissions.create_bridges;
                     this.can_create_layouts = !!permissions.create_layouts;
                     this.can_access_automations = permissions.has_automations || permissions.create_automations;
+                    this.can_manage_users = !!permissions.users;
+                    this.can_manage_permissions = !!permissions.permissions;
                 } finally {
                     this.loading_permissions = false;
                 }

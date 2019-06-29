@@ -132,6 +132,7 @@ export class PluginManager extends Events {
                 AccessorySetup: this.bindConstructor(AccessorySetup, plugin),
                 AuthenticationHandler: this.bindConstructor(AuthenticationHandler, plugin),
                 AuthenticatedUser: this.bindConstructor(AuthenticatedUser, plugin),
+                UserManagementHandler: this.bindConstructor(UserManagementHandler, plugin),
                 AutomationTrigger,
                 AutomationCondition,
                 AutomationAction,
@@ -361,6 +362,23 @@ export class PluginManager extends Events {
             }
         }
     }
+
+    getUserManagementHandlers(include_disabled) {
+        return this.plugins.map(plugin => plugin.enabled || include_disabled ?
+            plugin.getUserManagementHandlers() : []).reduce((acc, val) => acc.concat(val), []);
+    }
+
+    getUserManagementHandler(id, include_disabled) {
+        for (const plugin of this.plugins) {
+            if (!plugin.enabled && !include_disabled) continue;
+
+            for (const user_management_handler of plugin.user_management_handlers.values()) {
+                if (!user_management_handler.enabled && !include_disabled) continue;
+
+                if (user_management_handler.id === id) return user_management_handler;
+            }
+        }
+    }
 }
 
 export default PluginManager.instance;
@@ -382,6 +400,7 @@ export class Plugin extends Events {
         this.accessory_discovery = new Map();
         this.accessory_setup = new Map();
         this.authentication_handlers = new Map();
+        this.user_management_handlers = new Map();
         this.automation_triggers = new Map();
         this.automation_conditions = new Map();
         this.automation_actions = new Map();
@@ -583,6 +602,41 @@ export class Plugin extends Events {
         log.info('Registering authentication handler', name, 'from plugin', this.name);
 
         this.authentication_handlers.set(name, handler);
+    }
+
+    getUserManagementHandlers(include_disabled) {
+        return [...this.user_management_handlers.keys()]
+            .filter(name => this.user_management_handlers.get(name).enabled || include_disabled);
+    }
+
+    getUserManagementHandler(name) {
+        return this.user_management_handlers.get(name);
+    }
+
+    registerUserManagementHandler(name, handler) {
+        if (name instanceof UserManagementHandler) {
+            handler = name;
+            name = handler.localid;
+        }
+
+        name = '' + name;
+
+        if (this.user_management_handlers.has(name)) {
+            throw new Error(this.name + ' has already registered an user management handler with the name "' +
+                name + '".');
+        }
+
+        if (!(handler instanceof UserManagementHandler)) {
+            if (typeof handler !== 'function') {
+                throw new Error('handler must be a function or a UserManagementHandler object');
+            }
+
+            handler = new UserManagementHandler(this, name, handler);
+        }
+
+        log.info('Registering user management handler', name, 'from plugin', this.name);
+
+        this.user_management_handlers.set(name, handler);
     }
 
     registerAutomationTrigger(name, handler) {
@@ -1168,6 +1222,33 @@ export class AuthenticatedUser {
     }
 }
 
+export class UserManagementHandler {
+    constructor(plugin, localid, handler) {
+        Object.defineProperty(this, 'id', {value: UserManagementHandler.id++});
+        Object.defineProperty(this, 'plugin', {value: plugin});
+        Object.defineProperty(this, 'localid', {value: localid});
+
+        this.handler = handler;
+    }
+
+    get enabled() {
+        return true;
+    }
+
+    /**
+     * @param {*} data
+     * @param {Connection} connection
+     * @return {Promise}
+     */
+    async handleMessage(data, connection) {
+        const response = await this.handler.call(this, data);
+
+        return response;
+    }
+}
+
+UserManagementHandler.id = 0;
+
 export class PluginAPI {
     constructor(plugin, parent_module) {
         this.plugin = plugin;
@@ -1206,6 +1287,10 @@ export class PluginAPI {
 
     registerAuthenticationHandler(name, handler, disconnect_handler) {
         return this.plugin.registerAuthenticationHandler(name, handler, disconnect_handler);
+    }
+
+    registerUserManagementHandler(name, handler) {
+        return this.plugin.registerUserManagementHandler(name, handler);
     }
 
     registerAutomationTrigger(name, handler) {
