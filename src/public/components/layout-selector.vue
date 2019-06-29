@@ -52,7 +52,7 @@
             <template v-else>Login</template>
         </a>
 
-        <a v-if="canUpdateHomeSettings || canAccessServerSettings" class="dropdown-item" href="#"
+        <a v-if="canAccessServerSettings" class="dropdown-item" href="#"
             @click.prevent="$emit('modal', {type: 'settings'})">Settings</a>
         <a v-if="canCreate" class="dropdown-item" href="#"
             @click.prevent="$emit('modal', {type: 'new-layout'})">New layout</a>
@@ -74,7 +74,6 @@
             name: {type: String, default: 'Home'},
             authenticatedUser: AuthenticatedUser,
             canCreate: Boolean,
-            canUpdateHomeSettings: Boolean,
             canAccessServerSettings: Boolean,
             showAutomations: Boolean,
             canAccessAutomations: Boolean,

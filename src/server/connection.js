@@ -263,7 +263,7 @@ export default class Connection {
                     reject: true,
                     error: err instanceof Error,
                     constructor: err.constructor.name,
-                    data: err instanceof Error ? {message: err.message, code: err.code, stack: err.stack} : err,
+                    data: err ? Object.assign({message: err.message, code: err.code, stack: err.stack}, err) : err,
                 };
             }
         }
@@ -1861,7 +1861,7 @@ export default class Connection {
 
     async getBridgePairingDetails(bridge_uuid) {
         await this.permissions.assertCanGetAccessory(bridge_uuid);
-        await this.permissions.assertCanAccessServerRuntimeInfo();
+        // await this.permissions.assertCanAccessServerRuntimeInfo();
 
         const bridge = this.server.bridges.find(bridge => bridge.uuid === bridge_uuid);
         if (!bridge) return;
@@ -1886,7 +1886,7 @@ export default class Connection {
 
     async resetBridgePairings(bridge_uuid) {
         await this.permissions.assertCanGetAccessory(bridge_uuid);
-        await this.permissions.assertCanAccessServerRuntimeInfo();
+        // await this.permissions.assertCanAccessServerRuntimeInfo();
 
         const bridge = this.server.bridges.find(bridge => bridge.uuid === bridge_uuid);
         if (!bridge) return;
@@ -1908,7 +1908,7 @@ export default class Connection {
 
     async listPairings(bridge_uuid) {
         await this.permissions.assertCanGetAccessory(bridge_uuid);
-        await this.permissions.assertCanAccessServerRuntimeInfo();
+        // await this.permissions.assertCanAccessServerRuntimeInfo();
 
         const bridge = this.server.bridges.find(bridge => bridge.uuid === bridge_uuid);
         if (!bridge) return null;
@@ -1935,7 +1935,7 @@ export default class Connection {
 
     async getPairing(bridge_uuid, id) {
         await this.permissions.assertCanGetAccessory(bridge_uuid);
-        await this.permissions.assertCanAccessServerRuntimeInfo();
+        // await this.permissions.assertCanAccessServerRuntimeInfo();
 
         const bridge = this.server.bridges.find(bridge => bridge.uuid === bridge_uuid);
         if (!bridge) return null;
@@ -1962,7 +1962,7 @@ export default class Connection {
     }
 
     async getPairingData(id) {
-        await this.permissions.assertCanAccessServerRuntimeInfo();
+        // await this.permissions.assertCanAccessServerRuntimeInfo();
         await this.permissions.assertCanGetPairing(id);
 
         this.log.debug('Getting data for pairing', id);
@@ -1986,12 +1986,12 @@ export default class Connection {
         const [get, set, info] = await Promise.all([
             this.permissions.checkCanGetPairing(id),
             this.permissions.checkCanSetPairing(id),
-            this.permissions.checkCanAccessServerRuntimeInfo(),
+            // this.permissions.checkCanAccessServerRuntimeInfo(),
         ]);
 
         return {
-            get: get && info,
-            set: set && info,
+            get: get, // && info,
+            set: set, // && info,
         };
     }
 
@@ -2008,7 +2008,7 @@ export default class Connection {
     }
 
     async setPairingData(id, data) {
-        await this.permissions.assertCanAccessServerRuntimeInfo();
+        // await this.permissions.assertCanAccessServerRuntimeInfo();
         await this.permissions.assertCanSetPairing(id);
 
         this.log.debug('Setting data for pairing', id, data);

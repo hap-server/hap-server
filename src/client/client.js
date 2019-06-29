@@ -159,6 +159,49 @@ export default class Client extends EventEmitter {
     }
 
     async handleBroadcastMessage(data) {
+        if (data.type === 'update-permissions') {
+            const accessory_uuids = Object.values(this.accessories || {}).map(a => a.uuid);
+            if (accessory_uuids.length) {
+                this.connection.getAccessoriesPermissions(...accessory_uuids).then(accessories_permissions => {
+                    for (const index in accessory_uuids) { // eslint-disable-line guard-for-in
+                        const uuid = accessory_uuids[index];
+                        const accessory = this.accessories[uuid];
+                        const permissions = accessories_permissions[index];
+
+                        accessory._setPermissions(permissions || {});
+                    }
+                });
+            }
+
+            const layout_uuids = Object.values(this.layouts || {}).map(l => l.uuid);
+            if (layout_uuids.length) {
+                this.connection.getLayoutsPermissions(...layout_uuids).then(layouts_permissions => {
+                    for (const index in layout_uuids) { // eslint-disable-line guard-for-in
+                        const uuid = layout_uuids[index];
+                        const layout = this.layouts[uuid];
+                        const permissions = layouts_permissions[index];
+
+                        layout._setPermissions(permissions || {});
+                    }
+                });
+            }
+
+            const scene_uuids = Object.values(this.scenes || {}).map(s => s.uuid);
+            if (scene_uuids.length) {
+                this.connection.getLayoutsPermissions(...scene_uuids).then(scenes_permissions => {
+                    for (const index in scene_uuids) { // eslint-disable-line guard-for-in
+                        const uuid = scene_uuids[index];
+                        const scene = this.scenes[uuid];
+                        const permissions = scenes_permissions[index];
+
+                        scene._setPermissions(permissions || {});
+                    }
+                });
+            }
+
+            this.emit('update-home-permissions', data.data);
+        }
+
         if (this.home_settings && data.type === 'update-home-settings') {
             this.home_settings.name = data.name;
             this.home_settings.background_url = data.background_url;

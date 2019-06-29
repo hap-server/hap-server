@@ -106,8 +106,6 @@ export function getConfig(argv) {
                 .map(([key, value]) => [key, mapIncludes(config_path, value)])
                 .reduce((acc, [key, value]) => (acc[key] = value, acc), {});
         }
-
-        console.log(config);
     } catch (error) {
         if (error && error.code === 'ENOENT') {
             console.error(chalk.red(`The configuration file (${error.config_path}) doesn\'t exist.`));
@@ -175,6 +173,7 @@ function command(file, command, describe) {
 }
 
 command('./server', '$0 [config]', 'Run the HAP and web server', './server');
+command('./make-admin', 'make-admin <user>', 'Promote a user to administrator');
 command('./get-characteristics', 'get-characteristics <config> <characteristics>', 'Get characteristics');
 command('./set-characteristic', 'set-characteristic <config> <characteristic> <value>', 'Set a characteristic');
 

@@ -209,6 +209,7 @@
             canCreateBridges: Boolean,
             canOpenConsole: Boolean,
             canManageUsers: Boolean,
+            canAccessServerInfo: Boolean,
             canEditUserPermissions: Boolean,
         },
         inject: {
@@ -230,7 +231,7 @@
                     users: {label: 'Users', if: () => this.canManageUsers && user_management_components.size},
                     accessories: 'Accessories',
                     bridges: 'Bridges',
-                    output: 'Output',
+                    output: {label: 'Output', if: () => this.canAccessServerInfo},
                     console: {label: 'Console', if: () => this.canOpenConsole},
                 },
 

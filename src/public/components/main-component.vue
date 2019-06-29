@@ -20,7 +20,9 @@
             <div class="right">
                 <layout-selector v-model="layout" :layouts="layouts" :name="name"
                     :authenticated-user="authenticated_user" :can-create="can_create_layouts"
-                    :can-update-home-settings="can_update_home_settings" :can-access-server-settings="can_access_server_settings"
+                    :can-access-server-settings="can_access_server_settings || can_update_home_settings ||
+                        can_open_console || can_add_accessories || can_create_bridges || can_create_layouts ||
+                        can_manage_users"
                     :show-automations="show_automations" :can-access-automations="can_access_automations"
                     @edit-layout="$refs.layout.edit = !$refs.layout.edit" @show-automations="show_automations = $event"
                     @modal="modal => modals.push(modal)" />
@@ -46,7 +48,8 @@
                 :connection="connection" :accessories="accessories" :loading-accessories="loading_accessories"
                 :can-add-accessories="can_add_accessories" :can-create-bridges="can_create_bridges"
                 :can-open-console="can_open_console" :can-manage-users="can_manage_users"
-                :can-edit-user-permissions="can_manage_permissions" @modal="modal => modals.push(modal)"
+                :can-edit-user-permissions="can_manage_permissions" :can-access-server-info="can_access_server_settings"
+                @modal="modal => modals.push(modal)"
                 @show-accessory-settings="accessory => modals.push({type: 'accessory-settings', accessory})"
                 @refresh-accessories="refreshAccessories()"
                 @updated-settings="reload" @close="modals.splice(index, 1)" />
@@ -387,6 +390,7 @@
             this.client.on('connected', this.connected);
             this.client.on('disconnected', this.disconnected);
             this.client.on('update-home-settings', this.handleUpdateHomeSettings);
+            this.client.on('update-home-permissions', this.setPermissions);
             // this.client.on('add-automation', this.handleAddAutomation);
 
             await this.client.tryConnect();
@@ -496,20 +500,21 @@
                 this.loading_permissions = true;
 
                 try {
-                    const permissions = await this.connection.getHomePermissions();
-
-                    this.can_update_home_settings = !!permissions.set;
-                    this.can_access_server_settings = !!permissions.server;
-                    this.can_open_console = !!permissions.console;
-                    this.can_add_accessories = !!permissions.add_accessories;
-                    this.can_create_bridges = !!permissions.create_bridges;
-                    this.can_create_layouts = !!permissions.create_layouts;
-                    this.can_access_automations = permissions.has_automations || permissions.create_automations;
-                    this.can_manage_users = !!permissions.users;
-                    this.can_manage_permissions = !!permissions.permissions;
+                    this.setPermissions(await this.connection.getHomePermissions());
                 } finally {
                     this.loading_permissions = false;
                 }
+            },
+            setPermissions(permissions) {
+                this.can_update_home_settings = !!permissions.set;
+                this.can_access_server_settings = !!permissions.server;
+                this.can_open_console = !!permissions.console;
+                this.can_add_accessories = !!permissions.add_accessories;
+                this.can_create_bridges = !!permissions.create_bridges;
+                this.can_create_layouts = !!permissions.create_layouts;
+                this.can_access_automations = permissions.has_automations || permissions.create_automations;
+                this.can_manage_users = !!permissions.users;
+                this.can_manage_permissions = !!permissions.permissions;
             },
             async loadAccessoryUIs() {
                 if (this.loading_accessory_uis) throw new Error('Already loading accessory UIs');

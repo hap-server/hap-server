@@ -168,6 +168,16 @@ web interface, but you'll still be able to configure hap-server using it's confi
 npm install -g @hap-server/authenticate-pam
 ```
 
+By default users with the IDs `root` and `cli-token` (the user used when running CLI commands) are administrators.
+When using the authenticate-pam plugin you'll need to assign your user an ID the first time you use it. (A proper
+setup workflow will be added soon.) Once you have an account setup you can make your account an administrator.
+
+```
+hap-server make-admin {user-id}
+# Or with the path to the configuration file
+hap-server make-admin {user-id} --config data/config.yaml
+```
+
 Usage
 ---
 

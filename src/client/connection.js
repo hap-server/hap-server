@@ -24,8 +24,9 @@ const broadcast_message_methods = {
     'scene-activated': 'handleSceneActivatedMessage',
     'scene-deactivated': 'handleSceneDeactivatedMessage',
     'scene-progress': 'handleSceneProgressMessage',
-    'update-pairings': 'handleUpdatePairings',
-    'update-pairing-data': 'handleUpdatePairingData',
+    'update-pairings': 'handleUpdatePairingsMessage',
+    'update-pairing-data': 'handleUpdatePairingDataMessage',
+    'update-permissions': 'handleUpdatePermissionsMessage',
     'stdout': 'handleStdout',
     'stderr': 'handleStderr',
     'console-output': 'handleConsoleOutput',
@@ -759,12 +760,16 @@ export default class Connection extends EventEmitter {
         this.emit('scene-progress', data.uuid, data.context);
     }
 
-    handleUpdatePairings(data) {
+    handleUpdatePairingsMessage(data) {
         this.emit('update-pairings', data.bridge_uuid /* , data.pairings */);
     }
 
-    handleUpdatePairingData(data) {
+    handleUpdatePairingDataMessage(data) {
         this.emit('update-pairing-data', data.id, data.data);
+    }
+
+    handleUpdatePermissionsMessage(data) {
+        this.emit('update-home-permissions', data.data);
     }
 
     handleStdout(data) {

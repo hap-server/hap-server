@@ -37,11 +37,38 @@ export default class Permissions {
      *
      * @return {Promise<Array>}
      */
-    getAuthorisedAccessoryUUIDs() {
+    async getAuthorisedAccessoryUUIDs() {
         if (!DEVELOPMENT || !this.__development_allow_local()) {
             if (!this.user) return [];
         }
 
+        const permissions = await this.permissions || {};
+        if (permissions['*']) return this.getAllAccessoryUUIDs();
+
+        const _default = permissions.accessories && permissions.accessories['*'] && permissions.accessories['*'].get;
+
+        const uuids = [];
+
+        for (const [uuid, accessory_permissions] of Object.entries(permissions.accessories || {})) {
+            if (uuid === '*') continue;
+            if (accessory_permissions.get) uuids.push(uuid);
+        }
+
+        if (!_default) return uuids;
+
+        uuids.push(...await this.getAllAccessoryUUIDs());
+
+        return uuids.filter((uuid, index) => {
+            if (uuids.indexOf(uuid) !== index) return false;
+
+            const accessory_permissions = (permissions.accessories || {})[index];
+            if (accessory_permissions) return accessory_permissions.get;
+
+            return true;
+        });
+    }
+
+    getAllAccessoryUUIDs() {
         const uuids = [];
 
         for (const bridge of this.connection.server.bridges) {
@@ -73,12 +100,18 @@ export default class Permissions {
      * @param {string} accessory_uuid
      * @return {Promise<boolean>}
      */
-    checkCanGetAccessory(accessory_uuid) {
+    async checkCanGetAccessory(accessory_uuid) {
         if (DEVELOPMENT && this.__development_allow_local()) return true;
 
         if (!this.user) return false;
 
-        return true;
+        const permissions = await this.permissions || {};
+        if (permissions['*']) return true;
+
+        const _default = permissions.accessories && permissions.accessories['*'] && permissions.accessories['*'].get;
+
+        return permissions.accessories && permissions.accessories[accessory_uuid] ?
+            permissions.accessories[accessory_uuid].get : _default;
     }
 
     async assertCanGetAccessory(accessory_uuid) {
@@ -96,12 +129,19 @@ export default class Permissions {
      * @param {*} value
      * @return {Promise<boolean>}
      */
-    checkCanSetCharacteristic(accessory_uuid, service_uuid, characteristic_uuid, value) {
+    async checkCanSetCharacteristic(accessory_uuid, service_uuid, characteristic_uuid, value) {
         if (DEVELOPMENT && this.__development_allow_local()) return true;
 
         if (!this.user) return false;
 
-        return true;
+        const permissions = await this.permissions || {};
+        if (permissions['*']) return true;
+
+        const _default = permissions.accessories && permissions.accessories['*'] &&
+            permissions.accessories['*'].get && permissions.accessories['*'].set;
+
+        return permissions.accessories && permissions.accessories[accessory_uuid] ?
+            permissions.accessories[accessory_uuid].get && permissions.accessories[accessory_uuid].set : _default;
     }
 
     async assertCanSetCharacteristic(accessory_uuid, service_uuid, characteristic_uuid, value) {
@@ -116,12 +156,19 @@ export default class Permissions {
      * @param {string} accessory_uuid
      * @return {Promise<boolean>}
      */
-    checkCanSetAccessoryData(accessory_uuid) {
+    async checkCanSetAccessoryData(accessory_uuid) {
         if (DEVELOPMENT && this.__development_allow_local()) return true;
 
         if (!this.user) return false;
 
-        return true;
+        const permissions = await this.permissions || {};
+        if (permissions['*']) return true;
+
+        const _default = permissions.accessories && permissions.accessories['*'] &&
+            permissions.accessories['*'].get && permissions.accessories['*'].manage;
+
+        return permissions.accessories && permissions.accessories[accessory_uuid] ?
+            permissions.accessories[accessory_uuid].get && permissions.accessories[accessory_uuid].manage : _default;
     }
 
     async assertCanSetAccessoryData(accessory_uuid) {
@@ -135,12 +182,15 @@ export default class Permissions {
      *
      * @return {Promise<boolean>}
      */
-    checkCanCreateAccessories() {
+    async checkCanCreateAccessories() {
         if (DEVELOPMENT && this.__development_allow_local()) return true;
 
         if (!this.user) return false;
 
-        return true;
+        const permissions = await this.permissions || {};
+        if (permissions['*']) return true;
+
+        return permissions.create_accessories;
     }
 
     async assertCanCreateAccessories() {
@@ -155,12 +205,19 @@ export default class Permissions {
      * @param {string} accessory_uuid
      * @return {Promise<boolean>}
      */
-    checkCanGetAccessoryConfig(accessory_uuid) {
+    async checkCanGetAccessoryConfig(accessory_uuid) {
         if (DEVELOPMENT && this.__development_allow_local()) return true;
 
         if (!this.user) return false;
 
-        return true;
+        const permissions = await this.permissions || {};
+        if (permissions['*']) return true;
+
+        const _default = permissions.accessories && permissions.accessories['*'] &&
+            permissions.accessories['*'].get && permissions.accessories['*'].config;
+
+        return permissions.accessories && permissions.accessories[accessory_uuid] ?
+            permissions.accessories[accessory_uuid].get && permissions.accessories[accessory_uuid].config : _default;
     }
 
     async assertCanGetAccessoryConfig(accessory_uuid) {
@@ -175,12 +232,19 @@ export default class Permissions {
      * @param {string} accessory_uuid
      * @return {Promise<boolean>}
      */
-    checkCanSetAccessoryConfig(accessory_uuid) {
+    async checkCanSetAccessoryConfig(accessory_uuid) {
         if (DEVELOPMENT && this.__development_allow_local()) return true;
 
         if (!this.user) return false;
 
-        return true;
+        const permissions = await this.permissions || {};
+        if (permissions['*']) return true;
+
+        const _default = permissions.accessories && permissions.accessories['*'] &&
+            permissions.accessories['*'].get && permissions.accessories['*'].config;
+
+        return permissions.accessories && permissions.accessories[accessory_uuid] ?
+            permissions.accessories[accessory_uuid].get && permissions.accessories[accessory_uuid].config : _default;
     }
 
     async assertCanSetAccessoryConfig(accessory_uuid) {
@@ -195,12 +259,19 @@ export default class Permissions {
      * @param {string} accessory_uuid
      * @return {Promise<boolean>}
      */
-    checkCanDeleteAccessory(accessory_uuid) {
+    async checkCanDeleteAccessory(accessory_uuid) {
         if (DEVELOPMENT && this.__development_allow_local()) return true;
 
         if (!this.user) return false;
 
-        return true;
+        const permissions = await this.permissions || {};
+        if (permissions['*']) return true;
+
+        const _default = permissions.accessories && permissions.accessories['*'] &&
+            permissions.accessories['*'].get && permissions.accessories['*'].delete;
+
+        return permissions.accessories && permissions.accessories[accessory_uuid] ?
+            permissions.accessories[accessory_uuid].get && permissions.accessories[accessory_uuid].delete : _default;
     }
 
     async assertCanDeleteAccessory(accessory_uuid) {
@@ -214,12 +285,15 @@ export default class Permissions {
      *
      * @return {Promise<boolean>}
      */
-    checkCanGetHomeSettings() {
+    async checkCanGetHomeSettings() {
         if (DEVELOPMENT && this.__development_allow_local()) return true;
 
         if (!this.user) return false;
 
-        return true;
+        const permissions = await this.permissions || {};
+        if (permissions['*']) return true;
+
+        return permissions.get_home_settings || permissions.set_home_settings;
     }
 
     async assertCanGetHomeSettings() {
@@ -233,12 +307,15 @@ export default class Permissions {
      *
      * @return {Promise<boolean>}
      */
-    checkCanSetHomeSettings() {
+    async checkCanSetHomeSettings() {
         if (DEVELOPMENT && this.__development_allow_local()) return true;
 
         if (!this.user) return false;
 
-        return true;
+        const permissions = await this.permissions || {};
+        if (permissions['*']) return true;
+
+        return permissions.set_home_settings;
     }
 
     async assertCanSetHomeSettings() {
@@ -262,7 +339,8 @@ export default class Permissions {
 
         if (this.user) uuids.push('Overview.' + this.user.id);
 
-        return uuids;
+        const authorised_uuids = await Promise.all(uuids.map(u => this.checkCanGetLayout(u)));
+        return uuids.filter((u, index) => authorised_uuids[index]);
     }
 
     /**
@@ -270,12 +348,15 @@ export default class Permissions {
      *
      * @return {Promise<boolean>}
      */
-    checkCanCreateLayouts() {
+    async checkCanCreateLayouts() {
         if (DEVELOPMENT && this.__development_allow_local()) return true;
 
         if (!this.user) return false;
 
-        return true;
+        const permissions = await this.permissions || {};
+        if (permissions['*']) return true;
+
+        return permissions.create_layouts;
     }
 
     async assertCanCreateLayouts() {
@@ -290,7 +371,7 @@ export default class Permissions {
      * @param {string} id
      * @return {Promise<boolean>}
      */
-    checkCanGetLayout(id) {
+    async checkCanGetLayout(id) {
         if (DEVELOPMENT && this.__development_allow_local()) return true;
 
         if (!this.user) return false;
@@ -298,7 +379,12 @@ export default class Permissions {
         if (id === 'Overview.' + this.user.id) return true;
         if (id.startsWith('Overview.')) return false;
 
-        return true;
+        const permissions = await this.permissions || {};
+        if (permissions['*']) return true;
+
+        const _default = permissions.layouts && permissions.layouts['*'] && permissions.layouts['*'].get;
+
+        return permissions.layouts && permissions.layouts[id] ? permissions.layouts[id].get : _default;
     }
 
     async assertCanGetLayout(id) {
@@ -313,7 +399,7 @@ export default class Permissions {
      * @param {string} id
      * @return {Promise<boolean>}
      */
-    checkCanSetLayout(id) {
+    async checkCanSetLayout(id) {
         if (DEVELOPMENT && this.__development_allow_local()) return true;
 
         if (!this.user) return false;
@@ -321,7 +407,14 @@ export default class Permissions {
         if (id === 'Overview.' + this.user.id) return true;
         if (id.startsWith('Overview.')) return false;
 
-        return true;
+        const permissions = await this.permissions || {};
+        if (permissions['*']) return true;
+
+        const _default = permissions.layouts && permissions.layouts['*'] &&
+            permissions.layouts['*'].get && permissions.layouts['*'].set;
+
+        return permissions.layouts && permissions.layouts[id] ?
+            permissions.layouts[id].get && permissions.layouts[id].set : _default;
     }
 
     async assertCanSetLayout(id) {
@@ -336,7 +429,7 @@ export default class Permissions {
      * @param {string} id
      * @return {Promise<boolean>}
      */
-    checkCanDeleteLayout(id) {
+    async checkCanDeleteLayout(id) {
         if (DEVELOPMENT && this.__development_allow_local()) return true;
 
         if (!this.user) return false;
@@ -344,7 +437,14 @@ export default class Permissions {
         if (id === 'Overview.' + this.user.id) return true;
         if (id.startsWith('Overview.')) return false;
 
-        return true;
+        const permissions = await this.permissions || {};
+        if (permissions['*']) return true;
+
+        const _default = permissions.layouts && permissions.layouts['*'] &&
+            permissions.layouts['*'].get && permissions.layouts['*'].delete;
+
+        return permissions.layouts && permissions.layouts[id] ?
+            permissions.layouts[id].get && permissions.layouts[id].delete : _default;
     }
 
     async assertCanDeleteLayout(id) {
@@ -365,7 +465,8 @@ export default class Permissions {
 
         const uuids = await this.connection.server.storage.getItem('Automations') || [];
 
-        return uuids;
+        const authorised_uuids = await Promise.all(uuids.map(u => this.checkCanGetAutomation(u)));
+        return uuids.filter((u, index) => authorised_uuids[index]);
     }
 
     /**
@@ -373,12 +474,15 @@ export default class Permissions {
      *
      * @return {Promise<boolean>}
      */
-    checkCanCreateAutomations() {
+    async checkCanCreateAutomations() {
         if (DEVELOPMENT && this.__development_allow_local()) return true;
 
         if (!this.user) return false;
 
-        return true;
+        const permissions = await this.permissions || {};
+        if (permissions['*']) return true;
+
+        return permissions.create_automations;
     }
 
     async assertCanCreateAutomations() {
@@ -393,12 +497,17 @@ export default class Permissions {
      * @param {string} uuid
      * @return {Promise<boolean>}
      */
-    checkCanGetAutomation(uuid) {
+    async checkCanGetAutomation(uuid) {
         if (DEVELOPMENT && this.__development_allow_local()) return true;
 
         if (!this.user) return false;
 
-        return true;
+        const permissions = await this.permissions || {};
+        if (permissions['*']) return true;
+
+        const _default = permissions.automations && permissions.automations['*'] && permissions.automations['*'].get;
+
+        return permissions.automations && permissions.automations[uuid] ? permissions.automations[uuid].get : _default;
     }
 
     async assertCanGetAutomation(uuid) {
@@ -413,12 +522,19 @@ export default class Permissions {
      * @param {string} uuid
      * @return {Promise<boolean>}
      */
-    checkCanSetAutomation(uuid) {
+    async checkCanSetAutomation(uuid) {
         if (DEVELOPMENT && this.__development_allow_local()) return true;
 
         if (!this.user) return false;
 
-        return true;
+        const permissions = await this.permissions || {};
+        if (permissions['*']) return true;
+
+        const _default = permissions.automations && permissions.automations['*'] &&
+            permissions.automations['*'].get && permissions.automations['*'].set;
+
+        return permissions.automations && permissions.automations[uuid] ?
+            permissions.automations[uuid].get && permissions.automations[uuid].set : _default;
     }
 
     async assertCanSetAutomation(uuid) {
@@ -433,12 +549,19 @@ export default class Permissions {
      * @param {string} uuid
      * @return {Promise<boolean>}
      */
-    checkCanDeleteAutomation(uuid) {
+    async checkCanDeleteAutomation(uuid) {
         if (DEVELOPMENT && this.__development_allow_local()) return true;
 
         if (!this.user) return false;
 
-        return true;
+        const permissions = await this.permissions || {};
+        if (permissions['*']) return true;
+
+        const _default = permissions.automations && permissions.automations['*'] &&
+            permissions.automations['*'].get && permissions.automations['*'].delete;
+
+        return permissions.automations && permissions.automations[uuid] ?
+            permissions.automations[uuid].get && permissions.automations[uuid].delete : _default;
     }
 
     async assertCanDeleteAutomation(uuid) {
@@ -459,7 +582,8 @@ export default class Permissions {
 
         const uuids = await this.connection.server.storage.getItem('Scenes') || [];
 
-        return uuids;
+        const authorised_uuids = await Promise.all(uuids.map(u => this.checkCanGetScene(u)));
+        return uuids.filter((u, index) => authorised_uuids[index]);
     }
 
     /**
@@ -467,12 +591,15 @@ export default class Permissions {
      *
      * @return {Promise<boolean>}
      */
-    checkCanCreateScenes() {
+    async checkCanCreateScenes() {
         if (DEVELOPMENT && this.__development_allow_local()) return true;
 
         if (!this.user) return false;
 
-        return true;
+        const permissions = await this.permissions || {};
+        if (permissions['*']) return true;
+
+        return permissions.create_scenes;
     }
 
     async assertCanCreateScenes() {
@@ -487,12 +614,19 @@ export default class Permissions {
      * @param {string} uuid
      * @return {Promise<boolean>}
      */
-    checkCanGetScene(uuid) {
+    async checkCanGetScene(uuid) {
         if (DEVELOPMENT && this.__development_allow_local()) return true;
 
         if (!this.user) return false;
 
-        return true;
+        const permissions = await this.permissions || {};
+        if (permissions['*']) return true;
+
+        const _default = permissions.scenes && permissions.scenes['*'] &&
+            permissions.scenes['*'].get && permissions.scenes['*'].delete;
+
+        return permissions.scenes && permissions.scenes[uuid] ?
+            permissions.scenes[uuid].get && permissions.scenes[uuid].delete : _default;
     }
 
     async assertCanGetScene(uuid) {
@@ -507,12 +641,19 @@ export default class Permissions {
      * @param {string} uuid
      * @return {Promise<boolean>}
      */
-    checkCanActivateScene(uuid) {
+    async checkCanActivateScene(uuid) {
         if (DEVELOPMENT && this.__development_allow_local()) return true;
 
         if (!this.user) return false;
 
-        return true;
+        const permissions = await this.permissions || {};
+        if (permissions['*']) return true;
+
+        const _default = permissions.scenes && permissions.scenes['*'] &&
+            permissions.scenes['*'].get && permissions.scenes['*'].activate;
+
+        return permissions.scenes && permissions.scenes[uuid] ?
+            permissions.scenes[uuid].get && permissions.scenes[uuid].activate : _default;
     }
 
     async assertCanActivateScene(uuid) {
@@ -527,12 +668,19 @@ export default class Permissions {
      * @param {string} uuid
      * @return {Promise<boolean>}
      */
-    checkCanSetScene(uuid) {
+    async checkCanSetScene(uuid) {
         if (DEVELOPMENT && this.__development_allow_local()) return true;
 
         if (!this.user) return false;
 
-        return true;
+        const permissions = await this.permissions || {};
+        if (permissions['*']) return true;
+
+        const _default = permissions.scenes && permissions.scenes['*'] &&
+            permissions.scenes['*'].get && permissions.scenes['*'].set;
+
+        return permissions.scenes && permissions.scenes[uuid] ?
+            permissions.scenes[uuid].get && permissions.scenes[uuid].set : _default;
     }
 
     async assertCanSetScene(uuid) {
@@ -547,12 +695,19 @@ export default class Permissions {
      * @param {string} uuid
      * @return {Promise<boolean>}
      */
-    checkCanDeleteScene(uuid) {
+    async checkCanDeleteScene(uuid) {
         if (DEVELOPMENT && this.__development_allow_local()) return true;
 
         if (!this.user) return false;
 
-        return true;
+        const permissions = await this.permissions || {};
+        if (permissions['*']) return true;
+
+        const _default = permissions.scenes && permissions.scenes['*'] &&
+            permissions.scenes['*'].get && permissions.scenes['*'].delete;
+
+        return permissions.scenes && permissions.scenes[uuid] ?
+            permissions.scenes[uuid].get && permissions.scenes[uuid].delete : _default;
     }
 
     async assertCanDeleteScene(uuid) {
@@ -566,12 +721,15 @@ export default class Permissions {
      *
      * @return {Promise<boolean>}
      */
-    checkCanCreateBridges() {
+    async checkCanCreateBridges() {
         if (DEVELOPMENT && this.__development_allow_local()) return true;
 
         if (!this.user) return false;
 
-        return true;
+        const permissions = await this.permissions || {};
+        if (permissions['*']) return true;
+
+        return permissions.create_bridges;
     }
 
     async assertCanCreateBridges() {
@@ -586,12 +744,19 @@ export default class Permissions {
      * @param {string} uuid
      * @return {Promise<boolean>}
      */
-    checkCanGetBridgeConfiguration(uuid) {
+    async checkCanGetBridgeConfiguration(uuid) {
         if (DEVELOPMENT && this.__development_allow_local()) return true;
 
         if (!this.user) return false;
 
-        return true;
+        const permissions = await this.permissions || {};
+        if (permissions['*']) return true;
+
+        const _default = permissions.accessories && permissions.accessories['*'] &&
+            permissions.accessories['*'].get && permissions.accessories['*'].config;
+
+        return permissions.accessories && permissions.accessories[uuid] ?
+            permissions.accessories[uuid].get && permissions.accessories[uuid].config : _default;
     }
 
     async assertCanGetBridgeConfiguration(uuid) {
@@ -606,12 +771,19 @@ export default class Permissions {
      * @param {string} uuid
      * @return {Promise<boolean>}
      */
-    checkCanSetBridgeConfiguration(uuid) {
+    async checkCanSetBridgeConfiguration(uuid) {
         if (DEVELOPMENT && this.__development_allow_local()) return true;
 
         if (!this.user) return false;
 
-        return true;
+        const permissions = await this.permissions || {};
+        if (permissions['*']) return true;
+
+        const _default = permissions.accessories && permissions.accessories['*'] &&
+            permissions.accessories['*'].get && permissions.accessories['*'].config;
+
+        return permissions.accessories && permissions.accessories[uuid] ?
+            permissions.accessories[uuid].get && permissions.accessories[uuid].config : _default;
     }
 
     async assertCanSetBridgeConfiguration(uuid) {
@@ -626,12 +798,19 @@ export default class Permissions {
      * @param {string} uuid
      * @return {Promise<boolean>}
      */
-    checkCanDeleteBridge(uuid) {
+    async checkCanDeleteBridge(uuid) {
         if (DEVELOPMENT && this.__development_allow_local()) return true;
 
         if (!this.user) return false;
 
-        return true;
+        const permissions = await this.permissions || {};
+        if (permissions['*']) return true;
+
+        const _default = permissions.accessories && permissions.accessories['*'] &&
+            permissions.accessories['*'].get && permissions.accessories['*'].delete;
+
+        return permissions.accessories && permissions.accessories[uuid] ?
+            permissions.accessories[uuid].get && permissions.accessories[uuid].delete : _default;
     }
 
     async assertCanDeleteBridge(uuid) {
@@ -646,12 +825,15 @@ export default class Permissions {
      * @param {string} username
      * @return {Promise<boolean>}
      */
-    checkCanGetPairing(username) {
+    async checkCanGetPairing(username) {
         if (DEVELOPMENT && this.__development_allow_local()) return true;
 
         if (!this.user) return false;
 
-        return true;
+        const permissions = await this.permissions || {};
+        if (permissions['*']) return true;
+
+        return permissions.manage_pairings;
     }
 
     async assertCanGetPairing(username) {
@@ -666,12 +848,15 @@ export default class Permissions {
      * @param {string} username
      * @return {Promise<boolean>}
      */
-    checkCanSetPairing(username) {
+    async checkCanSetPairing(username) {
         if (DEVELOPMENT && this.__development_allow_local()) return true;
 
         if (!this.user) return false;
 
-        return true;
+        const permissions = await this.permissions || {};
+        if (permissions['*']) return true;
+
+        return permissions.manage_pairings;
     }
 
     async assertCanSetPairing(username) {
@@ -685,12 +870,15 @@ export default class Permissions {
      *
      * @return {Promise<boolean>}
      */
-    checkCanAccessServerRuntimeInfo() {
+    async checkCanAccessServerRuntimeInfo() {
         if (DEVELOPMENT && this.__development_allow_local()) return true;
 
         if (!this.user) return false;
 
-        return true;
+        const permissions = await this.permissions || {};
+        if (permissions['*']) return true;
+
+        return permissions.server_runtime_info;
     }
 
     async assertCanAccessServerRuntimeInfo() {
@@ -704,12 +892,15 @@ export default class Permissions {
      *
      * @return {Promise<boolean>}
      */
-    checkCanManageUsers() {
+    async checkCanManageUsers() {
         if (DEVELOPMENT && this.__development_allow_local()) return true;
 
         if (!this.user) return false;
 
-        return true;
+        const permissions = await this.permissions || {};
+        if (permissions['*']) return true;
+
+        return permissions.manage_users;
     }
 
     async assertCanManageUsers() {
@@ -723,12 +914,15 @@ export default class Permissions {
      *
      * @return {Promise<boolean>}
      */
-    checkCanManagePermissions() {
+    async checkCanManagePermissions() {
         if (DEVELOPMENT && this.__development_allow_local()) return true;
 
         if (!this.user) return false;
 
-        return true;
+        const permissions = await this.permissions || {};
+        if (permissions['*']) return true;
+
+        return permissions.manage_permissions;
     }
 
     async assertCanManagePermissions() {
@@ -742,12 +936,15 @@ export default class Permissions {
      *
      * @return {Promise<boolean>}
      */
-    checkCanOpenWebConsole() {
+    async checkCanOpenWebConsole() {
         return false;
 
         if (!this.user) return false;
 
-        return true;
+        const permissions = await this.permissions || {};
+        if (permissions['*']) return true;
+
+        return permissions.web_console;
     }
 
     async assertCanOpenWebConsole() {
@@ -763,7 +960,7 @@ export default class Permissions {
      * @param {string} data.type
      * @return {Promise<boolean>}
      */
-    checkShouldReceiveBroadcast(data) {
+    async checkShouldReceiveBroadcast(data) {
         if (data.type === 'add-accessories') {
             return Promise.all(data.ids.map(uuid => this.checkCanGetAccessory(uuid))).then(g => !g.find(g => !g));
         }
@@ -780,10 +977,10 @@ export default class Permissions {
             return this.checkCanGetLayout(data.layout_uuid);
         }
         if (data.type === 'update-pairings') {
-            return this.checkCanGetAccessory(data.bridge_uuid) && this.checkCanAccessServerRuntimeInfo();
+            return Promise.all([this.checkCanGetAccessory(data.bridge_uuid), this.checkCanAccessServerRuntimeInfo()]);
         }
         if (data.type === 'update-pairing-data') {
-            return this.checkCanGetPairing(data.id) && this.checkCanAccessServerRuntimeInfo();
+            return Promise.all([this.checkCanGetPairing(data.id), this.checkCanAccessServerRuntimeInfo()]);
         }
 
         // Always sent to a single client
@@ -801,6 +998,8 @@ if (DEVELOPMENT) {
     const local_addresses = ['::1', '::ffff:127.0.0.1', '127.0.0.1'];
 
     Permissions.prototype.__development_allow_local = function() {
+        return false;
+
         if (local_addresses.includes(this.connection.req.connection.remoteAddress) &&
             !this.connection.req.headers['x-forwarded-for']
         ) {
