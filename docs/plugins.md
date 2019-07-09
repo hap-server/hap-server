@@ -72,6 +72,32 @@ lightbulb_service.getCharacteristic(Characteristics.On)
     });
 ```
 
+Camera and Television accessories should set the `external_groups` property so hap-server knows to publish the
+accessory separately. This should be the UUID of any services that require the accessory to be published separately.
+
+```js
+const accessory = new Accessory(config.name, config.uuid);
+accessory.external_groups = [Service.Television.UUID];
+
+const tv_service = accessory.addService(Service.Television);
+
+// ...
+```
+```js
+const accessory = new Accessory(config.name, config.uuid);
+accessory.external_groups = [Service.CameraRTPStreamManagement.UUID];
+
+const camera = new Camera(/* ... */);
+accessory.configureCameraSource(camera);
+
+// ...
+```
+
+External accessories will have a random MAC address based on the bridge UUID and accessory UUID and can only be
+paired with the client paired to the bridge.
+
+The advertised category will be set automatically if you don't set a category.
+
 The `PluginAPI` instance (`hapserver`) has the following functions:
 
 #### `hapserver.registerAccessory`

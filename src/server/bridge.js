@@ -291,7 +291,8 @@ export default class Bridge {
             s.UUID === Service.WindowCovering.UUID)) return Accessory.Categories.WINDOW_COVERING;
         if (accessory.services.find(s =>
             s.UUID === Service.StatelessProgrammableSwitch.UUID)) return Accessory.Categories.PROGRAMMABLE_SWITCH;
-        if (accessory.services.find(s => s.UUID === Service.Doorbell.UUID)) return Accessory.Categories.VIDEO_DOORBELL;
+        if (accessory.cameraSource && accessory.services.find(s =>
+            s.UUID === Service.Doorbell.UUID)) return Accessory.Categories.VIDEO_DOORBELL;
         if (accessory.cameraSource) return Accessory.Categories.IP_CAMERA;
         if (accessory.services.find(s => s.UUID === Service.AirPurifier.UUID)) return Accessory.Categories.AIR_PURIFIER;
         if (accessory.services.find(s => s.UUID === Service.Television.UUID)) return Accessory.Categories.TELEVISION;

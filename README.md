@@ -59,7 +59,8 @@ A lot.
 - [ ] Security
     - [x] Web interface authentication
         - Completely handled by plugins.
-    - [ ] Permissions
+    - [x] Permissions
+        - [ ] Web interface permission checks
     - [ ] Per-user HomeKit bridges
         - This would allow you to configure all accessories in hap-server and then allow multiple people to create
             their own homes with read-only access (or no access) to other people's accessories instead of sharing a
