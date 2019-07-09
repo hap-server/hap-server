@@ -1,7 +1,12 @@
 import {Event} from '..';
+import {Server} from '../../server';
 
 export class ServerStartupFinishedEvent extends Event {
-    get server() {
+    constructor(server: Server) {
+        super(server);
+    }
+
+    get server(): Server {
         return this.args[0];
     }
 }
@@ -9,7 +14,11 @@ export class ServerStartupFinishedEvent extends Event {
 // ServerStartupFinishedEvent.type = 'server-startup-finished';
 
 export class ServerStoppingEvent extends Event {
-    get server() {
+    constructor(server: Server) {
+        super(server);
+    }
+
+    get server(): Server {
         return this.args[0];
     }
 }

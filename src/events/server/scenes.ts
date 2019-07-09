@@ -1,7 +1,15 @@
 import {Event} from '..';
+import {AutomationTriggerEvent} from './automation-trigger';
+import Scene from '../../automations/scene';
 
 export class SceneTriggerEvent extends Event {
-    get scene() {
+    static readonly type = 'scene-triggered';
+
+    constructor(scene: Scene, enable: boolean, context) {
+        super(scene, enable, context);
+    }
+
+    get scene(): Scene {
         return this.args[0];
     }
 
@@ -13,7 +21,7 @@ export class SceneTriggerEvent extends Event {
         return this.automations.server;
     }
 
-    get enable() {
+    get enable(): boolean {
         return this.args[1];
     }
 
@@ -26,10 +34,14 @@ export class SceneTriggerEvent extends Event {
     }
 }
 
-SceneTriggerEvent.type = 'scene-triggered';
-
 export class SceneActivateProgressEvent extends Event {
-    get scene() {
+    static readonly type = 'scene-activate-progress';
+
+    constructor(scene: Scene, parent: AutomationTriggerEvent, progress: number) {
+        super(scene, parent, progress);
+    }
+
+    get scene(): Scene {
         return this.args[0];
     }
 
@@ -41,7 +53,7 @@ export class SceneActivateProgressEvent extends Event {
         return this.automations.server;
     }
 
-    get parent() {
+    get parent(): AutomationTriggerEvent {
         return this.args[1];
     }
 
@@ -49,15 +61,19 @@ export class SceneActivateProgressEvent extends Event {
         return this.parent.context;
     }
 
-    get progress() {
+    get progress(): number {
         return this.args[2];
     }
 }
-
-SceneActivateProgressEvent.type = 'scene-activate-progress';
 
 export class SceneActivatedEvent extends Event {
-    get scene() {
+    static readonly type = 'scene-activated';
+
+    constructor(scene: Scene, parent: AutomationTriggerEvent) {
+        super(scene, parent);
+    }
+
+    get scene(): Scene {
         return this.args[0];
     }
 
@@ -69,7 +85,7 @@ export class SceneActivatedEvent extends Event {
         return this.automations.server;
     }
 
-    get parent() {
+    get parent(): AutomationTriggerEvent {
         return this.args[1];
     }
 
@@ -78,10 +94,14 @@ export class SceneActivatedEvent extends Event {
     }
 }
 
-SceneActivatedEvent.type = 'scene-activated';
-
 export class SceneDeactivateProgressEvent extends Event {
-    get scene() {
+    static readonly type = 'scene-deactivate-progress';
+
+    constructor(scene: Scene, parent: AutomationTriggerEvent, progress: number) {
+        super(scene, parent, progress);
+    }
+
+    get scene(): Scene {
         return this.args[0];
     }
 
@@ -93,7 +113,7 @@ export class SceneDeactivateProgressEvent extends Event {
         return this.automations.server;
     }
 
-    get parent() {
+    get parent(): AutomationTriggerEvent {
         return this.args[1];
     }
 
@@ -101,14 +121,18 @@ export class SceneDeactivateProgressEvent extends Event {
         return this.parent.context;
     }
 
-    get progress() {
+    get progress(): number {
         return this.args[2];
     }
 }
 
-SceneDeactivateProgressEvent.type = 'scene-deactivate-progress';
-
 export class SceneDeactivatedEvent extends Event {
+    static readonly type = 'scene-deactivated';
+
+    constructor(scene: Scene, parent: AutomationTriggerEvent) {
+        super(scene, parent);
+    }
+
     get scene() {
         return this.args[0];
     }
@@ -129,5 +153,3 @@ export class SceneDeactivatedEvent extends Event {
         return this.parent.context;
     }
 }
-
-SceneDeactivatedEvent.type = 'scene-deactivated';
