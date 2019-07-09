@@ -4,11 +4,13 @@ import url from 'url';
 import gulp from 'gulp';
 import pump from 'pump';
 import babel from 'gulp-babel';
+import typescript from 'gulp-typescript';
 import webpack from 'webpack-stream';
 import json from 'gulp-json-editor';
 import file from 'gulp-file';
 import minify from 'gulp-minify';
 import replace from 'gulp-replace';
+import merge from 'merge2';
 import del from 'del';
 import markdownlinks from 'transform-markdown-links';
 
@@ -25,6 +27,8 @@ const README_BASE_URL =
     `https://gitlab.fancy.org.uk/hap-server/hap-server/blob/v${require('./package').version}/README.md`;
 const README_IMAGE_BASE_URL =
     `https://gitlab.fancy.org.uk/hap-server/hap-server/raw/v${require('./package').version}/README.md`;
+
+import {compilerOptions as typescript_config} from './tsconfig';
 
 const webpack_config = {
     context: __dirname,
@@ -130,8 +134,16 @@ export const webpack_hot_config = Object.assign({}, webpack_config, {
 
 gulp.task('build-backend', function () {
     return pump([
-        gulp.src(['src/**/*.js', '!src/public/**/*.js']),
-        babel(),
+        merge([
+            pump([
+                gulp.src(['src/**/*.js', '!src/public/**/*.js']),
+                babel(),
+            ]),
+            pump([
+                gulp.src(['src/**/*.ts', '!src/public/**/*.ts']),
+                typescript(typescript_config),
+            ]),
+        ]),
         gulp.dest('dist'),
     ]);
 });

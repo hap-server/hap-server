@@ -1,0 +1,12 @@
+{
+    "compilerOptions": {
+        "noImplicitAny": false,
+        "target": "es6",
+        "module": "commonjs",
+        "declaration": true
+    },
+    "files": [
+        "src/**/*.ts",
+        "!src/public/**/*.ts"
+    ]
+}
