@@ -252,12 +252,13 @@ export default class Server {
 
     /**
      * Handle /identify requests.
+     * This is only used when the accessory/bridge isn't paired.
      *
      * @return {Promise}
      */
     async handleIdentify() {
         return new Promise((rs, rj) => {
-            this.bridge.handleIdentify(err => err ? rj(err) : rs());
+            this.bridge._handleIdentify(err => err ? rj(err) : rs());
         });
     }
 
