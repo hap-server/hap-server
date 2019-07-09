@@ -142,7 +142,7 @@ export class SceneTrigger extends AutomationTrigger {
     onstart() {
         if (this.listener) this.listener.cancel(), this.listener = null;
 
-        this.listener = this.automations.server.on(SceneActivatedEvent, event => {
+        this.listener = this.automations.server.listen(SceneActivatedEvent, event => {
             if (event.scene.uuid !== this.config.scene_uuid) return;
 
             this.trigger({parent: event});

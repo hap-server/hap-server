@@ -46,6 +46,7 @@
         "hap-controller": "^0.1.9"
     },
     "devDependencies": {
+        "@types/node": "^12.6.1",
         "@vue/devtools": "^5.1.0",
         "axios": "^0.18.1",
         "babel-core": "^6.26.3",

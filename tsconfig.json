@@ -2,11 +2,16 @@
     "compilerOptions": {
         "noImplicitAny": false,
         "target": "es6",
+        "esModuleInterop": true,
         "module": "commonjs",
-        "declaration": true
+        "declaration": true,
+        "outDir": "./dist"
     },
-    "files": [
-        "src/**/*.ts",
-        "!src/public/**/*.ts"
+    "include": [
+        "src/**/*.ts"
+    ],
+    "exclude": [
+        "node_modules",
+        "src/public/**/*.ts"
     ]
 }
