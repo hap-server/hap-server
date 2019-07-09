@@ -80,12 +80,27 @@ export default class Server {
     }
 
     start() {
+        if (this.started) return;
+
+        if ([...this.constructor.instances.values()].find(s => s.accessory_info.username === this.accessory_info.username)) {
+            throw new Error('Already running another HAP server with the same ID/username');
+        }
+
+        this.log.info('Starting HAP server for %s (username %s)',
+            this.bridge.displayName, this.accessory_info.username);
+
+        this.constructor.instances.add(this);
         this.server.listen(this.config.port);
 
         // The advertisement will be started when the server is started
     }
 
+    get started() {
+        return this.constructor.instances.has(this);
+    }
+
     stop() {
+        this.constructor.instances.delete(this);
         this.server.stop();
         this.stopAdvertising();
     }
@@ -254,6 +269,17 @@ export default class Server {
      * @return {Promise}
      */
     async handlePair(username, public_key) {
+        const require_first_pairing = this.require_first_pairing;
+        if (!Object.keys(this.accessory_info.pairedClients).length && require_first_pairing &&
+            require_first_pairing !== username) {
+            throw new Error('Client is not allowed to pair with this accessory');
+        }
+
+        const allowed_pairings = this.allowed_pairings;
+        if (allowed_pairings && !allowed_pairings.includes(username)) {
+            throw new Error('Client is not allowed to pair with this accessory');
+        }
+
         this.log.info('Pairing with client %s', username);
 
         this.accessory_info.addPairedClient(username, public_key);
@@ -574,3 +600,5 @@ export default class Server {
         }
     }
 }
+
+Server.instances = new Set();

@@ -5,6 +5,8 @@ export default function createAccessory(name, uuid, log) {
     // This is the Accessory that we'll return to HAP-NodeJS
     const accessory = new Accessory(name, uuid);
 
+    accessory.external_groups = [Service.Television.UUID];
+
     accessory.getService(Service.AccessoryInformation)
         .setCharacteristic(Characteristic.Manufacturer, 'No one')
         .setCharacteristic(Characteristic.Model, 'Fake');

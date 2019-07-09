@@ -28,6 +28,10 @@ export default class Bridge {
         this.unauthenticated_access = config.unauthenticated_access || false;
 
         this.accessory_uuids = config.accessory_uuids || [];
+        this.external_accessories = [];
+        this.external_accessory_accessory_infos = new Map(); // Maps Accessory objects to AccessoryInfo objects
+        this.external_accessory_identifier_caches = new Map(); // Maps Accessory objects to IdentifierCache objects
+        this.external_accessory_servers = new Map(); // Maps Accessory objects to HAPServer objects
         this.cached_accessories = [];
 
         this.bridge = this._createBridge(config);
@@ -67,6 +71,10 @@ export default class Bridge {
         for (const existing of bridge.bridgedAccessories) {
             if (existing.UUID === accessory.UUID) throw new Error('Cannot add a bridged Accessory with the same' + // eslint-disable-line curly
                 ' UUID as another bridged Accessory: ' + existing.UUID);
+        }
+        for (const existing of this.external_accessories) {
+            if (existing.UUID === accessory.UUID) throw new Error('Cannot add a bridged Accessory with the same' + // eslint-disable-line curly
+                ' UUID as another external Accessory: ' + existing.UUID);
         }
 
         const _eventhandlers = bridge.__hap_server_eventhandlers || (bridge.__hap_server_eventhandlers = new WeakMap());
@@ -158,10 +166,23 @@ export default class Bridge {
         this._updateConfiguration(this.bridge, true);
 
         this.hap_server.start();
+
+        for (const accessory of this.external_accessories) {
+            const hap_server = this.getExternalAccessoryServer(accessory);
+
+            hap_server.start();
+        }
     }
 
     unpublish() {
         if (this.hasOwnProperty('hap_server')) this.hap_server.stop();
+
+        for (const accessory of this.external_accessories) {
+            const hap_server = this.external_accessory_servers.get(accessory);
+            if (!hap_server) continue;
+
+            hap_server.stop();
+        }
     }
 
     get accessory_info() {
@@ -180,7 +201,7 @@ export default class Bridge {
             this.bridge._setupID = accessory_info.setupID;
         }
 
-        accessory_info.setupID = this._setupID;
+        accessory_info.setupID = this.bridge._setupID;
 
         // Make sure we have up-to-date values in AccessoryInfo, then save it in case they changed (or if we just created it)
         accessory_info.displayName = this.name;
@@ -214,13 +235,254 @@ export default class Bridge {
         return Object.defineProperty(this, 'hap_server', {value: hap_server}).hap_server;
     }
 
+    addExternalAccessory(accessory) {
+        // Check for UUID conflict
+        for (const existing of this.bridge.bridgedAccessories) {
+            if (existing.UUID === accessory.UUID) throw new Error('Cannot add an external Accessory with the same' + // eslint-disable-line curly
+                ' UUID as another bridged Accessory: ' + existing.UUID);
+        }
+        for (const existing of this.external_accessories) {
+            if (existing.UUID === accessory.UUID) throw new Error('Cannot add an external Accessory with the same' + // eslint-disable-line curly
+                ' UUID as another external Accessory: ' + existing.UUID);
+        }
+
+        this.external_accessories.push(accessory);
+
+        return accessory;
+    }
+
+    static generateExternalAccessoryUsername(bridge_username, accessory_uuid) {
+        const sha1sum = crypto.createHash('sha1');
+        sha1sum.update(bridge_username + '-' + accessory_uuid);
+        const s = sha1sum.digest('hex');
+        let i = 0;
+        return `${bridge_username.substr(0, 8)}:xx:xx:xx`.replace(/[x]/g, x => s[i++]);
+    }
+
+    static getExternalAccessoryCategory(accessory) {
+        if (accessory.category !== Accessory.Categories.OTHER) return accessory.category;
+
+        if (accessory._isBridge) return Accessory.Categories.BRIDGE;
+
+        if (accessory.services.find(s => s.UUID === Service.Fan.UUID)) return Accessory.Categories.FAN;
+        if (accessory.services.find(s =>
+            s.UUID === Service.GarageDoorOpener.UUID)) return Accessory.Categories.GARAGE_DOOR_OPENER;
+        if (accessory.services.find(s => s.UUID === Service.Lightbulb.UUID)) return Accessory.Categories.LIGHTBULB;
+        if (accessory.services.find(s => s.UUID === Service.LockMechanism.UUID)) return Accessory.Categories.DOOR_LOCK;
+        if (accessory.services.find(s => s.UUID === Service.Outlet.UUID)) return Accessory.Categories.OUTLET;
+        if (accessory.services.find(s => s.UUID === Service.Switch.UUID)) return Accessory.Categories.SWITCH;
+        if (accessory.services.find(s => s.UUID === Service.Thermostat.UUID)) return Accessory.Categories.THERMOSTAT;
+        if (accessory.services.find(s => s.UUID === Service.AirQualitySensor.UUID ||
+            s.UUID === Service.CarbonDioxideSensor.UUID ||
+            s.UUID === Service.CarbonMonoxideSensor.UUID ||
+            s.UUID === Service.ContactSensor.UUID ||
+            s.UUID === Service.LeakSensor.UUID ||
+            s.UUID === Service.LightSensor.UUID ||
+            s.UUID === Service.MotionSensor.UUID ||
+            s.UUID === Service.OccupancySensor.UUID ||
+            s.UUID === Service.SmokeSensor.UUID ||
+            s.UUID === Service.TemperatureSensor.UUID ||
+            s.UUID === Service.AirQualitySensor.UUID)) return Accessory.Categories.SENSOR;
+        if (accessory.services.find(s =>
+            s.UUID === Service.SecuritySystem.UUID)) return Accessory.Categories.SECURITY_SYSTEM;
+        if (accessory.services.find(s => s.UUID === Service.Door.UUID)) return Accessory.Categories.DOOR;
+        if (accessory.services.find(s => s.UUID === Service.Window.UUID)) return Accessory.Categories.WINDOW;
+        if (accessory.services.find(s =>
+            s.UUID === Service.WindowCovering.UUID)) return Accessory.Categories.WINDOW_COVERING;
+        if (accessory.services.find(s =>
+            s.UUID === Service.StatelessProgrammableSwitch.UUID)) return Accessory.Categories.PROGRAMMABLE_SWITCH;
+        if (accessory.services.find(s => s.UUID === Service.Doorbell.UUID)) return Accessory.Categories.VIDEO_DOORBELL;
+        if (accessory.cameraSource) return Accessory.Categories.IP_CAMERA;
+        if (accessory.services.find(s => s.UUID === Service.AirPurifier.UUID)) return Accessory.Categories.AIR_PURIFIER;
+        if (accessory.services.find(s => s.UUID === Service.Television.UUID)) return Accessory.Categories.TELEVISION;
+        if (accessory.services.find(s => s.UUID === Service.Speaker.UUID)) return Accessory.Categories.SPEAKER;
+        if (accessory.services.find(s => s.UUID === Service.Valve.UUID &&
+            s.getCharacteristic(Characteristic.ValveType).value === Characteristic.ValveType.IRRIGATION
+        )) return Accessory.Categories.SPRINKLER;
+        if (accessory.services.find(s => s.UUID === Service.Faucet.UUID || (s.UUID === Service.Valve.UUID &&
+            s.getCharacteristic(Characteristic.ValveType).value === Characteristic.ValveType.WATER_FAUCET)
+        )) return Accessory.Categories.FAUCET;
+        if (accessory.services.find(s => s.UUID === Service.Valve.UUID &&
+            s.getCharacteristic(Characteristic.ValveType).value === Characteristic.ValveType.SHOWER_HEAD
+        )) return Accessory.Categories.SHOWER_HEAD;
+
+        return Accessory.Categories.OTHER;
+    }
+
+    getExternalAccessoryAccessoryInfo(accessory) {
+        if (!this.external_accessories.includes(accessory)) {
+            throw new Error('Unknown external accessory');
+        }
+
+        if (this.external_accessory_accessory_infos.has(accessory)) {
+            return this.external_accessory_accessory_infos.get(accessory);
+        }
+
+        const username = this.constructor.generateExternalAccessoryUsername(this.username, accessory.UUID);
+
+        // Attempt to load existing AccessoryInfo from disk
+        let accessory_info = AccessoryInfo.load(username);
+
+        // If we don't have one, create a new one
+        if (!accessory_info) {
+            this.log.debug('Creating new AccessoryInfo for external accessory %s (UUID %s)',
+                accessory.displayName, accessory.UUID);
+            accessory_info = AccessoryInfo.create(username);
+        }
+
+        if (accessory_info.setupID === undefined || accessory_info.setupID === '') {
+            accessory._setupID = accessory._generateSetupID();
+        } else {
+            accessory._setupID = accessory_info.setupID;
+        }
+
+        accessory_info.setupID = accessory._setupID;
+
+        // Make sure we have up-to-date values in AccessoryInfo, then save it in case they changed (or if we just created it)
+        accessory_info.displayName = this.name + ' ' + accessory.displayName;
+        accessory_info.category = this.constructor.getExternalAccessoryCategory(accessory);
+        accessory_info.pincode = this.pincode;
+        accessory_info.save();
+
+        this.external_accessory_accessory_infos.set(accessory, accessory_info);
+        return accessory_info;
+    }
+
+    getExternalAccessoryIdentifierCache(accessory) {
+        if (!this.external_accessories.includes(accessory)) {
+            throw new Error('Unknown external accessory');
+        }
+
+        if (this.external_accessory_identifier_caches.has(accessory)) {
+            return this.external_accessory_identifier_caches.get(accessory);
+        }
+
+        const username = this.constructor.generateExternalAccessoryUsername(this.username, accessory.UUID);
+
+        // Create our IdentifierCache so we can provide clients with stable aid/iid's
+        let identifier_cache = IdentifierCache.load(username);
+
+        // If we don't have one, create a new one
+        if (!identifier_cache) {
+            this.log.debug('Creating new IdentifierCache for external accessory %s (UUID %s)',
+                accessory.displayName, accessory.UUID);
+            identifier_cache = new IdentifierCache(username);
+        }
+
+        this.external_accessory_identifier_caches.set(accessory, identifier_cache);
+        return identifier_cache;
+    }
+
+    getExternalAccessoryServer(accessory) {
+        if (!this.external_accessories.includes(accessory)) {
+            throw new Error('Unknown external accessory');
+        }
+
+        if (this.external_accessory_servers.has(accessory)) {
+            return this.external_accessory_servers.get(accessory);
+        }
+
+        // Create our HAP server which handles all communication between iOS devices and us
+        const hap_server = new HAPServer(
+            accessory, {
+                port: this.port,
+                unauthenticated_access: this.unauthenticated_access,
+            },
+            this.log.withPrefix('External ' + accessory.displayName, 'Server'),
+            this.getExternalAccessoryAccessoryInfo(accessory),
+            this.getExternalAccessoryIdentifierCache(accessory),
+            accessory.cameraSource
+        );
+
+        Object.defineProperty(hap_server, 'require_first_pairing', {get: () => {
+            return Object.keys(this.accessory_info.pairedClients)[0] || true;
+        }});
+        Object.defineProperty(hap_server, 'allowed_pairings', {get: () => {
+            return Object.keys(this.accessory_info.pairedClients);
+        }});
+
+        this.external_accessory_servers.set(accessory, hap_server);
+        return hap_server;
+    }
+
+    expireExternalAccessoryUnusedIDs(accessory) {
+        if (!this.external_accessory_identifier_caches.has(accessory) ||
+            !this.external_accessory_servers(accessory)) return;
+
+        const identifier_cache = this.external_accessory_identifier_caches.get(accessory);
+        const hap_server = this.external_accessory_servers.get(accessory);
+
+        identifier_cache.startTrackingUsage();
+
+        hap_server.toHAP(accessory);
+        for (const a of accessory.bridgedAccessories) hap_server.toHAP(a);
+
+        identifier_cache.stopTrackingUsageAndExpireUnused();
+        identifier_cache.save();
+    }
+
+    removeExternalAccessory(accessory) {
+        const index = this.external_accessories.findIndex(a => a.UUID === accessory.UUID);
+        if (index <= -1) throw new Error('Cannot find the external Accessory to remove.');
+
+        const existing = this.external_accessories[index];
+        this.external_accessories.splice(index, 1);
+
+        const hap_server = this.external_accessory_servers.get(existing);
+
+        if (hap_server) {
+            hap_server.stop();
+        }
+
+        this.external_accessory_accessory_infos.delete(existing);
+        this.external_accessory_identifier_caches.delete(existing);
+        this.external_accessory_servers.delete(existing);
+    }
+
+    checkAccessoryMustBeExternal(accessory) {
+        if (accessory.plugin_accessory && accessory.plugin_accessory.cached_data &&
+            accessory.plugin_accessory.cached_data.bridge_uuids_external &&
+            accessory.plugin_accessory.cached_data.bridge_uuids_external.includes(this.uuid)) return true;
+
+        if (!accessory.external_groups || !accessory.external_groups.length) return false;
+
+        if (this.bridge.bridgedAccessories.find(a => a.external_groups &&
+            a.external_groups.find(g => accessory.external_groups.includes(g)))) return true;
+
+        for (const a of this.cached_accessories) {
+            if (a.UUID === accessory.UUID) continue;
+            if (!a.external_groups) continue;
+            if (a.plugin_accessory && a.plugin_accessory.cached_data &&
+                a.plugin_accessory.cached_data.bridge_uuids_external &&
+                a.plugin_accessory.cached_data.bridge_uuids_external.includes(this.uuid)) continue;
+            if (a.plugin_accessory && a.plugin_accessory.cached_data &&
+                a.plugin_accessory.cached_data.bridge_uuids &&
+                a.plugin_accessory.cached_data.bridge_uuids_external &&
+                a.plugin_accessory.cached_data.bridge_uuids.includes(this.uuid) &&
+                !a.plugin_accessory.cached_data.bridge_uuids_external.includes(this.uuid)) return false;
+            if (a.external_groups.find(g => accessory.external_groups.includes(g))) return true;
+        }
+
+        return false;
+    }
+
     /**
      * Adds an accessory.
      *
      * @param {Accessory} accessory
      */
     addAccessory(accessory) {
-        this.bridge.addBridgedAccessory(accessory);
+        if (accessory.external || this.checkAccessoryMustBeExternal(accessory)) {
+            this.addExternalAccessory(accessory);
+
+            if (this.hasOwnProperty('hap_server') && this.hap_server.started) {
+                const hap_server = this.getExternalAccessoryServer(accessory);
+                hap_server.start();
+            }
+        } else {
+            this.bridge.addBridgedAccessory(accessory);
+        }
+
         this.removeCachedAccessory(accessory.UUID);
     }
 
@@ -230,7 +492,13 @@ export default class Bridge {
      * @param {Accessory} accessory
      */
     removeAccessory(accessory) {
-        this.bridge.removeBridgeAccessory(accessory);
+        try {
+            this.removeExternalAccessory(accessory);
+        } catch (err) {}
+        try {
+            this.bridge.removeBridgeAccessory(accessory);
+        } catch (err) {}
+
         this.removeCachedAccessory(accessory);
         if (this.hasOwnProperty('hap_server')) this.hap_server.unsubscribeAllEventsForAccessory(accessory);
     }
@@ -244,11 +512,27 @@ export default class Bridge {
     patchAccessories(add, remove) {
         try {
             for (const accessory of add) {
-                this.bridge.addBridgedAccessory(accessory, true);
+                if (accessory.external || (accessory.external_groups && accessory.external_groups.length &&
+                    this.bridge.bridgedAccessories.find(a => a.external_groups &&
+                        a.external_groups.find(g => accessory.external_groups.includes(g)))
+                )) {
+                    this.addExternalAccessory(accessory);
+
+                    if (this.hasOwnProperty('hap_server') && this.hap_server.started) {
+                        const hap_server = this.getExternalAccessoryServer(accessory);
+                        hap_server.start();
+                    }
+                } else {
+                    this.bridge.addBridgedAccessory(accessory, true);
+                }
+
                 this.removeCachedAccessory(accessory.UUID);
             }
 
             for (const accessory of remove) {
+                try {
+                    this.removeExternalAccessory(accessory);
+                } catch (err) {}
                 try {
                     this.bridge.removeBridgeAccessory(accessory, true);
                 } catch (err) {}
@@ -261,15 +545,19 @@ export default class Bridge {
     }
 
     addCachedAccessory(accessory) {
-        this.log.debug('Adding cached accessory', accessory.displayName, 'to', this.name);
+        this.log.debug('Adding cached accessory %s (UUID %s)', accessory.displayName, accessory.UUID);
 
         if (accessory._isBridge) throw new Error('Cannot Bridge another Bridge!');
 
         // Check for UUID conflict
-        const existing = this.bridge.bridgedAccessories.find(existing => existing.UUID === accessory.UUID) ||
-            this.cached_accessories.find(existing => existing.UUID === accessory.UUID);
-        if (existing) throw new Error('Cannot add a bridged Accessory with the same UUID as another bridged' + // eslint-disable-line curly
-            ' Accessory: ' + existing.UUID);
+        for (const existing of this.bridge.bridgedAccessories) {
+            if (existing.UUID === accessory.UUID) throw new Error('Cannot add a cached Accessory with the same' + // eslint-disable-line curly
+                ' UUID as another bridged Accessory: ' + existing.UUID);
+        }
+        for (const existing of this.external_accessories) {
+            if (existing.UUID === accessory.UUID) throw new Error('Cannot add a cached Accessory with the same' + // eslint-disable-line curly
+                ' UUID as another external Accessory: ' + existing.UUID);
+        }
 
         accessory.bridged = true;
 

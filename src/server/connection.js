@@ -1896,7 +1896,7 @@ export default class Connection {
         }
 
         bridge.accessory_info.save();
-        if (bridge.hasOwnProperty('hap_server')) bridge.hap_server.advertisement.updateAdvertisement();
+        if (bridge.hasOwnProperty('hap_server')) bridge.hap_server.updateAdvertisement();
     }
 
     /**

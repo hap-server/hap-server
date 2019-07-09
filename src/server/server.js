@@ -1589,6 +1589,7 @@ export class PluginAccessory {
                         props: characteristic.props,
                     })),
                 })),
+                external_groups: this instanceof HomebridgeAccessory ? undefined : this.accessory.external_groups,
             },
             plugin: this.plugin ? this.plugin.name : null,
             uuid: this.uuid,
@@ -1597,6 +1598,9 @@ export class PluginAccessory {
             base_uuid: this.base_uuid,
             accessory_platform: this.accessory_platform_name,
             data: this.data,
+            bridge_uuids: this.server.bridges.filter(b => b.accessory_uuids.includes(this.accessory.UUID)).map(b => b.uuid),
+            bridge_uuids_external: this.server.bridges.filter(b => b.accessory_uuids.includes(this.accessory.UUID) &&
+                b.external_accessories.find(a => a.UUID === this.accessory.UUID)).map(b => b.uuid),
         };
     }
 
@@ -1628,8 +1632,12 @@ export class PluginAccessory {
         });
 
         if (cache.is_homebridge) {
-            return new HomebridgeAccessory(server, accessory);
+            const plugin_accessory = new HomebridgeAccessory(server, accessory);
+            plugin_accessory.cached_data = cache;
+            return plugin_accessory;
         }
+
+        accessory.external_groups = cache.accessory.external_groups;
 
         const is_builtin = !cache.plugin && (builtin_accessory_types[cache.accessory_type] ||
             builtin_accessory_platforms[cache.accessory_platform]);
@@ -1653,6 +1661,8 @@ export class PluginAccessory {
         const plugin_accessory = accessory_platform_handler ?
             new PluginAccessoryPlatformAccessory(server, accessory, plugin, cache.accessory_platform, cache.base_uuid) :
             new PluginStandaloneAccessory(server, accessory, plugin, cache.accessory_type, null, cache.uuid);
+
+        plugin_accessory.cached_data = cache;
 
         return plugin_accessory;
     }
