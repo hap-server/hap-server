@@ -36,7 +36,15 @@ yargs.option('force-colour', {
     default: false,
 });
 
-export function getConfig(argv) {
+import ConfigurationFileData from './configuration';
+
+interface ConfigData {
+    config: ConfigurationFileData;
+    config_path: string;
+    data_path: string;
+}
+
+export function getConfig(argv): ConfigData {
     /**
      * Read configuration data.
      */
@@ -47,7 +55,7 @@ export function getConfig(argv) {
     try {
         const config_cache = {};
 
-        function requireConfig(config_path) {
+        function requireConfig(config_path: string) {
             if (config_cache[config_path]) {
                 return config_cache[config_path];
             }
@@ -68,7 +76,7 @@ export function getConfig(argv) {
             }
         }
 
-        function mapIncludes(config_path, value) {
+        function mapIncludes(config_path: string, value) {
             if (typeof value === 'string' && value.startsWith('include ')) {
                 return requireConfig(path.resolve(path.dirname(config_path), value.substr(8)));
             } else if (Object.keys(value).length === 1 && value.include) {
@@ -110,7 +118,7 @@ export function getConfig(argv) {
         if (error && error.code === 'ENOENT') {
             console.error(chalk.red(`The configuration file (${error.config_path}) doesn\'t exist.`));
         } else if (error instanceof SyntaxError) {
-            console.error(chalk.red(`Syntax error reading configuration file (${error.config_path}):`), error.message);
+            console.error(chalk.red(`Syntax error reading configuration file (${(error as any).config_path}):`), error.message);
         } else {
             console.error(chalk.red(`Error reading configuration file (${error.config_path}):`), error);
         }
@@ -131,14 +139,25 @@ export function getConfig(argv) {
         : config['data-path'] ? path.resolve(path.dirname(config_path), config['data-path'])
             : path.dirname(config_path);
 
-    return [config, config_path, data_path];
+    return {config, config_path, data_path};
 }
 
-export async function connect(argv) {
+import {Connection, AuthenticatedUser} from '../client';
+
+interface ConnectionData extends ConfigData {
+    connection: Connection;
+    authenticated_user: AuthenticatedUser;
+    // config,
+    // config_path,
+    // data_path,
+    server_pid: number;
+}
+
+export async function connect(argv): Promise<ConnectionData> {
     const Connection = require('../client/connection').default;
     const WebSocket = require('ws');
 
-    const [config, config_path, data_path] = await getConfig(argv);
+    const {config, config_path, data_path} = await getConfig(argv);
 
     Logger.enable_debug = argv.debug;
     Logger.enable_timestamps = argv.timestamps;
@@ -161,10 +180,10 @@ export async function connect(argv) {
     const authenticated_user = await connection.authenticateWithCliToken(cli_auth_token);
     log.debug('Authenticated user', authenticated_user);
 
-    return [connection, authenticated_user, config, config_path, data_path, server_pid];
+    return {connection, authenticated_user, config, config_path, data_path, server_pid};
 }
 
-function command(file, command, describe) {
+function command(file: string, command: string, describe: string) {
     yargs.command(command, describe, function(yargs) {
         return require(file).builder.call(null, yargs);
     }, function(argv) {
@@ -172,7 +191,7 @@ function command(file, command, describe) {
     });
 }
 
-command('./server', '$0 [config]', 'Run the HAP and web server', './server');
+command('./server', '$0 [config]', 'Run the HAP and web server');
 command('./make-admin', 'make-admin <user>', 'Promote a user to administrator');
 command('./get-characteristics', 'get-characteristics <config> <characteristics>', 'Get characteristics');
 command('./set-characteristic', 'set-characteristic <config> <characteristic> <value>', 'Set a characteristic');

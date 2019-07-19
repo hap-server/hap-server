@@ -20,7 +20,7 @@ export function builder(yargs) {
 
 export async function handler(argv) {
     // eslint-disable-next-line no-unused-vars
-    const [connection, authenticated_user, config, config_path, data_path, server_pid] = await connect(argv);
+    const {connection, authenticated_user, config, config_path, data_path, server_pid} = await connect(argv);
 
     const permissions = (await connection.getUsersPermissions(argv.user))[0] || {};
 

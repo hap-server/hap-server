@@ -164,7 +164,7 @@ export async function handler(argv) {
         enableVueDevtools(argv.vueDevtoolsHost, argv.vueDevtoolsPort);
     }
 
-    const [config, config_path, data_path] = await getConfig(argv);
+    const {config, config_path, data_path} = await getConfig(argv);
 
     const hap_storage_path = path.join(data_path, 'persist');
     hap.init(hap_storage_path);
@@ -395,12 +395,12 @@ export async function handler(argv) {
         ['SIGINT', 2],
         ['SIGTERM', 15],
     ]) {
-        process.on(signal, async () => {
+        process.on(signal as any, async () => {
             exit_attempts++;
 
             if (exit_attempts >= 3) {
                 log.info(`Got ${signal} (x${exit_attempts}), exiting...`);
-                throw process.exit(128 + code);
+                throw process.exit(128 + (code as number));
             } else if (exit_attempts > 1) {
                 log.info(`Got ${signal} (x${exit_attempts} - ${3 - exit_attempts} left to force exit),` +
                     + ' shutting down...');
@@ -427,7 +427,7 @@ export async function handler(argv) {
             server.removeListener(UpdateAccessoryConfigurationEvent, saveCachedAccessories);
             server.removeListener(RemoveAccessoryEvent, saveCachedAccessories);
 
-            setTimeout(() => process.exit(128 + code), 1000);
+            setTimeout(() => process.exit(128 + (code as number)), 1000);
         });
     }
 }

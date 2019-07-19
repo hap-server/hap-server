@@ -24,7 +24,7 @@ export function builder(yargs) {
 
 export async function handler(argv) {
     // eslint-disable-next-line no-unused-vars
-    const [connection, authenticated_user, config, config_path, data_path, server_pid] = await connect(argv);
+    const {connection, authenticated_user, config, config_path, data_path, server_pid} = await connect(argv);
 
     const uuid = argv.characteristic;
     const accessory_uuid = uuid.substr(0, uuid.indexOf('.'));
