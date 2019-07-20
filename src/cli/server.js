@@ -282,8 +282,8 @@ export async function handler(argv) {
 
         const http_server = https ? server.createSecureServer({
             ca: await getCertificates(https_require_client_certificate || https_request_client_certificate, data_path),
-            cert: await getCertificates(https, data_path),
-            key: await getCertificates(https, data_path),
+            cert: (await getCertificates(https, data_path)).filter(c => c.match(/CERTIFICATE/i)),
+            key: (await getCertificates(https, data_path)).filter(c => c.match(/PRIVATE KEY/i)),
             crl: await getCertificates(https_crl, data_path),
             passphrase: https_passphrase,
 
@@ -415,7 +415,7 @@ export async function handler(argv) {
 
             await Promise.all([
                 unlink(path.join(data_path, 'hap-server.pid')),
-                unlink(path.join(data_path, 'hap-server-port')),
+                wrote_port_file ? unlink(path.join(data_path, 'hap-server-port')) : null,
                 unlink(path.join(data_path, 'cli-token')),
 
                 server.automations.stop(),

@@ -1340,7 +1340,7 @@ export default class Server extends Events {
      * @return {https.Server}
      */
     createSecureServer(options) {
-        const server = https.createServer(this.handle, options);
+        const server = https.createServer(options, this.handle);
 
         server.on('upgrade', this.upgrade);
 
