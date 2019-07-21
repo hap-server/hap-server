@@ -1323,10 +1323,13 @@ export default class Server extends Events {
      * Creates a HTTP server.
      *
      * @param {object} options
+     * @param {function} middleware
      * @return {http.Server}
      */
-    createServer(options) {
-        const server = http.createServer(this.handle, options);
+    createServer(options, middleware) {
+        const server = http.createServer(options, middleware ? (req, res) => {
+            middleware(req, res, () => this.handle(req, res));
+        } : this.handle);
 
         server.on('upgrade', this.upgrade);
 
@@ -1337,10 +1340,13 @@ export default class Server extends Events {
      * Creates a HTTPS server.
      *
      * @param {object} options
+     * @param {function} middleware
      * @return {https.Server}
      */
-    createSecureServer(options) {
-        const server = https.createServer(options, this.handle);
+    createSecureServer(options, middleware) {
+        const server = https.createServer(options, middleware ? (req, res) => {
+            middleware(req, res, () => this.handle(req, res));
+        } : this.handle);
 
         server.on('upgrade', this.upgrade);
 
