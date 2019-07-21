@@ -283,7 +283,6 @@ export async function handler(argv) {
         const forge = require('node-forge');
 
         const bonjour_server_port = argv.advertiseWebInterfacePort;
-        const bonjour_secure_server_port = argv.advertiseWebInterfacePort + 1;
 
         bonjour_instance = bonjour({
             interface: '0.0.0.0',
@@ -387,14 +386,6 @@ export async function handler(argv) {
                 .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
             + f).join('');
         };
-        const certificate_middleware = (req, res, next) => {
-            if (req.url === '/certificate') {
-                res.setHeader('Content-Type', 'application/x-pem-file');
-                res.setHeader('Content-Disposition', `attachment; filename="hap-server-${bonjour_server_uuid}-certificate.pem"`);
-                res.writeHead(200);
-                res.end(certificate_pem);
-            } else next();
-        };
 
         const bonjour_http_service = bonjour_instance.publish({
             name: 'hap-server',
@@ -406,39 +397,43 @@ export async function handler(argv) {
                 path: '/',
             },
         });
-        listen_addresses.push(['net', '::', bonjour_server_port, {
-            middleware: (req, res) => certificate_middleware(req, res, () => {
-                const url = `https://${bonjour_hostname}:${bonjour_secure_server_port}${req.url}`;
-                res.setHeader('Location', url);
-                res.writeHead(303);
-                res.end('<!DOCTYPE html><html><head><title>Redirecting</title></head><body>' +
-                    htmlencode`<h1>Redirecting</h1><p>Redirecting to <a href="${url}">${url}</a>.</p>` +
-                    '</body></html>\n');
-            }),
-        }]);
-
         const bonjour_https_service = bonjour_instance.publish({
             name: 'hap-server',
             host: bonjour_hostname,
-            port: bonjour_secure_server_port,
+            port: bonjour_server_port,
             type: 'https',
             protocol: 'tcp',
             txt: {
                 path: '/',
             },
         });
-        listen_addresses.push(['net', '::', bonjour_secure_server_port, {
-            middleware: certificate_middleware,
+
+        listen_addresses.push(['net', '::', bonjour_server_port, {
+            middleware: (req, res, next) => {
+                if (req.url === '/certificate') {
+                    res.setHeader('Content-Type', 'application/x-pem-file');
+                    res.setHeader('Content-Disposition', `attachment; filename="hap-server-${bonjour_server_uuid}-certificate.pem"`);
+                    res.writeHead(200);
+                    res.end(certificate_pem);
+                } else if (!req.connection.encrypted) {
+                    const url = `https://${bonjour_hostname}:${bonjour_server_port}${req.url}`;
+                    res.setHeader('Location', url);
+                    res.writeHead(303);
+                    res.end('<!DOCTYPE html><html><head><title>Redirecting</title></head><body>' +
+                        htmlencode`<h1>Redirecting</h1><p>Redirecting to <a href="${url}">${url}</a>.</p>` +
+                        '</body></html>\n');
+                } else next();
+            },
         }]);
-        https_addresses[`[::]:${bonjour_secure_server_port}`] = [
+        https_addresses[`[::]:${bonjour_server_port}`] = [
             bonjour_secure_server_certificate_path,
             bonjour_secure_server_certificate_key_path,
+            {allow_unencrypted: true},
         ];
 
         log.debug('Publishing Bonjour services', bonjour_http_service, bonjour_https_service);
         log.info('You can access the web interface on your local network at %s,',
-            `http://${bonjour_hostname}:${bonjour_server_port}/`);
-        log.info('    or securely at %s', `https://${bonjour_hostname}:${bonjour_secure_server_port}/`);
+            `https://${bonjour_hostname}:${bonjour_server_port}/`);
         log.info('    (remember to install the TLS certificate at %s,', bonjour_secure_server_certificate_path);
         log.info('        fingerprint: %s)', bonjour_secure_server_certificate_fingerprints);
     }
@@ -457,6 +452,7 @@ export async function handler(argv) {
         const options = typeof address[address.length - 1] === 'object' ? address.pop() : null;
         const address_string = addressToString(address);
         const https = https_addresses[address_string];
+        const https_options = https && typeof https[https.length - 1] === 'object' ? https.pop() : null;
         const https_request_client_certificate = https_request_client_certificate_addresses[address_string];
         const https_require_client_certificate = https_require_client_certificate_addresses[address_string];
         const https_crl = https_address_crls[address_string];
@@ -472,11 +468,22 @@ export async function handler(argv) {
             requestCert: !!https_request_client_certificate || !!https_require_client_certificate,
             rejectUnauthorized: !!https_require_client_certificate,
         }, options && options.middleware) : server.createServer(null, options && options.middleware);
+        const listening_server = https && https_options && https_options.allow_unencrypted ? net.createServer(connection => {
+            const data = connection.read(1);
+            if (!data) return connection.once('readable', () => listening_server.emit('connection', connection));
+            const first_byte = data[0];
+            connection.unshift(data);
+            if (first_byte < 32 || first_byte >= 127) {
+                http_server.emit('connection', connection);
+            } else {
+                http_server.emit('secureConnection', connection);
+            }
+        }) : http_server;
 
         if (address[0] === 'net') {
-            await new Promise((rs, rj) => http_server.listen(address[2], address[1], err => err ? rj(err) : rs()));
+            await new Promise((rs, rj) => listening_server.listen(address[2], address[1], err => err ? rj(err) : rs()));
 
-            const http_port = http_server.address().port;
+            const http_port = listening_server.address().port;
             log.info(`Listening on ${address[1]} port ${http_port}`);
 
             if (address[1] === '::' && !wrote_port_file) {
@@ -487,12 +494,12 @@ export async function handler(argv) {
             try {
                 await unlink(address[1]);
             } catch (err) {}
-            await new Promise((rs, rj) => http_server.listen(address[1], err => err ? rj(err) : rs()));
+            await new Promise((rs, rj) => listening_server.listen(address[1], err => err ? rj(err) : rs()));
 
             log.info(`Listening on UNIX socket ${address[1]}`);
         }
 
-        listening_servers.push(http_server);
+        listening_servers.push(listening_server);
     }
 
     log.info('Loading cached accessories');
