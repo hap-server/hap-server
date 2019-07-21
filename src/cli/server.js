@@ -410,6 +410,8 @@ export async function handler(argv) {
 
         listen_addresses.push(['net', '::', bonjour_server_port, {
             middleware: (req, res, next) => {
+                if (req.connection.encrypted) res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+
                 if (req.url === '/certificate') {
                     res.setHeader('Content-Type', 'application/x-pem-file');
                     res.setHeader('Content-Disposition', `attachment; filename="hap-server-${bonjour_server_uuid}-certificate.pem"`);
@@ -418,7 +420,7 @@ export async function handler(argv) {
                 } else if (!req.connection.encrypted) {
                     const url = `https://${bonjour_hostname}:${bonjour_server_port}${req.url}`;
                     res.setHeader('Location', url);
-                    res.writeHead(303);
+                    res.writeHead(301);
                     res.end('<!DOCTYPE html><html><head><title>Redirecting</title></head><body>' +
                         htmlencode`<h1>Redirecting</h1><p>Redirecting to <a href="${url}">${url}</a>.</p>` +
                         '</body></html>\n');
