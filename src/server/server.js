@@ -150,6 +150,8 @@ export default class Server extends Events {
         Object.defineProperty(this, '_handleRegisterHomebridgePlatformAccessories', {value: this.handleRegisterHomebridgePlatformAccessories.bind(this)});
         Object.defineProperty(this, '_handleUnregisterHomebridgePlatformAccessories', {value:
             this.handleUnregisterHomebridgePlatformAccessories.bind(this)});
+        Object.defineProperty(this, '_handleRegisterExternalHomebridgeAccessories', {value:
+            this.handleRegisterExternalHomebridgeAccessories.bind(this)});
 
         Server.instances.add(this);
 
@@ -411,6 +413,8 @@ export default class Server extends Events {
             .on('handleRegisterPlatformAccessories', this._handleRegisterHomebridgePlatformAccessories);
         this.homebridge.homebridge._api
             .on('handleUnregisterPlatformAccessories', this._handleUnregisterHomebridgePlatformAccessories);
+        this.homebridge.homebridge._api
+            .on('publishExternalAccessories', this._handleRegisterExternalHomebridgeAccessories);
     }
 
     handleRegisterHomebridgePlatformAccessories(accessories) {
@@ -433,6 +437,17 @@ export default class Server extends Events {
                 (a.platform_accessory === platform_accessory || a.uuid === accessory.UUID));
 
             this.removeAccessory(plugin_accessory);
+        }
+    }
+
+    handleRegisterExternalHomebridgeAccessories(accessories) {
+        for (const platform_accessory of accessories) {
+            const accessory = platform_accessory._associatedHAPAccessory;
+            if (!accessory) continue;
+
+            const plugin_accessory = new HomebridgeAccessory(this, accessory, platform_accessory);
+
+            this.addAccessory(plugin_accessory);
         }
     }
 
