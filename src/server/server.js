@@ -49,6 +49,7 @@ export default class Server extends Events {
      * @param {string} options.config_path
      * @param {object} options.config
      * @param {string} options.cli_auth_token
+     * @param {string} [options.hostname]
      * @param {node-persist} storage
      * @param {Logger} [log]
      */
@@ -57,6 +58,7 @@ export default class Server extends Events {
 
         this.parent_emitter = events;
 
+        Object.defineProperty(this, 'hostname', {enumerable: true, writable: true, value: options.hostname || null});
         Object.defineProperty(this, 'config', {enumerable: true, value: options.config || {}});
         Object.defineProperty(this, 'cli_auth_token', {value: options.cli_auth_token});
         Object.defineProperty(this, 'storage', {value: storage});
@@ -181,6 +183,7 @@ export default class Server extends Events {
      * @param {string} options.config_path
      * @param {object} options.config
      * @param {string} options.cli_auth_token
+     * @param {string} [options.hostname]
      * @return {Server}
      */
     static async createServer(options) {

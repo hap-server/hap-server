@@ -229,6 +229,7 @@ export async function handler(argv) {
     await writeFile(path.join(data_path, 'hap-server.pid'), process.pid);
 
     const server = await Server.createServer({
+        hostname: config.hostname,
         data_path,
         config_path,
         config,
@@ -297,6 +298,7 @@ export async function handler(argv) {
         const bonjour_server_uuid = uuid;
 
         const bonjour_hostname = `hap-server-${bonjour_server_uuid.toLowerCase()}.local`;
+        server.hostname = bonjour_hostname;
         log.info('Bonjour hostname: %s', bonjour_hostname);
 
         await mkdirp(path.join(data_path, 'certificates'));

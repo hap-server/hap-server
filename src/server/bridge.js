@@ -230,6 +230,7 @@ export default class Bridge {
         const hap_server = new HAPServer(this.bridge, {
             port: this.port,
             unauthenticated_access: this.unauthenticated_access,
+            hostname: this.server.hostname,
         }, this.log.withPrefix('Server'), this.accessory_info, this.identifier_cache);
 
         return Object.defineProperty(this, 'hap_server', {value: hap_server}).hap_server;

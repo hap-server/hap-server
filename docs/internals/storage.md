@@ -31,6 +31,8 @@ These files are created in the data directory when hap-server starts and are del
 
 Stored in `ui-storage` in the data directory. node-persist uses the MD5 hash of the key as the filename.
 
+- `TLSCertificateUUID`
+    - ID of the automatically generated certificate.
 - `Home`
     - Data shared between all web interface users.
 - `Layouts`

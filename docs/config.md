@@ -24,9 +24,20 @@ accessories2:
         name: "Switch #1"
 ```
 
+### `hostname`
+
+The hostname hap-server should use to advertise HAP bridges. If this is not set each bridge will use it's own
+hostname based on it's username.
+
+This doesn't have to be a Multicast DNS hostname (`*.local`). You can set it to any hostname that resolves to the
+server on your network.
+
+> When running hap-server with the `advertise-web-interface` flag a random Multicast DNS hostname will always be used
+> even if this is set.
+
 ### `bridge`, `accessories` and `platforms`
 
-All configuration options of Homebridge are supported. hap-server will only load Homebridge when any of these
+All configuration options of Homebridge are supported. hap-server will only load Homebridge when one of these
 properties exist.
 
 ### `listen`

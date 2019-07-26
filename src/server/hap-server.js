@@ -206,6 +206,7 @@ export default class Server {
 
     startAdvertising() {
         this.advertiser.startAdvertising(this.listening_port);
+        if (this.config.hostname) this.advertiser._advertisement.host = this.config.hostname;
     }
 
     updateAdvertisement() {
