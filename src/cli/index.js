@@ -177,10 +177,18 @@ command('./make-admin', 'make-admin <user>', 'Promote a user to administrator');
 command('./get-characteristics', 'get-characteristics <config> <characteristics>', 'Get characteristics');
 command('./set-characteristic', 'set-characteristic <config> <characteristic> <value>', 'Set a characteristic');
 
+function homebridgeApiVersion() {
+    const match = require('homebridge/lib/api').API.toString()
+        .match(/\.(\s|\n)*version(\s|\n)*=(\s|\n)*([0-9]+(\.[0-9]+)?)(;|$)/m);
+
+    return match ? parseFloat(match[4]) : null;
+}
+
 yargs.command('version', 'Show version number', yargs => {}, async argv => {
-    console.log('hap-server version', version, DEVELOPMENT ? chalk.red('development') : chalk.grey('production'));
-    console.log('homebridge version', require('homebridge/package').version);
-    console.log('hap-nodejs version', require('hap-nodejs/package').version);
+    console.log('hap-server version %s %s', version, DEVELOPMENT ? chalk.red('development') : chalk.grey('production'));
+    console.log('homebridge version %s, API %s', require('homebridge/package').version,
+        homebridgeApiVersion() || chalk.yellow('unknown'));
+    console.log('hap-nodejs version %s', require('hap-nodejs/package').version);
 });
 
 yargs.scriptName('hap-server').help().version(false).showHelpOnFail(false, 'Specify --help for available options');
