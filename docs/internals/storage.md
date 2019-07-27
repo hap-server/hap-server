@@ -33,6 +33,8 @@ Stored in `ui-storage` in the data directory. node-persist uses the MD5 hash of 
 
 - `TLSCertificateUUID`
     - ID of the automatically generated certificate.
+- `HasCompletedSetup`
+    - `true` if the web interface has been used as a non-CLI/setup user.
 - `Home`
     - Data shared between all web interface users.
 - `Layouts`

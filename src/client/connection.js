@@ -52,10 +52,10 @@ export default class Connection extends EventEmitter {
 
         if (is_ws) {
             this.ws.on('message', this.handleData.bind(this));
-            this.ws.on('close', event => this.emit('disconnected', event));
+            this.ws.on('close', this.handleDisconnect.bind(this));
         } else {
             this.ws.onmessage = message => this.handleData(message.data);
-            this.ws.onclose = event => this.emit('disconnected', event);
+            this.ws.onclose = this.handleDisconnect.bind(this);
         }
     }
 
@@ -97,9 +97,9 @@ export default class Connection extends EventEmitter {
                 return;
             }
 
-            const callback = this.callbacks.get(messageid);
+            const [resolve, reject] = this.callbacks.get(messageid);
 
-            callback.call(this, data);
+            resolve.call(this, data);
 
             this.callbacks.delete(messageid);
 
@@ -121,13 +121,21 @@ export default class Connection extends EventEmitter {
         console.error('Invalid message');
     }
 
+    handleDisconnect(event) {
+        this.emit('disconnected', event);
+
+        for (const [resolve, reject] of this.callbacks.values()) {
+            reject.call(this, event);
+        }
+    }
+
     send(data) {
         return new Promise((resolve, reject) => {
             const messageid = this.messageid++;
 
             this.ws.send('*' + messageid + ':' + JSON.stringify(data));
 
-            this.callbacks.set(messageid, resolve);
+            this.callbacks.set(messageid, [resolve, reject]);
         });
     }
 
