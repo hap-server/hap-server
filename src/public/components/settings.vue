@@ -280,6 +280,15 @@
                     return 0;
                 });
             },
+            close_with_escape_key() {
+                if (this.tab === 'general') return !this.saving && !this.uploading;
+                if (this.tab === 'users' && this.editing_user &&
+                    (this.editing_user_changed || this.editing_user_saving)) return !this.editing_user_saving;
+                if (this.tab === 'users' && this.editing_user &&
+                    (this.editing_user_permissions_changed || this.editing_user_permissions_saving)
+                ) return !this.editing_user_permissions_saving;
+                return !this.loading && !this.saving;
+            },
         },
         watch: {
             async connection(connection, old_connection) {

@@ -308,6 +308,13 @@
                     .filter(uuid => !this.bridgeUuids.includes(uuid) && (!this.config || !this.config.accessories ||
                         !this.config.accessories.includes(uuid)));
             },
+            close_with_escape_key() {
+                if (this.deleteBridge) return !this.saving;
+                if (this.createBridge || this.tab === 'config' || (this.config && this.can_set_config &&
+                    this.tab === 'accessories')) return !this.saving;
+                if (!this.is_bridge || this.tab === 'general') return !this.saving;
+                return !this.loading && !this.saving;
+            },
         },
         watch: {
             connection(connection, old_connection) {

@@ -27,7 +27,8 @@
                     @click="forgetAuthenticatedUser">Logout</button>
             </template>
             <template slot="right-buttons">
-                <button class="btn btn-default btn-sm" type="button" @click="() => $refs.panel.close()">Cancel</button>
+                <button ref="close-button" class="btn btn-default btn-sm" type="button"
+                    @click="() => $refs.panel.close()">Cancel</button>
             </template>
         </component>
 
@@ -67,6 +68,9 @@
         computed: {
             component() {
                 return this.getAuthenticationHandlerComponent(this.selected);
+            },
+            close_with_escape_key() {
+                return !this.component || !!this.$refs['close-button'];
             },
         },
         watch: {

@@ -80,6 +80,11 @@
                 background_url: null,
             };
         },
+        computed: {
+            close_with_escape_key() {
+                return !this.saving && !this.uploading;
+            },
+        },
         created() {
             if (this.layout) {
                 this.name = this.layout.name;

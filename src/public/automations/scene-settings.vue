@@ -186,6 +186,12 @@
 
                 return !isEqual(this.scene.data, this.data);
             },
+            close_with_escape_key() {
+                if (this.changed) return !this.saving && !this.deleting;
+                if (this.scene && this.scene.can_delete) return !this.saving && !this.deleting;
+                if ((!this.scene || this.scene.can_set) && this.changed) return !this.saving && !this.deleting;
+                return !this.saving && !this.deleting;
+            },
         },
         watch: {
             'scene.data'() {

@@ -57,6 +57,11 @@
                 room_name: null,
             };
         },
+        computed: {
+            close_with_escape_key() {
+                return !this.saving;
+            },
+        },
         created() {
             this.name = this.service.configured_name;
             this.room_name = this.service.data.room_name;

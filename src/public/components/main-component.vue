@@ -397,6 +397,7 @@
                 this.$router.replace({name: 'user-default-layout'});
             }
 
+            window.addEventListener('keypress', this.onkeypress);
             window.addEventListener('scroll', this.onscroll);
             window.addEventListener('touchmove', this.onscroll);
             document.scrollingElement.scrollTo(0, 0);
@@ -426,6 +427,7 @@
         destroyed() {
             clearTimeout(this.refresh_accessories_timeout);
 
+            window.removeEventListener('keypress', this.onkeypress);
             window.removeEventListener('scroll', this.onscroll);
             window.removeEventListener('touchmove', this.onscroll);
 
@@ -451,10 +453,15 @@
 
                 await Promise.all([
                     loadAccessoryUIs,
-                    this.should_open_setup ? loadAccessoryUIs.then(() => this.modals.push({type: 'setup'})) :
-                        this.tryRestoreSession().catch(() => {
-                            return loadAccessoryUIs.then(() => this.modals.push({type: 'authenticate'}));
-                        }),
+                    this.should_open_setup ? loadAccessoryUIs.then(() => {
+                        if (!this.modals.length || this.modals[this.modals.length - 1].type !== 'setup') {
+                            this.modals.push({type: 'setup'});
+                        }
+                    }) : this.tryRestoreSession().catch(() => loadAccessoryUIs.then(() => {
+                        if (!this.modals.length || this.modals[this.modals.length - 1].type !== 'authenticate') {
+                            this.modals.push({type: 'authenticate'});
+                        }
+                    })),
                 ]);
             },
             disconnected() {
@@ -600,6 +607,23 @@
             },
             onscroll() {
                 this.scrolled = document.scrollingElement.scrollTop > 60;
+            },
+            onkeypress(event) {
+                if (event.key === 'Escape' && this.modals.length && this.$refs['modal-' + (this.modals.length - 1)] &&
+                    this.$refs['modal-' + (this.modals.length - 1)][0] &&
+                    this.$refs['modal-' + (this.modals.length - 1)][0].close_with_escape_key
+                ) {
+                    if (this.$refs['modal-' + (this.modals.length - 1)][0].$refs.panel) {
+                        this.$refs['modal-' + (this.modals.length - 1)][0].$refs.panel.close(event);
+                    } else {
+                        this.$refs['modal-' + (this.modals.length - 1)][0].close(event);
+                    }
+
+                    event.preventDefault();
+                    console.log(this.$refs['modal-' + this.modals.length - 1]);
+                }
+
+                console.log(event, this.modals.length, this.$refs, this.$refs['modal-' + (this.modals.length - 1)][0]);
             },
             findServices(callback) {
                 const services = [];

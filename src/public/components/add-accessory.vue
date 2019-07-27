@@ -116,6 +116,9 @@
                 return new AccessorySetupConnection(this.connection, typeof this.accessory_setup_handler === 'number' ?
                     this.accessory_setup_handler : this.discovered_accessory.accessory_discovery_id);
             },
+            close_with_escape_key() {
+                return !this.creating;
+            },
         },
         watch: {
             connection(connection, old_connection) {

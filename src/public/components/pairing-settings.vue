@@ -61,6 +61,9 @@
             can_set() {
                 return this.permissions.set;
             },
+            close_with_escape_key() {
+                return !this.can_set || !this.saving;
+            },
         },
         created() {
             this.name = this.pairingData.name;

@@ -64,6 +64,9 @@
             service_name() {
                 return type_names[this.service.type];
             },
+            close_with_escape_key() {
+                return true;
+            },
         },
         mounted() {
             this.show = true;
