@@ -107,7 +107,8 @@ export default class Server extends Events {
         this.app.use((req, res, next) => {
             if (req.url.match(/^\/layout\/[^/]+$/) ||
                 req.url.match(/^\/all-accessories$/) ||
-                req.url.match(/^\/automations$/)) req.url = '/index.html';
+                req.url.match(/^\/automations$/) ||
+                req.url.match(/^\/setup(\?.*)?$/)) req.url = '/index.html';
 
             next();
         });

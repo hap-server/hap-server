@@ -101,6 +101,10 @@
                 :scene="modal.scene" @remove="removeScene" @close="modals.splice(index, 1)" />
             <scene-settings v-else-if="modal.type === 'create-scene'" :key="index" :ref="'modal-' + index"
                 :create="true" @created="addScene" @close="modals.splice(index, 1)" />
+
+            <setup v-else-if="modal.type === 'setup'" :key="index" :ref="'modal-' + index" :connection="connection"
+                :query-token="typeof should_open_setup === 'string' ? should_open_setup : ''"
+                @close="modals.splice(index, 1)" />
         </template>
 
         <div v-if="!connection" class="connecting" :class="{reconnecting: has_connected}">
@@ -150,6 +154,8 @@
             AccessorySettings: () => import(/* webpackChunkName: 'settings' */ './accessory-settings.vue'),
             PairingSettings: () => import(/* webpackChunkName: 'settings' */ './pairing-settings.vue'),
             ServiceSettings: () => import(/* webpackChunkName: 'settings' */ './service-settings.vue'),
+
+            Setup: () => import(/* webpackChunkName: 'setup' */ './setup.vue'),
         },
         inject: {
             _native_hook: {from: NativeHookSymbol},
@@ -166,6 +172,7 @@
                 connection: null,
                 has_connected: false,
                 loading: false,
+                should_open_setup: false,
 
                 name: null,
                 default_background_url: null,
@@ -285,6 +292,8 @@
                             return (modal.scene.data.name || modal.scene.uuid) + ' Settings';
                         }
                         if (modal.type === 'new-scene') return 'New scene';
+
+                        if (modal.type === 'setup') return 'Setup';
                     }
 
                     return modal.title;
@@ -343,7 +352,7 @@
             async authenticated_user(authenticated_user) {
                 document.cookie = 'asset_token=' + (authenticated_user ?
                     encodeURIComponent(authenticated_user.asset_token) : '; expires=Thu, 01 Jan 1970 00:00:00 GMT') +
-                    '; path=/';
+                    '; path=/' + (location.protocol === 'https:' ? '; Secure' : '');
 
                 if (!authenticated_user) return;
 
@@ -382,6 +391,11 @@
         },
         async created() {
             instances.add(this);
+
+            if (this.$route.name === 'setup') {
+                this.should_open_setup = this.$route.query.token || true;
+                this.$router.replace({name: 'user-default-layout'});
+            }
 
             window.addEventListener('scroll', this.onscroll);
             window.addEventListener('touchmove', this.onscroll);
@@ -437,9 +451,10 @@
 
                 await Promise.all([
                     loadAccessoryUIs,
-                    this.tryRestoreSession().catch(() => {
-                        return loadAccessoryUIs.then(() => this.modals.push({type: 'authenticate'}));
-                    }),
+                    this.should_open_setup ? loadAccessoryUIs.then(() => this.modals.push({type: 'setup'})) :
+                        this.tryRestoreSession().catch(() => {
+                            return loadAccessoryUIs.then(() => this.modals.push({type: 'authenticate'}));
+                        }),
                 ]);
             },
             disconnected() {

@@ -2070,6 +2070,10 @@ export default class Connection {
     async handleAuthenticateMessage(messageid, data) {
         try {
             if (typeof data.authentication_handler_id === 'number') {
+                if (!await this.server.storage.getItem('HasCompletedSetup')) {
+                    await this.server.storage.setItem('HasCompletedSetup', true);
+                }
+
                 const id = data.authentication_handler_id;
                 const authentication_handler = PluginManager.getAuthenticationHandler(id);
 
@@ -2086,6 +2090,10 @@ export default class Connection {
 
                 await this.sendAuthenticateResponse(messageid, response);
             } else if (data.token) {
+                if (!await this.server.storage.getItem('HasCompletedSetup')) {
+                    await this.server.storage.setItem('HasCompletedSetup', true);
+                }
+
                 const token = data.token;
 
                 this.log.info('Resuming session');
@@ -2113,6 +2121,32 @@ export default class Connection {
                 }
 
                 this.authenticated_user = new AuthenticatedUser('cli-token', 'Admin');
+
+                return this.respond(messageid, {
+                    success: true,
+                    data: this.authenticated_user,
+                    user_id: this.authenticated_user.id,
+                });
+            } else if (data.setup_token) {
+                const token = data.setup_token.toLowerCase().replace(/\s+/g, ' ').replace(/[^a-z ]/g, '');
+
+                this.log.info('Authenticating with setup token', token);
+
+                if ([...this.server.wss.clients].map(s => this.constructor.getConnectionForWebSocket(s))
+                    .find(c => c.authenticated_user && c.authenticated_user.id === 'cli-token')
+                ) {
+                    throw new Error('Another client is authenticated as the setup user.');
+                }
+
+                if (await this.server.storage.getItem('HasCompletedSetup')) {
+                    throw new Error('Setup has already been completed.');
+                }
+
+                if (!this.server.setup_token || this.server.setup_token.join(' ') !== token) {
+                    throw new Error('Invalid token.');
+                }
+
+                this.authenticated_user = new AuthenticatedUser('cli-token', 'Setup user');
 
                 return this.respond(messageid, {
                     success: true,

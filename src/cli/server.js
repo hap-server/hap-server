@@ -276,6 +276,7 @@ export async function handler(argv) {
     }
 
     let bonjour_instance = null;
+    let web_interface_address = null;
 
     if (argv.advertiseWebInterface) {
         const bonjour = require('bonjour');
@@ -435,9 +436,10 @@ export async function handler(argv) {
             {allow_unencrypted: true},
         ];
 
+        web_interface_address = `https://${bonjour_hostname}:${bonjour_server_port}/`;
+
         log.debug('Publishing Bonjour services', bonjour_http_service, bonjour_https_service);
-        log.info('You can access the web interface on your local network at %s,',
-            `https://${bonjour_hostname}:${bonjour_server_port}/`);
+        log.info('You can access the web interface on your local network at %s,', web_interface_address);
         log.info('    (remember to install the TLS certificate at %s,', bonjour_secure_server_certificate_path);
         log.info('        fingerprint: %s)', bonjour_secure_server_certificate_fingerprints);
     }
@@ -580,6 +582,23 @@ export async function handler(argv) {
         if (bridge.bridge._accessoryInfo && bridge.bridge._accessoryInfo.pairedClients.length) continue;
 
         if (argv.printSetup) bridge.printSetupInfo();
+    }
+
+    if (!await server.storage.getItem('HasCompletedSetup')) {
+        const password = new (require('xkcd-password'))();
+
+        const setup_token = server.setup_token = await password.generate({
+            numWords: 4,
+            minLength: 5,
+            maxLength: 8,
+        });
+
+        if (web_interface_address) {
+            log.info('Setup hap-server in the web interface at %s',
+                `${web_interface_address}setup?token=${setup_token.join('%20')}`);
+        } else {
+            log.info('Setup hap-server in the web interface with the setup token %s', setup_token.join(' '));
+        }
     }
 
     let exit_attempts = 0;
