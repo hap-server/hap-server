@@ -36,7 +36,7 @@ A lot.
     - [x] Accessory control
         - [x] Switch
         - [x] Lightbulb
-        - [ ] Programmable Switch
+        - [x] Programmable Switch
         - [x] Outlet
         - [ ] Television
             - [x] Input selection
@@ -45,9 +45,18 @@ A lot.
         - [ ] Garage Door Opener
         - [ ] [All other services supported by hap-nodejs](https://github.com/khaost/hap-nodejs/tree/master/lib/gen)
         - [x] [Other services with plugins](docs/plugins.md#accessoryuiregisteraccessorydetailscomponent)
-    - [ ] Accessory groups
     - [x] Dark theme [(system wide)](https://caniuse.com/#search=prefers-color-scheme)
     - [ ] Notifications
+    - Configuration
+        - [ ] Add + configure accessories in the web interface
+            - [x] Set home/accessory/service names
+        - [x] Server output
+        - [x] Custom layouts
+        - [x] Manage users/permissions
+        - [x] Manage HomeKit bridges + choose accessories to expose
+            - Per-user HomeKit bridges (see above)
+        - [x] Expose accessories via multiple bridges
+        - [x] Manage + name HomeKit pairings
 - [x] [Desktop app](https://gitlab.fancy.org.uk/hap-server/electron-app)
     - Electron app that wraps the web interface and provides notifications in the background.
     - Supports all operating systems supported by Electron (though for macOS you probably want to use the built in
@@ -66,6 +75,7 @@ A lot.
             their own homes with read-only access (or no access) to other people's accessories instead of sharing a
             single home where everyone has permission to control all accessories. Also allows users to choose
             their own favourite accessories/scenes/colours and using multiple devices without an Apple ID.
+    - [ ] Multiple pairings with a single bridge?
 - [x] Scenes
     - Works with automations. (Scenes just run automation conditions to check if they're enabled and automation
         actions to activate/deactivate them.)
@@ -98,16 +108,6 @@ A lot.
             - [ ] Transitions
 - [ ] Temporary scheduled actions
     - "Turn the lights off in 10 minutes."
-- [ ] Configuration
-    - [ ] Add + configure accessories in the web interface
-        - [x] Set home/accessory/service names
-    - [x] Server output
-    - [x] Custom layouts
-    - [ ] Manage users/permissions
-    - [ ] Manage HomeKit bridges + choose accessories to expose
-        - Per-user HomeKit bridges (see above)
-    - [ ] Expose accessories via multiple bridges
-    - [ ] Manage + name HomeKit pairings
 - [ ] Camera accessories
 - [x] Add HomeKit accessories
     - [x] HomeKit over IP
@@ -194,7 +194,7 @@ hap-server will exit with an error if the configuration file doesn't exist. To u
 pass it as the first argument. hap-server allows you to write your configuration file in either JSON or YAML.
 
 ```
-Samuels-MacBook-Air:hap-server samuel$ hap-server data/config.yaml
+Samuels-MacBook-Air:~ samuel$ hap-server data/config.yaml
 [28/02/2019, 01:56:01] Starting hap-server with configuration file /Users/samuel/Documents/Projects/hap-server/data/config.yaml
 ...
 ```
@@ -203,7 +203,7 @@ hap-server can automatically setup HTTPS with a self signed certificate and adve
 To use this add the `--advertise-web-interface` flag.
 
 ```
-Samuels-MacBook-Air:hap-server samuel$ hap-server data/config.yaml --advertise-web-interface
+Samuels-MacBook-Air:~ samuel$ hap-server data/config.yaml --advertise-web-interface
 ...
 [27/07/2019, 01:00:03] You can access the web interface on your local network at https://hap-server-12b083b6-dd04-49a7-abac-171388e99db2.local:51820/,
 [27/07/2019, 01:00:03]     (remember to install the TLS certificate at /Users/samuel/Documents/Projects/hap-server/data/certificates/12b083b6-dd04-49a7-abac-171388e99db2.pem,
@@ -262,7 +262,7 @@ To show the version number run `hap-server version`.
 
 ```
 Samuels-MacBook-Air:~ samuel$ hap-server version
-hap-server version 0.7.2 production
+hap-server version 0.8.0 production
 homebridge version 0.4.50, API 2.4
 hap-nodejs version 0.4.51
 ```
