@@ -1085,7 +1085,7 @@ export class AccessorySetup {
     async handleMessage(data, connection) {
         if (!this.handler) return;
 
-        return this.handler.call(this, data);
+        return this.handler.call(this, data, connection);
     }
 }
 
@@ -1140,7 +1140,7 @@ export class AuthenticationHandler {
      * @return {Promise}
      */
     async handleMessage(data, connection) {
-        const response = await this.handler.call(this, data);
+        const response = await this.handler.call(this, data, connection);
 
         if (response instanceof AuthenticatedUser) {
             if (response.authentication_handler && response.authentication_handler !== this) {
@@ -1182,7 +1182,7 @@ export class AuthenticationHandler {
     handleReauthenticate(authenticated_user, connection) {
         if (!this.disconnect_handler) return;
 
-        this.disconnect_handler.call(this, authenticated_user, false);
+        this.disconnect_handler.call(this, authenticated_user, false, connection);
     }
 
     /**
@@ -1192,7 +1192,7 @@ export class AuthenticationHandler {
     handleDisconnect(authenticated_user, connection) {
         if (!this.disconnect_handler) return;
 
-        this.disconnect_handler.call(this, authenticated_user, true);
+        this.disconnect_handler.call(this, authenticated_user, true, connection);
     }
 }
 
@@ -1241,7 +1241,7 @@ export class UserManagementHandler {
      * @return {Promise}
      */
     async handleMessage(data, connection) {
-        const response = await this.handler.call(this, data);
+        const response = await this.handler.call(this, data, connection);
 
         return response;
     }
