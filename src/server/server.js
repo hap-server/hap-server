@@ -410,6 +410,13 @@ export default class Server extends Events {
             this.addAccessory(plugin_accessory);
         }
 
+        for (const platform_accessory of Object.values(this.homebridge.homebridge._publishedAccessories)) {
+            const plugin_accessory = new HomebridgeAccessory(this, platform_accessory._associatedHAPAccessory,
+                platform_accessory);
+
+            this.addAccessory(plugin_accessory);
+        }
+
         this.homebridge.homebridge._api
             .on('handleRegisterPlatformAccessories', this._handleRegisterHomebridgePlatformAccessories);
         this.homebridge.homebridge._api
