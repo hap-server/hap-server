@@ -1983,6 +1983,7 @@ export default class Connection {
     }
 
     async getPairingPermissions(id) {
+        // eslint-disable-next-line no-unused-vars
         const [get, set, info] = await Promise.all([
             this.permissions.checkCanGetPairing(id),
             this.permissions.checkCanSetPairing(id),

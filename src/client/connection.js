@@ -97,7 +97,7 @@ export default class Connection extends EventEmitter {
                 return;
             }
 
-            const [resolve, reject] = this.callbacks.get(messageid);
+            const [resolve] = this.callbacks.get(messageid);
 
             resolve.call(this, data);
 
@@ -124,7 +124,7 @@ export default class Connection extends EventEmitter {
     handleDisconnect(event) {
         this.emit('disconnected', event);
 
-        for (const [resolve, reject] of this.callbacks.values()) {
+        for (const [, reject] of this.callbacks.values()) {
             reject.call(this, event);
         }
     }
