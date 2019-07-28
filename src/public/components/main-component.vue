@@ -620,10 +620,7 @@
                     }
 
                     event.preventDefault();
-                    console.log(this.$refs['modal-' + this.modals.length - 1]);
                 }
-
-                console.log(event, this.modals.length, this.$refs, this.$refs['modal-' + (this.modals.length - 1)][0]);
             },
             findServices(callback) {
                 const services = [];
