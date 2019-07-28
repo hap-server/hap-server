@@ -1346,10 +1346,11 @@ export default class Server extends Events {
      * @return {http.Server}
      */
     createServer(options, middleware) {
-        const server = http.createServer(options, middleware ? (req, res) => {
+        const server = http.createServer(options);
+
+        server.on('request', middleware ? (req, res) => {
             middleware(req, res, () => this.handle(req, res));
         } : this.handle);
-
         server.on('upgrade', this.upgrade);
 
         return server;
@@ -1363,10 +1364,11 @@ export default class Server extends Events {
      * @return {https.Server}
      */
     createSecureServer(options, middleware) {
-        const server = https.createServer(options, middleware ? (req, res) => {
+        const server = https.createServer(options);
+
+        server.on('request', middleware ? (req, res) => {
             middleware(req, res, () => this.handle(req, res));
         } : this.handle);
-
         server.on('upgrade', this.upgrade);
 
         return server;
