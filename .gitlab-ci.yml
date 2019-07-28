@@ -60,7 +60,10 @@ publish:
     dependencies:
         - build
     only:
-        - /^v.*$/
+        refs:
+            - /^v.*$/
+        variables:
+            - $NPM_TOKEN
     except:
         - branches
     cache:
