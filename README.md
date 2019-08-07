@@ -302,7 +302,7 @@ cd hap-server
 npm install
 
 # Build/watch the backend and example plugins
-npx gulp watch-backend watch-example-plugins &
+npx gulp build-backend watch-backend build-example-plugins watch-example-plugins &
 
 # Copy the example configuration
 mkdir -p data

@@ -3,6 +3,7 @@ import url from 'url';
 
 import gulp from 'gulp';
 import pump from 'pump';
+import watch from 'gulp-watch';
 import babel from 'gulp-babel';
 import webpack from 'webpack-stream';
 import json from 'gulp-json-editor';
@@ -160,9 +161,13 @@ gulp.task('build-example-plugins', gulp.parallel(function () {
 
 gulp.task('build', gulp.parallel('build-backend', 'build-frontend', 'build-example-plugins'));
 
-gulp.task('watch-backend', gulp.series('build-backend', function () {
-    return gulp.watch(['src', '!src/public'], gulp.series('build-backend'));
-}));
+gulp.task('watch-backend', function () {
+    return pump([
+        watch(['src/**/*.js', '!src/public/**/*.js'], {verbose: true}),
+        babel(),
+        gulp.dest('dist'),
+    ]);
+});
 
 gulp.task('watch-frontend', function () {
     return pump([
@@ -173,8 +178,17 @@ gulp.task('watch-frontend', function () {
     ]);
 });
 
-gulp.task('watch-example-plugins', gulp.series('build-example-plugins', function () {
-    return gulp.watch('example-plugins/src/**/*.js*', gulp.series('build-example-plugins'));
+gulp.task('watch-example-plugins', gulp.parallel(function () {
+    return pump([
+        watch('example-plugins/src/**/*.js', {verbose: true}),
+        babel(),
+        gulp.dest('example-plugins/dist'),
+    ]);
+}, function () {
+    return pump([
+        watch('example-plugins/src/**/*.json', {verbose: true}),
+        gulp.dest('example-plugins/dist'),
+    ]);
 }));
 
 gulp.task('watch', gulp.parallel('watch-backend', 'watch-frontend', 'watch-example-plugins'));
