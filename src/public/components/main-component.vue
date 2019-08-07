@@ -30,7 +30,7 @@
         </div>
 
         <keep-alive>
-            <automations v-if="show_automations" ref="automations" :connection="connection"
+            <automations v-if="show_automations" ref="automations" :client="client"
                 @title="title => automations_title = title" />
         </keep-alive>
 

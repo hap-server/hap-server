@@ -116,7 +116,7 @@
 <script>
     import Connection from '../../client/connection';
     import {AutomationsSymbol, AutomationSymbol} from '../internal-symbols';
-    import {StagedAutomation} from './automation';
+    import {StagedAutomation} from '../../client/automation';
 
     import Panel from '../components/panel.vue';
     import PanelTabs from '../components/panel-tabs.vue';

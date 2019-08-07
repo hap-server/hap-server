@@ -7,6 +7,7 @@ import Service from './client/service';
 import CollapsedService from './client/collapsed-service';
 import Characteristic from './client/characteristic';
 import Layout from './client/layout';
+import Automation from './client/automation';
 import Scene from './client/scene';
 
 export {
@@ -22,6 +23,7 @@ export {
     Characteristic,
 
     Layout,
+    Automation,
     Scene,
 };
 

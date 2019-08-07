@@ -3,6 +3,7 @@ import EventEmitter from 'events';
 import Connection, {Console} from './connection';
 import Accessory from './accessory';
 import Layout from './layout';
+import Automation from './automation';
 import Scene from './scene';
 
 export function $set(object, key, value) {
@@ -54,6 +55,12 @@ export default class Client extends EventEmitter {
         this.loading_automations = false;
         this.loading_scenes = false;
 
+        this.home_settings_dependencies = new Set();
+        this.accessories_dependencies = new Map();
+        this.layouts_dependencies = new Map();
+        this.automations_dependencies = new Map();
+        this.scenes_dependencies = new Map();
+
         this._handleBroadcastMessage = this.handleBroadcastMessage.bind(this);
         this._handleDisconnected = this.handleDisconnected.bind(this);
 
@@ -102,6 +109,17 @@ export default class Client extends EventEmitter {
 
             this.emit('connected', connection);
 
+            if (this.accessories_dependencies.size) this.refreshAccessories();
+            if (this.layouts_dependencies.size) this.refreshLayouts();
+            if (this.automations_dependencies.size) this.refreshAutomations();
+            if (this.scenes_dependencies.size) this.refreshScenes();
+
+            if (this.old_connection) {
+                for (const characteristic of this.old_connection.subscribed_characteristics) {
+                    characteristic.subscribe
+                }
+            }
+
             return connection;
         }).then(connection => {
             this.connected = true;
@@ -137,7 +155,7 @@ export default class Client extends EventEmitter {
      */
     async disconnect() {
         if (!this.connection) return;
-        const connection = this.connection;
+        const connection = this.old_connection = this.connection;
         this.connection = null;
         this.connected = false;
 
@@ -316,6 +334,39 @@ export default class Client extends EventEmitter {
             section._setData(data.data);
         }
 
+        if (this.automations && data.type === 'add-automation') {
+            if (this.automations[data.uuid]) return;
+
+            const [[data], [permissions]] = await Promise.all([
+                this.connection.getAutomations(uuid),
+                this.connection.getAutomationsPermissions(uuid),
+            ]);
+
+            const automation = new Automation(this.connection, uuid, data, permissions);
+
+            $set(this.automations, automation.uuid, automation);
+            this.emit('new-automation', automation);
+            this.emit('new-automations', [automation]);
+            this.emit('updated-automations', [automation], []);
+        }
+
+        if (this.automations && data.type === 'remove-automation') {
+            const automation = this.automations[uuid];
+
+            if (!automation) return;
+
+            this.$delete(this.automations, automation.uuid);
+            this.$emit('removed-automation', automation);
+            this.$emit('removed-automations', [automation]);
+            this.$emit('updated-automations', [], [automation]);
+        }
+
+        if (this.automations && data.type === 'update-automation') {
+            const automation = this.automations[uuid];
+
+            automation._setData(data);
+        }
+
         if (this.scenes && data.type === 'add-scene') {
             if (this.scenes[data.uuid]) return;
 
@@ -375,13 +426,67 @@ export default class Client extends EventEmitter {
         this.emit('disconnected', event);
     }
 
+    /**
+     * Load accessories or add a dependency on loaded accessories.
+     *
+     * @param {*} [dep]
+     * @param {Array} [accessory_uuids]
+     * @return {Promise}
+     */
+    async loadAccessories(dep, accessory_uuids) {
+        const required_accessory_uuids = this.getRequiredAccessoryUUIDs();
+        const load_accessories = !this.accessories || (required_accessory_uuids && accessory_uuids &&
+            accessory_uuids.find(uuid => !required_accessory_uuids.has(uuid))) ||
+            (required_automation_uuids && !accessory_uuids);
+
+        if (dep) {
+            this.accessories_dependencies.set(dep, accessory_uuid || true);
+        }
+
+        if (!this.accessories) this.accessories = {};
+        if (load_accessories) await this.refreshAccessories();
+    }
+
+    /**
+     * Unload accessories or remove a dependency on loaded accessories.
+     *
+     * @param {*} [dep]
+     */
+    unloadAccessories(dep) {
+        if (dep) {
+            this.accessories_dependencies.delete(dep);
+
+            // If there are more dependencies don't unload accessories yet
+            if (this.accessories_dependencies.size) return;
+        }
+
+        this.accessories = null;
+    }
+
+    getRequiredAccessoryUUIDs() {
+        if (!this.accessories_dependencies.size) return;
+
+        const required_accessory_uuids = new Set();
+
+        for (const accessory_uuids of this.accessories_dependencies.values()) {
+            if (!(accessory_uuids instanceof Array)) return;
+
+            for (const uuid of accessory_uuids) required_accessory_uuids.add(uuid);
+        }
+
+        return required_accessory_uuids;
+    }
+
     async refreshAccessories(dont_emit_events) {
         if (this.loading_accessories) throw new Error('Already loading accessories');
         this.loading_accessories = true;
 
         try {
-            const accessory_uuids = await this.connection.listAccessories();
+            const required_accessory_uuids = this.getRequiredAccessoryUUIDs();
+            const accessory_uuids = (await this.connection.listAccessories())
+                .filter(uuid => !required_accessory_uuids || required_accessory_uuids.has(uuid));
 
+            if (!this.accessories) this.accessories = {};
             const new_accessories = [];
             const removed_accessories = [];
 
@@ -439,13 +544,54 @@ export default class Client extends EventEmitter {
         }
     }
 
+    loadLayouts(dep, layout_uuids) {
+        const required_layout_uuids = this.getRequiredLayoutUUIDs();
+        const load_layouts = !this.layouts || (required_layout_uuids && layout_uuids &&
+            layout_uuids.find(uuid => !required_layout_uuids.has(uuid))) || (required_layout_uuids && !layout_uuids);
+
+        if (dep) {
+            this.layouts_dependencies.set(dep, layout_uuids || true);
+        }
+
+        if (!this.layouts) this.layouts = {};
+        if (load_layouts) this.refreshLayouts();
+    }
+
+    unloadLayouts(dep) {
+        if (dep) {
+            this.layouts_dependencies.delete(dep);
+
+            // If there are more dependencies don't unload layouts yet
+            if (this.layouts_dependencies.size) return;
+        }
+
+        this.layouts = null;
+    }
+
+    getRequiredLayoutUUIDs() {
+        if (!this.layouts_dependencies.size) return;
+
+        const required_layout_uuids = new Set();
+
+        for (const layout_uuids of this.layouts_dependencies.values()) {
+            if (!(layout_uuids instanceof Array)) return;
+
+            for (const uuid of layout_uuids) required_layout_uuids.add(uuid);
+        }
+
+        return required_layout_uuids;
+    }
+
     async refreshLayouts(dont_emit_events) {
         if (this.loading_layouts) throw new Error('Already loading layouts');
         this.loading_layouts = true;
 
         try {
-            const layout_uuids = await this.connection.listLayouts();
+            const required_layout_uuids = this.getRequiredLayoutUUIDs();
+            const layout_uuids = (await this.connection.listLayouts())
+                .filter(uuid => !required_layout_uuids || required_layout_uuids.has(uuid));
 
+            if (!this.layouts) this.layouts = {};
             const new_layout_uuids = [];
             const removed_layout_uuids = [];
 
@@ -524,8 +670,139 @@ export default class Client extends EventEmitter {
         }
     }
 
+    loadAutomations(dep, automation_uuids) {
+        const required_automation_uuids = this.getRequiredAutomationUUIDs();
+        const load_automations = !this.automations || (required_automation_uuids && automation_uuids &&
+            automation_uuids.find(uuid => !required_automation_uuids.has(uuid))) ||
+            (required_automation_uuids && !automation_uuids);
+
+        if (dep) {
+            this.automations_dependencies.set(dep, automation_uuids || true);
+        }
+
+        if (!this.automations) this.automations = {};
+        if (load_automations) this.refreshAutomations();
+    }
+
+    unloadAutomations(dep) {
+        if (dep) {
+            this.automations_dependencies.delete(dep);
+
+            // If there are more dependencies don't unload automations yet
+            if (this.automations_dependencies.size) return;
+        }
+
+        this.automations = null;
+    }
+
+    getRequiredAutomationUUIDs() {
+        if (!this.automations_dependencies.size) return;
+
+        const required_automation_uuids = new Set();
+
+        for (const automation_uuids of this.automations_dependencies.values()) {
+            if (!(automation_uuids instanceof Array)) return;
+
+            for (const uuid of automation_uuids) required_automation_uuids.add(uuid);
+        }
+
+        return required_automation_uuids;
+    }
+
     async refreshAutomations(dont_emit_events) {
-        // ...
+        if (this.loading_automations) throw new Error('Already loading');
+        this.loading_automations = true;
+
+        try {
+            const automation_uuids = await this.connection.listAutomations();
+
+            const new_automation_uuids = [];
+            const removed_automation_uuids = [];
+
+            for (const uuid of automation_uuids) {
+                // Automation already exists
+                if (this.automations[uuid]) continue;
+
+                // Add this automation to the list of automations we don't yet know about
+                new_automation_uuids.push(uuid);
+            }
+
+            for (const uuid of Object.keys(this.automations)) {
+                // Automation still exists
+                if (automation_uuids.includes(uuid)) continue;
+
+                // Add this automation to the list of automations that have been removed
+                removed_automation_uuids.push(uuid);
+            }
+
+            const [new_automations_data, new_automations_permissions] = await Promise.all([
+                this.connection.getAutomations(...new_automation_uuids),
+                this.connection.getAutomationsPermissions(...new_automation_uuids),
+            ]);
+
+            const new_automations = new_automation_uuids.map((uuid, index) => new Automation(this.connection,
+                uuid, new_automations_data[index], new_automations_permissions[index])); // eslint-disable-line vue/script-indent
+
+            for (const automation of new_automations) {
+                this.$set(this.automations, automation.uuid, automation);
+                if (!dont_emit_events) this.$emit('new-automation', automation);
+            }
+
+            if (new_automations.length && !dont_emit_events) this.$emit('new-automations', new_automations);
+
+            const removed_automations = removed_automation_uuids.map(uuid => this.automations[uuid]);
+
+            for (const automation of removed_automations) {
+                this.$delete(this.automations, automation.uuid);
+                if (!dont_emit_events) this.$emit('removed-automation', automation);
+            }
+
+            if (removed_automations.length && !dont_emit_events) this.$emit('removed-automations', removed_automations);
+
+            if (new_automations.length || removed_automations.length) {
+                this.$emit('updated-automations', new_automations, removed_automations);
+            }
+        } finally {
+            this.loading_automations = false;
+        }
+    }
+
+    loadScenes(dep, scene_uuids) {
+        const required_scene_uuids = this.getRequiredSceneUUIDs();
+        const load_scenes = !this.scenes || (required_scene_uuids && scene_uuids &&
+            scene_uuids.find(uuid => !required_scene_uuids.has(uuid))) || (required_scene_uuids && !scene_uuids);
+
+        if (dep) {
+            this.scenes_dependencies.set(dep, scene_uuids || true);
+        }
+
+        if (!this.scenes) this.scenes = {};
+        if (load_scenes) this.refreshScenes();
+    }
+
+    unloadScenes(dep) {
+        if (dep) {
+            this.scenes_dependencies.delete(dep);
+
+            // If there are more dependencies don't unload scenes yet
+            if (this.scenes_dependencies.size) return;
+        }
+
+        this.scenes = null;
+    }
+
+    getRequiredSceneUUIDs() {
+        if (!this.scenes_dependencies.size) return;
+
+        const required_scene_uuids = new Set();
+
+        for (const scene_uuids of this.scenes_dependencies.values()) {
+            if (!(scene_uuids instanceof Array)) return;
+
+            for (const uuid of scene_uuids) required_scene_uuids.add(uuid);
+        }
+
+        return required_scene_uuids;
     }
 
     async refreshScenes(dont_emit_events) {
@@ -533,8 +810,11 @@ export default class Client extends EventEmitter {
         this.loading_scenes = true;
 
         try {
-            const scene_uuids = await this.connection.listScenes();
+            const required_scene_uuids = this.getRequiredSceneUUIDs();
+            const scene_uuids = (await this.connection.listScenes())
+                .filter(uuid => !required_scene_uuids || required_scene_uuids.has(uuid));
 
+            if (!this.scenes) this.scenes = {};
             const new_scene_uuids = [];
             const removed_scene_uuids = [];
 
