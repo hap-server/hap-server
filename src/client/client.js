@@ -109,17 +109,6 @@ export default class Client extends EventEmitter {
 
             this.emit('connected', connection);
 
-            if (this.accessories_dependencies.size) this.refreshAccessories();
-            if (this.layouts_dependencies.size) this.refreshLayouts();
-            if (this.automations_dependencies.size) this.refreshAutomations();
-            if (this.scenes_dependencies.size) this.refreshScenes();
-
-            if (this.old_connection) {
-                for (const characteristic of this.old_connection.subscribed_characteristics) {
-                    characteristic.subscribe
-                }
-            }
-
             return connection;
         }).then(connection => {
             this.connected = true;
@@ -146,6 +135,15 @@ export default class Client extends EventEmitter {
 
             await new Promise(r => setTimeout(r, 4000));
         }
+    }
+
+    refreshLoaded() {
+        return Promise.all([
+            this.accessories ? this.refreshAccessories() : null,
+            this.layouts ? this.refreshLayouts() : null,
+            this.automations ? this.refreshAutomations() : null,
+            this.scenes ? this.refreshScenes() : null,
+        ]);
     }
 
     /**
@@ -437,14 +435,14 @@ export default class Client extends EventEmitter {
         const required_accessory_uuids = this.getRequiredAccessoryUUIDs();
         const load_accessories = !this.accessories || (required_accessory_uuids && accessory_uuids &&
             accessory_uuids.find(uuid => !required_accessory_uuids.has(uuid))) ||
-            (required_automation_uuids && !accessory_uuids);
+            (required_accessory_uuids && !accessory_uuids);
 
         if (dep) {
-            this.accessories_dependencies.set(dep, accessory_uuid || true);
+            this.accessories_dependencies.set(dep, accessory_uuids || true);
         }
 
         if (!this.accessories) this.accessories = {};
-        if (load_accessories) await this.refreshAccessories();
+        if (load_accessories && this.connection) await this.refreshAccessories();
     }
 
     /**
@@ -554,7 +552,7 @@ export default class Client extends EventEmitter {
         }
 
         if (!this.layouts) this.layouts = {};
-        if (load_layouts) this.refreshLayouts();
+        if (load_layouts && this.connection) this.refreshLayouts();
     }
 
     unloadLayouts(dep) {
@@ -681,7 +679,7 @@ export default class Client extends EventEmitter {
         }
 
         if (!this.automations) this.automations = {};
-        if (load_automations) this.refreshAutomations();
+        if (load_automations && this.connection) this.refreshAutomations();
     }
 
     unloadAutomations(dep) {
@@ -744,23 +742,23 @@ export default class Client extends EventEmitter {
                 uuid, new_automations_data[index], new_automations_permissions[index])); // eslint-disable-line vue/script-indent
 
             for (const automation of new_automations) {
-                this.$set(this.automations, automation.uuid, automation);
-                if (!dont_emit_events) this.$emit('new-automation', automation);
+                $set(this.automations, automation.uuid, automation);
+                if (!dont_emit_events) this.emit('new-automation', automation);
             }
 
-            if (new_automations.length && !dont_emit_events) this.$emit('new-automations', new_automations);
+            if (new_automations.length && !dont_emit_events) this.emit('new-automations', new_automations);
 
             const removed_automations = removed_automation_uuids.map(uuid => this.automations[uuid]);
 
             for (const automation of removed_automations) {
-                this.$delete(this.automations, automation.uuid);
-                if (!dont_emit_events) this.$emit('removed-automation', automation);
+                $delete(this.automations, automation.uuid);
+                if (!dont_emit_events) this.emit('removed-automation', automation);
             }
 
-            if (removed_automations.length && !dont_emit_events) this.$emit('removed-automations', removed_automations);
+            if (removed_automations.length && !dont_emit_events) this.emit('removed-automations', removed_automations);
 
             if (new_automations.length || removed_automations.length) {
-                this.$emit('updated-automations', new_automations, removed_automations);
+                this.emit('updated-automations', new_automations, removed_automations);
             }
         } finally {
             this.loading_automations = false;
@@ -777,7 +775,7 @@ export default class Client extends EventEmitter {
         }
 
         if (!this.scenes) this.scenes = {};
-        if (load_scenes) this.refreshScenes();
+        if (load_scenes && this.connection) this.refreshScenes();
     }
 
     unloadScenes(dep) {

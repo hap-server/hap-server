@@ -45,13 +45,13 @@
                 :connection="connection" @close="modals.splice(index, 1)" />
 
             <settings v-else-if="modal.type === 'settings'" :key="index" :ref="'modal-' + index"
-                :connection="connection" :accessories="accessories" :loading-accessories="loading_accessories"
+                :connection="connection" :accessories="accessories" :loading-accessories="client.loading_accessories"
                 :can-add-accessories="can_add_accessories" :can-create-bridges="can_create_bridges"
                 :can-open-console="can_open_console" :can-manage-users="can_manage_users"
                 :can-edit-user-permissions="can_manage_permissions" :can-access-server-info="can_access_server_settings"
                 @modal="modal => modals.push(modal)"
                 @show-accessory-settings="accessory => modals.push({type: 'accessory-settings', accessory})"
-                @refresh-accessories="refreshAccessories()"
+                @refresh-accessories="client.refreshAccessories()"
                 @updated-settings="reload" @close="modals.splice(index, 1)" />
             <add-accessory v-else-if="modal.type === 'add-accessory'" :key="index" :ref="'modal-' + index"
                 :connection="connection" @close="modals.splice(index, 1)" />
@@ -193,7 +193,6 @@
                 loading_permissions: false,
 
                 refresh_accessories_timeout: null,
-                loading_accessories: false,
 
                 bridge_uuids: [],
                 loading_bridges: false,
@@ -357,16 +356,11 @@
                 if (!authenticated_user) return;
 
                 await Promise.all([
+                    this.client.refreshLoaded(),
                     this.reload(),
                     this.reloadPermissions(),
-                    this.refreshLayouts(),
                     this.reloadBridges(),
-                    this.refreshAccessories(),
-                    this.client.refreshScenes(),
                 ]);
-
-                // Force Vue to update the layout
-                this.force_update_layout = !this.force_update_layout;
             },
             layout(layout) {
                 // Only save the layout when using running as a web clip
@@ -407,6 +401,14 @@
             this.client.on('update-home-settings', this.handleUpdateHomeSettings);
             this.client.on('update-home-permissions', this.setPermissions);
             // this.client.on('add-automation', this.handleAddAutomation);
+            this.client.on('updated-accessories', this.handleUpdatedAccessories);
+            this.client.on('updated-layouts', this.handleUpdatedLayouts);
+
+            // These won't load anything as the client hasn't authenticated (or even connected) yet
+            // This is just to add this component as a dependency so they won't automatically be unloaded
+            this.client.loadAccessories(this);
+            this.client.loadLayouts(this);
+            this.client.loadScenes(this);
 
             await this.client.tryConnect();
 
@@ -418,7 +420,7 @@
             // ]);
 
             const refresh_accessories_function = async () => {
-                await this.refreshAccessories();
+                await this.client.refreshAccessories();
 
                 this.refresh_accessories_timeout = setTimeout(refresh_accessories_function, 600000);
             };
@@ -432,6 +434,10 @@
             window.removeEventListener('touchmove', this.onscroll);
 
             this.client.disconnect();
+
+            this.client.unloadAccessories(this);
+            this.client.unloadLayouts(this);
+            this.client.unloadScenes(this);
 
             instances.delete(this);
         },
@@ -499,6 +505,14 @@
             handleAddAutomation() {
                 this.can_access_automations = true;
             },
+            handleUpdatedAccessories() {
+                // Force Vue to update the layout
+                this.force_update_layout = !this.force_update_layout;
+            },
+            handleUpdatedLayouts() {
+                // Force Vue to update the layout
+                this.force_update_layout = !this.force_update_layout;
+            },
             async ping() {
                 console.log('Sending ping request');
                 const response = await this.connection.send('ping');
@@ -550,9 +564,6 @@
                     this.loading_accessory_uis = false;
                 }
             },
-            async refreshLayouts(dont_emit_events) {
-                await this.client.refreshLayouts(dont_emit_events);
-            },
             addAccessory(accessory) {
                 this.$set(this.accessories, accessory.uuid, accessory);
                 this.$emit('new-accessory', accessory);
@@ -601,9 +612,6 @@
                 } finally {
                     this.loading_bridges = false;
                 }
-            },
-            async refreshAccessories(dont_emit_events) {
-                await this.client.refreshAccessories(dont_emit_events);
             },
             onscroll() {
                 this.scrolled = document.scrollingElement.scrollTop > 60;
