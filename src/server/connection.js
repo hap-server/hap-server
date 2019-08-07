@@ -66,7 +66,6 @@ async function genusername(storage) {
 let id = 0;
 
 const message_methods = {
-    'list-accessories': 'handleListAccessoriesMessage',
     'get-accessories': 'handleGetAccessoriesMessage',
     'get-accessories-permissions': 'handleGetAccessoriesPermissionsMessage',
     'get-characteristics': 'handleGetCharacteristicsMessage',
@@ -133,6 +132,10 @@ const message_methods = {
     'open-console': 'handleOpenConsoleMessage',
     'close-console': 'handleCloseConsoleMessage',
     'console-input': 'handleConsoleInputMessage',
+};
+
+const message_handlers = {
+    'list-accessories': 'listAccessories',
 };
 
 const hide_authentication_keys = [
@@ -252,13 +255,15 @@ export default class Connection {
         this.ws.send('**:' + JSON.stringify(data));
     }
 
-    async respond(messageid, data) {
+    async respond(messageid, data, error) {
         if (data instanceof Promise) {
             try {
+                error = false;
                 data = await data;
             } catch (err) {
                 this.log.error('Error in message handler', data.type, err);
 
+                error = true;
                 data = {
                     reject: true,
                     error: err instanceof Error,
@@ -268,7 +273,11 @@ export default class Connection {
             }
         }
 
-        this.ws.send('*' + messageid + ':' + JSON.stringify(data));
+        this.ws.send((error ? '!' : '*') + messageid + ':' + JSON.stringify(data));
+    }
+
+    sendProgress(messageid, data) {
+        this.ws.send('&' + messageid + ':' + JSON.stringify(data));
     }
 
     handleMessage(messageid, data) {
@@ -279,12 +288,16 @@ export default class Connection {
             return;
         }
 
-        if (data && data.type && message_methods[data.type]) {
-            try {
+        try {
+            if (data && data.type && message_methods[data.type]) {
                 this[message_methods[data.type]].call(this, messageid, data);
-            } catch (err) {
-                this.log.error('Error in message handler', data.type, err);
+            } else if (data && data.type && typeof message_handlers[data.type] === 'string') {
+                this.respond(messageid, this[message_handlers[data.type]].call(this, data));
+            } else if (data && data.type && typeof message_handlers[data.type] === 'function') {
+                this.respond(messageid, message_handlers[data.type].call(this, data, this));
             }
+        } catch (err) {
+            this.log.error('Error in message handler', data.type, err);
         }
     }
 
@@ -326,10 +339,6 @@ export default class Connection {
     /**
      * Gets the UUID of every accessory.
      */
-    handleListAccessoriesMessage(messageid, data) {
-        this.respond(messageid, this.listAccessories());
-    }
-
     async listAccessories() {
         const uuids = [];
 
@@ -2124,7 +2133,6 @@ export default class Connection {
                 this.authenticated_user = new AuthenticatedUser('cli-token', 'Admin');
 
                 return this.respond(messageid, {
-                    success: true,
                     data: this.authenticated_user,
                     user_id: this.authenticated_user.id,
                 });
@@ -2150,7 +2158,6 @@ export default class Connection {
                 this.authenticated_user = new AuthenticatedUser('cli-token', 'Setup user');
 
                 return this.respond(messageid, {
-                    success: true,
                     data: this.authenticated_user,
                     user_id: this.authenticated_user.id,
                 });
@@ -2161,11 +2168,10 @@ export default class Connection {
             this.log.error('Error authenticating', err);
 
             this.respond(messageid, {
-                reject: true,
                 error: err instanceof Error,
                 constructor: err.constructor.name,
                 data: err instanceof Error ? {message: err.message, code: err.code, stack: err.stack} : err,
-            });
+            }, true);
         }
     }
 
@@ -2221,18 +2227,15 @@ export default class Connection {
 
             const response = await user_management_handler.handleMessage(data.data, this);
 
-            return this.respond(messageid, {
-                data: response,
-            });
+            return this.respond(messageid, response);
         } catch (err) {
             this.log.error('Error in user management handler', err);
 
             this.respond(messageid, {
-                reject: true,
                 error: err instanceof Error,
                 constructor: err.constructor.name,
                 data: err instanceof Error ? {message: err.message, code: err.code, stack: err.stack} : err,
-            });
+            }, true);
         }
     }
 
@@ -2302,18 +2305,15 @@ export default class Connection {
 
             const response = await accessory_setup.handleMessage(data.data, this);
 
-            return this.respond(messageid, {
-                data: response,
-            });
+            return this.respond(messageid, response);
         } catch (err) {
             this.log.error('Error in accessory setup handler', err);
 
             this.respond(messageid, {
-                reject: true,
                 error: err instanceof Error,
                 constructor: err.constructor.name,
                 data: err instanceof Error ? {message: err.message, code: err.code, stack: err.stack} : err,
-            });
+            }, true);
         }
     }
 

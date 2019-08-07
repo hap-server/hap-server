@@ -86,20 +86,33 @@ export default class Connection extends EventEmitter {
             return;
         }
 
-        const match = data.match(/^\*([0-9]+)\:(.*)$/);
+        const match = data.match(/^(\*|!|&)([0-9]+)\:(.*)$/);
 
         if (match) {
-            const messageid = parseInt(match[1]);
-            const data = match[2] !== 'undefined' ? JSON.parse(match[2]) : undefined;
+            const type = match[1] === '&' ? 'progress' :
+                match[1] === '!' ? 'error' : 'success';
+            const messageid = parseInt(match[2]);
+            const data = match[3] !== 'undefined' ? JSON.parse(match[3]) : undefined;
 
             if (!this.callbacks.has(messageid)) {
                 console.error('Unknown messageid');
                 return;
             }
 
-            const [resolve] = this.callbacks.get(messageid);
+            const [resolve, reject, progress] = this.callbacks.get(messageid);
 
-            resolve.call(this, data);
+            if (type === 'progress') {
+                if (!progress) {
+                    console.warning('Received progress update for a request with no progress handler');
+                } else {
+                    progress.call(this, data);
+                }
+
+                return;
+            }
+
+            if (type === 'error') reject.call(this, data);
+            else resolve.call(this, data);
 
             this.callbacks.delete(messageid);
 
@@ -129,13 +142,13 @@ export default class Connection extends EventEmitter {
         }
     }
 
-    send(data) {
+    send(data, progress) {
         return new Promise((resolve, reject) => {
             const messageid = this.messageid++;
 
             this.ws.send('*' + messageid + ':' + JSON.stringify(data));
 
-            this.callbacks.set(messageid, [resolve, reject]);
+            this.callbacks.set(messageid, [resolve, reject, progress]);
         });
     }
 
@@ -852,33 +865,35 @@ export class AuthenticationHandlerConnection {
      * @return {Promise<*>}
      */
     async send(data) {
-        const response = await this.connection.send({
-            type: 'authenticate',
-            authentication_handler_id: this.authentication_handler_id,
-            data,
-        });
+        try {
+            const response = await this.connection.send({
+                type: 'authenticate',
+                authentication_handler_id: this.authentication_handler_id,
+                data,
+            });
 
-        if (response.reject) {
-            if (response.error) {
-                const error = new (global[response.constructor] || Error)(response.data.message);
-                error.code = response.data.code;
+            if (response.success) {
+                const authenticated_user = new AuthenticatedUser(response.authentication_handler_id, response.user_id);
+
+                Object.defineProperty(authenticated_user, 'token', {value: response.token});
+                Object.defineProperty(authenticated_user, 'asset_token', {value: response.asset_token});
+                Object.assign(authenticated_user, response.data);
+
+                return authenticated_user;
+            }
+
+            return response.data;
+        } catch (err) {
+            if (typeof err !== 'object' || !err.data) throw err;
+
+            if (err.error) {
+                const error = new (global[err.constructor] || Error)(err.data.message);
+                error.code = err.data.code;
                 throw error;
             }
 
-            throw response.data;
+            throw err.data;
         }
-
-        if (response.success) {
-            const authenticated_user = new AuthenticatedUser(response.authentication_handler_id, response.user_id);
-
-            Object.defineProperty(authenticated_user, 'token', {value: response.token});
-            Object.defineProperty(authenticated_user, 'asset_token', {value: response.asset_token});
-            Object.assign(authenticated_user, response.data);
-
-            return authenticated_user;
-        }
-
-        return response.data;
     }
 }
 
@@ -902,13 +917,15 @@ export class UserManagementConnection {
      * @return {Promise<*>}
      */
     async send(data) {
-        const response = await this.connection.send({
-            type: 'user-management',
-            user_management_handler_id: this.user_management_handler_id,
-            data,
-        });
+        try {
+            return await this.connection.send({
+                type: 'user-management',
+                user_management_handler_id: this.user_management_handler_id,
+                data,
+            });
+        } catch (err) {
+            if (typeof err !== 'object' || !err.data) throw err;
 
-        if (response.reject) {
             if (response.error) {
                 const error = new (global[response.constructor] || Error)(response.data.message);
                 error.code = response.data.code;
@@ -917,8 +934,6 @@ export class UserManagementConnection {
 
             throw response.data;
         }
-
-        return response.data;
     }
 }
 
@@ -944,13 +959,15 @@ export class AccessorySetupConnection {
      * @return {Promise<*>}
      */
     async send(data) {
-        const response = await this.connection.send({
-            type: 'accessory-setup',
-            accessory_setup_id: this.accessory_setup_id,
-            data,
-        });
+        try {
+            return await this.connection.send({
+                type: 'accessory-setup',
+                accessory_setup_id: this.accessory_setup_id,
+                data,
+            });
+        } catch (err) {
+            if (typeof err !== 'object' || !err.data) throw err;
 
-        if (response.reject) {
             if (response.error) {
                 const error = new (global[response.constructor] || Error)(response.data.message);
                 error.code = response.data.code;
@@ -959,7 +976,5 @@ export class AccessorySetupConnection {
 
             throw response.data;
         }
-
-        return response.data;
     }
 }
