@@ -1,6 +1,9 @@
 import EventEmitter from 'events';
 import Client from './client';
 
+import {Characteristic as HAPCharacteristic} from 'hap-nodejs/lib/Characteristic';
+import 'hap-nodejs/lib/gen/HomeKitTypes';
+
 export default class Characteristic extends EventEmitter {
     /**
      * Creates a Characteristic.
@@ -19,6 +22,10 @@ export default class Characteristic extends EventEmitter {
         this._setPermissions(permissions);
         this._subscribed = false;
         this.subscription_dependencies = new Set();
+        this._getting = 0;
+        this._target_value = null;
+        this._setting = [];
+        this.error = null;
     }
 
     get details() {
@@ -61,6 +68,15 @@ export default class Characteristic extends EventEmitter {
         return this.details.value;
     }
 
+    get target_value() {
+        if (this._target_value === null) return this.value;
+        return this._target_value;
+    }
+
+    get changed() {
+        return this.value !== this.target_value;
+    }
+
     get valid_values() {
         return this.details['valid-values'];
     }
@@ -85,11 +101,29 @@ export default class Characteristic extends EventEmitter {
         return this.details.minStep;
     }
 
-    async updateValue() {
-        const details = await this.service.accessory.connection.getCharacteristic(
-            this.service.accessory.uuid, this.service.uuid, this.uuid);
+    get max_length() {
+        return this.details.maxLen;
+    }
 
-        this._setDetails(details);
+    get updating() {
+        return !!this._getting;
+    }
+
+    async updateValue() {
+        try {
+            this._getting++;
+
+            const details = await this.service.accessory.connection.getCharacteristic(
+                this.service.accessory.uuid, this.service.uuid, this.uuid);
+
+            this._setDetails(details);
+            this.error = err;
+        } catch (err) {
+            this.error = err;
+            throw err;
+        } finally {
+            this._getting--;
+        }
     }
 
     async setValue(value) {
@@ -97,8 +131,51 @@ export default class Characteristic extends EventEmitter {
             throw new Error('This characteristic no longer exists');
         }
 
-        return this.service.accessory.connection.setCharacteristic(
-            this.service.accessory.uuid, this.service.uuid, this.uuid, value);
+        // if (!this.validateValue(value)) {
+        //     throw new Error('Value is not valid');
+        // }
+
+        for (const queued of this._setting) queued[1].call();
+        const setting = (this._setting[this._setting.length - 1] || [Promise.resolve()])[0];
+
+        let canceled = false;
+
+        const promise = setting.then(() => {
+            if (canceled) return;
+
+            return this.service.accessory.connection.setCharacteristic(
+                this.service.accessory.uuid, this.service.uuid, this.uuid, value);
+        }).then(() => {
+            if (canceled) return;
+
+            this._target_value = null;
+            this.error = null;
+            this._setting.splice(0, this._setting.length);
+        }, err => {
+            this.error = err;
+            throw err;
+        });
+
+        this._target_value = value;
+        this._setting.push([promise, () => canceled = true]);
+        return promise;
+    }
+
+    validateValue(value) {
+        // hap-nodejs' validateValue tries to coerce the value to a valid value
+        return value === HAPCharacteristic.prototype.validateValue.call({
+            props: {
+                format: this.format,
+                maxLen: this.max_length,
+                maxDataLen: undefined,
+                maxValue: this.max_value,
+                minValue: this.min_value,
+                minStep: this.min_step,
+            },
+            value: this.value,
+            ['valid-values']: this.valid_values,
+            ['valid-values-range']: this.valid_values_range,
+        }, value);
     }
 
     get subscribed() {
@@ -203,9 +280,6 @@ const subscribed_characteristics = new Map();
 export const types = {};
 export const type_uuids = {};
 export const type_names = {};
-
-import {Characteristic as HAPCharacteristic} from 'hap-nodejs/lib/Characteristic';
-import 'hap-nodejs/lib/gen/HomeKitTypes';
 
 Characteristic.Formats = HAPCharacteristic.Formats;
 Characteristic.Units = HAPCharacteristic.Units;

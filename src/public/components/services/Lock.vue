@@ -1,6 +1,6 @@
 <template>
     <service class="service-lock-mechanism" :class="{'service-error': jammed || unknown_state}" :service="service"
-        type="Lock" :active="unlocked || !locking" :updating="updating" @click="setLocking(!locking)"
+        type="Lock" :active="unlocked || !locking" :updating="updating" :changed="changed" @click="setLocking(!locking)"
     >
         <switch-icon slot="icon" />
 
@@ -38,12 +38,14 @@
         props: {
             service: Service,
         },
-        data() {
-            return {
-                updating: false,
-            };
-        },
         computed: {
+            updating() {
+                return !!this.subscribedCharacteristics.find(c => c && c.updating);
+            },
+            changed() {
+                return !!this.subscribedCharacteristics.find(c => c && c.changed);
+            },
+
             lock_state() {
                 return this.service.getCharacteristicValueByName('LockCurrentState');
             },
@@ -75,16 +77,8 @@
         },
         methods: {
             async setLocking(value) {
-                if (this.updating) return;
-                this.updating = true;
-
-                try {
-                    await this.service.setCharacteristicByName('LockTargetState',
-                        value ? LockState.SECURED : LockState.UNSECURED);
-                    console.log((value ? 'L' : 'Unl') + 'ocking %s', this.service.name || this.service.accessory.name);
-                } finally {
-                    this.updating = false;
-                }
+                await this.service.setCharacteristicByName('LockTargetState',
+                    value ? LockState.SECURED : LockState.UNSECURED);
             },
         },
     };

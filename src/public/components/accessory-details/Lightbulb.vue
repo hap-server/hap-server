@@ -1,5 +1,5 @@
 <template>
-    <accessory-details class="accessory-details-lightbulb" :active="on" :updating="updating"
+    <accessory-details class="accessory-details-lightbulb" :active="on" :updating="updating" :changed="changed"
         :name="service.name || service.accessory.name" @show-settings="$emit('show-settings')"
     >
         <lightbulb-icon slot="icon" />
@@ -10,7 +10,9 @@
 
         <div class="accessory-details-lightbulb-sections">
             <div class="accessory-details-lightbulb-sections-scroll-wrapper">
-                <div class="accessory-details-lightbulb-power d-flex flex-column clickable" @click.stop="setOn(!on)">
+                <div class="accessory-details-lightbulb-power d-flex flex-column clickable"
+                    @click.stop="service.setCharacteristicByName('On', !on)"
+                >
                     <div class="flex-fill"></div>
 
                     <p @click.stop="setOn(!on)">{{ on ? 'On' : 'Off' }}</p>
@@ -88,11 +90,17 @@
         },
         data() {
             return {
-                updating: false,
                 swatches,
             };
         },
         computed: {
+            updating() {
+                return !!this.subscribedCharacteristics.find(c => c && c.updating);
+            },
+            changed() {
+                return !!this.subscribedCharacteristics.find(c => c && c.changed);
+            },
+
             on() {
                 return this.service.getCharacteristicValueByName('On');
             },
@@ -141,6 +149,7 @@
                     this.saturation = colour.s * 100;
                 },
             },
+
             subscribedCharacteristics() {
                 return [
                     this.service.getCharacteristicByName('On'),
@@ -148,20 +157,6 @@
                     this.service.getCharacteristicByName('Hue'),
                     this.service.getCharacteristicByName('Saturation'),
                 ];
-            },
-        },
-        methods: {
-            async setOn(value) {
-                if (this.updating) return;
-                this.updating = true;
-
-                try {
-                    await this.service.setCharacteristicByName('On', value);
-                    console.log('Turning %s %s',
-                        this.service.name || this.service.accessory.name, value ? 'on' : 'off');
-                } finally {
-                    this.updating = false;
-                }
             },
         },
     };

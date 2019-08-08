@@ -1,5 +1,5 @@
 <template>
-    <div class="service" :class="{active, updating, clickable: !updating && $listeners.click && !editing}"
+    <div class="service" :class="{active, updating, clickable: !error && !updating && $listeners.click && !editing, error}"
         @click="click"
     >
         <div v-if="backgroundColour || backgroundImage" class="service-tile-background"
@@ -50,6 +50,8 @@
         props: {
             active: Boolean,
             updating: Boolean,
+            changed: Boolean,
+            error: {default: () => this && this.service.error},
             name: {type: String, default: null},
             roomName: {type: String, default: null},
             type: {type: String, default: null},

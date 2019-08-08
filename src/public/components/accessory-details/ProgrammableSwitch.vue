@@ -37,11 +37,6 @@
         props: {
             service: Service,
         },
-        data() {
-            return {
-                updating: false,
-            };
-        },
         computed: {
             subscribedCharacteristics() {
                 return this.service.services.map(service =>

@@ -1,6 +1,6 @@
 <template>
     <service class="service-outlet" :service="service" type="Outlet" :active="on" :updating="updating"
-        @click="setOn(!on)"
+        :changed="changed" @click="service.setCharacteristicByName('On', !on)"
     >
         <outlet-icon slot="icon" />
 
@@ -28,33 +28,22 @@
         props: {
             service: Service,
         },
-        data() {
-            return {
-                updating: false,
-            };
-        },
         computed: {
+            updating() {
+                return !!this.subscribedCharacteristics.find(c => c && c.updating);
+            },
+            changed() {
+                return !!this.subscribedCharacteristics.find(c => c && c.changed);
+            },
+
             on() {
                 return this.service.getCharacteristicValueByName('On');
             },
+
             subscribedCharacteristics() {
                 return [
                     this.service.getCharacteristicByName('On'),
                 ];
-            },
-        },
-        methods: {
-            async setOn(value) {
-                if (this.updating) return;
-                this.updating = true;
-
-                try {
-                    await this.service.setCharacteristicByName('On', value);
-                    console.log('Turning %s %s',
-                        this.service.name || this.service.accessory.name, value ? 'on' : 'off');
-                } finally {
-                    this.updating = false;
-                }
             },
         },
     };

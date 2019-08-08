@@ -9,21 +9,21 @@
             :service="service"
             @show-details="this.$emit('show-details', () => details_open = false); details_open = true" />
 
-        <service v-else-if="service.is_system_service" class="unsupported-service error"
-            :service="service" type="System service"
+        <service v-else-if="service.is_system_service" class="unsupported-service"
+            :service="service" type="System service" :error="true"
         >
             <p>System service</p>
         </service>
 
         <service v-else-if="service.is_unavailable" class="unavailable-accessory"
-            :class="{'details-open': details_open}" :service="service" :type="service_name"
+            :class="{'details-open': details_open}" :service="service" :type="service_name" :error="true"
         >
             <p>Not available</p>
         </service>
 
         <service v-else :key="service.accessory.uuid + '.' + service.uuid"
             class="unsupported-service" :class="{'details-open': details_open}"
-            :service="service" :type="service_name"
+            :service="service" :type="service_name" :error="true"
         >
             <p>Not supported</p>
         </service>

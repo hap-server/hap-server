@@ -152,18 +152,19 @@ export default class Service extends EventEmitter {
         return this.findCharacteristic(characteristic => characteristic.type === type);
     }
 
-    getCharacteristicValue(type) {
+    getCharacteristicValue(type, use_target_value) {
+        if (use_target_value === undefined) use_target_value = true;
         const characteristic = this.getCharacteristic(type);
 
-        if (characteristic) return characteristic.value;
+        if (characteristic) return use_target_value ? characteristic.target_value : characteristic.value;
     }
 
     getCharacteristicByName(name) {
         return this.getCharacteristic(characteristic_type_uuids[name]);
     }
 
-    getCharacteristicValueByName(name) {
-        return this.getCharacteristicValue(characteristic_type_uuids[name]);
+    getCharacteristicValueByName(name, use_target_value) {
+        return this.getCharacteristicValue(characteristic_type_uuids[name], use_target_value);
     }
 
     setCharacteristic(type, value) {
