@@ -12,6 +12,7 @@
 
 <script>
     import Service from '../../../client/service';
+    import Characteristic from '../../../client/characteristic';
     import AccessoryDetails from './accessory-details.vue';
     import OutletIcon from '../icons/outlet.vue';
 
@@ -45,13 +46,7 @@
             }
         },
         destroyed() {
-            for (const characteristic of [
-                this.service.getCharacteristicByName('On'),
-            ]) {
-                if (!characteristic) continue;
-
-                characteristic.unsubscribe(this);
-            }
+            Characteristic.unsubscribeAll(this);
         },
         methods: {
             async setOn(value) {

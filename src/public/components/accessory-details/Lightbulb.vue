@@ -41,6 +41,7 @@
 
 <script>
     import Service from '../../../client/service';
+    import Characteristic from '../../../client/characteristic';
 
     import AccessoryDetails from './accessory-details.vue';
     import LightbulbIcon from '../icons/lightbulb.vue';
@@ -150,16 +151,7 @@
             }
         },
         destroyed() {
-            for (const characteristic of [
-                this.service.getCharacteristicByName('On'),
-                this.service.getCharacteristicByName('Brightness'),
-                this.service.getCharacteristicByName('Hue'),
-                this.service.getCharacteristicByName('Saturation'),
-            ]) {
-                if (!characteristic) continue;
-
-                characteristic.unsubscribe(this);
-            }
+            Characteristic.unsubscribeAll(this);
         },
         methods: {
             async setOn(value) {

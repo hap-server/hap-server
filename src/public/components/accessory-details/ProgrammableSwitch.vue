@@ -19,6 +19,7 @@
 
 <script>
     import Service from '../../../client/service';
+    import Characteristic from '../../../client/characteristic';
     import AccessoryDetails from './accessory-details.vue';
     import ButtonIcon from '../icons/button.vue';
 
@@ -43,9 +44,9 @@
             this.service.on('removed-services', this.unsubscribeFromRemovedServices);
         },
         destroyed() {
-            this.unsubscribeFromRemovedServices(this.service.services);
             this.service.removeListener('new-services', this.subscribeToNewServices);
             this.service.removeListener('removed-services', this.unsubscribeFromRemovedServices);
+            Characteristic.unsubscribeAll();
         },
         methods: {
             subscribeToNewServices(services) {

@@ -13,6 +13,7 @@
 
 <script>
     import Service from '../../../client/service';
+    import Characteristic from '../../../client/characteristic';
     import ServiceComponent from './service.vue';
     import SwitchIcon from '../icons/light-switch.vue';
 
@@ -72,14 +73,7 @@
             }
         },
         destroyed() {
-            for (const characteristic of [
-                this.service.getCharacteristicByName('LockCurrentState'),
-                this.service.getCharacteristicByName('LockTargetState'),
-            ]) {
-                if (!characteristic) continue;
-
-                characteristic.unsubscribe(this);
-            }
+            Characteristic.unsubscribeAll(this);
         },
         methods: {
             async setLocking(value) {

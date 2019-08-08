@@ -18,6 +18,7 @@
 
 <script>
     import Service from '../../../client/service';
+    import Characteristic from '../../../client/characteristic';
     import AccessoryDetails from './accessory-details.vue';
     import TelevisionIcon from '../icons/television.vue';
     import Dropdown from '../dropdown.vue';
@@ -75,14 +76,7 @@
             }
         },
         destroyed() {
-            for (const characteristic of [
-                this.television_service.getCharacteristicByName('Active'),
-                this.television_service.getCharacteristicByName('ActiveIdentifier'),
-            ]) {
-                if (!characteristic) continue;
-
-                characteristic.unsubscribe(this);
-            }
+            Characteristic.unsubscribeAll(this);
         },
         methods: {
             async setActive(value) {

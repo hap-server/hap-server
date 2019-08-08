@@ -89,6 +89,10 @@ export default class Characteristic extends EventEmitter {
     subscribe(dep) {
         if (dep) {
             this.subscription_dependencies.add(dep);
+
+            let subscribed = subscribed_characteristics.get(dep);
+            if (!subscribed) subscribed_characteristics.set(dep, subscribed = new Set());
+            subscribed.add(this);
         }
 
         if (this.subscribed) return true;
@@ -100,6 +104,10 @@ export default class Characteristic extends EventEmitter {
         if (dep) {
             this.subscription_dependencies.delete(dep);
 
+            const subscribed = subscribed_characteristics.get(dep);
+            if (subscribed) subscribed.delete(this);
+            if (subscribed && !subscribed.size) subscribed_characteristics.delete(dep);
+
             // If there are more dependencies don't unsubscribe yet
             if (this.subscription_dependencies.size) return;
         }
@@ -107,6 +115,19 @@ export default class Characteristic extends EventEmitter {
         if (!this.subscribed) return true;
 
         return Client.queueUnsubscribeCharacteristic(this);
+    }
+
+    static async unsubscribeAll(dep) {
+        const subscribed = subscribed_characteristics.get(dep);
+        if (!subscribed) return;
+
+        const unsubscribe = [];
+
+        for (const characteristic of subscribed) {
+            unsubscribe.push(characteristic.unsubscribe(dep));
+        }
+
+        return Promise.all(unsubscribe);
     }
 
     _setPermissions(permissions) {
@@ -123,6 +144,8 @@ export default class Characteristic extends EventEmitter {
         return type_uuids;
     }
 }
+
+const subscribed_characteristics = new WeakMap();
 
 export const types = {};
 export const type_uuids = {};

@@ -11,6 +11,7 @@
 
 <script>
     import Service from '../../../client/service';
+    import Characteristic from '../../../client/characteristic';
     import ServiceComponent from './service.vue';
     import ButtonIcon from '../icons/button.vue';
 
@@ -54,17 +55,6 @@
                     programmable_switch_event.removeListener('value-updated',
                         this.programmable_switch_events_listeners.get(programmable_switch_event));
                     this.programmable_switch_events_listeners.delete(programmable_switch_event);
-
-                    for (const characteristic of [
-                        this.service.getCharacteristicByName('CurrentDoorState'),
-                        this.service.getCharacteristicByName('TargetDoorState'),
-                        this.service.getCharacteristicByName('LockCurrentState'),
-                        this.service.getCharacteristicByName('LockTargetState'),
-                    ]) {
-                        if (!characteristic) continue;
-
-                        characteristic.unsubscribe(this);
-                    }
                 }
 
                 for (const programmable_switch_event of programmable_switch_events) {
@@ -72,17 +62,6 @@
                     if (!listener) this.programmable_switch_events_listeners.set(programmable_switch_event, // eslint-disable-line curly
                         listener = this.handleSwitchEvent.bind(null, programmable_switch_event));
                     programmable_switch_event.on('value-updated', listener);
-
-                    for (const characteristic of [
-                        this.service.getCharacteristicByName('CurrentDoorState'),
-                        this.service.getCharacteristicByName('TargetDoorState'),
-                        this.service.getCharacteristicByName('LockCurrentState'),
-                        this.service.getCharacteristicByName('LockTargetState'),
-                    ]) {
-                        if (!characteristic) continue;
-
-                        characteristic.subscribe(this);
-                    }
                 }
             },
         },
@@ -92,35 +71,15 @@
                 if (!listener) this.programmable_switch_events_listeners.set(programmable_switch_event, // eslint-disable-line curly
                     listener = this.handleSwitchEvent.bind(null, programmable_switch_event));
                 programmable_switch_event.on('value-updated', listener);
-
-                for (const characteristic of [
-                    this.service.getCharacteristicByName('CurrentDoorState'),
-                    this.service.getCharacteristicByName('TargetDoorState'),
-                    this.service.getCharacteristicByName('LockCurrentState'),
-                    this.service.getCharacteristicByName('LockTargetState'),
-                ]) {
-                    if (!characteristic) continue;
-
-                    characteristic.subscribe(this);
-                }
             }
         },
         destroyed() {
             for (const programmable_switch_event of this.programmable_switch_events) {
                 programmable_switch_event.removeListener('value-updated',
                     this.programmable_switch_events_listeners.get(programmable_switch_event));
-
-                for (const characteristic of [
-                    this.service.getCharacteristicByName('CurrentDoorState'),
-                    this.service.getCharacteristicByName('TargetDoorState'),
-                    this.service.getCharacteristicByName('LockCurrentState'),
-                    this.service.getCharacteristicByName('LockTargetState'),
-                ]) {
-                    if (!characteristic) continue;
-
-                    characteristic.unsubscribe(this);
-                }
             }
+
+            Characteristic.unsubscribeAll(this);
         },
         methods: {
             handleSwitchEvent(characteristic, value) {
