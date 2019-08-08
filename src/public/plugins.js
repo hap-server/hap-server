@@ -36,6 +36,7 @@ import accessory_discovery_components from './components/accessory-discovery';
 import * as accessory_discovery_component_module from './components/accessory-discovery/accessory-discovery.vue';
 import accessory_setup_components from './components/accessory-setup';
 import user_management_handlers from './components/user-management';
+import accessory_settings_components from './components/accessory-settings';
 
 import * as vue_color_chrome_module from 'vue-color/src/components/Chrome.vue';
 import * as vue_color_swatches_module from 'vue-color/src/components/Swatches.vue';
@@ -449,6 +450,24 @@ export class PluginAPI {
         }
 
         accessory_setup_components.set(id, {component, name, manual});
+    }
+
+    /**
+     * Registers an accessory settings component.
+     *
+     * @param {string} type The service type UUID
+     * @param {VueComponent} component
+     */
+    registerAccessorySettingsComponent(type, component) {
+        if (accessory_settings_components.has(type)) {
+            throw new Error('There is already an accessory settings component with the type "' + type + '"');
+        }
+
+        if (!component.name) {
+            component.name = service_type_names[type] || 'accessory-settings-' + type;
+        }
+
+        accessory_settings_components.set(type, component);
     }
 
     /**

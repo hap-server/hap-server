@@ -46,7 +46,9 @@
                 return this.television_service.getCharacteristicValueByName('Active');
             },
             inputs() {
-                return this.service.services.filter(service => service.type === Service.InputSource);
+                return this.service.services.filter(service => service.type === Service.InputSource &&
+                    (service.getCharacteristicValueByName('CurrentVisibilityState') === 0 /* SHOWN */ ||
+                        this.active_input === service));
             },
             active_input() {
                 if (!this.television_service) return;

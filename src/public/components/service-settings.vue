@@ -31,6 +31,10 @@
                 Cancel</button>&nbsp;
             <button class="btn btn-primary btn-sm" type="button" :disabled="saving" @click="save(true)">Save</button>
         </div>
+
+        <template v-if="accessory_settings_component">
+            <component :is="accessory_settings_component" :service="service" />
+        </template>
     </panel>
 </template>
 
@@ -39,6 +43,7 @@
     import Service from '../../client/service';
 
     import Panel from './panel.vue';
+    import accessory_settings_components from './accessory-settings';
 
     export default {
         components: {
@@ -58,6 +63,9 @@
             };
         },
         computed: {
+            accessory_settings_component() {
+                return accessory_settings_components.get(this.service.type);
+            },
             close_with_escape_key() {
                 return !this.saving;
             },
