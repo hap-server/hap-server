@@ -2,7 +2,7 @@
 import {HAPServer, Accessory} from 'hap-nodejs';
 import {Advertiser} from 'hap-nodejs/lib/Advertiser';
 
-function hapStatus(err) {
+export function hapStatus(err) {
     let value = 0;
 
     for (const k in HAPServer.Status) {

@@ -76,6 +76,7 @@ export default class Service extends EventEmitter {
 
         for (const characteristic of removed_characteristics) {
             // Use Vue.delete so Vue updates properly
+            characteristic._handleRemove();
             $delete(this.characteristics, characteristic.uuid);
             this.emit('removed-characteristic', characteristic);
         }

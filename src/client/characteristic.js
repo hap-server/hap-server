@@ -61,6 +61,30 @@ export default class Characteristic extends EventEmitter {
         return this.details.value;
     }
 
+    get valid_values() {
+        return this.details['valid-values'];
+    }
+
+    get valid_values_range() {
+        return this.details['valid-values-range'];
+    }
+
+    get unit() {
+        return this.details.unit;
+    }
+
+    get max_value() {
+        return this.details.maxValue;
+    }
+
+    get min_value() {
+        return this.details.minValue;
+    }
+
+    get min_step() {
+        return this.details.minStep;
+    }
+
     async updateValue() {
         const details = await this.service.accessory.connection.getCharacteristic(
             this.service.accessory.uuid, this.service.uuid, this.uuid);
@@ -68,7 +92,11 @@ export default class Characteristic extends EventEmitter {
         this._setDetails(details);
     }
 
-    setValue(value) {
+    async setValue(value) {
+        if (this.service.characteristics[this.uuid] !== this) {
+            throw new Error('This characteristic no longer exists');
+        }
+
         return this.service.accessory.connection.setCharacteristic(
             this.service.accessory.uuid, this.service.uuid, this.uuid, value);
     }
@@ -91,6 +119,10 @@ export default class Characteristic extends EventEmitter {
     }
 
     subscribe(dep) {
+        if (this.service.characteristics[this.uuid] !== this) {
+            throw new Error('This characteristic no longer exists');
+        }
+
         if (dep) {
             this.subscription_dependencies.add(dep);
 
@@ -134,14 +166,31 @@ export default class Characteristic extends EventEmitter {
         return Promise.all(unsubscribe);
     }
 
+    _handleRemove() {
+        this.service.accessory.connection.subscribed_characteristics.delete(this);
+
+        for (const [dep, subscribed] of subscribed_characteristics.entries()) {
+            subscribed.delete(this);
+            if (!subscribed.size) subscribed_characteristics.delete(dep);
+        }
+    }
+
     _setPermissions(permissions) {
         this._permissions = !!permissions;
 
         this.emit('permissions-updated', !!permissions);
     }
 
+    get can_get() {
+        return this.perms.includes('pr'); // PAIRED_READ
+    }
+
     get can_set() {
-        return this._permissions;
+        return this._permissions && this.perms.includes('pw'); // PAIRED_WRITE
+    }
+
+    get can_subscribe() {
+        return this.perms.includes('ev'); // EVENTS
     }
 
     static get types() {
@@ -149,7 +198,7 @@ export default class Characteristic extends EventEmitter {
     }
 }
 
-const subscribed_characteristics = new WeakMap();
+const subscribed_characteristics = new Map();
 
 export const types = {};
 export const type_uuids = {};
@@ -157,6 +206,10 @@ export const type_names = {};
 
 import {Characteristic as HAPCharacteristic} from 'hap-nodejs/lib/Characteristic';
 import 'hap-nodejs/lib/gen/HomeKitTypes';
+
+Characteristic.Formats = HAPCharacteristic.Formats;
+Characteristic.Units = HAPCharacteristic.Units;
+Characteristic.Perms = HAPCharacteristic.Perms;
 
 for (const key of Object.keys(HAPCharacteristic)) {
     if (HAPCharacteristic[key].prototype instanceof HAPCharacteristic) {

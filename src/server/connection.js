@@ -22,6 +22,7 @@ import isEqual from 'lodash.isequal';
 import PluginManager, {AuthenticatedUser} from './plugins';
 import Homebridge from './homebridge';
 import Permissions from './permissions';
+import {hapStatus} from './hap-server';
 
 const randomBytes = util.promisify(crypto.randomBytes);
 
@@ -419,13 +420,27 @@ export default class Connection {
             this.permissions.checkCanGetAccessory(uuid),
             this.permissions.checkCanSetAccessoryData(uuid),
 
-            Promise.all(accessory.services.map(async s => {
-                return [s.UUID, await Promise.all(s.characteristics.map(c => c.UUID)
-                    .filter(c => this.permissions.checkCanSetCharacteristic(uuid, s.UUID, c)))];
-            })).then(s => s.reduce((services, v) => services[v[0]] = v[1], {})),
+            this.getCharacteristicsWithSetPermission(accessory),
         ]);
 
         return {get, set, set_characteristics};
+    }
+
+    async getCharacteristicsWithSetPermission(accessory) {
+        const services = {};
+
+        await Promise.all(accessory.services.map(async service => {
+            const characteristics = [];
+            await Promise.all(service.characteristics.map(async characteristic => {
+                if (await this.permissions.checkCanSetCharacteristic(accessory.UUID, service.UUID,
+                    characteristic.UUID)) characteristics.push(characteristic.UUID);
+            }));
+            if (characteristics.length) services[service.UUID + (service.subtype ? '.' + service.subtype : '')] = characteristics;
+        }));
+
+        // await Promise.all(service.characteristics.map(async characteristic => this.permissions.checkCanSetCharacteristic(uuid, service.UUID, characteristic.UUID).then(can_set => can_set ? characteristic.UUID)))
+
+        return services;
     }
 
     /**
@@ -456,7 +471,17 @@ export default class Connection {
         const characteristic = service.characteristics.find(c => c.UUID === characteristic_uuid);
         if (!characteristic) return;
 
-        return characteristic.toHAP();
+        const hap = characteristic.toHAP();
+
+        try {
+            hap.value = await new Promise((resolve, reject) => {
+                characteristic.getValue((err, value) => err ? reject(err) : resolve(value));
+            });
+        } catch (err) {
+            hap.status = hapStatus(err);
+        }
+
+        return hap;
     }
 
     /**

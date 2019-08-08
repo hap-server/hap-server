@@ -8,7 +8,8 @@
             <div class="custom-control custom-checkbox">
                 <input :id="_uid + '-' + input.uuid + '-enabled'" type="checkbox" class="custom-control-input"
                     :checked="checkInputEnabled(input)"
-                    :disabled="!input.getCharacteristicByName('TargetVisibilityState')"
+                    :disabled="!input.getCharacteristicByName('TargetVisibilityState') ||
+                        !input.getCharacteristicByName('TargetVisibilityState').can_set"
                     @change="input.setCharacteristicByName('TargetVisibilityState',
                         input.getCharacteristicValueByName('TargetVisibilityState') === 1 ? 0 : 1)" />
                 <label class="custom-control-label" :for="_uid + '-' + input.uuid + '-enabled'" />
