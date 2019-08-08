@@ -11,12 +11,16 @@
 <script>
     import Service from '../../../client/service';
     import Characteristic from '../../../client/characteristic';
+    import SubscribeCharacteristicsMixin from '../../mixins/characteristics';
     import ServiceComponent from './service.vue';
     import LightbulbIcon from '../icons/lightbulb.vue';
 
     export const uuid = Service.Lightbulb;
 
     export default {
+        mixins: [
+            SubscribeCharacteristicsMixin,
+        ],
         components: {
             Service: ServiceComponent,
             LightbulbIcon,
@@ -44,21 +48,14 @@
 
                 return `hsla(${hue.value}, ${saturation.value}%, ${60 + (this.brightness / 3)}%)`;
             },
-        },
-        created() {
-            for (const characteristic of [
-                this.service.getCharacteristicByName('On'),
-                this.service.getCharacteristicByName('Brightness'),
-                this.service.getCharacteristicByName('Hue'),
-                this.service.getCharacteristicByName('Saturation'),
-            ]) {
-                if (!characteristic) continue;
-
-                characteristic.subscribe(this);
-            }
-        },
-        destroyed() {
-            Characteristic.unsubscribeAll(this);
+            subscribedCharacteristics() {
+                return [
+                    this.service.getCharacteristicByName('On'),
+                    this.service.getCharacteristicByName('Brightness'),
+                    this.service.getCharacteristicByName('Hue'),
+                    this.service.getCharacteristicByName('Saturation'),
+                ];
+            },
         },
         methods: {
             async setOn(value) {

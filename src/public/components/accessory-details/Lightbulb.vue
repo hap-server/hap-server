@@ -43,6 +43,7 @@
     import Service from '../../../client/service';
     import Characteristic from '../../../client/characteristic';
 
+    import SubscribeCharacteristicsMixin from '../../mixins/characteristics';
     import AccessoryDetails from './accessory-details.vue';
     import LightbulbIcon from '../icons/lightbulb.vue';
     import SwatchesColourPicker from 'vue-color/src/components/Swatches.vue';
@@ -73,6 +74,9 @@
     ];
 
     export default {
+        mixins: [
+            SubscribeCharacteristicsMixin,
+        ],
         components: {
             AccessoryDetails,
             LightbulbIcon,
@@ -137,21 +141,14 @@
                     this.saturation = colour.s * 100;
                 },
             },
-        },
-        created() {
-            for (const characteristic of [
-                this.service.getCharacteristicByName('On'),
-                this.service.getCharacteristicByName('Brightness'),
-                this.service.getCharacteristicByName('Hue'),
-                this.service.getCharacteristicByName('Saturation'),
-            ]) {
-                if (!characteristic) continue;
-
-                characteristic.subscribe(this);
-            }
-        },
-        destroyed() {
-            Characteristic.unsubscribeAll(this);
+            subscribedCharacteristics() {
+                return [
+                    this.service.getCharacteristicByName('On'),
+                    this.service.getCharacteristicByName('Brightness'),
+                    this.service.getCharacteristicByName('Hue'),
+                    this.service.getCharacteristicByName('Saturation'),
+                ];
+            },
         },
         methods: {
             async setOn(value) {

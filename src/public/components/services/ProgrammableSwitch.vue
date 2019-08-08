@@ -12,12 +12,16 @@
 <script>
     import Service from '../../../client/service';
     import Characteristic from '../../../client/characteristic';
+    import SubscribeCharacteristicsMixin from '../../mixins/characteristics';
     import ServiceComponent from './service.vue';
     import ButtonIcon from '../icons/button.vue';
 
     export const uuid = 'CollapsedService.' + Service.StatelessProgrammableSwitch;
 
     export default {
+        mixins: [
+            SubscribeCharacteristicsMixin,
+        ],
         components: {
             Service: ServiceComponent,
             ButtonIcon,
@@ -47,6 +51,9 @@
                 if (this.last_event === 2) return 'Long Press';
 
                 return null;
+            },
+            subscribedCharacteristics() {
+                return this.programmable_switch_events;
             },
         },
         watch: {

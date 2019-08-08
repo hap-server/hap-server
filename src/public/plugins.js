@@ -22,6 +22,7 @@ import {
 import * as sortable_component_module from './components/sortable.vue';
 import * as panel_tabs_component_module from './components/panel-tabs.vue';
 import * as dropdown_component_module from './components/dropdown.vue';
+import * as vue_mixins from './mixins';
 
 import {instances as main_component_instances} from './components/main-component.vue';
 import service_components from './components/services';
@@ -121,6 +122,8 @@ export class PluginManager {
             icon_component_modules.has('./' + request.substr(35) + '.vue')
         ) {
             return icon_component_modules.get('./' + request.substr(35) + '.vue');
+        } else if (request === '@hap-server/accessory-ui-api/mixins') {
+            return vue_mixins;
         } else if (request === 'vue') {
             return vue_module;
         } else if (request === 'axios') {
@@ -276,7 +279,7 @@ export class PluginManager {
             AccessorySetupConnection,
             DiscoveredAccessory,
 
-            // Expose Service and Characteristic for the default UUIDs
+            // Expose Service and Characteristic for Vue prop type checking and the default UUIDs
             Service,
             Characteristic,
         };

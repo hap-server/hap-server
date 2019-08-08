@@ -19,6 +19,7 @@
 <script>
     import Service from '../../../client/service';
     import Characteristic from '../../../client/characteristic';
+    import SubscribeCharacteristicsMixin from '../../mixins/characteristics';
     import ServiceComponent from './service.vue';
     import SwitchIcon from '../icons/light-switch.vue';
 
@@ -40,6 +41,9 @@
     };
 
     export default {
+        mixins: [
+            SubscribeCharacteristicsMixin,
+        ],
         components: {
             Service: ServiceComponent,
             SwitchIcon,
@@ -102,6 +106,15 @@
             },
             locking() {
                 return this.target_lock_state === LockState.SECURED;
+            },
+
+            subscribedCharacteristics() {
+                return [
+                    this.service.getCharacteristicByName('CurrentDoorState'),
+                    this.service.getCharacteristicByName('TargetDoorState'),
+                    this.service.getCharacteristicByName('LockCurrentState'),
+                    this.service.getCharacteristicByName('LockTargetState'),
+                ];
             },
         },
         created() {

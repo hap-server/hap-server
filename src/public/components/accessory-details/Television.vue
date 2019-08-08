@@ -19,6 +19,7 @@
 <script>
     import Service from '../../../client/service';
     import Characteristic from '../../../client/characteristic';
+    import SubscribeCharacteristicsMixin from '../../mixins/characteristics';
     import AccessoryDetails from './accessory-details.vue';
     import TelevisionIcon from '../icons/television.vue';
     import Dropdown from '../dropdown.vue';
@@ -26,6 +27,9 @@
     export const uuid = 'CollapsedService.' + Service.Television;
 
     export default {
+        mixins: [
+            SubscribeCharacteristicsMixin,
+        ],
         components: {
             AccessoryDetails,
             TelevisionIcon,
@@ -63,6 +67,15 @@
                 if (!this.active_input) return;
 
                 return this.active_input.getCharacteristicValueByName('ConfiguredName') || this.active_input.name;
+            },
+            subscribedCharacteristics() {
+                return [
+                    this.television_service.getCharacteristicByName('Active'),
+                    this.television_service.getCharacteristicByName('ActiveIdentifier'),
+
+                    ...this.inputs.map(input => input.getCharacteristicByName('CurrentVisibilityState')),
+                    ...this.inputs.map(input => input.getCharacteristicByName('ConfiguredName')),
+                ];
             },
         },
         created() {

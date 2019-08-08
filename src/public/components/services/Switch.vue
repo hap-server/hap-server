@@ -11,12 +11,16 @@
 <script>
     import Service from '../../../client/service';
     import Characteristic from '../../../client/characteristic';
+    import SubscribeCharacteristicsMixin from '../../mixins/characteristics';
     import ServiceComponent from './service.vue';
     import SwitchIcon from '../icons/light-switch.vue';
 
     export const uuid = Service.Switch;
 
     export default {
+        mixins: [
+            SubscribeCharacteristicsMixin,
+        ],
         components: {
             Service: ServiceComponent,
             SwitchIcon,
@@ -33,18 +37,11 @@
             on() {
                 return this.service.getCharacteristicValueByName('On');
             },
-        },
-        created() {
-            for (const characteristic of [
-                this.service.getCharacteristicByName('On'),
-            ]) {
-                if (!characteristic) continue;
-
-                characteristic.subscribe(this);
-            }
-        },
-        destroyed() {
-            Characteristic.unsubscribeAll(this);
+            subscribedCharacteristics() {
+                return [
+                    this.service.getCharacteristicByName('On'),
+                ];
+            },
         },
         methods: {
             async setOn(value) {

@@ -11,12 +11,16 @@
 <script>
     import Service from '../../../client/service';
     import Characteristic from '../../../client/characteristic';
+    import SubscribeCharacteristicsMixin from '../../mixins/characteristics';
     import ServiceComponent from './service.vue';
     import TelevisionIcon from '../icons/television.vue';
 
     export const uuid = 'CollapsedService.' + Service.Television;
 
     export default {
+        mixins: [
+            SubscribeCharacteristicsMixin,
+        ],
         components: {
             Service: ServiceComponent,
             TelevisionIcon,
@@ -49,19 +53,15 @@
 
                 return this.active_input.getCharacteristicValueByName('ConfiguredName') || this.active_input.name;
             },
-        },
-        created() {
-            for (const characteristic of [
-                this.television_service.getCharacteristicByName('Active'),
-                this.television_service.getCharacteristicByName('ActiveIdentifier'),
-            ]) {
-                if (!characteristic) continue;
+            subscribedCharacteristics() {
+                return [
+                    this.television_service.getCharacteristicByName('Active'),
+                    this.television_service.getCharacteristicByName('ActiveIdentifier'),
 
-                characteristic.subscribe(this);
-            }
-        },
-        destroyed() {
-            Characteristic.unsubscribeAll(this);
+                    ...this.inputs.map(input => input.getCharacteristicByName('CurrentVisibilityState')),
+                    ...this.inputs.map(input => input.getCharacteristicByName('ConfiguredName')),
+                ];
+            },
         },
         methods: {
             async setActive(value) {

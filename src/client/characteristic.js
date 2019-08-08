@@ -45,6 +45,10 @@ export default class Characteristic extends EventEmitter {
         return this.details.type;
     }
 
+    get type_name() {
+        return type_names[this.type];
+    }
+
     get perms() {
         return this.details.perms;
     }
