@@ -365,6 +365,20 @@ export default class Client extends EventEmitter {
             automation._setData(data);
         }
 
+        if (this.automations && data.type === 'automation-running') {
+            const automation = this.automations[data.automation_uuid];
+
+            this.emit('automation-running', data.runner_id, automation);
+        }
+
+        if (this.automations && data.type === 'automation-progress') {
+            this.emit('automation-progress', data.runner_id, data.progress);
+        }
+
+        if (this.automations && data.type === 'automation-finished') {
+            this.emit('automation-finished', data.runner_id);
+        }
+
         if (this.scenes && data.type === 'add-scene') {
             if (this.scenes[data.uuid]) return;
 

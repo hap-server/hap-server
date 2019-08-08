@@ -9,11 +9,18 @@
 
             <div class="automations-list">
                 <div v-for="automation in client.automations" :key="automation.uuid" class="automation-row clickable"
+                    :class="{running: running_automations.find(r => r.automation === automation)}"
                     @click="open_automation = automation"
                 >
-                    <h3>{{ automation.data.name || automation.uuid }}</h3>
+                    <div v-if="running_automations.find(r => r.automation === automation)" class="progress">
+                        <div class="progress-bar" role="progressbar"
+                        :aria-valuenow="getAutomationProgress(automation) * 100" aria-valuemin="0" aria-valuemax="100"
+                        :style="{width: getAutomationProgress(automation) * 100 + '%'}" />
+                    </div>
 
                     <div class="automation-row-contents">
+                        <h3>{{ automation.data.name || automation.uuid }}</h3>
+
                         <p>
                             {{ Object.keys(automation.data.triggers || {}).length === 0 ? 'No' : Object.keys(automation.data.triggers || {}).length }}
                             trigger{{ Object.keys(automation.data.triggers || {}).length === 1 ? '' : 's' }},
@@ -54,6 +61,8 @@
         },
         data() {
             return {
+                running_automations: [],
+
                 open_automation: null,
                 saving_automation: false,
                 deleting_automation: false,
@@ -134,16 +143,44 @@
                     this.deleting_automation = false;
                 }
             },
+            getAutomationProgress(automation) {
+                const running = this.running_automations.filter(r => r.automation === automation);
+                if (!running.length) return null;
+
+                return running.reduce((acc, cur) => acc + cur.progress, 0) / running.length;
+            },
+            handleAutomationRunning(runner_id, automation) {
+                this.running_automations.push({runner_id, automation, progress: 0});
+            },
+            handleAutomationProgress(runner_id, progress) {
+                const running_automation = this.running_automations.find(r => r.runner_id === runner_id);
+                if (!running_automation) return;
+
+                this.$set(running_automation, 'progress', progress);
+                this.$forceUpdate();
+            },
+            handleAutomationFinished(runner_id) {
+                let index;
+                while ((index = this.running_automations.findIndex(r => r.runner_id === runner_id)) > -1) this.running_automations.splice(index, 1);
+            },
         },
         created() {
             global.automations = this.client.automations;
 
             this.client.loadAutomations(this);
+
+            this.client.on('automation-running', this.handleAutomationRunning);
+            this.client.on('automation-progress', this.handleAutomationProgress);
+            this.client.on('automation-finished', this.handleAutomationFinished);
         },
         destroyed() {
             delete global.automations;
 
             this.client.unloadAutomations(this);
+
+            this.client.removeListener('automation-running', this.handleAutomationRunning);
+            this.client.removeListener('automation-progress', this.handleAutomationProgress);
+            this.client.removeListener('automation-finished', this.handleAutomationFinished);
         },
     };
 </script>

@@ -9,6 +9,8 @@
         background-color: transparentize($gray-600, 0.5);
         border-bottom: 1px solid $gray-800;
         color: #ffffff;
+        height: 100px;
+        box-sizing: content-box;
 
         @include dark-theme {
             background-color: transparentize(darken($dark, 20%), 0.5);
@@ -26,8 +28,25 @@
             border-top: 1px solid $gray-800;
         }
 
+        > .progress {
+            height: 100px;
+            margin-bottom: -100px;
+            background-color: transparent;
+            border-radius: 0;
+
+            .progress-bar {
+                background-color: $gray-600;
+
+                @include dark-theme {
+                    background-color: darken($dark, 20%);
+                }
+            }
+        }
+
         h3 {
             font-size: 1.2rem;
+            margin-left: 0;
+            margin-right: 0;
         }
 
         .automation-row-contents {

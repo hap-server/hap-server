@@ -22,6 +22,7 @@ import {
     AddAccessoryEvent, RemoveAccessoryEvent, UpdateAccessoryConfigurationEvent,
     SceneActivateProgressEvent, SceneActivatedEvent, SceneDeactivateProgressEvent, SceneDeactivatedEvent,
     CharacteristicUpdateEvent,
+    AutomationRunningEvent,
 } from '../events/server';
 
 import Connection from './connection';
@@ -155,6 +156,35 @@ export default class Server extends Events {
             this.handleRegisterExternalHomebridgeAccessories.bind(this)});
 
         Server.instances.add(this);
+
+        this.on(AutomationRunningEvent, event => {
+            // Only send events for automations that the web interface knows about
+            if (!event.runner.automation.uuid) return;
+
+            const onprogress = progress => this.sendBroadcast({
+                type: 'automation-progress',
+                runner_id: event.runner.id,
+                progress,
+            });
+            const onfinished = () => {
+                event.runner.removeListener('progress', onprogress);
+                event.runner.removeListener('finished', onfinished);
+
+                this.sendBroadcast({
+                    type: 'automation-finished',
+                    runner_id: event.runner.id,
+                });
+            };
+
+            event.runner.on('progress', onprogress);
+            event.runner.on('finished', onfinished);
+
+            this.sendBroadcast({
+                type: 'automation-running',
+                runner_id: event.runner.id,
+                automation_uuid: event.runner.automation.uuid,
+            });
+        });
 
         this.on(SceneActivateProgressEvent, event => this.sendBroadcast({
             type: 'scene-progress',

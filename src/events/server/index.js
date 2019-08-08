@@ -1,5 +1,5 @@
 export * from './accessories';
-export * from './automation-trigger';
+export * from './automations';
 export * from './characteristic-update';
 export * from './plugins';
 export * from './scenes';
