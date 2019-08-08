@@ -4,6 +4,7 @@ import url from 'url';
 import gulp from 'gulp';
 import pump from 'pump';
 import watch from 'gulp-watch';
+import plumber from 'gulp-plumber';
 import babel from 'gulp-babel';
 import webpack from 'webpack-stream';
 import json from 'gulp-json-editor';
@@ -164,6 +165,7 @@ gulp.task('build', gulp.parallel('build-backend', 'build-frontend', 'build-examp
 gulp.task('watch-backend', function () {
     return pump([
         watch(['src/**/*.js', '!src/public/**/*.js'], {verbose: true}),
+        plumber(),
         babel(),
         gulp.dest('dist'),
     ]);
@@ -181,6 +183,7 @@ gulp.task('watch-frontend', function () {
 gulp.task('watch-example-plugins', gulp.parallel(function () {
     return pump([
         watch('example-plugins/src/**/*.js', {verbose: true}),
+        plumber(),
         babel(),
         gulp.dest('example-plugins/dist'),
     ]);
