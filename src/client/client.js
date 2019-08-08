@@ -923,7 +923,14 @@ export default class Client extends EventEmitter {
             const connection = characteristic.service.accessory.connection;
             const queue = connection.subscribe_queue || (connection.subscribe_queue = []);
 
-            queue.push([characteristic, resolve, reject]);
+            let index;
+            if ((index = queue.findIndex(q => q[0] === characteristic)) > -1) {
+                if (queue[index][1] instanceof Array) queue[index][1].push(resolve);
+                else queue[index][1] = [queue[index][1], resolve];
+
+                if (queue[index][2] instanceof Array) queue[index][2].push(reject);
+                else queue[index][2] = [queue[index][2], reject];
+            } else queue.push([characteristic, resolve, reject]);
 
             if (typeof connection.subscribe_queue_timeout === 'undefined' ||
                 connection.subscribe_queue_timeout === null
@@ -935,7 +942,9 @@ export default class Client extends EventEmitter {
             if (connection.unsubscribe_queue) {
                 let index;
                 while ((index = connection.unsubscribe_queue.findIndex(q => q[0] === characteristic)) > -1) {
-                    connection.unsubscribe_queue[2].call(null, new Error('Canceled by call to subscribe'));
+                    if (connection.unsubscribe_queue[index][2] instanceof Array) connection.unsubscribe_queue[index][2]
+                        .map(rj => rj.call(null, new Error('Canceled by call to subscribe')));
+                    else connection.unsubscribe_queue[index][2].call(null, new Error('Canceled by call to subscribe'));
                     connection.unsubscribe_queue.splice(index, 1);
                 }
 
@@ -970,11 +979,13 @@ export default class Client extends EventEmitter {
                 // Force Vue to update the subscribed property, as Vue doesn't support Sets
                 queue[index][0]._subscribed = !queue[index][0]._subscribed;
 
-                queue[index][1].call(null, queue[index]);
+                if (queue[index][1] instanceof Array) queue[index][1].map(rs => rs.call(null, queue[index]));
+                else queue[index][1].call(null, queue[index]);
             }
         } catch (err) {
             for (const q of queue) {
-                q[2].call(null, err);
+                if (q[2] instanceof Array) q[2].map(rj => rj.call(null, err));
+                else q[2].call(null, err);
             }
         }
     }
@@ -1011,7 +1022,13 @@ export default class Client extends EventEmitter {
             const connection = characteristic.service.accessory.connection;
             const queue = connection.unsubscribe_queue || (connection.unsubscribe_queue = []);
 
-            queue.push([characteristic, resolve, reject]);
+            let index;
+            if ((index = queue.findIndex(q => q[0] === characteristic)) > -1) {
+                if (queue[index][1] instanceof Array) queue[index][1].push(resolve);
+                else queue[index][1] = [queue[index][1], resolve];
+                if (queue[index][2] instanceof Array) queue[index][2].push(reject);
+                else queue[index][2] = [queue[index][2], reject];
+            } else queue.push([characteristic, resolve, reject]);
 
             if (typeof connection.unsubscribe_queue_timeout === 'undefined' ||
                 connection.unsubscribe_queue_timeout === null
@@ -1023,7 +1040,9 @@ export default class Client extends EventEmitter {
             if (connection.subscribe_queue) {
                 let index;
                 while ((index = connection.subscribe_queue.findIndex(q => q[0] === characteristic)) > -1) {
-                    connection.subscribe_queue[2].call(null, new Error('Canceled by call to unsubscribe'));
+                    if (connection.subscribe_queue[index][2] instanceof Array) connection.subscribe_queue[index][2]
+                        .map(rj => rj.call(null, new Error('Canceled by call to unsubscribe')));
+                    else connection.subscribe_queue[index][2].call(null, new Error('Canceled by call to unsubscribe'));
                     connection.subscribe_queue.splice(index, 1);
                 }
 
@@ -1056,11 +1075,13 @@ export default class Client extends EventEmitter {
                 // Force Vue to update the subscribed property, as Vue doesn't support Sets
                 queue[index][0]._subscribed = !queue[index][0]._subscribed;
 
-                queue[index][1].call(null, queue[index]);
+                if (queue[index][1] instanceof Array) queue[index][1].map(rs => rs.call(null, queue[index]));
+                else queue[index][1].call(null, queue[index]);
             }
         } catch (err) {
             for (const q of queue) {
-                q[2].call(null, err);
+                if (q[2] instanceof Array) q[2].map(rj => rj.call(null, err));
+                else q[2].call(null, err);
             }
         }
     }
