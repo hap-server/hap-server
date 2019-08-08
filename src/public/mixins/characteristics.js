@@ -10,8 +10,6 @@ export default {
     },
     created() {
         for (const characteristic of this.subscribedCharacteristics) {
-            console.log('Subscribing to characteristic', characteristic.type_name, characteristic);
-
             if (!characteristic) continue;
 
             characteristic.subscribe(this);

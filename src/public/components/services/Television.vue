@@ -58,8 +58,7 @@
                     this.television_service.getCharacteristicByName('Active'),
                     this.television_service.getCharacteristicByName('ActiveIdentifier'),
 
-                    ...this.inputs.map(input => input.getCharacteristicByName('CurrentVisibilityState')),
-                    ...this.inputs.map(input => input.getCharacteristicByName('ConfiguredName')),
+                    this.active_input && this.active_input.getCharacteristicByName('ConfiguredName'),
                 ];
             },
         },
