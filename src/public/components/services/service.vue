@@ -50,11 +50,15 @@
 <script>
     import {LayoutSymbol, LayoutGetEditingSymbol} from '../../internal-symbols';
 
+    import SubscribeCharacteristicsMixin from '../../mixins/characteristics';
     import HomeIcon from '../icons/home.vue';
     import WarningIcon from '../icons/warning.vue';
     import Spinner from '../icons/spinner.vue';
 
     export default {
+        mixins: [
+            SubscribeCharacteristicsMixin,
+        ],
         components: {
             HomeIcon,
             WarningIcon,
@@ -100,6 +104,11 @@
                 const name = this.service.name || this.service.accessory.name || '';
 
                 return name.startsWith(this.room_name) ? name.substr(this.room_name.length).trim() : name;
+            },
+            subscribedCharacteristics() {
+                return [
+                    this.service.configured_name ? null : this.service.getCharacteristicByName('Name'),
+                ];
             },
         },
         watch: {

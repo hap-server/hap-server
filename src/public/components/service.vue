@@ -10,7 +10,7 @@
             @show-details="this.$emit('show-details', () => details_open = false); details_open = true" />
 
         <service v-else-if="service.is_system_service" class="unsupported-service"
-            :service="service" type="System service" :error="true"
+            :service="service" type="System service"
         >
             <p>System service</p>
         </service>
@@ -23,7 +23,7 @@
 
         <service v-else :key="service.accessory.uuid + '.' + service.uuid"
             class="unsupported-service" :class="{'details-open': details_open}"
-            :service="service" :type="service_name" :error="true"
+            :service="service" :type="service_name"
         >
             <p>Not supported</p>
         </service>
