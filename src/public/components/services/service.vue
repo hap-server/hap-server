@@ -12,6 +12,15 @@
                         <home-icon />
                     </slot>
                 </div>
+
+                <div class="flex-fill" />
+
+                <div v-if="show_spinner" class="service-status-icon service-updating-spinner">
+                    <spinner />
+                </div>
+                <div v-else-if="error" class="service-status-icon service-status-error">
+                    <warning-icon />
+                </div>
             </div>
 
             <div class="flex-fill" />
@@ -42,10 +51,14 @@
     import {LayoutSymbol, LayoutGetEditingSymbol} from '../../internal-symbols';
 
     import HomeIcon from '../icons/home.vue';
+    import WarningIcon from '../icons/warning.vue';
+    import Spinner from '../icons/spinner.vue';
 
     export default {
         components: {
             HomeIcon,
+            WarningIcon,
+            Spinner,
         },
         props: {
             active: Boolean,
@@ -62,6 +75,12 @@
             layout: {from: LayoutSymbol},
             service: {},
             getEditing: {from: LayoutGetEditingSymbol},
+        },
+        data() {
+            return {
+                show_spinner: false,
+                spinner_timeout: null,
+            };
         },
         computed: {
             editing() {
@@ -82,6 +101,19 @@
 
                 return name.startsWith(this.room_name) ? name.substr(this.room_name.length).trim() : name;
             },
+        },
+        watch: {
+            changed(changed) {
+                if (!changed) {
+                    this.show_spinner = false;
+                    clearTimeout(this.spinner_timeout);
+                    return;
+                }
+
+                this.spinner_timeout = setTimeout(() => {
+                    this.show_spinner = true;
+                }, 2000);
+            }
         },
         methods: {
             click(event) {

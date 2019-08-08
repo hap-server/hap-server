@@ -127,10 +127,19 @@
     .service-top {
         height: 30px;
         flex: 0 0 auto;
+        display: flex;
 
         .service-icon,
         .icon {
             width: 30px;
+        }
+
+        .service-status-icon .icon-warning {
+            width: 20px;
+        }
+        .service-status-icon .icon-spinner {
+            width: 18px;
+            font-size: 18px;
         }
     }
 
