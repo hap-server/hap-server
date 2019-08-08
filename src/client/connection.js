@@ -21,6 +21,8 @@ const broadcast_message_methods = {
     'add-scene': 'handleAddSceneMessage',
     'remove-scene': 'handleRemoveSceneMessage',
     'update-scene': 'handleUpdateSceneMessage',
+    'scene-activating': 'handleSceneActivatingMessage',
+    'scene-deactivating': 'handleSceneDeactivatingMessage',
     'scene-activated': 'handleSceneActivatedMessage',
     'scene-deactivated': 'handleSceneDeactivatedMessage',
     'scene-progress': 'handleSceneProgressMessage',
@@ -767,6 +769,14 @@ export default class Connection extends EventEmitter {
 
     handleUpdateSceneMessage(data) {
         this.emit('update-scene', data.uuid, data.data);
+    }
+
+    handleSceneActivatingMessage(data) {
+        this.emit('scene-activating', data.uuid, data.context);
+    }
+
+    handleSceneDeactivatingMessage(data) {
+        this.emit('scene-deactivating', data.uuid, data.context);
     }
 
     handleSceneActivatedMessage(data) {

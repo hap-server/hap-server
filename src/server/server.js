@@ -20,9 +20,9 @@ import isEqual from 'lodash.isequal';
 import Events from '../events';
 import {
     AddAccessoryEvent, RemoveAccessoryEvent, UpdateAccessoryConfigurationEvent,
+    AutomationRunningEvent, SceneTriggerEvent,
     SceneActivateProgressEvent, SceneActivatedEvent, SceneDeactivateProgressEvent, SceneDeactivatedEvent,
     CharacteristicUpdateEvent,
-    AutomationRunningEvent,
 } from '../events/server';
 
 import Connection from './connection';
@@ -186,6 +186,11 @@ export default class Server extends Events {
             });
         });
 
+        this.on(SceneTriggerEvent, event => this.sendBroadcast({
+            type: event.enable ? 'scene-activating' : 'scene-disabling',
+            uuid: event.scene.uuid,
+            context: event.context,
+        });
         this.on(SceneActivateProgressEvent, event => this.sendBroadcast({
             type: 'scene-progress',
             uuid: event.scene.uuid,

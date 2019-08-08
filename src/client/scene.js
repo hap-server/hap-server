@@ -69,7 +69,19 @@ export default class Scene extends EventEmitter {
      * @return {Promise}
      */
     async activate() {
-        await this.connection.activateScene(this.uuid);
+        try {
+            this.activating = true;
+            await this.connection.activateScene(this.uuid);
+        } finally {
+            this.activating = false;
+        }
+    }
+
+    _handleActivating(data) {
+        this.active = false;
+        this.activating = true;
+        this.activating_progress = 0;
+        this.emit('activating');
     }
 
     _handleActivated(data) {
@@ -87,7 +99,19 @@ export default class Scene extends EventEmitter {
      * @return {Promise}
      */
     async deactivate() {
-        await this.connection.deactivateScene(this.uuid);
+        try {
+            this.deactivating = true;
+            await this.connection.deactivateScene(this.uuid);
+        } finally {
+            this.deactivating = false;
+        }
+    }
+
+    _handleDeactivating(data) {
+        this.active = true;
+        this.deactivating = true;
+        this.deactivating_progress = 0;
+        this.emit('deactivating');
     }
 
     _handleDeactivated(data) {

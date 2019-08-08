@@ -411,6 +411,16 @@ export default class Client extends EventEmitter {
             scene._setData(scene);
         }
 
+        if (this.scenes && data.type === 'scene-activating') {
+            const scene = this.scenes[data.uuid];
+            scene._handleActivating(data);
+        }
+
+        if (this.scenes && data.type === 'scene-deactivating') {
+            const scene = this.scenes[data.uuid];
+            scene._handleDeactivating(data);
+        }
+
         if (this.scenes && data.type === 'scene-activated') {
             const scene = this.scenes[data.uuid];
             scene._handleActivated(data);
