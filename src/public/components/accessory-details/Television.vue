@@ -18,7 +18,6 @@
 
 <script>
     import Service from '../../../client/service';
-    import Characteristic from '../../../client/characteristic';
     import SubscribeCharacteristicsMixin from '../../mixins/characteristics';
     import AccessoryDetails from './accessory-details.vue';
     import TelevisionIcon from '../icons/television.vue';

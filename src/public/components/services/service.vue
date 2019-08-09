@@ -68,7 +68,7 @@
             active: Boolean,
             updating: Boolean,
             changed: Boolean,
-            error: {default: () => this && this.service.error},
+            error: {},
             name: {type: String, default: null},
             roomName: {type: String, default: null},
             type: {type: String, default: null},
@@ -122,7 +122,7 @@
                 this.spinner_timeout = setTimeout(() => {
                     this.show_spinner = true;
                 }, 2000);
-            }
+            },
         },
         methods: {
             click(event) {

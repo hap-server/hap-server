@@ -14,8 +14,8 @@
                 >
                     <div v-if="running_automations.find(r => r.automation === automation)" class="progress">
                         <div class="progress-bar" role="progressbar"
-                        :aria-valuenow="getAutomationProgress(automation) * 100" aria-valuemin="0" aria-valuemax="100"
-                        :style="{width: getAutomationProgress(automation) * 100 + '%'}" />
+                            :aria-valuenow="getAutomationProgress(automation) * 100" aria-valuemin="0"
+                            aria-valuemax="100" :style="{width: getAutomationProgress(automation) * 100 + '%'}" />
                     </div>
 
                     <div class="automation-row-contents">

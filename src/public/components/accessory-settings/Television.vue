@@ -11,7 +11,7 @@
                     :disabled="!input.getCharacteristicByName('TargetVisibilityState') ||
                         !input.getCharacteristicByName('TargetVisibilityState').can_set"
                     @change="input.setCharacteristicByName('TargetVisibilityState',
-                        input.getCharacteristicValueByName('TargetVisibilityState') === 1 ? 0 : 1)" />
+                        input.getCharacteristicValueByName('TargetVisibilityState') === 1 ? 0 : 1)" /> <!-- eslint-disable-line vue/html-indent -->
                 <label class="custom-control-label" :for="_uid + '-' + input.uuid + '-enabled'" />
             </div>
 
@@ -27,7 +27,6 @@
 
 <script>
     import Service from '../../../client/service';
-    import Characteristic from '../../../client/characteristic';
 
     export const uuid = 'CollapsedService.' + Service.Television;
 

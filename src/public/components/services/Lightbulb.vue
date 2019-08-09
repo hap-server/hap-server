@@ -11,7 +11,6 @@
 
 <script>
     import Service from '../../../client/service';
-    import Characteristic from '../../../client/characteristic';
     import SubscribeCharacteristicsMixin from '../../mixins/characteristics';
     import ServiceComponent from './service.vue';
     import LightbulbIcon from '../icons/lightbulb.vue';

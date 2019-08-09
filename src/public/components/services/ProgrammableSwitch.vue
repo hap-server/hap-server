@@ -11,7 +11,6 @@
 
 <script>
     import Service from '../../../client/service';
-    import Characteristic from '../../../client/characteristic';
     import SubscribeCharacteristicsMixin from '../../mixins/characteristics';
     import ServiceComponent from './service.vue';
     import ButtonIcon from '../icons/button.vue';
@@ -85,8 +84,6 @@
                 programmable_switch_event.removeListener('value-updated',
                     this.programmable_switch_events_listeners.get(programmable_switch_event));
             }
-
-            Characteristic.unsubscribeAll(this);
         },
         methods: {
             handleSwitchEvent(characteristic, value) {
