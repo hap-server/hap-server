@@ -34,7 +34,7 @@
             </div>
         </div>
 
-        <automation-settings v-if="open_automation" ref="automation" :key="open_automation.id"
+        <automation-settings v-if="staged_automation" ref="automation" :key="open_automation.id"
             :connection="client.connection" :automation="open_automation.staged" :exists="!!open_automation.uuid"
             :editable="open_automation.can_set && !deleting_automation" :deletable="open_automation.can_delete"
             :changed="open_automation.changed" :saving="saving_automation" :deleting="deleting_automation"
@@ -64,6 +64,7 @@
                 running_automations: [],
 
                 open_automation: null,
+                staged_automation: null,
                 saving_automation: false,
                 deleting_automation: false,
             };
@@ -86,6 +87,7 @@
         watch: {
             open_automation() {
                 global.automation = this.open_automation;
+                this.staged_automation = this.open_automation && this.open_automation.staged;
             },
             title(title) {
                 this.$emit('title', title);

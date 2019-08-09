@@ -103,12 +103,20 @@
 
             <div v-if="saving">Saving</div>
             <div class="flex-fill"></div>
-            <button class="btn btn-default btn-sm" type="button" :disabled="saving || deleting"
-                @click="() => ($emit('reset'), $refs.panel.close())">Cancel</button>&nbsp;
-            <button v-if="exists && deletable" class="btn btn-danger btn-sm" type="button"
-                :disabled="saving || deleting" @click="() => $emit('delete')">Delete</button>&nbsp;
-            <button v-if="editable" class="btn btn-primary btn-sm" type="button"
-                :disabled="saving || deleting" @click="$emit('save', true)">Save</button>
+            <template v-if="(editable && changed) || !exists">
+                <button class="btn btn-default btn-sm" type="button" :disabled="saving || deleting"
+                    @click="() => ($emit('reset'), $refs.panel.close())">Cancel</button>&nbsp;
+                <button v-if="exists && deletable" key="delete" class="btn btn-danger btn-sm" type="button"
+                    :disabled="saving || deleting" @click="() => $emit('delete')">Delete</button>&nbsp;
+                <button v-if="editable" key="primary" class="btn btn-primary btn-sm" type="button"
+                    :disabled="saving || deleting" @click="$emit('save', true)">Save</button>
+            </template>
+            <template v-else>
+                <button v-if="exists && deletable" key="delete" class="btn btn-danger btn-sm" type="button"
+                    :disabled="saving || deleting" @click="() => $emit('delete')">Delete</button>&nbsp;
+                <button key="primary" class="btn btn-primary btn-sm" type="button"
+                    :disabled="saving || deleting" @click="$refs.panel.close()">Done</button>
+            </template>
         </div>
     </panel>
 </template>

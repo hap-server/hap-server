@@ -21,8 +21,6 @@ export default class Automation extends EventEmitter {
         this.uuid = uuid;
         this._setPermissions(permissions || {});
         this._setData(data || {});
-
-        this.staged;
     }
 
     get live() {
@@ -96,6 +94,7 @@ export class StagedAutomation extends Automation {
      * @param {Automation} automation
      */
     constructor(automation) {
+        if (automation instanceof StagedAutomation) return automation = automation.live;
         super(automation.connection, automation.uuid);
 
         this.automation = automation;
