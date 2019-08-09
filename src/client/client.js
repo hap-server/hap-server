@@ -942,7 +942,7 @@ export default class Client extends EventEmitter {
             if (connection.unsubscribe_queue) {
                 let index;
                 while ((index = connection.unsubscribe_queue.findIndex(q => q[0] === characteristic)) > -1) {
-                    if (connection.unsubscribe_queue[index][2] instanceof Array) connection.unsubscribe_queue[index][2]
+                    if (connection.unsubscribe_queue[index][2] instanceof Array) connection.unsubscribe_queue[index][2] // eslint-disable-line curly
                         .map(rj => rj.call(null, new Error('Canceled by call to subscribe')));
                     else connection.unsubscribe_queue[index][2].call(null, new Error('Canceled by call to subscribe'));
                     connection.unsubscribe_queue.splice(index, 1);
@@ -1040,7 +1040,7 @@ export default class Client extends EventEmitter {
             if (connection.subscribe_queue) {
                 let index;
                 while ((index = connection.subscribe_queue.findIndex(q => q[0] === characteristic)) > -1) {
-                    if (connection.subscribe_queue[index][2] instanceof Array) connection.subscribe_queue[index][2]
+                    if (connection.subscribe_queue[index][2] instanceof Array) connection.subscribe_queue[index][2] // eslint-disable-line curly
                         .map(rj => rj.call(null, new Error('Canceled by call to unsubscribe')));
                     else connection.subscribe_queue[index][2].call(null, new Error('Canceled by call to unsubscribe'));
                     connection.subscribe_queue.splice(index, 1);

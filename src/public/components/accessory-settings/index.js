@@ -1,4 +1,4 @@
-let accessory_settings_components = new Map();
+const accessory_settings_components = new Map();
 
 const contextRequire = require.context('.', true, /\.vue$/);
 

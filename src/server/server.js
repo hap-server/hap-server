@@ -190,7 +190,7 @@ export default class Server extends Events {
             type: event.enable ? 'scene-activating' : 'scene-disabling',
             uuid: event.scene.uuid,
             context: event.context,
-        });
+        }));
         this.on(SceneActivateProgressEvent, event => this.sendBroadcast({
             type: 'scene-progress',
             uuid: event.scene.uuid,
