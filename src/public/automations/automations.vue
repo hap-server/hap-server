@@ -12,7 +12,7 @@
                     <h2 v-if="group.name">{{ group.name }}</h2>
                     <div class="automations-list">
                         <div v-for="automation in group.automations" :key="automation.uuid"
-                        class="automation-row clickable"
+                            class="automation-row clickable"
                             :class="{running: running_automations.find(r => r.automation === automation)}"
                             @click="open_automation = automation"
                         >
