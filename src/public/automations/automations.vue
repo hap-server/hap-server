@@ -29,11 +29,13 @@
                                 <p>
                                     {{ Object.keys(automation.data.triggers || {}).length === 0 ? 'No' :
                                         Object.keys(automation.data.triggers || {}).length }}
-                                    trigger{{ Object.keys(automation.data.triggers || {}).length === 1 ? '' : 's' }},
-                                    {{ Object.keys(automation.data.conditions || {}).length === 0 ? 'no' :
-                                        Object.keys(automation.data.conditions || {}).length }}
-                                    condition{{ Object.keys(automation.data.conditions || {}).length === 1 ? '' : 's' }},
-                                    {{ Object.keys(automation.data.actions || {}).length === 0 ? 'no' :
+                                    trigger{{ Object.keys(automation.data.triggers || {}).length === 1 ? '' : 's'
+                                    }}<template v-if="Object.keys(automation.data.conditions || {}).length">,
+                                        {{ Object.keys(automation.data.conditions || {}).length }}
+                                        condition{{ Object.keys(automation.data.conditions || {}).length === 1 ?
+                                            '' : 's' }}
+                                    </template>
+                                    and {{ Object.keys(automation.data.actions || {}).length === 0 ? 'no' :
                                         Object.keys(automation.data.actions || {}).length }}
                                     action{{ Object.keys(automation.data.actions || {}).length === 1 ? '' : 's' }}.
                                 </p>
