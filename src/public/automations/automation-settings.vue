@@ -123,7 +123,7 @@
 
 <script>
     import Connection from '../../client/connection';
-    import {AutomationsSymbol, AutomationSymbol} from '../internal-symbols';
+    import {ClientSymbol, AutomationSymbol} from '../internal-symbols';
     import {StagedAutomation} from '../../client/automation';
 
     import Panel from '../components/panel.vue';
@@ -188,7 +188,7 @@
             };
         },
         inject: {
-            automations: {from: AutomationsSymbol},
+            client: {from: ClientSymbol},
         },
         provide() {
             return {
@@ -197,7 +197,7 @@
         },
         computed: {
             other_automation_triggers() {
-                return Object.values(this.automations || {}).filter(other_automation => {
+                return Object.values(this.client.automations || {}).filter(other_automation => {
                     if (other_automation.uuid === this.automation.uuid) return false;
                     if (!other_automation.data.actions) return false;
 

@@ -71,7 +71,7 @@
         },
         provide() {
             return {
-                [AutomationsSymbol]: this.client.automations,
+                [AutomationsSymbol]: () => this.client.automations,
             };
         },
         computed: {

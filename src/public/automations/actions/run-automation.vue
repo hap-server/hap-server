@@ -2,13 +2,13 @@
     <automation-action class="automation-action-run-automation"
         :id="id" :action="action" :editable="editable" :saving="saving" @delete="$emit('delete')"
     >
-        <template v-if="!Object.values(automations || {}).filter(a => !this_automation || a.uuid !== this_automation.uuid).length">
+        <template v-if="!Object.values(client.automations || {}).filter(a => !this_automation || a.uuid !== this_automation.uuid).length">
             <p>You have no other automations.</p>
         </template>
 
         <template v-else>
             <select v-model="action.automation_uuid" class="custom-select custom-select-sm mb-3">
-                <option v-for="automation in Object.values(automations).filter(a => !this_automation || a.uuid !== this_automation.uuid)"
+                <option v-for="automation in Object.values(client.automations).filter(a => !this_automation || a.uuid !== this_automation.uuid)"
                     :key="automation.uuid">{{ automation.data.name || automation.uuid }}</option>
             </select>
 
@@ -22,7 +22,7 @@
 </template>
 
 <script>
-    import {AutomationsSymbol, AutomationSymbol} from '../../internal-symbols';
+    import {ClientSymbol, AutomationSymbol} from '../../internal-symbols';
 
     import AutomationAction from '../action.vue';
 
@@ -40,8 +40,14 @@
             saving: Boolean,
         },
         inject: {
-            automations: {from: AutomationsSymbol},
+            client: {from: ClientSymbol},
             this_automation: {from: AutomationSymbol},
+        },
+        created() {
+            this.client.loadAutomations(this);
+        },
+        destroyed() {
+            this.client.unloadAutomations(this);
         },
     };
 </script>
