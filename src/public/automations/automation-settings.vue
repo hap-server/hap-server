@@ -10,6 +10,14 @@
                         class="form-control form-control-sm" :disabled="saving" />
                 </div>
             </div>
+
+            <div class="form-group row">
+                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-group'">Group</label>
+                <div class="col-sm-9">
+                    <input :id="_uid + '-group'" v-model="automation.data.group_name" type="text"
+                        class="form-control form-control-sm" :disabled="saving" />
+                </div>
+            </div>
         </form>
 
         <div v-if="tab === 'triggers'" class="automation-triggers">

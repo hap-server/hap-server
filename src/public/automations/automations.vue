@@ -7,28 +7,38 @@
                 <button class="btn btn-default btn-sm mt-3" @click="createAutomation">New</button>
             </div>
 
-            <div class="automations-list">
-                <div v-for="automation in client.automations" :key="automation.uuid" class="automation-row clickable"
-                    :class="{running: running_automations.find(r => r.automation === automation)}"
-                    @click="open_automation = automation"
-                >
-                    <div v-if="running_automations.find(r => r.automation === automation)" class="progress">
-                        <div class="progress-bar" role="progressbar"
-                            :aria-valuenow="getAutomationProgress(automation) * 100" aria-valuemin="0"
-                            aria-valuemax="100" :style="{width: getAutomationProgress(automation) * 100 + '%'}" />
-                    </div>
+            <div class="automation-groups-list">
+                <div v-for="group in automation_groups" :key="group.name" class="automation-group">
+                    <h2 v-if="group.name">{{ group.name }}</h2>
+                    <div class="automations-list">
+                        <div v-for="automation in group.automations" :key="automation.uuid"
+                        class="automation-row clickable"
+                            :class="{running: running_automations.find(r => r.automation === automation)}"
+                            @click="open_automation = automation"
+                        >
+                            <div v-if="running_automations.find(r => r.automation === automation)" class="progress">
+                                <div class="progress-bar" role="progressbar"
+                                    :aria-valuenow="getAutomationProgress(automation) * 100" aria-valuemin="0"
+                                    aria-valuemax="100"
+                                    :style="{width: getAutomationProgress(automation) * 100 + '%'}" />
+                            </div>
 
-                    <div class="automation-row-contents">
-                        <h3>{{ automation.data.name || automation.uuid }}</h3>
+                            <div class="automation-row-contents">
+                                <h3>{{ automation.data.name || automation.uuid }}</h3>
 
-                        <p>
-                            {{ Object.keys(automation.data.triggers || {}).length === 0 ? 'No' : Object.keys(automation.data.triggers || {}).length }}
-                            trigger{{ Object.keys(automation.data.triggers || {}).length === 1 ? '' : 's' }},
-                            {{ Object.keys(automation.data.conditions || {}).length === 0 ? 'no' : Object.keys(automation.data.conditions || {}).length }}
-                            condition{{ Object.keys(automation.data.conditions || {}).length === 1 ? '' : 's' }},
-                            {{ Object.keys(automation.data.actions || {}).length === 0 ? 'no' : Object.keys(automation.data.actions || {}).length }}
-                            action{{ Object.keys(automation.data.actions || {}).length === 1 ? '' : 's' }}.
-                        </p>
+                                <p>
+                                    {{ Object.keys(automation.data.triggers || {}).length === 0 ? 'No' :
+                                        Object.keys(automation.data.triggers || {}).length }}
+                                    trigger{{ Object.keys(automation.data.triggers || {}).length === 1 ? '' : 's' }},
+                                    {{ Object.keys(automation.data.conditions || {}).length === 0 ? 'no' :
+                                        Object.keys(automation.data.conditions || {}).length }}
+                                    condition{{ Object.keys(automation.data.conditions || {}).length === 1 ? '' : 's' }},
+                                    {{ Object.keys(automation.data.actions || {}).length === 0 ? 'no' :
+                                        Object.keys(automation.data.actions || {}).length }}
+                                    action{{ Object.keys(automation.data.actions || {}).length === 1 ? '' : 's' }}.
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -75,6 +85,29 @@
             };
         },
         computed: {
+            automation_groups() {
+                const groups = {};
+
+                for (const automation of Object.values(this.client.automations)) {
+                    const group = groups[automation.data.group_name] || (groups[automation.data.group_name] = {
+                        name: automation.data.group_name,
+                        automations: [],
+                    });
+
+                    group.automations.push(automation);
+                }
+
+                return Object.values(groups).sort((a, b) => {
+                    if (!a.name && !b.name) return 0;
+                    if (!a.name) return -1;
+                    if (!b.name) return 1;
+
+                    if (a.name < b.name) return -1;
+                    if (a.name > b.name) return 1;
+
+                    return 0;
+                });
+            },
             title() {
                 if (this.open_automation) {
                     if (!this.open_automation.uuid) return 'New automation';
