@@ -31,6 +31,16 @@ const README_IMAGE_BASE_URL =
 const webpack_config = {
     context: __dirname,
     mode: 'development',
+    entry: {
+        main: [
+            path.join(__dirname, 'src/public/scss/index.scss'),
+            path.join(__dirname, 'src/public/index.js'),
+        ],
+        modal: [
+            path.join(__dirname, 'src/public/scss/index.scss'),
+            path.join(__dirname, 'src/public/modal.js'),
+        ],
+    },
     module: {
         rules: [
             {
@@ -62,10 +72,17 @@ const webpack_config = {
         new VueLoaderPlugin(),
         new HtmlWebpackPlugin({
             template: 'src/public/index.html',
+            chunks: ['runtime', 'vendors', 'main'],
         }),
         new HtmlWebpackPlugin({
             template: 'src/public/app.html',
             filename: 'app.html',
+            chunks: ['runtime', 'vendors', 'main'],
+        }),
+        new HtmlWebpackPlugin({
+            template: 'src/public/modal.html',
+            filename: 'modal.html',
+            chunks: ['runtime', 'vendors', 'modal'],
         }),
         new ScriptExtHtmlPlugin({
             prefetch: {
@@ -110,11 +127,18 @@ const webpack_config = {
 };
 
 export const webpack_hot_config = Object.assign({}, webpack_config, {
-    entry: [
-        'webpack-hot-middleware/client',
-        path.join(__dirname, 'src/public/scss/index.scss'),
-        path.join(__dirname, 'src/public/index.js'),
-    ],
+    entry: {
+        main: [
+            'webpack-hot-middleware/client',
+            path.join(__dirname, 'src/public/scss/index.scss'),
+            path.join(__dirname, 'src/public/index.js'),
+        ],
+        modal: [
+            'webpack-hot-middleware/client',
+            path.join(__dirname, 'src/public/scss/index.scss'),
+            path.join(__dirname, 'src/public/modal.js'),
+        ],
+    },
     module: Object.assign({}, webpack_config.module, {
         rules: webpack_config.module.rules.map((rule, i) => i === 1 ? {
             test: /\.(s?c|sa)ss$/,
@@ -134,6 +158,7 @@ gulp.task('build-backend', function () {
     return pump([
         gulp.src(['src/**/*.js', '!src/public/**/*.js']),
         babel(),
+        gulp.src(['src/**/*', '!src/public/**/*', '!src/**/*.js']),
         gulp.dest('dist'),
     ]);
 });
@@ -167,6 +192,7 @@ gulp.task('watch-backend', function () {
         watch(['src/**/*.js', '!src/public/**/*.js'], {verbose: true}),
         plumber(),
         babel(),
+        watch(['src/**/*', '!src/public/**/*', '!src/**/*.js'], {verbose: true}),
         gulp.dest('dist'),
     ]);
 });

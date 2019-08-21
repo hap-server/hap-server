@@ -51,7 +51,7 @@
 }
 
 @media (min-width: map-get($grid-breakpoints, 'sm')) {
-    .settings-window {
+    .root .settings-window {
         width: 80%;
         max-width: 500px;
         margin-left: auto;
@@ -72,15 +72,31 @@
         &.v-leave-active {
             animation: panel-out 0.3s ease-out forwards;
         }
+    }
 
-        .home-settings &,
-        .accessory-settings & {
-            max-width: 626px;
-        }
+    .root .home-settings .settings-window,
+    .root .accessory-settings .settings-window {
+        max-width: 626px;
+    }
 
-        .home-settings.wide & {
-            max-width: 900px;
+    .root .home-settings.wide .settings-window {
+        max-width: 900px;
+    }
+}
+
+.modal-window-container {
+    .modal-window-loading,
+    .modal-window-error {
+        margin-bottom: 1.2rem;
+        padding: 1.2rem 1.5rem 0;
+
+        @include dark-theme {
+            color: $gray-500;
         }
+    }
+
+    .modal-window-error code:first-child {
+        color: $danger;
     }
 }
 

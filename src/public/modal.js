@@ -14,21 +14,12 @@ import VueRouter from 'vue-router';
 
 Vue.use(VueRouter);
 
-import MainComponent from './components/main-component.vue';
-
-// Use './window-modals' to open modals in separate windows
 import Modals from './modals';
-import ModalsComponent from './components/modals.vue';
+import WindowModals from './window-modals';
+import ModalComponent from './components/modal.vue';
 
 const router = new VueRouter({
     mode: 'history',
-    routes: [
-        {name: 'user-default-layout', path: '/'},
-        {name: 'layout', path: '/layout/:layout_uuid'},
-        {name: 'all-accessories', path: '/all-accessories'},
-        {name: 'automations', path: '/automations'},
-        {name: 'setup', path: '/setup'},
-    ],
 });
 
 import PluginManager from './plugins';
@@ -39,17 +30,10 @@ const native_hook = global.__HAP_SERVER_NATIVE_HOOK__ ? global.__HAP_SERVER_NATI
     Client,
     Connection,
     Vue,
-    MainComponent,
-    router,
     Modals,
-    ModalsComponent,
+    WindowModals,
+    ModalComponent,
 }) : null;
-
-if (native_hook && native_hook.router_mode !== 'history') {
-    // Re-initialise the router using the hash mode
-    router.options.mode = 'hash';
-    router.constructor.call(router, router.options);
-}
 
 Object.defineProperty(PluginManager, 'base_url', {
     configurable: true,
@@ -58,8 +42,8 @@ Object.defineProperty(PluginManager, 'base_url', {
 });
 
 const client = new (native_hook && native_hook.Client ? native_hook.Client : Client)();
-const modals = new (native_hook && native_hook.Modals ? native_hook.Modals : Modals)(client);
-modals.component = ModalsComponent;
+const modals = new (native_hook && native_hook.Modals && native_hook.Modals !== Modals ?
+    native_hook.Modals : WindowModals)(client);
 
 const vue = new Vue({
     router,
@@ -81,7 +65,7 @@ const vue = new Vue({
         },
     },
     render(h) {
-        return h(MainComponent);
+        return h(ModalComponent);
     },
 });
 

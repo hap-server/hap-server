@@ -2,6 +2,10 @@
     display: flex;
     max-height: calc(90vh - /* panel padding */ 4rem - /* tabs */ 42px - /* buttons */ 31px - 2rem - 1px);
 
+    .modal-window & {
+        max-height: calc(100vh - /* panel padding */ 4rem - /* tabs */ 42px - /* buttons */ 31px - 2rem - 1px);
+    }
+
     .user-management-list {
         flex: 0 0 auto;
         margin-right: 2em;
@@ -20,6 +24,10 @@
     background-color: #ffffff;
     border: 1px solid #dee2e6;
     font-size: 0.95rem;
+
+    .modal-window & {
+        height: calc(100vh - /* panel padding */ 4rem - /* tabs */ 42px - /* buttons */ 31px - 2rem - 1px);
+    }
 
     @include dark-theme {
         background-color: $gray-700;

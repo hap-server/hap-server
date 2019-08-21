@@ -77,6 +77,27 @@ body,
     }
 }
 
+html.modal-window {
+    body,
+    .background {
+        background-color: $light;
+        background-image: none;
+    }
+}
+
+// Can't use @include dark-theme here as this selector references the document root
+@media (prefers-color-scheme: dark) {
+    html:not(.theme-light).modal-window body,
+    html:not(.theme-light).modal-window .background {
+        background-color: darken($dark, 10%);
+    }
+}
+
+html.theme-dark.modal-window body,
+html.theme-dark.modal-window .background {
+    background-color: darken($dark, 10%);
+}
+
 .background {
     position: fixed;
     top: 0;
