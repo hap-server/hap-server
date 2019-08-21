@@ -8,6 +8,7 @@ export const AutomationsSymbol = Symbol('Automations');
 export const ScenesSymbol = Symbol('Scenes');
 export const GetAllDisplayServicesSymbol = Symbol('GetAllDisplayServices');
 export const GetServiceSymbol = Symbol('GetService');
+export const ModalsSymbol = Symbol('Modals');
 export const PushModalSymbol = Symbol('PushModal');
 export const GetAssetURLSymbol = Symbol('GetAssetURL');
 

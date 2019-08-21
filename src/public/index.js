@@ -4,7 +4,7 @@ if (process.env.NODE_ENV === 'development') {
 
 import url from 'url';
 
-import {NativeHookSymbol, ClientSymbol, GetAssetURLSymbol} from './internal-symbols';
+import {NativeHookSymbol, ModalsSymbol, ClientSymbol, GetAssetURLSymbol} from './internal-symbols';
 import * as InternalSymbols from './internal-symbols';
 import Client from '../client/client';
 import Connection from '../client/connection';
@@ -15,6 +15,9 @@ import VueRouter from 'vue-router';
 Vue.use(VueRouter);
 
 import MainComponent from './components/main-component.vue';
+
+import Modals from './modals';
+import ModalsComponent from './components/modals.vue';
 
 const router = new VueRouter({
     mode: 'history',
@@ -37,6 +40,8 @@ const native_hook = global.__HAP_SERVER_NATIVE_HOOK__ ? global.__HAP_SERVER_NATI
     Vue,
     MainComponent,
     router,
+    Modals,
+    ModalsComponent,
 }) : null;
 
 if (native_hook && native_hook.router_mode !== 'history') {
@@ -51,13 +56,16 @@ Object.defineProperty(PluginManager, 'base_url', {
     get: () => native_hook && native_hook.base_url || '/',
 });
 
-const client = new (native_hook ? native_hook.Client : Client)();
+const client = new (native_hook && native_hook.Client ? native_hook.Client : Client)();
+const modals = new (native_hook && native_hook.Modals ? native_hook.Modals : Modals)(client);
+modals.component = ModalsComponent;
 
 const vue = new Vue({
     router,
     provide() {
         return {
             [NativeHookSymbol]: native_hook,
+            [ModalsSymbol]: modals,
             [ClientSymbol]: client,
             [GetAssetURLSymbol]: asset => this.getAssetURL(asset),
         };
