@@ -137,6 +137,8 @@ const message_methods = {
 
 const message_handlers = {
     'list-accessories': 'listAccessories',
+
+    'get-web-interface-plugins': 'getWebInterfacePlugins',
 };
 
 const hide_authentication_keys = [
@@ -2058,41 +2060,41 @@ export default class Connection {
     }
 
     /**
-     * Gets accessory UIs.
+     * Gets web interface plugins.
      */
     handleGetAccessoryUIsMessage(messageid, data) {
-        this.respond(messageid, this.getAccessoryUIs());
+        this.respond(messageid, this.getWebInterfacePlugins());
     }
 
-    getAccessoryUIs() {
-        return PluginManager.getAccessoryUIs().map(accessory_ui => {
+    getWebInterfacePlugins() {
+        return PluginManager.getWebInterfacePlugins().map(ui_plugin => {
             const plugin_authentication_handlers = {};
-            for (const [localid, authentication_handler] of accessory_ui.plugin.authentication_handlers.entries()) {
+            for (const [localid, authentication_handler] of ui_plugin.plugin.authentication_handlers.entries()) {
                 plugin_authentication_handlers[localid] = authentication_handler.id;
             }
 
             const plugin_user_management_handlers = {};
-            for (const [localid, user_management_handler] of accessory_ui.plugin.user_management_handlers.entries()) {
+            for (const [localid, user_management_handler] of ui_plugin.plugin.user_management_handlers.entries()) {
                 plugin_user_management_handlers[localid] = user_management_handler.id;
             }
 
             const plugin_accessory_discovery_handlers = {};
             const plugin_accessory_discovery_handler_setup_handlers = {};
-            for (const [localid, accessory_discovery] of accessory_ui.plugin.accessory_discovery.entries()) {
+            for (const [localid, accessory_discovery] of ui_plugin.plugin.accessory_discovery.entries()) {
                 plugin_accessory_discovery_handlers[localid] = accessory_discovery.id;
                 plugin_accessory_discovery_handler_setup_handlers[localid] = accessory_discovery.setup.id;
             }
 
             const plugin_accessory_setup_handlers = {};
-            for (const [localid, accessory_setup] of accessory_ui.plugin.accessory_setup.entries()) {
+            for (const [localid, accessory_setup] of ui_plugin.plugin.accessory_setup.entries()) {
                 plugin_accessory_setup_handlers[localid] = accessory_setup.id;
             }
 
             return {
-                id: accessory_ui.id,
-                scripts: accessory_ui.scripts,
+                id: ui_plugin.id,
+                scripts: ui_plugin.scripts,
 
-                plugin: accessory_ui.plugin.name,
+                plugin: ui_plugin.plugin.name,
                 plugin_authentication_handlers,
                 plugin_user_management_handlers,
                 plugin_accessory_discovery_handlers,

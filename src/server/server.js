@@ -1431,21 +1431,22 @@ export default class Server extends Events {
 
         const {pathname} = url.parse(req.url);
 
-        const accessory_ui_match = pathname.match(/^\/accessory-ui\/([0-9]+)(\/.*)?$/);
+        const ui_plugin_match = pathname.match(/^\/(ui-plugin|accessory-ui)\/([0-9]+)(\/.*)?$/);
 
-        if (accessory_ui_match) {
-            const accessory_ui_id = accessory_ui_match[1];
-            const accessory_ui_pathname = accessory_ui_match[2] || '/';
+        if (ui_plugin_match) {
+            const ui_plugin_id = ui_plugin_match[2];
+            const ui_plugin_pathname = ui_plugin_match[3] || '/';
 
-            req.url = accessory_ui_pathname;
+            req.url = ui_plugin_pathname;
 
-            const accessory_ui = PluginManager.getAccessoryUI(accessory_ui_id);
-            if (!accessory_ui) {
+            const ui_plugin = PluginManager.getWebInterfacePlugin(ui_plugin_id);
+            if (!ui_plugin) {
                 res.end('Cannot ' + req.method + ' ' + pathname);
                 return;
             }
 
-            accessory_ui.handle(req, res, next);
+            this.log.debug('Passing request to web interface plugin', ui_plugin_id, ui_plugin_pathname);
+            ui_plugin.handle(req, res, next);
         } else if (pathname === '/websocket') {
             // If path is /websocket tell the client to upgrade the request
             const body = http.STATUS_CODES[426];

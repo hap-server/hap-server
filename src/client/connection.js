@@ -637,10 +637,14 @@ export default class Connection extends EventEmitter {
         return this.setPairingsData([id, data]);
     }
 
-    getAccessoryUIs() {
+    getWebInterfacePlugins() {
         return this.send({
-            type: 'get-accessory-uis',
+            type: 'get-web-interface-plugins',
         });
+    }
+
+    getAccessoryUIs() {
+        return this.getWebInterfacePlugins();
     }
 
     getUsersPermissions(...id) {
