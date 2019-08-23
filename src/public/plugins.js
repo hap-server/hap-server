@@ -25,30 +25,30 @@ import * as dropdown_component_module from './components/dropdown.vue';
 import * as vue_mixins from './mixins';
 
 import {instances as main_component_instances} from './components/main-component.vue';
-import service_components from './components/services';
+import {
+    ServiceTileComponents,
+    ServiceDetailsComponents,
+    ServiceSettingsComponents,
+    LayoutSectionComponents,
+    AccessoryDiscoveryComponents,
+    AccessorySetupComponents,
+    AuthenticationHandlerComponents,
+    UserManagementHandlers,
+    AutomationTriggerComponents,
+    AutomationConditionComponents,
+    AutomationActionComponents,
+} from './component-registry';
 import * as service_component_module from './components/services/service.vue';
-import accessory_details_components from './components/accessory-details';
 import * as accessory_details_component_module from './components/accessory-details/accessory-details.vue';
 import icon_component_modules from './components/icons';
-import authentication_handler_components from './components/authentication-handlers';
-import layout_section_components from './components/layout-sections';
 import * as layout_section_component_module from './components/layout-section.vue';
-import accessory_discovery_components from './components/accessory-discovery';
 import * as accessory_discovery_component_module from './components/accessory-discovery/accessory-discovery.vue';
-import accessory_setup_components from './components/accessory-setup';
-import user_management_handlers from './components/user-management';
 import accessory_settings_components from './components/accessory-settings';
 
 import * as vue_color_chrome_module from 'vue-color/src/components/Chrome.vue';
 import * as vue_color_swatches_module from 'vue-color/src/components/Swatches.vue';
 import * as vue_color_sketch_module from 'vue-color/src/components/Sketch.vue';
 import {DiscoveredAccessory} from './components/add-accessory.vue';
-
-import {
-    trigger_components as automation_trigger_components,
-    condition_components as automation_condition_components,
-    action_components as automation_action_components,
-} from './automations';
 
 let automation_trigger_component_module;
 let automation_condition_component_module;
@@ -341,7 +341,7 @@ export class PluginAPI {
      * @param {VueComponent} component
      */
     registerServiceTileComponent(type, component) {
-        if (service_components.has(type)) {
+        if (ServiceTileComponents.has(type)) {
             throw new Error('There is already a service component with the type "' + type + '"');
         }
 
@@ -349,7 +349,7 @@ export class PluginAPI {
             component.name = service_type_names[type] || 'service-tile-' + type;
         }
 
-        service_components.set(type, component);
+        ServiceTileComponents.addPluginComponent(this.ui_plugin, type, component);
 
         this.refreshDisplayServices();
     }
@@ -365,7 +365,7 @@ export class PluginAPI {
      * @param {VueComponent} component
      */
     registerServiceDetailsComponent(type, component) {
-        if (accessory_details_components.has(type)) {
+        if (ServiceDetailsComponents.has(type)) {
             throw new Error('There is already a service details component with the type "' + type + '"');
         }
 
@@ -373,7 +373,7 @@ export class PluginAPI {
             component.name = service_type_names[type] || 'service-details-' + type;
         }
 
-        accessory_details_components.set(type, component);
+        ServiceDetailsComponents.addPluginComponent(this.ui_plugin, type, component);
 
         this.refreshDisplayServices();
     }
@@ -438,7 +438,7 @@ export class PluginAPI {
             throw new Error('Unknown accessory setup handler for accessory discovery handler "' + localid + '"');
         }
 
-        if (accessory_discovery_components.has(id)) {
+        if (AccessoryDiscoveryComponents.has(id)) {
             throw new Error('There is already an accessory discovery component with the ID "' + localid +
                 '" (global ID of "' + id + '")');
         }
@@ -449,7 +449,7 @@ export class PluginAPI {
             component.name = 'accessory-discovery-' + localid;
         }
 
-        accessory_discovery_components.set(id, {component, setup_handler});
+        AccessoryDiscoveryComponents.addPluginComponent(this.ui_plugin, id, {component, setup_handler});
     }
 
     /**
@@ -470,7 +470,7 @@ export class PluginAPI {
             throw new Error('Unknown accessory setup handler "' + localid + '"');
         }
 
-        if (accessory_setup_components.has(id)) {
+        if (AccessorySetupComponents.has(id)) {
             throw new Error('There is already an accessory setup component with the ID "' + localid +
                 '" (global ID of "' + id + '")');
         }
@@ -479,7 +479,7 @@ export class PluginAPI {
             component.name = 'accessory-setup-' + localid;
         }
 
-        accessory_setup_components.set(id, {component, name, manual});
+        AccessorySetupComponents.addPluginComponent(this.ui_plugin, id, {component, name, manual});
     }
 
     /**
@@ -489,7 +489,7 @@ export class PluginAPI {
      * @param {VueComponent} component
      */
     registerServiceSettingsComponent(type, component) {
-        if (accessory_settings_components.has(type)) {
+        if (ServiceSettingsComponents.has(type)) {
             throw new Error('There is already an accessory settings component with the type "' + type + '"');
         }
 
@@ -497,7 +497,7 @@ export class PluginAPI {
             component.name = service_type_names[type] || 'accessory-settings-' + type;
         }
 
-        accessory_settings_components.set(type, component);
+        ServiceSettingsComponents.addPluginComponent(this.ui_plugin, type, component);
     }
 
     registerAccessorySettingsComponent(type, component) {
@@ -518,7 +518,7 @@ export class PluginAPI {
             throw new Error('Unknown authentication handler "' + localid + '"');
         }
 
-        if (authentication_handler_components.has(id)) {
+        if (AuthenticationHandlerComponents.has(id)) {
             throw new Error('There is already an authentication handler component with the ID "' + localid +
                 '" (global ID of "' + id + '")');
         }
@@ -529,7 +529,7 @@ export class PluginAPI {
             component.name = 'authentication-handler-' + localid;
         }
 
-        authentication_handler_components.set(id, {component, name});
+        AuthenticationHandlerComponents.addPluginComponent(this.ui_plugin, id, {component, name});
     }
 
     /**
@@ -546,7 +546,7 @@ export class PluginAPI {
             throw new Error('Unknown user management handler "' + localid + '"');
         }
 
-        if (user_management_handlers.has(id)) {
+        if (UserManagementHandlers.has(id)) {
             throw new Error('There is already a user management handler with the ID "' + localid +
                 '" (global ID of "' + id + '")');
         }
@@ -560,7 +560,7 @@ export class PluginAPI {
         Object.defineProperty(handler, 'user_management_handler_id', {value: id});
         Object.defineProperty(handler, 'user_management_handler_localid', {value: localid});
 
-        user_management_handlers.set(id, handler);
+        UserManagementHandlers.addPluginComponent(this.ui_plugin, id, handler);
     }
 
     /**
@@ -571,7 +571,7 @@ export class PluginAPI {
      * @param {string} name A display name for the authentication handler
      */
     registerLayoutSectionComponent(type, component, name) {
-        if (layout_section_components.has(type)) {
+        if (LayoutSectionComponents.has(type)) {
             throw new Error('There is already a layout section component with the ID "' + type + '"');
         }
 
@@ -579,7 +579,7 @@ export class PluginAPI {
             component.name = 'layout-section-' + type;
         }
 
-        layout_section_components.set(type, {component, name});
+        LayoutSectionComponents.set(this.ui_plugin, type, {component, name});
     }
 
     /**
@@ -594,7 +594,7 @@ export class PluginAPI {
         if (!plugin) plugin = this.plugin;
         if (!plugin) throw new Error('Unknown plugin');
 
-        if (automation_trigger_components.find(c => c.plugin === plugin && c.type === type)) {
+        if (AutomationTriggerComponents.find(c => c.plugin === plugin && c.type === type)) {
             throw new Error('There is already an automation trigger component with the ID "' + type +
                 '" for the plugin "' + plugin + '"');
         }
@@ -603,7 +603,7 @@ export class PluginAPI {
 
         if (!component.name) component.name = 'automation-trigger-' + plugin + '-' + type;
 
-        automation_trigger_components.push({component, plugin, type, name});
+        AutomationTriggerComponents.pushPluginComponent({component, plugin, type, name});
     }
 
     /**
@@ -618,7 +618,7 @@ export class PluginAPI {
         if (!plugin) plugin = this.plugin;
         if (!plugin) throw new Error('Unknown plugin');
 
-        if (automation_condition_components.find(c => c.plugin === plugin && c.type === type)) {
+        if (AutomationConditionComponents.find(c => c.plugin === plugin && c.type === type)) {
             throw new Error('There is already an automation condition component with the ID "' + type +
                 '" for the plugin "' + plugin + '"');
         }
@@ -627,7 +627,7 @@ export class PluginAPI {
 
         if (!component.name) component.name = 'automation-condition-' + plugin + '-' + type;
 
-        automation_condition_components.push({component, plugin, type, name});
+        AutomationConditionComponents.pushPluginComponent({component, plugin, type, name});
     }
 
     /**
@@ -642,7 +642,7 @@ export class PluginAPI {
         if (!plugin) plugin = this.ui_plugin.plugin;
         if (!plugin) throw new Error('Unknown plugin');
 
-        if (automation_action_components.find(c => c.plugin === plugin && c.type === type)) {
+        if (AutomationActionComponents.find(c => c.plugin === plugin && c.type === type)) {
             throw new Error('There is already an automation action component with the ID "' + type +
                 '" for the plugin "' + plugin + '"');
         }
@@ -651,7 +651,7 @@ export class PluginAPI {
 
         if (!component.name) component.name = 'automation-action-' + plugin + '-' + type;
 
-        automation_action_components.push({component, plugin, type, name});
+        AutomationActionComponents.pushPluginComponent({component, plugin, type, name});
     }
 }
 

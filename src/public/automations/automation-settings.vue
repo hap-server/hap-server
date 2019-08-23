@@ -139,7 +139,11 @@
     import Dropdown from '../components/dropdown.vue';
     import JsonEditor from './json-editor.vue';
 
-    import {trigger_components, condition_components, action_components} from '.';
+    import {
+        AutomationTriggerComponents as trigger_components,
+        AutomationConditionComponents as condition_components,
+        AutomationActionComponents as action_components,
+    } from '../component-registry';
     import './triggers';
     import './conditions';
     import './actions';

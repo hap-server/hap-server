@@ -24,7 +24,7 @@
     import Dropdown from '../../components/dropdown.vue';
 
     import AutomationCondition from '../condition.vue';
-    import {condition_components} from '..';
+    import {AutomationConditionComponents as condition_components} from '../../component-registry';
 
     export const type = 'All';
     export const name = 'All';

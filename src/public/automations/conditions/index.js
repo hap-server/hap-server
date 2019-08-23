@@ -1,4 +1,4 @@
-import {condition_components} from '..';
+import {AutomationConditionComponents as condition_components} from '../../component-registry';
 
 const contextRequire = require.context('.', true, /\.vue$/);
 

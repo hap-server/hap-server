@@ -45,7 +45,7 @@
     import {LayoutSymbol, LayoutAddSectionSymbol, LayoutRemoveSectionSymbol, LayoutGetCanEditSymbol,
         LayoutSetEditingSymbol} from '../internal-symbols'; // eslint-disable-line vue/script-indent
 
-    import layout_section_components from './layout-sections';
+    import {LayoutSectionComponents as layout_section_components} from '../component-registry';
     import Dropdown from './dropdown.vue';
 
     export default {
@@ -77,6 +77,10 @@
             can_edit() {
                 return this.getCanEdit();
             },
+        },
+        created() {
+            // Register built in components
+            require('./layout-sections');
         },
         methods: {
             updateName() {

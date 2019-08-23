@@ -28,7 +28,7 @@ export default class Accessory extends EventEmitter {
 
     static get service_components() {
         try {
-            return require('../public/components/services/components').default;
+            return require('../public/component-registry').ServiceTileComponents;
         } catch (err) {
             return new Map();
         }

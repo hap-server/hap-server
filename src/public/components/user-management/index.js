@@ -1,4 +1,4 @@
-const user_management_components = new Map();
+import {UserManagementHandlers as user_management_components} from '../../component-registry';
 
 const contextRequire = require.context('.', true, /\.vue$/);
 

@@ -1,4 +1,4 @@
-import service_components from './components';
+import {ServiceTileComponents as service_components} from '../../component-registry';
 
 const contextRequire = require.context('.', true, /\.vue$/);
 

@@ -181,6 +181,8 @@
     import Connection from '../../client/connection';
     import {ClientSymbol, GetAssetURLSymbol} from '../internal-symbols';
 
+    import {UserManagementHandlers as user_management_components} from '../component-registry';
+
     import Panel from './panel.vue';
     import PanelTabs from './panel-tabs.vue';
     import TerminalComponent from './terminal.vue';
@@ -188,8 +190,6 @@
     import ListItem from './list-item.vue';
     import UserList from './user-list.vue';
     import UserPermissions from './user-permissions.vue';
-
-    import user_management_components from './user-management';
 
     export default {
         components: {
@@ -337,6 +337,9 @@
             },
         },
         async created() {
+            // Register built in components
+            require('./user-management');
+
             this.terminal = new Terminal({
                 disableStdin: true,
                 fontSize: 12,

@@ -18,7 +18,7 @@
 </template>
 
 <script>
-    import {condition_components} from '.';
+    import {AutomationConditionComponents as condition_components} from '../component-registry';
 
     export default {
         props: {

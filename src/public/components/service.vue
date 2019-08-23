@@ -33,7 +33,7 @@
 <script>
     import Service, {type_names} from '../../client/service';
 
-    import service_components from './services';
+    import {ServiceTileComponents as service_components} from '../component-registry';
     import ServiceComponent from './services/service.vue';
 
     export default {
@@ -67,6 +67,10 @@
             edit(edit) {
                 if (edit && this.touchstart_timeout) clearTimeout(this.touchstart_timeout);
             },
+        },
+        created() {
+            // Register built in components
+            require('./services');
         },
         methods: {
             showDetails() {

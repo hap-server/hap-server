@@ -41,9 +41,9 @@
 <script>
     import Connection from '../../client/connection';
     import Service from '../../client/service';
+    import {ServiceSettingsComponents as accessory_settings_components} from '../component-registry';
 
     import Panel from './panel.vue';
-    import accessory_settings_components from './accessory-settings';
 
     export default {
         components: {
@@ -71,6 +71,9 @@
             },
         },
         created() {
+            // Register built in components
+            require('./accessory-settings');
+
             this.name = this.service.configured_name;
             this.room_name = this.service.data.room_name;
         },

@@ -18,7 +18,7 @@
 </template>
 
 <script>
-    import {trigger_components} from '.';
+    import {AutomationTriggerComponents as trigger_components} from '../component-registry';
 
     export default {
         props: {

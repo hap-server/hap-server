@@ -44,7 +44,7 @@
 <script>
     import Connection, {AuthenticationHandlerConnection, AuthenticatedUser} from '../../client/connection';
 
-    import authentication_handler_components from './authentication-handlers';
+    import {AuthenticationHandlerComponents as authentication_handler_components} from '../component-registry';
     import Panel from './panel.vue';
 
     export default {
@@ -89,6 +89,9 @@
             },
         },
         created() {
+            // Register built in components
+            require('./authentication-handlers');
+
             this.authentication_handlers = [...authentication_handler_components.keys()];
 
             this.selected = this.authentication_handlers[0];

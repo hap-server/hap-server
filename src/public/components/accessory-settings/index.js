@@ -1,4 +1,4 @@
-const accessory_settings_components = new Map();
+import {ServiceSettingsComponents as accessory_settings_components} from '../../component-registry';
 
 const contextRequire = require.context('.', true, /\.vue$/);
 

@@ -1,4 +1,4 @@
-const accessory_details_components = new Map();
+import {ServiceDetailsComponents as accessory_details_components} from '../../component-registry';
 
 const contextRequire = require.context('.', true, /\.vue$/);
 

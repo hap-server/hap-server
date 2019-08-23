@@ -36,8 +36,8 @@
 
 <script>
     import {ClientSymbol} from '../internal-symbols';
+    import {UserManagementHandlers as user_management_components} from '../component-registry';
     import Dropdown from './dropdown.vue';
-    import user_management_components from './user-management';
 
     export default {
         components: {
@@ -70,6 +70,9 @@
             },
         },
         created() {
+            // Register built in components
+            require('./user-management');
+
             this.reload();
         },
         methods: {
