@@ -34,8 +34,13 @@ build:
             - .babelrc
             - src/**/*
             - example-plugins/src/**/*
+    except:
+        variables:
+            - $NPM_AUDIT_SCHEDULE_SKIP_BUILD
+    interruptible: true
 
 lint:
+    stage: test
     script:
         # Run eslint for JS and Vue files separately
         - npx eslint --ext .js --color src example-plugins/src
@@ -51,10 +56,39 @@ lint:
             - src/**/*.vue
             - src/**/*.scss
             - example-plugins/src/**/*.js
+    except:
+        variables:
+            - $NPM_AUDIT_SCHEDULE_SKIP_BUILD
     cache:
         paths:
             - node_modules/
         policy: pull
+    interruptible: true
+
+audit:
+    stage: test
+    script:
+        - npm --color="always" audit
+        - npm audit --json > npm-audit.json
+    artifacts:
+        paths:
+            - npm-audit.json
+    only:
+        changes:
+            - .gitlab-ci.yml
+            - package-lock.json
+            - .eslintrc.js
+            - .sass-lint.yml
+            - src/**/*.js
+            - src/**/*.vue
+            - src/**/*.scss
+            - example-plugins/src/**/*.js
+    cache:
+        paths:
+            - node_modules/
+        policy: pull
+    allow_failure: true
+    interruptible: true
 
 publish:
     stage: deploy
@@ -75,3 +109,4 @@ publish:
         paths:
             - node_modules/
         policy: pull
+    interruptible: false
