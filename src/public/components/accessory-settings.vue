@@ -182,26 +182,37 @@
             <button v-if="identify && !deleteBridge" class="btn btn-default btn-sm" type="button"
                 :disabled="identify_saving" @click="setIdentify">Identify</button>
             <template v-if="deleteBridge">
-                <button class="btn btn-default btn-sm" type="button" :disabled="saving"
+                <button class="btn btn-default btn-sm" type="button" :disabled="saving || saving_config"
                     @click="() => $refs.panel.close()">Cancel</button>&nbsp;
-                <button key="primary" class="btn btn-danger btn-sm" type="button" :disabled="saving"
+                <button key="primary" class="btn btn-danger btn-sm" type="button" :disabled="saving || saving_config"
                     @click="save(true)">Delete</button>
             </template>
-            <template v-else-if="createBridge || tab === 'config' || (config && can_set_config && tab === 'accessories')">
-                <button class="btn btn-default btn-sm" type="button" :disabled="saving"
+            <template v-else-if="createBridge || (tab === 'config' && config_changed) ||
+                    (config && can_set_config && tab === 'accessories' && accessories_changed)">
+                <button class="btn btn-default btn-sm" type="button" :disabled="changed || saving || saving_config"
                     @click="() => $refs.panel.close()">Cancel</button>&nbsp;
                 <button key="primary" class="btn btn-primary btn-sm" type="button"
-                    :disabled="loading || saving || !can_set_config"
-                    @click="saveConfig(true)">{{ createBridge ? 'Create' : 'Save' }}</button>
+                    :disabled="loading || saving || saving_config || !can_set_config"
+                    @click="saveConfig(!changed)">{{ createBridge ? 'Create' : 'Save' }}</button>
             </template>
-            <template v-else-if="!is_bridge || tab === 'general'">
-                <button class="btn btn-default btn-sm" type="button" :disabled="saving"
+            <template v-else-if="(!is_bridge || tab === 'general') && changed">
+                <button class="btn btn-default btn-sm" type="button"
+                    :disabled="config_changed || accessories_changed || saving || saving_config"
                     @click="() => $refs.panel.close()">Cancel</button>&nbsp;
-                <button key="primary" class="btn btn-primary btn-sm" type="button" :disabled="loading || saving"
-                    @click="save(true)">Save</button>
+                <button key="primary" class="btn btn-primary btn-sm" type="button"
+                    :disabled="loading || saving || saving_config"
+                    @click="save(!config_changed && !accessories_changed)">Save</button>
             </template>
-            <button v-else key="primary" class="btn btn-primary btn-sm" type="button" :disabled="loading || saving"
-                @click="() => $refs.panel.close()">Done</button>
+            <template v-else>
+                <button v-if="changed || config_changed || accessories_changed" class="btn btn-default btn-sm"
+                    type="button" :disabled="saving || saving_config"
+                    @click="() => $refs.panel.close()">Cancel</button>&nbsp;
+                <button key="primary" class="btn btn-primary btn-sm" type="button"
+                    :disabled="changed || config_changed || accessories_changed || loading || saving || saving_config"
+                    :title="loading || saving || saving_config ? null : changed || config_changed || accessories_changed ?
+                        'You have unsaved changes in another tab' : null"
+                    @click="() => $refs.panel.close()">Done</button>
+            </template>
         </div>
     </panel>
 </template>
@@ -252,6 +263,7 @@
                 },
 
                 config: null,
+                saved_config: null,
                 can_set_config: false,
                 can_delete: false,
 
@@ -267,6 +279,27 @@
             };
         },
         computed: {
+            changed() {
+                if (!this.accessory) return false;
+
+                return this.name !== this.accessory.data.name ||
+                    this.room_name !== this.accessory.data.room_name;
+            },
+            config_changed() {
+                if (!this.config || !this.saved_config) return false;
+
+                return this.config.name !== this.saved_config.name ||
+                    this.config.username !== this.saved_config.username ||
+                    this.config.pincode !== this.saved_config.pincode ||
+                    this.config.port !== this.saved_config.port;
+            },
+            accessories_changed() {
+                if (!this.config || !this.saved_config) return false;
+
+                return JSON.stringify(this.config.accessories) !==
+                    JSON.stringify(this.saved_config.accessories);
+            },
+
             accessory_information() {
                 if (!this.accessory) return;
                 return this.accessory.getServiceByName('AccessoryInformation');
@@ -299,6 +332,7 @@
                 if (!this.accessory_information) return;
                 return this.accessory_information.getCharacteristicByName('AccessoryFlags');
             },
+
             bridged_accessories() {
                 return Object.values(this.accessories)
                     .filter(accessory => this.accessory_uuids.includes(accessory.uuid));
@@ -327,6 +361,9 @@
                     connection.on('update-pairings', this.handleUpdatePairings);
                     connection.on('update-pairing-data', this.handleUpdatePairingData);
                 }
+            },
+            saved_config(config) {
+                this.config = JSON.parse(JSON.stringify(config));
             },
         },
         async created() {
@@ -375,7 +412,7 @@
                 this.loading_config = true;
 
                 try {
-                    this.config = (await this.connection.getBridgesConfiguration(this.accessory.uuid))[0];
+                    this.saved_config = (await this.connection.getBridgesConfiguration(this.accessory.uuid))[0];
                 } finally {
                     this.loading_config = false;
                 }

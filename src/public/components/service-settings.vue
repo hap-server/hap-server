@@ -27,9 +27,14 @@
             >
                 Accessory settings
             </button>&nbsp;
-            <button class="btn btn-default btn-sm" type="button" :disabled="saving" @click="() => $refs.panel.close()">
-                Cancel</button>&nbsp;
-            <button class="btn btn-primary btn-sm" type="button" :disabled="saving" @click="save(true)">Save</button>
+            <template v-if="changed || saving">
+                <button class="btn btn-default btn-sm" type="button" :disabled="saving"
+                    @click="() => $refs.panel.close()">Cancel</button>&nbsp;
+                <button key="primary" class="btn btn-primary btn-sm" type="button" :disabled="saving"
+                    @click="save(true)">Save</button>
+            </template>
+            <button v-else key="primary" class="btn btn-primary btn-sm" type="button"
+                @click="() => $refs.panel.close()">Done</button>
         </div>
 
         <template v-if="accessory_settings_component">
@@ -63,11 +68,25 @@
             };
         },
         computed: {
+            changed() {
+                if (!this.service) return false;
+
+                return this.name !== this.service.data.name ||
+                    this.room_name !== this.service.data.room_name;
+            },
             accessory_settings_component() {
                 return accessory_settings_components.get(this.service.type);
             },
             close_with_escape_key() {
                 return !this.saving;
+            },
+        },
+        watch: {
+            'service.data.name'(name) {
+                this.name = name;
+            },
+            'service.data.room_name'(room_name) {
+                this.room_name = room_name;
             },
         },
         created() {
