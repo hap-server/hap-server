@@ -42,9 +42,10 @@ lint:
     stage: test
     script:
         # Run eslint for JS and Vue files separately
-        - npx eslint --ext .js --color src example-plugins/src
-        - npx eslint --ext .vue --color src
-        - FORCE_COLOR=1 npx sass-lint -v
+        - ( npx eslint --ext .js --color src example-plugins/src ; JS_EXIT_CODE="$?" ) || true
+        - ( npx eslint --ext .vue --color src ; VUE_EXIT_CODE="$?" ) || true
+        - ( FORCE_COLOR=1 npx sass-lint -v ; SASS_EXIT_CODE="$?" ) || true
+        - sh -c "exit `expr $JS_EXIT_CODE + $VUE_EXIT_CODE + $SASS_EXIT_CODE`"
     only:
         changes:
             - .gitlab-ci.yml
@@ -71,6 +72,7 @@ audit:
     artifacts:
         paths:
             - npm-audit.json
+        when: always
     only:
         changes:
             - .gitlab-ci.yml
