@@ -16,7 +16,7 @@
                 <div class="col-sm-9">
                     <div class="custom-file form-control-sm">
                         <input :id="_uid + '-wallpaper'" ref="file" type="file" class="custom-file-input"
-                            :disabled="saving || uploading" @change="upload" />
+                            :disabled="loading || saving || uploading" @change="upload" />
                         <label class="custom-file-label" :for="_uid + '-wallpaper'">Choose file</label>
                     </div>
                     <div v-if="uploading" class="progress mt-3">

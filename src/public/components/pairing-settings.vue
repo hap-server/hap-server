@@ -21,7 +21,7 @@
         <div class="d-flex">
             <div v-if="saving">Saving</div>
             <div class="flex-fill"></div>
-            <template v-if="can_set">
+            <template v-if="can_set && changed">
                 <button class="btn btn-default btn-sm" type="button" :disabled="saving"
                     @click="() => $refs.panel.close()">Cancel</button>&nbsp;
                 <button key="primary" class="btn btn-primary btn-sm" type="button" :disabled="saving"
@@ -58,6 +58,11 @@
             };
         },
         computed: {
+            changed() {
+                if (!this.pairingData) return false;
+
+                return this.name !== this.pairingData.name;
+            },
             can_set() {
                 return this.permissions.set;
             },
