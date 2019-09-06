@@ -21,7 +21,7 @@
     },
     "private": true,
     "engines": {
-        "node": ">=8.0.0 <12"
+        "node": ">=8.0.0 <13"
     },
     "dependencies": {
         "bonjour": "^3.5.0",
