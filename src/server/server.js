@@ -75,7 +75,7 @@ export default class Server extends Events {
         Object.defineProperty(this, 'config_automation_conditions', {writable: true});
         Object.defineProperty(this, 'config_automation_actions', {writable: true});
 
-        Object.defineProperty(this, 'accessory_discovery_counter', {value: 0});
+        Object.defineProperty(this, 'accessory_discovery_counter', {writable: true, value: 0});
         Object.defineProperty(this, 'accessory_discovery_handlers', {value: new Set()});
         Object.defineProperty(this, 'accessory_discovery_handlers_events', {value: new WeakMap()});
 
