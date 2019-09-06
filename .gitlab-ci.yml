@@ -12,15 +12,20 @@ cache:
 build:
     stage: build
     script:
-        - npm install
-        - npx gulp build
-        - npx gulp build-release
-        - npx gulp build-example-plugins
+        - npm --color="always" install
+        - npx gulp --color build
+        - npx gulp --color build-release
+        - npx gulp --color build-example-plugins
+
+        - cd release
+        - PACKAGE_PATH=`npm --color="always" pack`
+        - mv $PACKAGE_PATH ../hap-server-release.tgz
     artifacts:
         paths:
             - dist
             - release
             - example-plugins/dist
+            - hap-server-release.tgz
     only:
         changes:
             - .gitlab-ci.yml
@@ -33,9 +38,9 @@ build:
 lint:
     script:
         # Run eslint for JS and Vue files separately
-        - npx eslint --ext .js src example-plugins/src
-        - npx eslint --ext .vue src
-        - npx sass-lint -v
+        - npx eslint --ext .js --color src example-plugins/src
+        - npx eslint --ext .vue --color src
+        - FORCE_COLOR=1 npx sass-lint -v
     only:
         changes:
             - .gitlab-ci.yml
@@ -56,7 +61,7 @@ publish:
     script:
         - cd release
         - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
-        - npm publish
+        - npm --color="always" publish
     dependencies:
         - build
     only:
