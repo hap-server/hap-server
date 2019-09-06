@@ -92,7 +92,9 @@
 
                         <p v-if="accessory.display_services.length" class="mb-0">
                             <small>
-                                <template v-for="(service, index) in accessory.display_services">{{ service.name }}{{ accessory.display_services.length - 2 === index ? ' and ' : accessory.display_services.length - 1 > index ? ', ' : '' }}</template>
+                                <template v-for="(service, index) in accessory.display_services">{{ service.name }}{{
+                                    accessory.display_services.length - 2 === index ? ' and ' :
+                                    accessory.display_services.length - 1 > index ? ', ' : '' }}</template>
                             </small>
                         </p>
                     </list-item>
@@ -147,14 +149,18 @@
                 <button class="btn btn-default btn-sm" type="button" :disabled="loadingAccessories"
                     @click="$emit('refresh-accessories')">Refresh accessories</button>&nbsp;
             </template>
-            <template v-if="tab === 'general'">
-                <button class="btn btn-default btn-sm" type="button" :disabled="saving || uploading"
+            <template v-if="tab === 'general' && (changed || uploading)">
+                <button class="btn btn-default btn-sm" type="button"
+                    :disabled="saving || uploading || editing_user_saving || editing_user_permissions_saving"
                     @click="() => $refs.panel.close()">Cancel</button>&nbsp;
-                <button key="primary" class="btn btn-primary btn-sm" type="button" :disabled="loading || saving"
-                    @click="save(true)">Save</button>
+                <button key="primary" class="btn btn-primary btn-sm" type="button"
+                    :disabled="loading || saving || uploading"
+                    @click="save(!editing_user_changed && !editing_user_saving && !editing_user_permissions_changed &&
+                        !editing_user_permissions_saving)">Save</button>
             </template>
             <template v-else-if="tab === 'users' && editing_user && (editing_user_changed || editing_user_saving)">
-                <button class="btn btn-default btn-sm" type="button" :disabled="editing_user_saving"
+                <button class="btn btn-default btn-sm" type="button"
+                    :disabled="saving || uploading || editing_user_saving || editing_user_permissions_saving"
                     @click="() => $refs.panel.close()">Cancel</button>&nbsp;
                 <button key="primary" class="btn btn-primary btn-sm" type="button" :disabled="editing_user_saving"
                     @click="() => $refs['user-component'].save()">Save</button>
@@ -162,14 +168,26 @@
             <template v-else-if="tab === 'users' && editing_user &&
                 (editing_user_permissions_changed || editing_user_permissions_saving)"
             >
-                <button class="btn btn-default btn-sm" type="button" :disabled="editing_user_permissions_saving"
+                <button class="btn btn-default btn-sm" type="button"
+                    :disabled="saving || uploading || editing_user_saving || editing_user_permissions_saving"
                     @click="() => $refs.panel.close()">Cancel</button>&nbsp;
                 <button key="primary" class="btn btn-primary btn-sm" type="button"
                     :disabled="editing_user_permissions_saving"
                     @click="() => $refs['user-permissions'].save()">Save permissions</button>
             </template>
-            <button v-else key="primary" class="btn btn-primary btn-sm" type="button" :disabled="loading || saving"
-                @click="() => $refs.panel.close()">Done</button>
+            <template v-else>
+                <button v-if="changed || editing_user_changed || editing_user_permissions_changed"
+                    class="btn btn-default btn-sm" type="button"
+                    :disabled="saving || uploading || editing_user_saving || editing_user_permissions_saving"
+                    @click="() => $refs.panel.close()">Cancel</button>&nbsp;
+                <button key="primary" class="btn btn-primary btn-sm" type="button"
+                    :disabled="changed || editing_user_changed || editing_user_permissions_changed || loading ||
+                        saving || uploading || editing_user_saving || editing_user_permissions_saving"
+                    :title="loading || saving || editing_user_saving || editing_user_permissions_saving ? null :
+                        changed || uploading || editing_user_changed || editing_user_permissions_changed ?
+                            'You have unsaved changes in another tab' : null"
+                    @click="() => $refs.panel.close()">Done</button>
+            </template>
         </div>
     </panel>
 </template>
@@ -257,6 +275,12 @@
             };
         },
         computed: {
+            changed() {
+                if (!this.data) return false;
+
+                return this.name !== this.data.name ||
+                    this.background_url !== this.data.background_url;
+            },
             accessory_groups() {
                 const groups = {};
 
@@ -319,8 +343,6 @@
                 }
             },
             tab() {
-                this.name = this.data ? this.data.name : null;
-                this.background_url = this.data ? this.data.background_url : null;
                 this.editing_user = null;
                 this.creating_user = null;
             },
