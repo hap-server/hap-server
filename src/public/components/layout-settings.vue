@@ -38,12 +38,16 @@
             <div v-if="saving && deleteLayout">Deleting</div>
             <div v-else-if="saving">Saving</div>
             <div class="flex-fill"></div>
-            <button class="btn btn-default btn-sm" type="button" :disabled="saving || uploading"
-                @click="() => $refs.panel.close()">Cancel</button>&nbsp;
-            <button v-if="deleteLayout" class="btn btn-danger btn-sm" type="button" :disabled="saving"
-                @click="save(true)">Delete</button>
-            <button v-else class="btn btn-primary btn-sm" type="button" :disabled="saving || uploading"
-                @click="save(true)">{{ create ? 'Create' : 'Save' }}</button>
+            <template v-if="create || deleteLayout || changed || uploading">
+                <button class="btn btn-default btn-sm" type="button" :disabled="saving || uploading"
+                    @click="() => $refs.panel.close()">Cancel</button>&nbsp;
+                <button v-if="deleteLayout" class="btn btn-danger btn-sm" type="button" :disabled="saving"
+                    @click="save(true)">Delete</button>
+                <button v-else key="primary" class="btn btn-primary btn-sm" type="button" :disabled="saving || uploading"
+                    @click="save(true)">{{ create ? 'Create' : 'Save' }}</button>
+            </template>
+            <button v-else key="primary" class="btn btn-primary btn-sm" type="button" :disabled="saving || uploading"
+                @click="() => $refs.panel.close()">Done</button>
         </div>
     </panel>
 </template>
@@ -81,6 +85,12 @@
             };
         },
         computed: {
+            changed() {
+                if (!this.layout) return false;
+
+                return this.name !== this.layout.name ||
+                    this.background_url !== this.layout.background_url;
+            },
             close_with_escape_key() {
                 return !this.saving && !this.uploading;
             },
