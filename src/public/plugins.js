@@ -43,7 +43,6 @@ import * as accessory_details_component_module from './components/accessory-deta
 import icon_component_modules from './components/icons';
 import * as layout_section_component_module from './components/layout-section.vue';
 import * as accessory_discovery_component_module from './components/accessory-discovery/accessory-discovery.vue';
-import accessory_settings_components from './components/accessory-settings';
 
 import * as vue_color_chrome_module from 'vue-color/src/components/Chrome.vue';
 import * as vue_color_swatches_module from 'vue-color/src/components/Swatches.vue';
