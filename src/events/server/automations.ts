@@ -30,3 +30,37 @@ export class AutomationTriggerEvent extends Event {
         return this.automations.server;
     }
 }
+
+AutomationTriggerEvent.type = 'automation-trigger';
+AutomationTriggerEvent.types = ['trigger'];
+
+export class AutomationRunningEvent extends Event {
+    constructor(runner) {
+        super();
+
+        Object.defineProperty(this, 'runner', {value: runner});
+    }
+
+    get automation() {
+        return this.runner.automation;
+    }
+
+    get automations() {
+        return this.automation.automations;
+    }
+
+    get server() {
+        return this.automations.server;
+    }
+
+    /**
+     * @return {AutomationTriggerEvent}
+     */
+    get event() {
+        return this.runner.event;
+    }
+
+    get trigger() {
+        return this.event.trigger;
+    }
+}

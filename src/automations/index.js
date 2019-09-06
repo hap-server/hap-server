@@ -1,7 +1,7 @@
 import EventEmitter from 'events';
 
 import Events from '../events';
-import {AutomationTriggerEvent} from '../events/server';
+import {AutomationTriggerEvent, AutomationRunningEvent} from '../events/server';
 import AutomationTrigger from './trigger';
 import AutomationCondition from './condition';
 import AutomationAction from './action';
@@ -23,6 +23,7 @@ export default class Automations extends Events {
 
         this.automations = [];
         this.scenes = [];
+        this.runners = {};
     }
 
     /**
@@ -300,8 +301,12 @@ export class Automation {
         const runner = new AutomationRunner(this, event);
 
         this.running.push(runner);
+        this.automations.runners[runner.id] = runner;
 
-        runner.on('finished', () => this.running.splice(this.running.indexOf(runner), 1));
+        runner.on('finished', () => {
+            this.running.splice(this.running.indexOf(runner), 1);
+            delete this.automations.running[runner.id];
+        });
 
         runner.run();
     }
@@ -479,6 +484,8 @@ export class AutomationRunner extends EventEmitter {
         this.log.info('Running automation #%d', this.automation.id);
         this.emit('running');
 
+        this.automation.automations.emit(AutomationRunningEvent, this);
+
         for (const condition of this.conditions.keys()) {
             try {
                 this.log.debug('Running automation #%d condition #%d', this.automation.id, condition.id);
@@ -532,6 +539,8 @@ export class AutomationRunner extends EventEmitter {
                 let finished = false;
 
                 const result = await action.run(this, progress => {
+                    if (progress === this.actions.get(action)) return;
+                    this.log.debug('Action #%d progress %d', action.id, progress);
                     if (finished) throw new Error('Cannot update progress after the action has finished running');
                     if (progress < 0 || progress > 1) throw new Error('progress must be between 0 and 1');
                     this.actions.set(action, progress);

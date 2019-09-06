@@ -27,7 +27,8 @@
                     @click="forgetAuthenticatedUser">Logout</button>
             </template>
             <template slot="right-buttons">
-                <button class="btn btn-default btn-sm" type="button" @click="() => $refs.panel.close()">Cancel</button>
+                <button ref="close-button" class="btn btn-default btn-sm" type="button"
+                    @click="() => $refs.panel.close()">Cancel</button>
             </template>
         </component>
 
@@ -43,7 +44,7 @@
 <script>
     import Connection, {AuthenticationHandlerConnection, AuthenticatedUser} from '../../client/connection';
 
-    import authentication_handler_components from './authentication-handlers';
+    import {AuthenticationHandlerComponents as authentication_handler_components} from '../component-registry';
     import Panel from './panel.vue';
 
     export default {
@@ -68,6 +69,9 @@
             component() {
                 return this.getAuthenticationHandlerComponent(this.selected);
             },
+            close_with_escape_key() {
+                return !this.component || !!this.$refs['close-button'];
+            },
         },
         watch: {
             authentication_handlers() {
@@ -85,6 +89,9 @@
             },
         },
         created() {
+            // Register built in components
+            require('./authentication-handlers');
+
             this.authentication_handlers = [...authentication_handler_components.keys()];
 
             this.selected = this.authentication_handlers[0];

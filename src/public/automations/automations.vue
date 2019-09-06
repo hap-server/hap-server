@@ -7,28 +7,47 @@
                 <button class="btn btn-default btn-sm mt-3" @click="createAutomation">New</button>
             </div>
 
-            <div class="automations-list">
-                <div v-for="automation in automations" :key="automation.uuid" class="automation-row clickable"
-                    @click="open_automation = automation"
-                >
-                    <h3>{{ automation.data.name || automation.uuid }}</h3>
+            <div class="automation-groups-list">
+                <div v-for="group in automation_groups" :key="group.name" class="automation-group">
+                    <h2 v-if="group.name">{{ group.name }}</h2>
+                    <div class="automations-list">
+                        <div v-for="automation in group.automations" :key="automation.uuid"
+                            class="automation-row clickable"
+                            :class="{running: running_automations.find(r => r.automation === automation)}"
+                            @click="open_automation = automation"
+                        >
+                            <div v-if="running_automations.find(r => r.automation === automation)" class="progress">
+                                <div class="progress-bar" role="progressbar"
+                                    :aria-valuenow="getAutomationProgress(automation) * 100" aria-valuemin="0"
+                                    aria-valuemax="100"
+                                    :style="{width: getAutomationProgress(automation) * 100 + '%'}" />
+                            </div>
 
-                    <div class="automation-row-contents">
-                        <p>
-                            {{ Object.keys(automation.data.triggers || {}).length === 0 ? 'No' : Object.keys(automation.data.triggers || {}).length }}
-                            trigger{{ Object.keys(automation.data.triggers || {}).length === 1 ? '' : 's' }},
-                            {{ Object.keys(automation.data.conditions || {}).length === 0 ? 'no' : Object.keys(automation.data.conditions || {}).length }}
-                            condition{{ Object.keys(automation.data.conditions || {}).length === 1 ? '' : 's' }},
-                            {{ Object.keys(automation.data.actions || {}).length === 0 ? 'no' : Object.keys(automation.data.actions || {}).length }}
-                            action{{ Object.keys(automation.data.actions || {}).length === 1 ? '' : 's' }}.
-                        </p>
+                            <div class="automation-row-contents">
+                                <h3>{{ automation.data.name || automation.uuid }}</h3>
+
+                                <p>
+                                    {{ Object.keys(automation.data.triggers || {}).length === 0 ? 'No' :
+                                        Object.keys(automation.data.triggers || {}).length }}
+                                    trigger{{ Object.keys(automation.data.triggers || {}).length === 1 ? '' : 's'
+                                    }}<template v-if="Object.keys(automation.data.conditions || {}).length">,
+                                        {{ Object.keys(automation.data.conditions || {}).length }}
+                                        condition{{ Object.keys(automation.data.conditions || {}).length === 1 ?
+                                            '' : 's' }}
+                                    </template>
+                                    and {{ Object.keys(automation.data.actions || {}).length === 0 ? 'no' :
+                                        Object.keys(automation.data.actions || {}).length }}
+                                    action{{ Object.keys(automation.data.actions || {}).length === 1 ? '' : 's' }}.
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <automation-settings v-if="open_automation" ref="automation" :key="open_automation.id" :connection="connection"
-            :automation="open_automation.staged" :exists="!!open_automation.uuid"
+        <automation-settings v-if="staged_automation" ref="automation" :key="open_automation.id"
+            :connection="client.connection" :automation="open_automation.staged" :exists="!!open_automation.uuid"
             :editable="open_automation.can_set && !deleting_automation" :deletable="open_automation.can_delete"
             :changed="open_automation.changed" :saving="saving_automation" :deleting="deleting_automation"
             @save="close => saveAutomation(open_automation.staged, close ? $refs.automation : null)"
@@ -39,9 +58,9 @@
 </template>
 
 <script>
-    import Connection from '../../client/connection';
+    import Client from '../../client/client';
     import {AutomationsSymbol} from '../internal-symbols';
-    import Automation from './automation';
+    import Automation from '../../client/automation';
 
     import AutomationSettings from './automation-settings.vue';
 
@@ -50,24 +69,47 @@
             AutomationSettings,
         },
         props: {
-            connection: Connection,
+            client: Client,
         },
         data() {
             return {
-                automations: {},
-                loading_automations: false,
+                running_automations: [],
 
                 open_automation: null,
+                staged_automation: null,
                 saving_automation: false,
                 deleting_automation: false,
             };
         },
         provide() {
             return {
-                [AutomationsSymbol]: this.automations,
+                [AutomationsSymbol]: () => this.client.automations,
             };
         },
         computed: {
+            automation_groups() {
+                const groups = {};
+
+                for (const automation of Object.values(this.client.automations)) {
+                    const group = groups[automation.data.group_name] || (groups[automation.data.group_name] = {
+                        name: automation.data.group_name,
+                        automations: [],
+                    });
+
+                    group.automations.push(automation);
+                }
+
+                return Object.values(groups).sort((a, b) => {
+                    if (!a.name && !b.name) return 0;
+                    if (!a.name) return -1;
+                    if (!b.name) return 1;
+
+                    if (a.name < b.name) return -1;
+                    if (a.name > b.name) return 1;
+
+                    return 0;
+                });
+            },
             title() {
                 if (this.open_automation) {
                     if (!this.open_automation.uuid) return 'New automation';
@@ -78,122 +120,17 @@
             },
         },
         watch: {
-            connection(connection, old_connection) {
-                for (const automation of Object.values(this.automations)) {
-                    automation.connection = connection;
-                }
-
-                if (connection) {
-                    this.refreshAutomations();
-
-                    connection.on('add-automation', this.handleAddAutomation);
-                    connection.on('remove-automation', this.handleRemoveAutomation);
-                    connection.on('update-automation', this.handleUpdateAutomation);
-                }
-
-                if (old_connection) {
-                    old_connection.removeListener('add-automation', this.handleAddAutomation);
-                    old_connection.removeListener('remove-automation', this.handleRemoveAutomation);
-                    old_connection.removeListener('update-automation', this.handleUpdateAutomation);
-                }
-            },
             open_automation() {
                 global.automation = this.open_automation;
+                this.staged_automation = this.open_automation && this.open_automation.staged;
             },
             title(title) {
                 this.$emit('title', title);
             },
         },
         methods: {
-            async refreshAutomations(dont_emit_events) {
-                if (this.loading_automations) throw new Error('Already loading');
-                this.loading_automations = true;
-
-                try {
-                    const automation_uuids = await this.connection.listAutomations();
-
-                    const new_automation_uuids = [];
-                    const removed_automation_uuids = [];
-
-                    for (const uuid of automation_uuids) {
-                        // Automation already exists
-                        if (this.automations[uuid]) continue;
-
-                        // Add this automation to the list of automations we don't yet know about
-                        new_automation_uuids.push(uuid);
-                    }
-
-                    for (const uuid of Object.keys(this.automations)) {
-                        // Automation still exists
-                        if (automation_uuids.includes(uuid)) continue;
-
-                        // Add this automation to the list of automations that have been removed
-                        removed_automation_uuids.push(uuid);
-                    }
-
-                    const [new_automations_data, new_automations_permissions] = await Promise.all([
-                        this.connection.getAutomations(...new_automation_uuids),
-                        this.connection.getAutomationsPermissions(...new_automation_uuids),
-                    ]);
-
-                    const new_automations = new_automation_uuids.map((uuid, index) => new Automation(this.connection,
-                        uuid, new_automations_data[index], new_automations_permissions[index])); // eslint-disable-line vue/script-indent
-
-                    for (const automation of new_automations) {
-                        this.$set(this.automations, automation.uuid, automation);
-                        if (!dont_emit_events) this.$emit('new-automation', automation);
-                    }
-
-                    if (new_automations.length && !dont_emit_events) this.$emit('new-automations', new_automations);
-
-                    const removed_automations = removed_automation_uuids.map(uuid => this.automations[uuid]);
-
-                    for (const automation of removed_automations) {
-                        this.$delete(this.automations, automation.uuid);
-                        if (!dont_emit_events) this.$emit('removed-automation', automation);
-                    }
-
-                    if (removed_automations.length && !dont_emit_events) this.$emit('removed-automations', removed_automations);
-
-                    if (new_automations.length || removed_automations.length) {
-                        this.$emit('updated-automations', new_automations, removed_automations);
-                    }
-                } finally {
-                    this.loading_automations = false;
-                }
-            },
-            async handleAddAutomation(uuid) {
-                if (this.automation[uuid]) return;
-
-                const [[data], [permissions]] = await Promise.all([
-                    this.connection.getAutomations(uuid),
-                    this.connection.getAutomationsPermissions(uuid),
-                ]);
-
-                const automation = new Automation(this.connection, uuid, data, permissions);
-
-                this.$set(this.automations, automation.uuid, automation);
-                this.$emit('new-automation', automation);
-                this.$emit('new-automations', [automation]);
-                this.$emit('updated-automations', [automation], []);
-            },
-            handleRemoveAutomation(uuid) {
-                const automation = this.automations[uuid];
-
-                if (!automation) return;
-
-                this.$delete(this.automations, automation.uuid);
-                this.$emit('removed-automation', automation);
-                this.$emit('removed-automations', [automation]);
-                this.$emit('updated-automations', [], [automation]);
-            },
-            handleUpdateAutomation(uuid, data) {
-                const automation = this.automations[uuid];
-
-                automation._setData(data);
-            },
             createAutomation() {
-                this.open_automation = new Automation(this.connection, null, {}, {get: true, set: true, delete: true});
+                this.open_automation = new Automation(this.client.connection, null, {}, {get: true, set: true, delete: true});
             },
             async saveAutomation(staged_automation, automation_settings_panel) {
                 if (this.saving_automation) throw new Error('Already saving');
@@ -205,12 +142,12 @@
                         await staged_automation.save();
                     } else {
                         const automation = staged_automation.live;
-                        const [uuid] = await this.connection.createAutomations(staged_automation.data);
+                        const [uuid] = await this.client.connection.createAutomations(staged_automation.data);
 
                         automation.uuid = uuid;
                         automation._setData(staged_automation.data);
 
-                        this.$set(this.automations, automation.uuid, automation);
+                        this.$set(this.client.automations, automation.uuid, automation);
                         this.$emit('new-automation', automation);
                         this.$emit('new-automations', [automation]);
                         this.$emit('updated-automations', [automation], []);
@@ -227,9 +164,9 @@
 
                 try {
                     if (automation.uuid) {
-                        await this.connection.deleteAutomations(automation.uuid);
+                        await this.client.connection.deleteAutomations(automation.uuid);
 
-                        this.$delete(this.automations, automation.uuid);
+                        this.$delete(this.client.automations, automation.uuid);
                         this.$emit('removed-automation', automation);
                         this.$emit('removed-automations', [automation]);
                         this.$emit('updated-automations', [], [automation]);
@@ -243,24 +180,44 @@
                     this.deleting_automation = false;
                 }
             },
+            getAutomationProgress(automation) {
+                const running = this.running_automations.filter(r => r.automation === automation);
+                if (!running.length) return null;
+
+                return running.reduce((acc, cur) => acc + cur.progress, 0) / running.length;
+            },
+            handleAutomationRunning(runner_id, automation) {
+                this.running_automations.push({runner_id, automation, progress: 0});
+            },
+            handleAutomationProgress(runner_id, progress) {
+                const running_automation = this.running_automations.find(r => r.runner_id === runner_id);
+                if (!running_automation) return;
+
+                this.$set(running_automation, 'progress', progress);
+                this.$forceUpdate();
+            },
+            handleAutomationFinished(runner_id) {
+                let index;
+                while ((index = this.running_automations.findIndex(r => r.runner_id === runner_id)) > -1) this.running_automations.splice(index, 1);
+            },
         },
         created() {
-            global.automations = this.automations;
+            global.automations = this.client.automations;
 
-            if (!this.connection) return;
+            this.client.loadAutomations(this);
 
-            this.refreshAutomations();
-
-            this.connection.on('add-automation', this.handleAddAutomation);
-            this.connection.on('remove-automation', this.handleRemoveAutomation);
-            this.connection.on('update-automation', this.handleUpdateAutomation);
+            this.client.on('automation-running', this.handleAutomationRunning);
+            this.client.on('automation-progress', this.handleAutomationProgress);
+            this.client.on('automation-finished', this.handleAutomationFinished);
         },
         destroyed() {
-            if (!this.connection) return;
+            delete global.automations;
 
-            this.connection.removeListener('add-automation', this.handleAddAutomation);
-            this.connection.removeListener('remove-automation', this.handleRemoveAutomation);
-            this.connection.removeListener('update-automation', this.handleUpdateAutomation);
+            this.client.unloadAutomations(this);
+
+            this.client.removeListener('automation-running', this.handleAutomationRunning);
+            this.client.removeListener('automation-progress', this.handleAutomationProgress);
+            this.client.removeListener('automation-finished', this.handleAutomationFinished);
         },
     };
 </script>

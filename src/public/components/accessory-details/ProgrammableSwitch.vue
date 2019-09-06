@@ -19,12 +19,16 @@
 
 <script>
     import Service from '../../../client/service';
+    import SubscribeCharacteristicsMixin from '../../mixins/characteristics';
     import AccessoryDetails from './accessory-details.vue';
     import ButtonIcon from '../icons/button.vue';
 
     export const uuid = 'CollapsedService.' + Service.StatelessProgrammableSwitch;
 
     export default {
+        mixins: [
+            SubscribeCharacteristicsMixin,
+        ],
         components: {
             AccessoryDetails,
             ButtonIcon,
@@ -32,38 +36,13 @@
         props: {
             service: Service,
         },
-        data() {
-            return {
-                updating: false,
-            };
-        },
-        created() {
-            this.subscribeToNewServices(this.service.services);
-            this.service.on('new-services', this.subscribeToNewServices);
-            this.service.on('removed-services', this.unsubscribeFromRemovedServices);
-        },
-        destroyed() {
-            this.unsubscribeFromRemovedServices(this.service.services);
-            this.service.removeListener('new-services', this.subscribeToNewServices);
-            this.service.removeListener('removed-services', this.unsubscribeFromRemovedServices);
+        computed: {
+            subscribedCharacteristics() {
+                return this.service.services.map(service =>
+                    service.getCharacteristicByName('ProgrammableSwitchEvent'));
+            },
         },
         methods: {
-            subscribeToNewServices(services) {
-                for (const service of this.service.services) {
-                    const characteristic = service.getCharacteristicByName('ProgrammableSwitchEvent');
-                    if (!characteristic) continue;
-
-                    characteristic.subscribe(this);
-                }
-            },
-            unsubscribeFromRemovedServices(services) {
-                for (const service of services) {
-                    const characteristic = service.getCharacteristicByName('ProgrammableSwitchEvent');
-                    if (!characteristic) continue;
-
-                    characteristic.unsubscribe(this);
-                }
-            },
             getButtonName(button, index) {
                 if (!button.name) return 'Button #' + (index + 1);
 

@@ -34,7 +34,7 @@
     import Connection from '../../client/connection';
     import Service, {type_names} from '../../client/service';
 
-    import service_components from './accessory-details';
+    import {ServiceDetailsComponents as service_components} from '../component-registry';
     import AccessoryDetails from './accessory-details/accessory-details.vue';
 
     export default {
@@ -64,6 +64,13 @@
             service_name() {
                 return type_names[this.service.type];
             },
+            close_with_escape_key() {
+                return true;
+            },
+        },
+        created() {
+            // Register built in components
+            require('./accessory-details');
         },
         mounted() {
             this.show = true;

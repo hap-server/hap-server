@@ -1,4 +1,4 @@
-const authentication_handler_components = new Map();
+import {AuthenticationHandlerComponents as authentication_handler_components} from '../../component-registry';
 
 const contextRequire = require.context('.', true, /\.vue$/);
 

@@ -20,6 +20,7 @@ import isEqual from 'lodash.isequal';
 import Events from '../events';
 import {
     AddAccessoryEvent, RemoveAccessoryEvent, UpdateAccessoryConfigurationEvent,
+    AutomationRunningEvent, SceneTriggerEvent,
     SceneActivateProgressEvent, SceneActivatedEvent, SceneDeactivateProgressEvent, SceneDeactivatedEvent,
     CharacteristicUpdateEvent,
 } from '../events/server';
@@ -49,6 +50,7 @@ export default class Server extends Events {
      * @param {string} options.config_path
      * @param {object} options.config
      * @param {string} options.cli_auth_token
+     * @param {string} [options.hostname]
      * @param {node-persist} storage
      * @param {Logger} [log]
      */
@@ -57,6 +59,7 @@ export default class Server extends Events {
 
         this.parent_emitter = events;
 
+        Object.defineProperty(this, 'hostname', {enumerable: true, writable: true, value: options.hostname || null});
         Object.defineProperty(this, 'config', {enumerable: true, value: options.config || {}});
         Object.defineProperty(this, 'cli_auth_token', {value: options.cli_auth_token});
         Object.defineProperty(this, 'storage', {value: storage});
@@ -72,7 +75,7 @@ export default class Server extends Events {
         Object.defineProperty(this, 'config_automation_conditions', {writable: true});
         Object.defineProperty(this, 'config_automation_actions', {writable: true});
 
-        Object.defineProperty(this, 'accessory_discovery_counter', {value: 0});
+        Object.defineProperty(this, 'accessory_discovery_counter', {writable: true, value: 0});
         Object.defineProperty(this, 'accessory_discovery_handlers', {value: new Set()});
         Object.defineProperty(this, 'accessory_discovery_handlers_events', {value: new WeakMap()});
 
@@ -105,7 +108,8 @@ export default class Server extends Events {
         this.app.use((req, res, next) => {
             if (req.url.match(/^\/layout\/[^/]+$/) ||
                 req.url.match(/^\/all-accessories$/) ||
-                req.url.match(/^\/automations$/)) req.url = '/index.html';
+                req.url.match(/^\/automations$/) ||
+                req.url.match(/^\/setup(\?.*)?$/)) req.url = '/index.html';
 
             next();
         });
@@ -148,9 +152,45 @@ export default class Server extends Events {
         Object.defineProperty(this, '_handleRegisterHomebridgePlatformAccessories', {value: this.handleRegisterHomebridgePlatformAccessories.bind(this)});
         Object.defineProperty(this, '_handleUnregisterHomebridgePlatformAccessories', {value:
             this.handleUnregisterHomebridgePlatformAccessories.bind(this)});
+        Object.defineProperty(this, '_handleRegisterExternalHomebridgeAccessories', {value:
+            this.handleRegisterExternalHomebridgeAccessories.bind(this)});
 
         Server.instances.add(this);
 
+        this.on(AutomationRunningEvent, event => {
+            // Only send events for automations that the web interface knows about
+            if (!event.runner.automation.uuid) return;
+
+            const onprogress = progress => this.sendBroadcast({
+                type: 'automation-progress',
+                runner_id: event.runner.id,
+                progress,
+            });
+            const onfinished = () => {
+                event.runner.removeListener('progress', onprogress);
+                event.runner.removeListener('finished', onfinished);
+
+                this.sendBroadcast({
+                    type: 'automation-finished',
+                    runner_id: event.runner.id,
+                });
+            };
+
+            event.runner.on('progress', onprogress);
+            event.runner.on('finished', onfinished);
+
+            this.sendBroadcast({
+                type: 'automation-running',
+                runner_id: event.runner.id,
+                automation_uuid: event.runner.automation.uuid,
+            });
+        });
+
+        this.on(SceneTriggerEvent, event => this.sendBroadcast({
+            type: event.enable ? 'scene-activating' : 'scene-disabling',
+            uuid: event.scene.uuid,
+            context: event.context,
+        }));
         this.on(SceneActivateProgressEvent, event => this.sendBroadcast({
             type: 'scene-progress',
             uuid: event.scene.uuid,
@@ -181,6 +221,7 @@ export default class Server extends Events {
      * @param {string} options.config_path
      * @param {object} options.config
      * @param {string} options.cli_auth_token
+     * @param {string} [options.hostname]
      * @return {Server}
      */
     static async createServer(options) {
@@ -404,10 +445,19 @@ export default class Server extends Events {
             this.addAccessory(plugin_accessory);
         }
 
+        for (const platform_accessory of Object.values(this.homebridge.homebridge._publishedAccessories)) {
+            const plugin_accessory = new HomebridgeAccessory(this, platform_accessory._associatedHAPAccessory,
+                platform_accessory);
+
+            this.addAccessory(plugin_accessory);
+        }
+
         this.homebridge.homebridge._api
             .on('handleRegisterPlatformAccessories', this._handleRegisterHomebridgePlatformAccessories);
         this.homebridge.homebridge._api
             .on('handleUnregisterPlatformAccessories', this._handleUnregisterHomebridgePlatformAccessories);
+        this.homebridge.homebridge._api
+            .on('publishExternalAccessories', this._handleRegisterExternalHomebridgeAccessories);
     }
 
     handleRegisterHomebridgePlatformAccessories(accessories) {
@@ -430,6 +480,17 @@ export default class Server extends Events {
                 (a.platform_accessory === platform_accessory || a.uuid === accessory.UUID));
 
             this.removeAccessory(plugin_accessory);
+        }
+    }
+
+    handleRegisterExternalHomebridgeAccessories(accessories) {
+        for (const platform_accessory of accessories) {
+            const accessory = platform_accessory._associatedHAPAccessory;
+            if (!accessory) continue;
+
+            const plugin_accessory = new HomebridgeAccessory(this, accessory, platform_accessory);
+
+            this.addAccessory(plugin_accessory);
         }
     }
 
@@ -1323,11 +1384,15 @@ export default class Server extends Events {
      * Creates a HTTP server.
      *
      * @param {object} options
+     * @param {function} middleware
      * @return {http.Server}
      */
-    createServer(options) {
-        const server = http.createServer(this.handle, options);
+    createServer(options, middleware) {
+        const server = http.createServer(options);
 
+        server.on('request', middleware ? (req, res) => {
+            middleware(req, res, () => this.handle(req, res));
+        } : this.handle);
         server.on('upgrade', this.upgrade);
 
         return server;
@@ -1337,11 +1402,15 @@ export default class Server extends Events {
      * Creates a HTTPS server.
      *
      * @param {object} options
+     * @param {function} middleware
      * @return {https.Server}
      */
-    createSecureServer(options) {
-        const server = https.createServer(this.handle, options);
+    createSecureServer(options, middleware) {
+        const server = https.createServer(options);
 
+        server.on('request', middleware ? (req, res) => {
+            middleware(req, res, () => this.handle(req, res));
+        } : this.handle);
         server.on('upgrade', this.upgrade);
 
         return server;
@@ -1362,21 +1431,22 @@ export default class Server extends Events {
 
         const {pathname} = url.parse(req.url);
 
-        const accessory_ui_match = pathname.match(/^\/accessory-ui\/([0-9]+)(\/.*)?$/);
+        const ui_plugin_match = pathname.match(/^\/(ui-plugin|accessory-ui)\/([0-9]+)(\/.*)?$/);
 
-        if (accessory_ui_match) {
-            const accessory_ui_id = accessory_ui_match[1];
-            const accessory_ui_pathname = accessory_ui_match[2] || '/';
+        if (ui_plugin_match) {
+            const ui_plugin_id = ui_plugin_match[2];
+            const ui_plugin_pathname = ui_plugin_match[3] || '/';
 
-            req.url = accessory_ui_pathname;
+            req.url = ui_plugin_pathname;
 
-            const accessory_ui = PluginManager.getAccessoryUI(accessory_ui_id);
-            if (!accessory_ui) {
+            const ui_plugin = PluginManager.getWebInterfacePlugin(ui_plugin_id);
+            if (!ui_plugin) {
                 res.end('Cannot ' + req.method + ' ' + pathname);
                 return;
             }
 
-            accessory_ui.handle(req, res, next);
+            this.log.debug('Passing request to web interface plugin', ui_plugin_id, ui_plugin_pathname);
+            ui_plugin.handle(req, res, next);
         } else if (pathname === '/websocket') {
             // If path is /websocket tell the client to upgrade the request
             const body = http.STATUS_CODES[426];

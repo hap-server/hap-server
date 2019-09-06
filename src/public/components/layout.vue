@@ -72,8 +72,8 @@
         LayoutGetCanEditSymbol, LayoutSetEditingSymbol,
     } from '../internal-symbols';
 
+    import {LayoutSectionComponents as section_components} from '../component-registry';
     import LayoutSectionComponent from './layout-section.vue';
-    import section_components from './layout-sections';
 
     import ServiceComponent from './service.vue';
     import ServiceContainer from './service-container.vue';
@@ -383,6 +383,10 @@
             sections(sections) {
                 if (this.edit && !Object.keys(sections).length) this.addSection(0);
             },
+        },
+        created() {
+            // Register built in components
+            require('./layout-sections');
         },
         methods: {
             getSectionAccessories(section) {

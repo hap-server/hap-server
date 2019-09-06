@@ -76,6 +76,7 @@ export default class Service extends EventEmitter {
 
         for (const characteristic of removed_characteristics) {
             // Use Vue.delete so Vue updates properly
+            characteristic._handleRemove();
             $delete(this.characteristics, characteristic.uuid);
             this.emit('removed-characteristic', characteristic);
         }
@@ -151,18 +152,19 @@ export default class Service extends EventEmitter {
         return this.findCharacteristic(characteristic => characteristic.type === type);
     }
 
-    getCharacteristicValue(type) {
+    getCharacteristicValue(type, use_target_value) {
+        if (use_target_value === undefined) use_target_value = true;
         const characteristic = this.getCharacteristic(type);
 
-        if (characteristic) return characteristic.value;
+        if (characteristic) return use_target_value ? characteristic.target_value : characteristic.value;
     }
 
     getCharacteristicByName(name) {
         return this.getCharacteristic(characteristic_type_uuids[name]);
     }
 
-    getCharacteristicValueByName(name) {
-        return this.getCharacteristicValue(characteristic_type_uuids[name]);
+    getCharacteristicValueByName(name, use_target_value) {
+        return this.getCharacteristicValue(characteristic_type_uuids[name], use_target_value);
     }
 
     setCharacteristic(type, value) {
@@ -201,6 +203,7 @@ export default class Service extends EventEmitter {
         for (const collapsed_service_type of Object.keys(collapsed_services)) {
             const collapsed_service = collapsed_services[collapsed_service_type];
 
+            if (typeof collapsed_service === 'function') return collapsed_service.call(null, this) ? collapsed_service_type : null;
             if (collapsed_service.includes(this.type)) return collapsed_service_type;
         }
     }
@@ -323,7 +326,9 @@ export const system_types = [
 
 export const collapsed_services = {
     [Service.StatelessProgrammableSwitch]: [Service.StatelessProgrammableSwitch],
-    [Service.Television]: [Service.Television, Service.TelevisionSpeaker, Service.InputSource],
+    [Service.Television]: service => service.type === Service.Television ||
+        ([...Object.values(service.accessory.services)].find(s => s.type === Service.Television) &&
+            service.type === Service.TelevisionSpeaker),
 };
 
 global.Service = Service;

@@ -51,12 +51,14 @@
 
 <script>
     import Connection, {AccessorySetupConnection} from '../../client/connection';
-    import accessory_discovery_components from './accessory-discovery';
+    import {
+        AccessoryDiscoveryComponents as accessory_discovery_components,
+        AccessorySetupComponents as accessory_setup_components,
+    } from '../component-registry';
 
     import Panel from './panel.vue';
     import ListGroup from './list-group.vue';
     import ListItem from './list-item.vue';
-    import accessory_setup_components from './accessory-setup';
 
     export class DiscoveredAccessory {
         constructor(connection, plugin_name, accessory_discovery_id, id, data) {
@@ -116,6 +118,9 @@
                 return new AccessorySetupConnection(this.connection, typeof this.accessory_setup_handler === 'number' ?
                     this.accessory_setup_handler : this.discovered_accessory.accessory_discovery_id);
             },
+            close_with_escape_key() {
+                return !this.creating;
+            },
         },
         watch: {
             connection(connection, old_connection) {
@@ -131,6 +136,10 @@
             },
         },
         created() {
+            // Register built in components
+            require('./accessory-discovery');
+            require('./accessory-setup');
+
             if (this.connection) {
                 this.connection.on('add-discovered-accessory', this.handleAddDiscoveredAccessory);
                 this.connection.on('remove-discovered-accessory', this.handleRemoveDiscoveredAccessory);

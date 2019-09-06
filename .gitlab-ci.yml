@@ -1,7 +1,7 @@
 # This file is a template, and might need editing before it works on your project.
 # Official framework image. Look for the different tagged releases at:
 # https://hub.docker.com/r/library/node/tags/
-image: node:11
+image: node:12
 
 # This folder is cached between builds
 # http://docs.gitlab.com/ce/ci/yaml/README.html#cache
@@ -12,15 +12,20 @@ cache:
 build:
     stage: build
     script:
-        - npm install
-        - npx gulp build
-        - npx gulp build-release
-        - npx gulp build-example-plugins
+        - npm --color="always" install
+        - npx gulp --color build
+        - npx gulp --color build-release
+        - npx gulp --color build-example-plugins
+
+        - cd release
+        - PACKAGE_PATH=`npm --color="always" pack`
+        - mv $PACKAGE_PATH ../hap-server-release.tgz
     artifacts:
         paths:
             - dist
             - release
             - example-plugins/dist
+            - hap-server-release.tgz
     only:
         changes:
             - .gitlab-ci.yml
@@ -29,13 +34,45 @@ build:
             - .babelrc
             - src/**/*
             - example-plugins/src/**/*
+    except:
+        variables:
+            - $NPM_AUDIT_SCHEDULE_SKIP_BUILD
 
 lint:
+    stage: test
     script:
         # Run eslint for JS and Vue files separately
-        - npx eslint --ext .js src example-plugins/src
-        - npx eslint --ext .vue src
-        - npx sass-lint -v
+        - npx eslint --ext .js --color src example-plugins/src ; JS_EXIT_CODE="$?"
+        - npx eslint --ext .vue --color src ; VUE_EXIT_CODE="$?"
+        - FORCE_COLOR=1 npx sass-lint -v ; SASS_EXIT_CODE="$?"
+        - sh -c "exit `expr $JS_EXIT_CODE + $VUE_EXIT_CODE + $SASS_EXIT_CODE`"
+    only:
+        changes:
+            - .gitlab-ci.yml
+            - package-lock.json
+            - .eslintrc.js
+            - .sass-lint.yml
+            - src/**/*.js
+            - src/**/*.vue
+            - src/**/*.scss
+            - example-plugins/src/**/*.js
+    except:
+        variables:
+            - $NPM_AUDIT_SCHEDULE_SKIP_BUILD
+    cache:
+        paths:
+            - node_modules/
+        policy: pull
+
+audit:
+    stage: test
+    script:
+        - npm --color="always" audit
+        - npm audit --json > npm-audit.json
+    artifacts:
+        paths:
+            - npm-audit.json
+        when: always
     only:
         changes:
             - .gitlab-ci.yml
@@ -50,17 +87,22 @@ lint:
         paths:
             - node_modules/
         policy: pull
+    when: always
+    allow_failure: true
 
 publish:
     stage: deploy
     script:
         - cd release
         - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
-        - npm publish
+        - npm --color="always" publish
     dependencies:
         - build
     only:
-        - /^v.*$/
+        refs:
+            - /^v.*$/
+        variables:
+            - $NPM_TOKEN
     except:
         - branches
     cache:

@@ -1,6 +1,6 @@
 <template>
     <service class="service-television" :service="service" type="Television" :active="!!active" :updating="updating"
-        @click="setActive(active ? 0 : 1)"
+        :changed="changed" @click="setActive(!active)"
     >
         <television-icon slot="icon" />
 
@@ -10,12 +10,21 @@
 
 <script>
     import Service from '../../../client/service';
+    import SubscribeCharacteristicsMixin from '../../mixins/characteristics';
     import ServiceComponent from './service.vue';
     import TelevisionIcon from '../icons/television.vue';
 
     export const uuid = 'CollapsedService.' + Service.Television;
 
+    const Active = {
+        INACTIVE: 0,
+        ACTIVE: 1,
+    };
+
     export default {
+        mixins: [
+            SubscribeCharacteristicsMixin,
+        ],
         components: {
             Service: ServiceComponent,
             TelevisionIcon,
@@ -23,17 +32,19 @@
         props: {
             service: Service,
         },
-        data() {
-            return {
-                updating: false,
-            };
-        },
         computed: {
+            updating() {
+                return !!this.subscribedCharacteristics.find(c => c && c.updating);
+            },
+            changed() {
+                return !!this.subscribedCharacteristics.find(c => c && c.changed);
+            },
+
             television_service() {
                 return this.service.services.find(service => service.type === Service.Television);
             },
             active() {
-                return this.television_service.getCharacteristicValueByName('Active');
+                return this.television_service.getCharacteristicValueByName('Active') === Active.ACTIVE;
             },
             active_input() {
                 if (!this.television_service) return;
@@ -48,39 +59,19 @@
 
                 return this.active_input.getCharacteristicValueByName('ConfiguredName') || this.active_input.name;
             },
-        },
-        created() {
-            for (const characteristic of [
-                this.television_service.getCharacteristicByName('Active'),
-                this.television_service.getCharacteristicByName('ActiveIdentifier'),
-            ]) {
-                if (!characteristic) continue;
+            subscribedCharacteristics() {
+                return [
+                    this.television_service.getCharacteristicByName('Active'),
+                    this.television_service.getCharacteristicByName('ActiveIdentifier'),
 
-                characteristic.subscribe(this);
-            }
-        },
-        destroyed() {
-            for (const characteristic of [
-                this.television_service.getCharacteristicByName('Active'),
-                this.television_service.getCharacteristicByName('ActiveIdentifier'),
-            ]) {
-                if (!characteristic) continue;
-
-                characteristic.unsubscribe(this);
-            }
+                    this.active_input && this.active_input.getCharacteristicByName('ConfiguredName'),
+                ];
+            },
         },
         methods: {
             async setActive(value) {
-                if (this.updating) return;
-                this.updating = true;
-
-                try {
-                    await this.television_service.setCharacteristicByName('Active', value);
-                    console.log('Turning %s %s',
-                        this.service.name || this.service.accessory.name, value ? 'on' : 'off');
-                } finally {
-                    this.updating = false;
-                }
+                await this.television_service.setCharacteristicByName('Active',
+                    value ? Active.ACTIVE : Active.INACTIVE);
             },
         },
     };

@@ -980,6 +980,11 @@ export default class Permissions {
         if (data.type === 'update-pairing-data') {
             return Promise.all([this.checkCanGetPairing(data.id), this.checkCanAccessServerRuntimeInfo()]);
         }
+        if (['automation-running', 'automation-progress', 'automation-finished'].includes(data.type)) {
+            // Only automation-running events have an automation_uuid property
+            const runner = this.connection.server.automations.runners[data.runner_id];
+            return runner && runner.automation.uuid && this.checkCanGetAutomation(runner.automation.uuid);
+        }
 
         // Always sent to a single client
         if (data.type === 'console-output') return false;

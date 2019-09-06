@@ -18,7 +18,7 @@
 </template>
 
 <script>
-    import {action_components} from '.';
+    import {AutomationActionComponents as action_components} from '../component-registry';
 
     export default {
         props: {

@@ -123,7 +123,10 @@
     import Dropdown from '../components/dropdown.vue';
     import JsonEditor from './json-editor.vue';
 
-    import {condition_components, action_components} from '.';
+    import {
+        AutomationConditionComponents as condition_components,
+        AutomationActionComponents as action_components,
+    } from '../component-registry';
     import './conditions';
     import './actions';
 
@@ -185,6 +188,12 @@
                 if (!this.scene) return true;
 
                 return !isEqual(this.scene.data, this.data);
+            },
+            close_with_escape_key() {
+                if (this.changed) return !this.saving && !this.deleting;
+                if (this.scene && this.scene.can_delete) return !this.saving && !this.deleting;
+                if ((!this.scene || this.scene.can_set) && this.changed) return !this.saving && !this.deleting;
+                return !this.saving && !this.deleting;
             },
         },
         watch: {

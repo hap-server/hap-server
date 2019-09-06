@@ -9,14 +9,14 @@
             :service="service"
             @show-details="this.$emit('show-details', () => details_open = false); details_open = true" />
 
-        <service v-else-if="service.is_system_service" class="unsupported-service error"
+        <service v-else-if="service.is_system_service" class="unsupported-service"
             :service="service" type="System service"
         >
             <p>System service</p>
         </service>
 
         <service v-else-if="service.is_unavailable" class="unavailable-accessory"
-            :class="{'details-open': details_open}" :service="service" :type="service_name"
+            :class="{'details-open': details_open}" :service="service" :type="service_name" :error="true"
         >
             <p>Not available</p>
         </service>
@@ -33,7 +33,7 @@
 <script>
     import Service, {type_names} from '../../client/service';
 
-    import service_components from './services';
+    import {ServiceTileComponents as service_components} from '../component-registry';
     import ServiceComponent from './services/service.vue';
 
     export default {
@@ -67,6 +67,10 @@
             edit(edit) {
                 if (edit && this.touchstart_timeout) clearTimeout(this.touchstart_timeout);
             },
+        },
+        created() {
+            // Register built in components
+            require('./services');
         },
         methods: {
             showDetails() {

@@ -1,4 +1,4 @@
-import {trigger_components} from '..';
+import {AutomationTriggerComponents as trigger_components} from '../../component-registry';
 
 const contextRequire = require.context('.', true, /\.vue$/);
 

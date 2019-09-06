@@ -36,7 +36,7 @@ A lot.
     - [x] Accessory control
         - [x] Switch
         - [x] Lightbulb
-        - [ ] Programmable Switch
+        - [x] Programmable Switch
         - [x] Outlet
         - [ ] Television
             - [x] Input selection
@@ -45,9 +45,18 @@ A lot.
         - [ ] Garage Door Opener
         - [ ] [All other services supported by hap-nodejs](https://github.com/khaost/hap-nodejs/tree/master/lib/gen)
         - [x] [Other services with plugins](docs/plugins.md#accessoryuiregisteraccessorydetailscomponent)
-    - [ ] Accessory groups
     - [x] Dark theme [(system wide)](https://caniuse.com/#search=prefers-color-scheme)
     - [ ] Notifications
+    - Configuration
+        - [ ] Add + configure accessories in the web interface
+            - [x] Set home/accessory/service names
+        - [x] Server output
+        - [x] Custom layouts
+        - [x] Manage users/permissions
+        - [x] Manage HomeKit bridges + choose accessories to expose
+            - Per-user HomeKit bridges (see above)
+        - [x] Expose accessories via multiple bridges
+        - [x] Manage + name HomeKit pairings
 - [x] [Desktop app](https://gitlab.fancy.org.uk/hap-server/electron-app)
     - Electron app that wraps the web interface and provides notifications in the background.
     - Supports all operating systems supported by Electron (though for macOS you probably want to use the built in
@@ -66,6 +75,7 @@ A lot.
             their own homes with read-only access (or no access) to other people's accessories instead of sharing a
             single home where everyone has permission to control all accessories. Also allows users to choose
             their own favourite accessories/scenes/colours and using multiple devices without an Apple ID.
+    - [ ] Multiple pairings with a single bridge?
 - [x] Scenes
     - Works with automations. (Scenes just run automation conditions to check if they're enabled and automation
         actions to activate/deactivate them.)
@@ -98,16 +108,6 @@ A lot.
             - [ ] Transitions
 - [ ] Temporary scheduled actions
     - "Turn the lights off in 10 minutes."
-- [ ] Configuration
-    - [ ] Add + configure accessories in the web interface
-        - [x] Set home/accessory/service names
-    - [x] Server output
-    - [x] Custom layouts
-    - [ ] Manage users/permissions
-    - [ ] Manage HomeKit bridges + choose accessories to expose
-        - Per-user HomeKit bridges (see above)
-    - [ ] Expose accessories via multiple bridges
-    - [ ] Manage + name HomeKit pairings
 - [ ] Camera accessories
 - [x] Add HomeKit accessories
     - [x] HomeKit over IP
@@ -194,8 +194,20 @@ hap-server will exit with an error if the configuration file doesn't exist. To u
 pass it as the first argument. hap-server allows you to write your configuration file in either JSON or YAML.
 
 ```
-Samuels-MacBook-Air:hap-server samuel$ hap-server data/config.yaml
+Samuels-MacBook-Air:~ samuel$ hap-server data/config.yaml
 [28/02/2019, 01:56:01] Starting hap-server with configuration file /Users/samuel/Documents/Projects/hap-server/data/config.yaml
+...
+```
+
+hap-server can automatically setup HTTPS with a self signed certificate and advertise the web interface with Bonjour.
+To use this add the `--advertise-web-interface` flag.
+
+```
+Samuels-MacBook-Air:~ samuel$ hap-server data/config.yaml --advertise-web-interface
+...
+[27/07/2019, 01:00:03] You can access the web interface on your local network at https://hap-server-12b083b6-dd04-49a7-abac-171388e99db2.local:51820/,
+[27/07/2019, 01:00:03]     (remember to install the TLS certificate at /Users/samuel/Documents/Projects/hap-server/data/certificates/12b083b6-dd04-49a7-abac-171388e99db2.pem,
+[27/07/2019, 01:00:03]         fingerprint: c9:01:0c:f7:54:80:3d:b4:57:fd:33:27:c0:2f:f2:d2:de:b8:22:de:9a:ef:9e:56:ec:7f:c9:05:c9:72:34:a4)
 ...
 ```
 
@@ -208,37 +220,51 @@ hap-server [config]
 Run the HAP and web server
 
 Commands:
-  hap-server [config]     Run the HAP and web server                   [default]
-  hap-server version      Show version number
+  hap-server [config]                       Run the HAP and web server [default]
+  hap-server make-admin <user>              Promote a user to administrator
+  hap-server get-characteristics <config>   Get characteristics
+  <characteristics>
+  hap-server set-characteristic <config>    Set a characteristic
+  <characteristic> <value>
+  hap-server version                        Show version number
 
 Positionals:
   config  The configuration file to use
                      [string] [default: "/Users/samuel/.homebridge/config.json"]
 
 Options:
-  --debug, -D                  Enable debug level logging
+  --debug, -D                     Enable debug level logging
                                                       [boolean] [default: false]
-  --timestamps, -T             Add timestamps to logs  [boolean] [default: true]
-  --force-colour, -C           Force colour in logs   [boolean] [default: false]
-  --help                       Show help                               [boolean]
-  --data-path, -U              Path to store data                       [string]
-  --plugin-path, -P            Additional paths to look for plugins at as well
-                               as the default location ([path] can also point to
-                               a single plugin)                          [array]
-  --print-setup, -Q            Print setup information[boolean] [default: false]
-  --allow-unauthenticated, -I  Allow unauthenticated requests (for easier
-                               hacking)               [boolean] [default: false]
-  --user, -u                   User to run as after starting
-  --group, -g                  Group to run as after starting
+  --timestamps, -T                Add timestamps to logs
+                                                       [boolean] [default: true]
+  --force-colour, -C              Force colour in logs[boolean] [default: false]
+  --help                          Show help                            [boolean]
+  --advertise-web-interface       Automatically setup a HTTP server with a self
+                                  signed TLS certificate for the web interface
+                                  and advertise it through Bonjour
+                                                      [boolean] [default: false]
+  --advertise-web-interface-port  Port to listen on for the automatically
+                                  advertised web interface
+                                                       [number] [default: 51820]
+  --data-path, -U                 Path to store data                    [string]
+  --plugin-path, -P               Additional paths to look for plugins at as
+                                  well as the default location ([path] can also
+                                  point to a single plugin)              [array]
+  --print-setup, -Q               Print setup information
+                                                      [boolean] [default: false]
+  --allow-unauthenticated, -I     Allow unauthenticated requests (for easier
+                                  hacking)            [boolean] [default: false]
+  --user, -u                      User to run as after starting
+  --group, -g                     Group to run as after starting
 ```
 
 To show the version number run `hap-server version`.
 
 ```
 Samuels-MacBook-Air:~ samuel$ hap-server version
-hap-server version 0.1.0
-homebridge version 0.4.46
-hap-nodejs version 0.4.48
+hap-server version 0.8.0 production
+homebridge version 0.4.50, API 2.4
+hap-nodejs version 0.4.51
 ```
 
 Configuration
@@ -276,7 +302,7 @@ cd hap-server
 npm install
 
 # Build/watch the backend and example plugins
-npx gulp watch-backend watch-example-plugins &
+npx gulp build-backend watch-backend build-example-plugins watch-example-plugins &
 
 # Copy the example configuration
 mkdir -p data

@@ -1,4 +1,4 @@
-const section_components = new Map();
+import {LayoutSectionComponents as section_components} from '../../component-registry';
 
 const contextRequire = require.context('.', true, /\.vue$/);
 

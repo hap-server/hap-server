@@ -1,4 +1,4 @@
-const accessory_discovery_components = new Map();
+import {AccessoryDiscoveryComponents as accessory_discovery_components} from '../../component-registry';
 
 const contextRequire = require.context('.', true, /\.vue$/);
 

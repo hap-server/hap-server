@@ -25,83 +25,29 @@
                         can_manage_users"
                     :show-automations="show_automations" :can-access-automations="can_access_automations"
                     @edit-layout="$refs.layout.edit = !$refs.layout.edit" @show-automations="show_automations = $event"
-                    @modal="modal => modals.push(modal)" />
+                    @modal="modal => modals.add(modal)" />
             </div>
         </div>
 
         <keep-alive>
-            <automations v-if="show_automations" ref="automations" :connection="connection"
+            <automations v-if="show_automations" ref="automations" :client="client"
                 @title="title => automations_title = title" />
         </keep-alive>
 
         <div v-if="!show_automations" class="main">
             <layout ref="layout" :key="layout ? layout.uuid : ''" :layout="layout"
                 :title="(layout ? authenticated_user && layout.uuid === 'Overview.' + authenticated_user.id ? name : layout.name : name) || 'Home'"
-                @modal="modal => modals.push(modal)" @ping="ping" />
+                @modal="modal => modals.add(modal)" @ping="ping" />
         </div>
 
-        <template v-for="(modal, index) in modals">
-            <authenticate v-if="modal.type === 'authenticate'" :key="index" :ref="'modal-' + index"
-                :connection="connection" @close="modals.splice(index, 1)" />
-
-            <settings v-else-if="modal.type === 'settings'" :key="index" :ref="'modal-' + index"
-                :connection="connection" :accessories="accessories" :loading-accessories="loading_accessories"
-                :can-add-accessories="can_add_accessories" :can-create-bridges="can_create_bridges"
-                :can-open-console="can_open_console" :can-manage-users="can_manage_users"
-                :can-edit-user-permissions="can_manage_permissions" :can-access-server-info="can_access_server_settings"
-                @modal="modal => modals.push(modal)"
-                @show-accessory-settings="accessory => modals.push({type: 'accessory-settings', accessory})"
-                @refresh-accessories="refreshAccessories()"
-                @updated-settings="reload" @close="modals.splice(index, 1)" />
-            <add-accessory v-else-if="modal.type === 'add-accessory'" :key="index" :ref="'modal-' + index"
-                :connection="connection" @close="modals.splice(index, 1)" />
-
-            <layout-settings v-else-if="modal.type === 'layout-settings'" :key="index" :ref="'modal-' + index"
-                :connection="connection" :accessories="accessories" :layout="modal.layout"
-                @close="modals.splice(index, 1)" />
-            <layout-settings v-else-if="modal.type === 'new-layout'" :key="index" :ref="'modal-' + index"
-                :connection="connection" :accessories="accessories" :create="true"
-                @layout="l => (addLayout(layout = l), show_automations = false)"
-                @close="modals.splice(index, 1)" />
-            <layout-settings v-else-if="modal.type === 'delete-layout'" :key="index" :ref="'modal-' + index"
-                :connection="connection" :accessories="accessories" :layout="modal.layout" :delete-layout="true"
-                @remove="removeLayout" @close="modals.splice(index, 1)" />
-
-            <accessory-settings v-else-if="modal.type === 'accessory-settings'" :key="index" :ref="'modal-' + index"
-                :connection="connection" :accessory="modal.accessory" :accessories="accessories"
-                :bridge-uuids="bridge_uuids"
-                @show-accessory-settings="accessory => modals.push({type: 'accessory-settings', accessory})"
-                @show-service-settings="service => modals.push({type: 'service-settings', service, fromAccessorySettings: () => modals[index] === modal})"
-                @modal="modal => modals.push(modal)" @close="modals.splice(index, 1)" />
-            <accessory-settings v-else-if="modal.type === 'new-bridge'" :key="index" :ref="'modal-' + index"
-                :connection="connection" :accessories="accessories" :bridge-uuids="bridge_uuids" :create-bridge="true"
-                @accessory="addAccessory" @close="modals.splice(index, 1)" />
-            <accessory-settings v-else-if="modal.type === 'delete-bridge'" :key="index" :ref="'modal-' + index"
-                :connection="connection" :accessory="modal.accessory" :accessories="accessories"
-                :bridge-uuids="bridge_uuids" :delete-bridge="true" @remove="removeAccessory"
-                @close="modals.splice(index, 1)" />
-
-            <pairing-settings v-else-if="modal.type === 'pairing-settings'" :key="index" :ref="'modal-' + index"
-                :connection="connection" :accessory="modal.accessory" :pairing="modal.pairing"
-                :pairing-data="modal.data" :permissions="modal.permissions" @close="modals.splice(index, 1)" />
-
-            <service-settings v-else-if="modal.type === 'service-settings'" :key="index" :ref="'modal-' + index"
-                :connection="connection" :service="modal.service"
-                :from-accessory-settings="typeof modal.fromAccessorySettings === 'function' ? modal.fromAccessorySettings() : modal.fromAccessorySettings"
-                @show-accessory-settings="modals.push({type: 'accessory-settings', accessory: modal.service.accessory})"
-                @close="modals.splice(index, 1)" />
-
-            <accessory-details v-else-if="modal.type === 'accessory-details'" :key="index" :ref="'modal-' + index"
-                :modal="modal" :service="modal.service"
-                @show-settings="modals.push({type: 'service-settings', service: modal.service})"
-                @show-accessory-settings="modals.push({type: 'accessory-settings', accessory: modal.service.accessory})"
-                @close="modals.splice(index, 1)" />
-
-            <scene-settings v-else-if="modal.type === 'scene-settings'" :key="index" :ref="'modal-' + index"
-                :scene="modal.scene" @remove="removeScene" @close="modals.splice(index, 1)" />
-            <scene-settings v-else-if="modal.type === 'create-scene'" :key="index" :ref="'modal-' + index"
-                :create="true" @created="addScene" @close="modals.splice(index, 1)" />
-        </template>
+        <component v-if="modals.component" :is="modals.component" ref="modals" :modals="modals" :client="client"
+            :can-add-accessories="can_add_accessories" :can-create-bridges="can_create_bridges"
+            :can-open-console="can_open_console" :can-manage-users="can_manage_users"
+            :can-manage-permissions="can_manage_permissions" :can-access-server-settings="can_access_server_settings"
+            :bridge-uuids="bridge_uuids" :setup-token="typeof should_open_setup === 'string' ? should_open_setup : ''"
+            @updated-settings="reload" @new-layout="l => (addLayout(layout = l), show_automations = false)"
+            @remove-layout="removeLayout" @new-accessory="addAccessory" @remove-accessory="removeAccessory"
+            @new-scene="addScene" @remove-scene="removeScene" />
 
         <div v-if="!connection" class="connecting" :class="{reconnecting: has_connected}">
             <p>{{ has_connected ? 'Reconnecting' : 'Connecting' }}</p>
@@ -119,15 +65,13 @@
     import {BridgeService, UnsupportedService} from '../../client/service';
     import PluginManager from '../plugins';
     import {
-        NativeHookSymbol, ClientSymbol, ConnectionSymbol, AccessoriesSymbol, BridgeUUIDsSymbol, LayoutsSymbol,
-        ScenesSymbol, GetAllDisplayServicesSymbol, GetServiceSymbol, PushModalSymbol, GetAssetURLSymbol,
+        NativeHookSymbol, ModalsSymbol, ClientSymbol, ConnectionSymbol,
+        AccessoriesSymbol, BridgeUUIDsSymbol, LayoutsSymbol, ScenesSymbol,
+        GetAllDisplayServicesSymbol, GetServiceSymbol, PushModalSymbol, GetAssetURLSymbol,
     } from '../internal-symbols';
-
-    import Authenticate from './authenticate.vue';
 
     import LayoutComponent from './layout.vue';
     import LayoutSelector from './layout-selector.vue';
-    import AccessoryDetails from './accessory-details.vue';
 
     export const instances = new Set();
 
@@ -135,24 +79,14 @@
 
     export default {
         components: {
-            Authenticate,
-
             Layout: LayoutComponent,
             LayoutSelector,
-            AccessoryDetails,
 
             Automations: () => import(/* webpackChunkName: 'automations' */ '../automations/automations.vue'),
-            SceneSettings: () => import(/* webpackChunkName: 'automations' */ '../automations/scene-settings.vue'),
-
-            Settings: () => import(/* webpackChunkName: 'settings' */ './settings.vue'),
-            AddAccessory: () => import(/* webpackChunkName: 'settings' */ './add-accessory.vue'),
-            LayoutSettings: () => import(/* webpackChunkName: 'settings' */ './layout-settings.vue'),
-            AccessorySettings: () => import(/* webpackChunkName: 'settings' */ './accessory-settings.vue'),
-            PairingSettings: () => import(/* webpackChunkName: 'settings' */ './pairing-settings.vue'),
-            ServiceSettings: () => import(/* webpackChunkName: 'settings' */ './service-settings.vue'),
         },
         inject: {
             _native_hook: {from: NativeHookSymbol},
+            _modals: {from: ModalsSymbol},
             _client: {from: ClientSymbol},
             getAssetURL: {from: GetAssetURLSymbol},
         },
@@ -161,11 +95,13 @@
                 // Vue doesn't watch injected properties
                 // This forces Vue to watch them
                 native_hook: this._native_hook,
+                modals: this._modals,
                 client: this._client,
 
                 connection: null,
                 has_connected: false,
                 loading: false,
+                should_open_setup: false,
 
                 name: null,
                 default_background_url: null,
@@ -186,12 +122,10 @@
                 loading_permissions: false,
 
                 refresh_accessories_timeout: null,
-                loading_accessories: false,
 
                 bridge_uuids: [],
                 loading_bridges: false,
 
-                modals: [],
                 scrolled: false,
             };
         },
@@ -204,7 +138,7 @@
                 [ScenesSymbol]: this.scenes,
                 [GetAllDisplayServicesSymbol]: () => this.getAllServices(),
                 [GetServiceSymbol]: (uuid, service_uuid) => this.getService(uuid, service_uuid),
-                [PushModalSymbol]: modal => this.modals.push(modal),
+                [PushModalSymbol]: modal => this.modals.add(modal),
             };
         },
         computed: {
@@ -252,42 +186,8 @@
             },
 
             title() {
-                if (this.modals.length) {
-                    const modal = this.modals[this.modals.length - 1];
-
-                    if (!modal.title) {
-                        if (modal.type === 'authenticate') return 'Login';
-
-                        if (modal.type === 'settings') return 'Settings';
-                        if (modal.type === 'add-accessory') return 'Add accessory';
-
-                        if (modal.type === 'layout-settings') return modal.layout.name + ' Settings';
-                        if (modal.type === 'new-layout') return 'New layout';
-                        if (modal.type === 'delete-layout') return 'Delete ' + modal.layout.name + '?';
-
-                        if (modal.type === 'accessory-settings') return modal.accessory.name + ' Settings';
-                        if (modal.type === 'new-bridge') return 'New bridge';
-                        if (modal.type === 'delete-bridge') return 'Delete ' + modal.accessory.name + '?';
-
-                        if (modal.type === 'pairing-settings') {
-                            return ((modal.data && modal.data.name) || modal.pairing.id) + ' Settings';
-                        }
-
-                        if (modal.type === 'service-settings') {
-                            return (modal.service.name || modal.service.accessory.name) + ' Settings';
-                        }
-
-                        if (modal.type === 'accessory-details') {
-                            return modal.service.name || modal.service.accessory.name;
-                        }
-
-                        if (modal.type === 'scene-settings') {
-                            return (modal.scene.data.name || modal.scene.uuid) + ' Settings';
-                        }
-                        if (modal.type === 'new-scene') return 'New scene';
-                    }
-
-                    return modal.title;
+                if (this.modals.modal_open) {
+                    return this.modals.stack[this.modals.stack.length - 1].title;
                 }
 
                 if (this.show_automations) {
@@ -305,7 +205,7 @@
                 return require('../../../assets/default-wallpaper.jpg');
             },
             modal_open() {
-                return this.connecting || !!this.modals.length ||
+                return this.connecting || this.modals.modal_open ||
                     (this.show_automations && this.$refs.automations && this.$refs.automations.open_automation);
             },
             authenticated_user() {
@@ -343,21 +243,16 @@
             async authenticated_user(authenticated_user) {
                 document.cookie = 'asset_token=' + (authenticated_user ?
                     encodeURIComponent(authenticated_user.asset_token) : '; expires=Thu, 01 Jan 1970 00:00:00 GMT') +
-                    '; path=/';
+                    '; path=/' + (location.protocol === 'https:' ? '; Secure' : '');
 
                 if (!authenticated_user) return;
 
                 await Promise.all([
+                    this.client.refreshLoaded(),
                     this.reload(),
                     this.reloadPermissions(),
-                    this.refreshLayouts(),
                     this.reloadBridges(),
-                    this.refreshAccessories(),
-                    this.client.refreshScenes(),
                 ]);
-
-                // Force Vue to update the layout
-                this.force_update_layout = !this.force_update_layout;
             },
             layout(layout) {
                 // Only save the layout when using running as a web clip
@@ -383,6 +278,13 @@
         async created() {
             instances.add(this);
 
+            if (this.$route.name === 'setup') {
+                this.should_open_setup = this.$route.query.token || true;
+                this.$router.replace({name: 'user-default-layout'});
+            }
+
+            window.addEventListener('message', this.receiveMessage);
+            window.addEventListener('keypress', this.onkeypress);
             window.addEventListener('scroll', this.onscroll);
             window.addEventListener('touchmove', this.onscroll);
             document.scrollingElement.scrollTo(0, 0);
@@ -392,6 +294,14 @@
             this.client.on('update-home-settings', this.handleUpdateHomeSettings);
             this.client.on('update-home-permissions', this.setPermissions);
             // this.client.on('add-automation', this.handleAddAutomation);
+            this.client.on('updated-accessories', this.handleUpdatedAccessories);
+            this.client.on('updated-layouts', this.handleUpdatedLayouts);
+
+            // These won't load anything as the client hasn't authenticated (or even connected) yet
+            // This is just to add this component as a dependency so they won't automatically be unloaded
+            this.client.loadAccessories(this);
+            this.client.loadLayouts(this);
+            this.client.loadScenes(this);
 
             await this.client.tryConnect();
 
@@ -403,7 +313,7 @@
             // ]);
 
             const refresh_accessories_function = async () => {
-                await this.refreshAccessories();
+                await this.client.refreshAccessories();
 
                 this.refresh_accessories_timeout = setTimeout(refresh_accessories_function, 600000);
             };
@@ -412,10 +322,16 @@
         destroyed() {
             clearTimeout(this.refresh_accessories_timeout);
 
+            window.removeEventListener('message', this.receiveMessage);
+            window.removeEventListener('keypress', this.onkeypress);
             window.removeEventListener('scroll', this.onscroll);
             window.removeEventListener('touchmove', this.onscroll);
 
             this.client.disconnect();
+
+            this.client.unloadAccessories(this);
+            this.client.unloadLayouts(this);
+            this.client.unloadScenes(this);
 
             instances.delete(this);
         },
@@ -437,9 +353,15 @@
 
                 await Promise.all([
                     loadAccessoryUIs,
-                    this.tryRestoreSession().catch(() => {
-                        return loadAccessoryUIs.then(() => this.modals.push({type: 'authenticate'}));
-                    }),
+                    this.should_open_setup ? loadAccessoryUIs.then(() => {
+                        if (!this.modals.modal_open || this.modals.stack[this.modals.stack.length - 1].type !== 'setup') {
+                            this.modals.add({type: 'setup'});
+                        }
+                    }) : this.tryRestoreSession().catch(() => loadAccessoryUIs.then(() => {
+                        if (!this.modals.modal_open || this.modals.stack[this.modals.stack.length - 1].type !== 'authenticate') {
+                            this.modals.add({type: 'authenticate'});
+                        }
+                    })),
                 ]);
             },
             disconnected() {
@@ -470,12 +392,56 @@
 
                 return this.connection.authenticated_user = authenticated_user;
             },
+            async receiveMessage(event) {
+                if (event.origin !== location.origin) return;
+
+                if (event.data && event.data.type === 'modal') {
+                    const modal = event.data.modal;
+
+                    if (modal.type === 'layout-settings' || modal.type === 'delete-layout') {
+                        modal.layout = this.client.layouts[modal.layout];
+                    }
+
+                    if (modal.type === 'accessory-settings' || modal.type === 'delete-bridge' ||
+                        modal.type === 'pairing-settings'
+                    ) {
+                        modal.accessory = this.client.accessories[modal.accessory];
+                    }
+
+                    if (modal.type === 'pairing-settings') {
+                        [[modal.pairing], [modal.data], [modal.permissions]] = await Promise.all([
+                            this.client.connection.getPairings([modal.accessory.uuid, modal.pairing]),
+                            this.client.connection.getPairingsData(modal.pairing),
+                            this.client.connection.getPairingsPermissions(modal.pairing),
+                        ]);
+                    }
+
+                    if (modal.type === 'service-settings') {
+                        modal.accessory = this.client.accessories[modal.accessory];
+                        modal.service = modal.accessory.services[modal.service];
+                    }
+
+                    if (modal.type === 'scene-settings') {
+                        modal.scene = this.client.scene[modal.scene];
+                    }
+
+                    this.modals.add(modal);
+                }
+            },
             handleUpdateHomeSettings(data) {
                 this.name = data.name;
                 this.default_background_url = data.background_url;
             },
             handleAddAutomation() {
                 this.can_access_automations = true;
+            },
+            handleUpdatedAccessories() {
+                // Force Vue to update the layout
+                this.force_update_layout = !this.force_update_layout;
+            },
+            handleUpdatedLayouts() {
+                // Force Vue to update the layout
+                this.force_update_layout = !this.force_update_layout;
             },
             async ping() {
                 console.log('Sending ping request');
@@ -528,9 +494,6 @@
                     this.loading_accessory_uis = false;
                 }
             },
-            async refreshLayouts(dont_emit_events) {
-                await this.client.refreshLayouts(dont_emit_events);
-            },
             addAccessory(accessory) {
                 this.$set(this.accessories, accessory.uuid, accessory);
                 this.$emit('new-accessory', accessory);
@@ -580,11 +543,23 @@
                     this.loading_bridges = false;
                 }
             },
-            async refreshAccessories(dont_emit_events) {
-                await this.client.refreshAccessories(dont_emit_events);
-            },
             onscroll() {
                 this.scrolled = document.scrollingElement.scrollTop > 60;
+            },
+            onkeypress(event) {
+                if (event.key === 'Escape' && this.modals.modal_open && this.$refs.modals &&
+                    this.$refs.modals.$refs['modal-' + (this.modals.stack.length - 1)] &&
+                    this.$refs.modals.$refs['modal-' + (this.modals.stack.length - 1)][0] &&
+                    this.$refs.modals.$refs['modal-' + (this.modals.stack.length - 1)][0].close_with_escape_key
+                ) {
+                    if (this.$refs.modals.$refs['modal-' + (this.modals.stack.length - 1)][0].$refs.panel) {
+                        this.$refs.modals.$refs['modal-' + (this.modals.stack.length - 1)][0].$refs.panel.close(event);
+                    } else {
+                        this.$refs.modals.$refs['modal-' + (this.modals.stack.length - 1)][0].close(event);
+                    }
+
+                    event.preventDefault();
+                }
             },
             findServices(callback) {
                 const services = [];

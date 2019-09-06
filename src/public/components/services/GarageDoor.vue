@@ -1,7 +1,7 @@
 <template>
     <service class="service-garage-door-opener" :class="{'service-error': stopped || jammed || unknown_state}"
         :service="service" type="Lock" :active="open || opening || (has_lock && (unlocked || !locking))"
-        :updating="updating" @click="setOpening(!target_open)"
+        :updating="updating" :changed="changed" @click="setOpening(!target_open)"
     >
         <switch-icon slot="icon" />
 
@@ -18,6 +18,7 @@
 
 <script>
     import Service from '../../../client/service';
+    import SubscribeCharacteristicsMixin from '../../mixins/characteristics';
     import ServiceComponent from './service.vue';
     import SwitchIcon from '../icons/light-switch.vue';
 
@@ -39,6 +40,9 @@
     };
 
     export default {
+        mixins: [
+            SubscribeCharacteristicsMixin,
+        ],
         components: {
             Service: ServiceComponent,
             SwitchIcon,
@@ -46,12 +50,14 @@
         props: {
             service: Service,
         },
-        data() {
-            return {
-                updating: false,
-            };
-        },
         computed: {
+            updating() {
+                return !!this.subscribedCharacteristics.find(c => c && c.updating);
+            },
+            changed() {
+                return !!this.subscribedCharacteristics.find(c => c && c.changed);
+            },
+
             door_state() {
                 return this.service.getCharacteristicValueByName('CurrentDoorState');
             },
@@ -102,55 +108,24 @@
             locking() {
                 return this.target_lock_state === LockState.SECURED;
             },
-        },
-        created() {
-            for (const characteristic of [
-                this.service.getCharacteristicByName('CurrentDoorState'),
-                this.service.getCharacteristicByName('TargetDoorState'),
-                this.service.getCharacteristicByName('LockCurrentState'),
-                this.service.getCharacteristicByName('LockTargetState'),
-            ]) {
-                if (!characteristic) continue;
 
-                characteristic.subscribe(this);
-            }
-        },
-        destroyed() {
-            for (const characteristic of [
-                this.service.getCharacteristicByName('CurrentDoorState'),
-                this.service.getCharacteristicByName('TargetDoorState'),
-                this.service.getCharacteristicByName('LockCurrentState'),
-                this.service.getCharacteristicByName('LockTargetState'),
-            ]) {
-                if (!characteristic) continue;
-
-                characteristic.unsubscribe(this);
-            }
+            subscribedCharacteristics() {
+                return [
+                    this.service.getCharacteristicByName('CurrentDoorState'),
+                    this.service.getCharacteristicByName('TargetDoorState'),
+                    this.service.getCharacteristicByName('LockCurrentState'),
+                    this.service.getCharacteristicByName('LockTargetState'),
+                ];
+            },
         },
         methods: {
             async setOpening(value) {
-                if (this.updating) return;
-                this.updating = true;
-
-                try {
-                    await this.service.setCharacteristicByName('TargetDoorState',
-                        value ? DoorState.OPEN : DoorState.CLOSED);
-                    console.log((value ? 'Open' : 'Clos') + 'ing %s', this.service.name || this.service.accessory.name);
-                } finally {
-                    this.updating = false;
-                }
+                await this.service.setCharacteristicByName('TargetDoorState',
+                    value ? DoorState.OPEN : DoorState.CLOSED);
             },
             async setLocking(value) {
-                if (this.updating) return;
-                this.updating = true;
-
-                try {
-                    await this.service.setCharacteristicByName('LockTargetState',
-                        value ? LockState.SECURED : LockState.UNSECURED);
-                    console.log((value ? 'L' : 'Unl') + 'ocking %s', this.service.name || this.service.accessory.name);
-                } finally {
-                    this.updating = false;
-                }
+                await this.service.setCharacteristicByName('LockTargetState',
+                    value ? LockState.SECURED : LockState.UNSECURED);
             },
         },
     };

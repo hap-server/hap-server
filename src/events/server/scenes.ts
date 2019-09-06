@@ -1,5 +1,5 @@
 import {Event} from '..';
-import {AutomationTriggerEvent} from './automation-trigger';
+import {AutomationTriggerEvent} from './automations';
 import Scene from '../../automations/scene';
 
 export class SceneTriggerEvent extends Event {

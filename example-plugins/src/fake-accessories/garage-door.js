@@ -17,10 +17,20 @@ export default function createAccessory(name, uuid, log) {
             if (new_value === Characteristic.TargetDoorState.CLOSED) {
                 opened = false;
 
+                garage_door.setCharacteristic(Characteristic.CurrentDoorState, Characteristic.CurrentDoorState.CLOSING);
+
+                // Wait five seconds
+                await new Promise(rs => setTimeout(rs, 5000));
+
                 // now we want to set our lock's "actual state" to be unsecured so it shows as unlocked in iOS apps
                 garage_door.setCharacteristic(Characteristic.CurrentDoorState, Characteristic.CurrentDoorState.CLOSED);
             } else if (new_value === Characteristic.TargetDoorState.OPEN) {
                 opened = true;
+
+                garage_door.setCharacteristic(Characteristic.CurrentDoorState, Characteristic.CurrentDoorState.OPENING);
+
+                // Wait five seconds
+                await new Promise(rs => setTimeout(rs, 5000));
 
                 // now we want to set our lock's "actual state" to be locked so it shows as open in iOS apps
                 garage_door.setCharacteristic(Characteristic.CurrentDoorState, Characteristic.CurrentDoorState.OPEN);

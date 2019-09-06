@@ -3,6 +3,7 @@ import EventEmitter from 'events';
 import Connection, {Console} from './connection';
 import Accessory from './accessory';
 import Layout from './layout';
+import Automation from './automation';
 import Scene from './scene';
 
 export function $set(object, key, value) {
@@ -54,11 +55,17 @@ export default class Client extends EventEmitter {
         this.loading_automations = false;
         this.loading_scenes = false;
 
+        this.home_settings_dependencies = new Set();
+        this.accessories_dependencies = new Map();
+        this.layouts_dependencies = new Map();
+        this.automations_dependencies = new Map();
+        this.scenes_dependencies = new Map();
+
         this._handleBroadcastMessage = this.handleBroadcastMessage.bind(this);
         this._handleDisconnected = this.handleDisconnected.bind(this);
 
-        this.on('updated-accessories', (added, removed) => console.log('Updated accessories', added, removed));
-        this.on('updated-layouts', (added, removed) => console.log('Updated layouts', added, removed));
+        // this.on('updated-accessories', (added, removed) => console.log('Updated accessories', added, removed));
+        // this.on('updated-layouts', (added, removed) => console.log('Updated layouts', added, removed));
     }
 
     /**
@@ -130,6 +137,15 @@ export default class Client extends EventEmitter {
         }
     }
 
+    refreshLoaded() {
+        return Promise.all([
+            this.accessories ? this.refreshAccessories() : null,
+            this.layouts ? this.refreshLayouts() : null,
+            this.automations ? this.refreshAutomations() : null,
+            this.scenes ? this.refreshScenes() : null,
+        ]);
+    }
+
     /**
      * Disconnects from the server.
      *
@@ -137,7 +153,7 @@ export default class Client extends EventEmitter {
      */
     async disconnect() {
         if (!this.connection) return;
-        const connection = this.connection;
+        const connection = this.old_connection = this.connection;
         this.connection = null;
         this.connected = false;
 
@@ -159,6 +175,8 @@ export default class Client extends EventEmitter {
     }
 
     async handleBroadcastMessage(data) {
+        this.emit('received-broadcast', data);
+
         if (data.type === 'update-permissions') {
             const accessory_uuids = Object.values(this.accessories || {}).map(a => a.uuid);
             if (accessory_uuids.length) {
@@ -248,18 +266,23 @@ export default class Client extends EventEmitter {
 
         if (this.accessories && data.type === 'update-accessory') {
             const accessory = this.accessories[data.uuid];
+            if (!accessory) return;
+
             accessory._setDetails(data.details);
         }
 
         if (this.accessories && data.type === 'update-accessory-data') {
             const accessory = this.accessory[data.uuid];
+            if (!accessory) return;
+
             accessory._setData(data.data);
         }
 
         if (this.accessories && data.type === 'update-characteristic') {
             const accessory = this.accessories[data.accessory_uuid];
-            const service = accessory.findService(s => s.uuid === data.service_id);
-            const characteristic = service.findCharacteristic(c => c.uuid === data.characteristic_id);
+            const service = !accessory || accessory.findService(s => s.uuid === data.service_id);
+            const characteristic = !accessory || !service || service.findCharacteristic(c => c.uuid === data.characteristic_id);
+            if (!accessory || !service || !characteristic) return;
 
             characteristic._setDetails(data.details);
         }
@@ -281,9 +304,8 @@ export default class Client extends EventEmitter {
         }
 
         if (this.layouts && data.type === 'remove-layout') {
-            if (!this.layouts[data.uuid]) return;
-
             const layout = this.layouts[data.uuid];
+            if (!layout) return;
 
             $delete(this.layouts, layout.uuid);
             this.emit('removed-layout', layout);
@@ -293,11 +315,15 @@ export default class Client extends EventEmitter {
 
         if (this.layouts && data.type === 'update-layout') {
             const layout = this.layouts[data.uuid];
+            if (!layout) return;
+
             layout._setData(data.data);
         }
 
         if (this.layouts && data.type === 'add-layout-section') {
             const layout = this.layouts[data.layout_uuid];
+            if (!layout) return;
+
             const [data] = await this.connection.getLayoutSection(data.layout_uuid, data.uuid);
 
             layout._handleNewLayoutSection(data.uuid, data);
@@ -305,15 +331,66 @@ export default class Client extends EventEmitter {
 
         if (this.layouts && data.type === 'remove-layout-section') {
             const layout = this.layouts[data.layout_uuid];
+            if (!layout) return;
 
             layout._handleRemoveLayoutSection(data.uuid);
         }
 
         if (this.layouts && data.type === 'update-layout-section') {
             const layout = this.layouts[data.layout_uuid];
+            if (!layout) return;
+
             const section = layout.sections[data.uuid];
 
             section._setData(data.data);
+        }
+
+        if (this.automations && data.type === 'add-automation') {
+            if (this.automations[data.uuid]) return;
+
+            const [[data], [permissions]] = await Promise.all([
+                this.connection.getAutomations(uuid),
+                this.connection.getAutomationsPermissions(uuid),
+            ]);
+
+            const automation = new Automation(this.connection, uuid, data, permissions);
+
+            $set(this.automations, automation.uuid, automation);
+            this.emit('new-automation', automation);
+            this.emit('new-automations', [automation]);
+            this.emit('updated-automations', [automation], []);
+        }
+
+        if (this.automations && data.type === 'remove-automation') {
+            const automation = this.automations[uuid];
+            if (!automation) return;
+
+            this.$delete(this.automations, automation.uuid);
+            this.$emit('removed-automation', automation);
+            this.$emit('removed-automations', [automation]);
+            this.$emit('updated-automations', [], [automation]);
+        }
+
+        if (this.automations && data.type === 'update-automation') {
+            const automation = this.automations[uuid];
+            if (!automation) return;
+
+            automation._setData(data);
+        }
+
+        if (this.automations && data.type === 'automation-running') {
+            const automation = this.automations[data.automation_uuid];
+            if (!automation) return;
+
+            this.emit('automation-running', data.runner_id, automation);
+        }
+
+        if (this.automations && data.type === 'automation-progress') {
+            this.emit('automation-progress', data.runner_id, data.progress);
+        }
+
+        if (this.automations && data.type === 'automation-finished') {
+            this.emit('automation-finished', data.runner_id);
         }
 
         if (this.scenes && data.type === 'add-scene') {
@@ -333,9 +410,8 @@ export default class Client extends EventEmitter {
         }
 
         if (this.scenes && data.type === 'remove-scene') {
-            if (!this.scenes[data.uuid]) return;
-
             const scene = this.scenes[data.uuid];
+            if (!scene) return;
 
             $delete(this.scenes, scene.uuid);
             this.emit('removed-scene', scene);
@@ -345,21 +421,43 @@ export default class Client extends EventEmitter {
 
         if (this.scenes && data.type === 'update-scene') {
             const scene = this.scenes[data.uuid];
+            if (!scene) return;
+
             scene._setData(scene);
+        }
+
+        if (this.scenes && data.type === 'scene-activating') {
+            const scene = this.scenes[data.uuid];
+            if (!scene) return;
+
+            scene._handleActivating(data);
+        }
+
+        if (this.scenes && data.type === 'scene-deactivating') {
+            const scene = this.scenes[data.uuid];
+            if (!scene) return;
+
+            scene._handleDeactivating(data);
         }
 
         if (this.scenes && data.type === 'scene-activated') {
             const scene = this.scenes[data.uuid];
+            if (!scene) return;
+
             scene._handleActivated(data);
         }
 
         if (this.scenes && data.type === 'scene-deactivated') {
             const scene = this.scenes[data.uuid];
+            if (!scene) return;
+
             scene._handleDeactivated(data);
         }
 
         if (this.scenes && data.type === 'scene-progress') {
             const scene = this.scenes[data.uuid];
+            if (!scene) return;
+
             scene._handleProgress(data);
         }
     }
@@ -375,13 +473,67 @@ export default class Client extends EventEmitter {
         this.emit('disconnected', event);
     }
 
+    /**
+     * Load accessories or add a dependency on loaded accessories.
+     *
+     * @param {*} [dep]
+     * @param {Array} [accessory_uuids]
+     * @return {Promise}
+     */
+    async loadAccessories(dep, accessory_uuids) {
+        const required_accessory_uuids = this.getRequiredAccessoryUUIDs();
+        const load_accessories = !this.accessories || (required_accessory_uuids && accessory_uuids &&
+            accessory_uuids.find(uuid => !required_accessory_uuids.has(uuid))) ||
+            (required_accessory_uuids && !accessory_uuids);
+
+        if (dep) {
+            this.accessories_dependencies.set(dep, accessory_uuids || true);
+        }
+
+        if (!this.accessories) this.accessories = {};
+        if (load_accessories && this.connection) await this.refreshAccessories();
+    }
+
+    /**
+     * Unload accessories or remove a dependency on loaded accessories.
+     *
+     * @param {*} [dep]
+     */
+    unloadAccessories(dep) {
+        if (dep) {
+            this.accessories_dependencies.delete(dep);
+
+            // If there are more dependencies don't unload accessories yet
+            if (this.accessories_dependencies.size) return;
+        }
+
+        this.accessories = null;
+    }
+
+    getRequiredAccessoryUUIDs() {
+        if (!this.accessories_dependencies.size) return new Set();
+
+        const required_accessory_uuids = new Set();
+
+        for (const accessory_uuids of this.accessories_dependencies.values()) {
+            if (!(accessory_uuids instanceof Array)) return;
+
+            for (const uuid of accessory_uuids) required_accessory_uuids.add(uuid);
+        }
+
+        return required_accessory_uuids;
+    }
+
     async refreshAccessories(dont_emit_events) {
         if (this.loading_accessories) throw new Error('Already loading accessories');
         this.loading_accessories = true;
 
         try {
-            const accessory_uuids = await this.connection.listAccessories();
+            const required_accessory_uuids = this.getRequiredAccessoryUUIDs();
+            const accessory_uuids = (await this.connection.listAccessories())
+                .filter(uuid => !required_accessory_uuids || required_accessory_uuids.has(uuid));
 
+            if (!this.accessories) this.accessories = {};
             const new_accessories = [];
             const removed_accessories = [];
 
@@ -439,13 +591,54 @@ export default class Client extends EventEmitter {
         }
     }
 
+    loadLayouts(dep, layout_uuids) {
+        const required_layout_uuids = this.getRequiredLayoutUUIDs();
+        const load_layouts = !this.layouts || (required_layout_uuids && layout_uuids &&
+            layout_uuids.find(uuid => !required_layout_uuids.has(uuid))) || (required_layout_uuids && !layout_uuids);
+
+        if (dep) {
+            this.layouts_dependencies.set(dep, layout_uuids || true);
+        }
+
+        if (!this.layouts) this.layouts = {};
+        if (load_layouts && this.connection) this.refreshLayouts();
+    }
+
+    unloadLayouts(dep) {
+        if (dep) {
+            this.layouts_dependencies.delete(dep);
+
+            // If there are more dependencies don't unload layouts yet
+            if (this.layouts_dependencies.size) return;
+        }
+
+        this.layouts = null;
+    }
+
+    getRequiredLayoutUUIDs() {
+        if (!this.layouts_dependencies.size) return new Set();
+
+        const required_layout_uuids = new Set();
+
+        for (const layout_uuids of this.layouts_dependencies.values()) {
+            if (!(layout_uuids instanceof Array)) return;
+
+            for (const uuid of layout_uuids) required_layout_uuids.add(uuid);
+        }
+
+        return required_layout_uuids;
+    }
+
     async refreshLayouts(dont_emit_events) {
         if (this.loading_layouts) throw new Error('Already loading layouts');
         this.loading_layouts = true;
 
         try {
-            const layout_uuids = await this.connection.listLayouts();
+            const required_layout_uuids = this.getRequiredLayoutUUIDs();
+            const layout_uuids = (await this.connection.listLayouts())
+                .filter(uuid => !required_layout_uuids || required_layout_uuids.has(uuid));
 
+            if (!this.layouts) this.layouts = {};
             const new_layout_uuids = [];
             const removed_layout_uuids = [];
 
@@ -524,8 +717,139 @@ export default class Client extends EventEmitter {
         }
     }
 
+    loadAutomations(dep, automation_uuids) {
+        const required_automation_uuids = this.getRequiredAutomationUUIDs();
+        const load_automations = !this.automations || (required_automation_uuids && automation_uuids &&
+            automation_uuids.find(uuid => !required_automation_uuids.has(uuid))) ||
+            (required_automation_uuids && !automation_uuids);
+
+        if (dep) {
+            this.automations_dependencies.set(dep, automation_uuids || true);
+        }
+
+        if (!this.automations) this.automations = {};
+        if (load_automations && this.connection) this.refreshAutomations();
+    }
+
+    unloadAutomations(dep) {
+        if (dep) {
+            this.automations_dependencies.delete(dep);
+
+            // If there are more dependencies don't unload automations yet
+            if (this.automations_dependencies.size) return;
+        }
+
+        this.automations = null;
+    }
+
+    getRequiredAutomationUUIDs() {
+        if (!this.automations_dependencies.size) return new Set();
+
+        const required_automation_uuids = new Set();
+
+        for (const automation_uuids of this.automations_dependencies.values()) {
+            if (!(automation_uuids instanceof Array)) return;
+
+            for (const uuid of automation_uuids) required_automation_uuids.add(uuid);
+        }
+
+        return required_automation_uuids;
+    }
+
     async refreshAutomations(dont_emit_events) {
-        // ...
+        if (this.loading_automations) throw new Error('Already loading');
+        this.loading_automations = true;
+
+        try {
+            const automation_uuids = await this.connection.listAutomations();
+
+            const new_automation_uuids = [];
+            const removed_automation_uuids = [];
+
+            for (const uuid of automation_uuids) {
+                // Automation already exists
+                if (this.automations[uuid]) continue;
+
+                // Add this automation to the list of automations we don't yet know about
+                new_automation_uuids.push(uuid);
+            }
+
+            for (const uuid of Object.keys(this.automations)) {
+                // Automation still exists
+                if (automation_uuids.includes(uuid)) continue;
+
+                // Add this automation to the list of automations that have been removed
+                removed_automation_uuids.push(uuid);
+            }
+
+            const [new_automations_data, new_automations_permissions] = await Promise.all([
+                this.connection.getAutomations(...new_automation_uuids),
+                this.connection.getAutomationsPermissions(...new_automation_uuids),
+            ]);
+
+            const new_automations = new_automation_uuids.map((uuid, index) => new Automation(this.connection,
+                uuid, new_automations_data[index], new_automations_permissions[index])); // eslint-disable-line vue/script-indent
+
+            for (const automation of new_automations) {
+                $set(this.automations, automation.uuid, automation);
+                if (!dont_emit_events) this.emit('new-automation', automation);
+            }
+
+            if (new_automations.length && !dont_emit_events) this.emit('new-automations', new_automations);
+
+            const removed_automations = removed_automation_uuids.map(uuid => this.automations[uuid]);
+
+            for (const automation of removed_automations) {
+                $delete(this.automations, automation.uuid);
+                if (!dont_emit_events) this.emit('removed-automation', automation);
+            }
+
+            if (removed_automations.length && !dont_emit_events) this.emit('removed-automations', removed_automations);
+
+            if (new_automations.length || removed_automations.length) {
+                this.emit('updated-automations', new_automations, removed_automations);
+            }
+        } finally {
+            this.loading_automations = false;
+        }
+    }
+
+    loadScenes(dep, scene_uuids) {
+        const required_scene_uuids = this.getRequiredSceneUUIDs();
+        const load_scenes = !this.scenes || (required_scene_uuids && scene_uuids &&
+            scene_uuids.find(uuid => !required_scene_uuids.has(uuid))) || (required_scene_uuids && !scene_uuids);
+
+        if (dep) {
+            this.scenes_dependencies.set(dep, scene_uuids || true);
+        }
+
+        if (!this.scenes) this.scenes = {};
+        if (load_scenes && this.connection) this.refreshScenes();
+    }
+
+    unloadScenes(dep) {
+        if (dep) {
+            this.scenes_dependencies.delete(dep);
+
+            // If there are more dependencies don't unload scenes yet
+            if (this.scenes_dependencies.size) return;
+        }
+
+        this.scenes = null;
+    }
+
+    getRequiredSceneUUIDs() {
+        if (!this.scenes_dependencies.size) return new Set();
+
+        const required_scene_uuids = new Set();
+
+        for (const scene_uuids of this.scenes_dependencies.values()) {
+            if (!(scene_uuids instanceof Array)) return;
+
+            for (const uuid of scene_uuids) required_scene_uuids.add(uuid);
+        }
+
+        return required_scene_uuids;
     }
 
     async refreshScenes(dont_emit_events) {
@@ -533,8 +857,11 @@ export default class Client extends EventEmitter {
         this.loading_scenes = true;
 
         try {
-            const scene_uuids = await this.connection.listScenes();
+            const required_scene_uuids = this.getRequiredSceneUUIDs();
+            const scene_uuids = (await this.connection.listScenes())
+                .filter(uuid => !required_scene_uuids || required_scene_uuids.has(uuid));
 
+            if (!this.scenes) this.scenes = {};
             const new_scene_uuids = [];
             const removed_scene_uuids = [];
 
@@ -621,7 +948,14 @@ export default class Client extends EventEmitter {
             const connection = characteristic.service.accessory.connection;
             const queue = connection.subscribe_queue || (connection.subscribe_queue = []);
 
-            queue.push([characteristic, resolve, reject]);
+            let index;
+            if ((index = queue.findIndex(q => q[0] === characteristic)) > -1) {
+                if (queue[index][1] instanceof Array) queue[index][1].push(resolve);
+                else queue[index][1] = [queue[index][1], resolve];
+
+                if (queue[index][2] instanceof Array) queue[index][2].push(reject);
+                else queue[index][2] = [queue[index][2], reject];
+            } else queue.push([characteristic, resolve, reject]);
 
             if (typeof connection.subscribe_queue_timeout === 'undefined' ||
                 connection.subscribe_queue_timeout === null
@@ -633,7 +967,9 @@ export default class Client extends EventEmitter {
             if (connection.unsubscribe_queue) {
                 let index;
                 while ((index = connection.unsubscribe_queue.findIndex(q => q[0] === characteristic)) > -1) {
-                    connection.unsubscribe_queue[2].call(null, new Error('Canceled by call to subscribe'));
+                    if (connection.unsubscribe_queue[index][2] instanceof Array) connection.unsubscribe_queue[index][2] // eslint-disable-line curly
+                        .map(rj => rj.call(null, new Error('Canceled by call to subscribe')));
+                    else connection.unsubscribe_queue[index][2].call(null, new Error('Canceled by call to subscribe'));
                     connection.unsubscribe_queue.splice(index, 1);
                 }
 
@@ -668,11 +1004,13 @@ export default class Client extends EventEmitter {
                 // Force Vue to update the subscribed property, as Vue doesn't support Sets
                 queue[index][0]._subscribed = !queue[index][0]._subscribed;
 
-                queue[index][1].call(null, queue[index]);
+                if (queue[index][1] instanceof Array) queue[index][1].map(rs => rs.call(null, queue[index]));
+                else queue[index][1].call(null, queue[index]);
             }
         } catch (err) {
             for (const q of queue) {
-                q[2].call(null, err);
+                if (q[2] instanceof Array) q[2].map(rj => rj.call(null, err));
+                else q[2].call(null, err);
             }
         }
     }
@@ -709,7 +1047,13 @@ export default class Client extends EventEmitter {
             const connection = characteristic.service.accessory.connection;
             const queue = connection.unsubscribe_queue || (connection.unsubscribe_queue = []);
 
-            queue.push([characteristic, resolve, reject]);
+            let index;
+            if ((index = queue.findIndex(q => q[0] === characteristic)) > -1) {
+                if (queue[index][1] instanceof Array) queue[index][1].push(resolve);
+                else queue[index][1] = [queue[index][1], resolve];
+                if (queue[index][2] instanceof Array) queue[index][2].push(reject);
+                else queue[index][2] = [queue[index][2], reject];
+            } else queue.push([characteristic, resolve, reject]);
 
             if (typeof connection.unsubscribe_queue_timeout === 'undefined' ||
                 connection.unsubscribe_queue_timeout === null
@@ -721,7 +1065,9 @@ export default class Client extends EventEmitter {
             if (connection.subscribe_queue) {
                 let index;
                 while ((index = connection.subscribe_queue.findIndex(q => q[0] === characteristic)) > -1) {
-                    connection.subscribe_queue[2].call(null, new Error('Canceled by call to unsubscribe'));
+                    if (connection.subscribe_queue[index][2] instanceof Array) connection.subscribe_queue[index][2] // eslint-disable-line curly
+                        .map(rj => rj.call(null, new Error('Canceled by call to unsubscribe')));
+                    else connection.subscribe_queue[index][2].call(null, new Error('Canceled by call to unsubscribe'));
                     connection.subscribe_queue.splice(index, 1);
                 }
 
@@ -754,11 +1100,13 @@ export default class Client extends EventEmitter {
                 // Force Vue to update the subscribed property, as Vue doesn't support Sets
                 queue[index][0]._subscribed = !queue[index][0]._subscribed;
 
-                queue[index][1].call(null, queue[index]);
+                if (queue[index][1] instanceof Array) queue[index][1].map(rs => rs.call(null, queue[index]));
+                else queue[index][1].call(null, queue[index]);
             }
         } catch (err) {
             for (const q of queue) {
-                q[2].call(null, err);
+                if (q[2] instanceof Array) q[2].map(rj => rj.call(null, err));
+                else q[2].call(null, err);
             }
         }
     }

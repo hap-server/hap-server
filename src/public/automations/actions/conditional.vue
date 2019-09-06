@@ -42,7 +42,10 @@
     import Dropdown from '../../components/dropdown.vue';
 
     import AutomationAction from '../action.vue';
-    import {condition_components, action_components} from '..';
+    import {
+        AutomationConditionComponents as condition_components,
+        AutomationActionComponents as action_components,
+    } from '../../component-registry';
 
     export const type = 'Conditional';
     export const name = 'Conditional';

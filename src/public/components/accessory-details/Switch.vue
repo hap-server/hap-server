@@ -1,23 +1,27 @@
 <template>
-    <accessory-details class="accessory-details-switch" :active="on" :updating="updating"
+    <accessory-details class="accessory-details-switch" :active="on" :updating="updating" :changed="changed"
         :name="service.name || service.accessory.name" @show-settings="$emit('show-settings')"
     >
         <switch-icon slot="icon" />
 
         <p>Switch</p>
         <p v-if="updating">Updating</p>
-        <p @click.stop="setOn(!on)">{{ on ? 'On' : 'Off' }}</p>
+        <p @click.stop="service.setCharacteristicByName('On', !on)">{{ on ? 'On' : 'Off' }}</p>
     </accessory-details>
 </template>
 
 <script>
     import Service from '../../../client/service';
+    import SubscribeCharacteristicsMixin from '../../mixins/characteristics';
     import AccessoryDetails from './accessory-details.vue';
     import SwitchIcon from '../icons/light-switch.vue';
 
     export const uuid = Service.Switch;
 
     export default {
+        mixins: [
+            SubscribeCharacteristicsMixin,
+        ],
         components: {
             AccessoryDetails,
             SwitchIcon,
@@ -25,46 +29,22 @@
         props: {
             service: Service,
         },
-        data() {
-            return {
-                updating: false,
-            };
-        },
         computed: {
+            updating() {
+                return !!this.subscribedCharacteristics.find(c => c && c.updating);
+            },
+            changed() {
+                return !!this.subscribedCharacteristics.find(c => c && c.changed);
+            },
+
             on() {
                 return this.service.getCharacteristicValueByName('On');
             },
-        },
-        created() {
-            for (const characteristic of [
-                this.service.getCharacteristicByName('On'),
-            ]) {
-                if (!characteristic) continue;
 
-                characteristic.subscribe(this);
-            }
-        },
-        destroyed() {
-            for (const characteristic of [
-                this.service.getCharacteristicByName('On'),
-            ]) {
-                if (!characteristic) continue;
-
-                characteristic.unsubscribe(this);
-            }
-        },
-        methods: {
-            async setOn(value) {
-                if (this.updating) return;
-                this.updating = true;
-
-                try {
-                    await this.service.setCharacteristicByName('On', value);
-                    console.log('Turning %s %s',
-                        this.service.name || this.service.accessory.name, value ? 'on' : 'off');
-                } finally {
-                    this.updating = false;
-                }
+            subscribedCharacteristics() {
+                return [
+                    this.service.getCharacteristicByName('On'),
+                ];
             },
         },
     };

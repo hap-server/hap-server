@@ -1,6 +1,6 @@
 <template>
     <service class="service-lock-mechanism" :class="{'service-error': jammed || unknown_state}" :service="service"
-        type="Lock" :active="unlocked || !locking" :updating="updating" @click="setLocking(!locking)"
+        type="Lock" :active="unlocked || !locking" :updating="updating" :changed="changed" @click="setLocking(!locking)"
     >
         <switch-icon slot="icon" />
 
@@ -13,6 +13,7 @@
 
 <script>
     import Service from '../../../client/service';
+    import SubscribeCharacteristicsMixin from '../../mixins/characteristics';
     import ServiceComponent from './service.vue';
     import SwitchIcon from '../icons/light-switch.vue';
 
@@ -26,6 +27,9 @@
     };
 
     export default {
+        mixins: [
+            SubscribeCharacteristicsMixin,
+        ],
         components: {
             Service: ServiceComponent,
             SwitchIcon,
@@ -33,12 +37,14 @@
         props: {
             service: Service,
         },
-        data() {
-            return {
-                updating: false,
-            };
-        },
         computed: {
+            updating() {
+                return !!this.subscribedCharacteristics.find(c => c && c.updating);
+            },
+            changed() {
+                return !!this.subscribedCharacteristics.find(c => c && c.changed);
+            },
+
             lock_state() {
                 return this.service.getCharacteristicValueByName('LockCurrentState');
             },
@@ -60,39 +66,18 @@
             locking() {
                 return this.target_state === LockState.SECURED;
             },
-        },
-        created() {
-            for (const characteristic of [
-                this.service.getCharacteristicByName('LockCurrentState'),
-                this.service.getCharacteristicByName('LockTargetState'),
-            ]) {
-                if (!characteristic) continue;
 
-                characteristic.subscribe(this);
-            }
-        },
-        destroyed() {
-            for (const characteristic of [
-                this.service.getCharacteristicByName('LockCurrentState'),
-                this.service.getCharacteristicByName('LockTargetState'),
-            ]) {
-                if (!characteristic) continue;
-
-                characteristic.unsubscribe(this);
-            }
+            subscribedCharacteristics() {
+                return [
+                    this.service.getCharacteristicByName('LockCurrentState'),
+                    this.service.getCharacteristicByName('LockTargetState'),
+                ];
+            },
         },
         methods: {
             async setLocking(value) {
-                if (this.updating) return;
-                this.updating = true;
-
-                try {
-                    await this.service.setCharacteristicByName('LockTargetState',
-                        value ? LockState.SECURED : LockState.UNSECURED);
-                    console.log((value ? 'L' : 'Unl') + 'ocking %s', this.service.name || this.service.accessory.name);
-                } finally {
-                    this.updating = false;
-                }
+                await this.service.setCharacteristicByName('LockTargetState',
+                    value ? LockState.SECURED : LockState.UNSECURED);
             },
         },
     };

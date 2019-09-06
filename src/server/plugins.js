@@ -126,7 +126,8 @@ export class PluginManager extends Events {
                 log: new Logger(plugin.name),
                 AccessoryPlatform: this.bindConstructor(AccessoryPlatform, plugin),
                 ServerPlugin: this.bindConstructor(ServerPlugin, plugin),
-                AccessoryUI: this.bindConstructor(AccessoryUI, plugin),
+                WebInterfacePlugin: this.bindConstructor(WebInterfacePlugin, plugin),
+                AccessoryUI: this.bindConstructor(WebInterfacePlugin, plugin),
                 AccessoryDiscovery: this.bindConstructor(AccessoryDiscovery, plugin),
                 DiscoveredAccessory: this.bindConstructor(DiscoveredAccessory, plugin),
                 AccessorySetup: this.bindConstructor(AccessorySetup, plugin),
@@ -313,19 +314,19 @@ export class PluginManager extends Events {
             plugin.getServerPlugins() : []).reduce((acc, val) => acc.concat(val), []);
     }
 
-    getAccessoryUIs(include_disabled) {
+    getWebInterfacePlugins(include_disabled) {
         return this.plugins.map(plugin => plugin.enabled || include_disabled ?
-            plugin.getAccessoryUIs(include_disabled) : []).reduce((acc, val) => acc.concat(val), []);
+            plugin.getWebInterfacePlugins(include_disabled) : []).reduce((acc, val) => acc.concat(val), []);
     }
 
-    getAccessoryUI(id, include_disabled) {
+    getWebInterfacePlugin(id, include_disabled) {
         for (const plugin of this.plugins) {
             if (!plugin.enabled && !include_disabled) continue;
 
-            const accessory_ui = plugin.getAccessoryUI(id);
-            if (!accessory_ui || (!accessory_ui.enabled && !include_disabled)) continue;
+            const ui_plugin = plugin.getWebInterfacePlugin(id);
+            if (!ui_plugin || (!ui_plugin.enabled && !include_disabled)) continue;
 
-            return accessory_ui;
+            return ui_plugin;
         }
     }
 
@@ -396,7 +397,7 @@ export class Plugin extends Events {
         this.accessories = new Map();
         this.accessory_platforms = new Map();
         this.server_plugins = new Set();
-        this.accessory_ui = new Set();
+        this.web_interface_plugins = new Set();
         this.accessory_discovery = new Map();
         this.accessory_setup = new Map();
         this.authentication_handlers = new Map();
@@ -495,24 +496,24 @@ export class Plugin extends Events {
         this.server_plugins.add(handler);
     }
 
-    getAccessoryUIs(include_disabled) {
-        return [...this.accessory_ui].filter(ui => ui.enabled || include_disabled);
+    getWebInterfacePlugins(include_disabled) {
+        return [...this.web_interface_plugins].filter(ui_plugin => ui_plugin.enabled || include_disabled);
     }
 
-    getAccessoryUI(id) {
-        for (const accessory_ui of this.accessory_ui) {
-            if (accessory_ui.id == id) return accessory_ui;
+    getWebInterfacePlugin(id) {
+        for (const ui_plugin of this.web_interface_plugins) {
+            if (ui_plugin.id == id) return ui_plugin;
         }
     }
 
-    registerAccessoryUI(handler) {
-        if (!(handler instanceof AccessoryUI)) {
-            throw new Error('handler must be an AccessoryUI object');
+    registerWebInterfacePlugin(handler) {
+        if (!(handler instanceof WebInterfacePlugin)) {
+            throw new Error('handler must be a WebInterfacePlugin object');
         }
 
-        log.info('Registering accessory UI from plugin', this.name);
+        log.info('Registering web interface plugin from plugin', this.name);
 
-        this.accessory_ui.add(handler);
+        this.web_interface_plugins.add(handler);
     }
 
     getAccessoryDiscoveryHandlers(include_disabled) {
@@ -831,9 +832,9 @@ export class ServerPlugin {
 ServerPlugin.next_id = 0;
 ServerPlugin.next_instance_id = 0;
 
-export class AccessoryUI {
+export class WebInterfacePlugin {
     constructor(plugin) {
-        this.id = AccessoryUI.id++;
+        this.id = WebInterfacePlugin.id++;
         this.plugin = plugin;
 
         this.express = express();
@@ -895,7 +896,9 @@ export class AccessoryUI {
     }
 }
 
-AccessoryUI.id = 0;
+WebInterfacePlugin.id = 0;
+
+export {WebInterfacePlugin as AccessoryUI};
 
 export class AccessoryDiscovery extends EventEmitter {
     constructor(plugin, localid, setup) {
@@ -1085,7 +1088,7 @@ export class AccessorySetup {
     async handleMessage(data, connection) {
         if (!this.handler) return;
 
-        return this.handler.call(this, data);
+        return this.handler.call(this, data, connection);
     }
 }
 
@@ -1140,7 +1143,7 @@ export class AuthenticationHandler {
      * @return {Promise}
      */
     async handleMessage(data, connection) {
-        const response = await this.handler.call(this, data);
+        const response = await this.handler.call(this, data, connection);
 
         if (response instanceof AuthenticatedUser) {
             if (response.authentication_handler && response.authentication_handler !== this) {
@@ -1182,7 +1185,7 @@ export class AuthenticationHandler {
     handleReauthenticate(authenticated_user, connection) {
         if (!this.disconnect_handler) return;
 
-        this.disconnect_handler.call(this, authenticated_user, false);
+        this.disconnect_handler.call(this, authenticated_user, false, connection);
     }
 
     /**
@@ -1192,7 +1195,7 @@ export class AuthenticationHandler {
     handleDisconnect(authenticated_user, connection) {
         if (!this.disconnect_handler) return;
 
-        this.disconnect_handler.call(this, authenticated_user, true);
+        this.disconnect_handler.call(this, authenticated_user, true, connection);
     }
 }
 
@@ -1241,7 +1244,7 @@ export class UserManagementHandler {
      * @return {Promise}
      */
     async handleMessage(data, connection) {
-        const response = await this.handler.call(this, data);
+        const response = await this.handler.call(this, data, connection);
 
         return response;
     }
@@ -1273,8 +1276,12 @@ export class PluginAPI {
         return this.plugin.registerServerPlugin(handler);
     }
 
+    registerWebInterfacePlugin(handler) {
+        this.plugin.registerWebInterfacePlugin(handler);
+    }
+
     registerAccessoryUI(handler) {
-        return this.plugin.registerAccessoryUI(handler);
+        return this.registerWebInterfacePlugin(handler);
     }
 
     registerAccessoryDiscovery(handler, stop_handler) {

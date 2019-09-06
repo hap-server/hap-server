@@ -10,6 +10,14 @@
                         class="form-control form-control-sm" :disabled="saving" />
                 </div>
             </div>
+
+            <div class="form-group row">
+                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-group'">Group</label>
+                <div class="col-sm-9">
+                    <input :id="_uid + '-group'" v-model="automation.data.group_name" type="text"
+                        class="form-control form-control-sm" :disabled="saving" />
+                </div>
+            </div>
         </form>
 
         <div v-if="tab === 'triggers'" class="automation-triggers">
@@ -103,27 +111,39 @@
 
             <div v-if="saving">Saving</div>
             <div class="flex-fill"></div>
-            <button class="btn btn-default btn-sm" type="button" :disabled="saving || deleting"
-                @click="() => ($emit('reset'), $refs.panel.close())">Cancel</button>&nbsp;
-            <button v-if="exists && deletable" class="btn btn-danger btn-sm" type="button"
-                :disabled="saving || deleting" @click="() => $emit('delete')">Delete</button>&nbsp;
-            <button v-if="editable" class="btn btn-primary btn-sm" type="button"
-                :disabled="saving || deleting" @click="$emit('save', true)">Save</button>
+            <template v-if="(editable && changed) || !exists">
+                <button class="btn btn-default btn-sm" type="button" :disabled="saving || deleting"
+                    @click="() => ($emit('reset'), $refs.panel.close())">Cancel</button>&nbsp;
+                <button v-if="exists && deletable" key="delete" class="btn btn-danger btn-sm" type="button"
+                    :disabled="saving || deleting" @click="() => $emit('delete')">Delete</button>&nbsp;
+                <button v-if="editable" key="primary" class="btn btn-primary btn-sm" type="button"
+                    :disabled="saving || deleting" @click="$emit('save', true)">Save</button>
+            </template>
+            <template v-else>
+                <button v-if="exists && deletable" key="delete" class="btn btn-danger btn-sm" type="button"
+                    :disabled="saving || deleting" @click="() => $emit('delete')">Delete</button>&nbsp;
+                <button key="primary" class="btn btn-primary btn-sm" type="button"
+                    :disabled="saving || deleting" @click="$refs.panel.close()">Done</button>
+            </template>
         </div>
     </panel>
 </template>
 
 <script>
     import Connection from '../../client/connection';
-    import {AutomationsSymbol, AutomationSymbol} from '../internal-symbols';
-    import {StagedAutomation} from './automation';
+    import {ClientSymbol, AutomationSymbol} from '../internal-symbols';
+    import {StagedAutomation} from '../../client/automation';
 
     import Panel from '../components/panel.vue';
     import PanelTabs from '../components/panel-tabs.vue';
     import Dropdown from '../components/dropdown.vue';
     import JsonEditor from './json-editor.vue';
 
-    import {trigger_components, condition_components, action_components} from '.';
+    import {
+        AutomationTriggerComponents as trigger_components,
+        AutomationConditionComponents as condition_components,
+        AutomationActionComponents as action_components,
+    } from '../component-registry';
     import './triggers';
     import './conditions';
     import './actions';
@@ -180,7 +200,7 @@
             };
         },
         inject: {
-            automations: {from: AutomationsSymbol},
+            client: {from: ClientSymbol},
         },
         provide() {
             return {
@@ -189,7 +209,7 @@
         },
         computed: {
             other_automation_triggers() {
-                return Object.values(this.automations || {}).filter(other_automation => {
+                return Object.values(this.client.automations || {}).filter(other_automation => {
                     if (other_automation.uuid === this.automation.uuid) return false;
                     if (!other_automation.data.actions) return false;
 

@@ -22,6 +22,7 @@ import isEqual from 'lodash.isequal';
 import PluginManager, {AuthenticatedUser} from './plugins';
 import Homebridge from './homebridge';
 import Permissions from './permissions';
+import {hapStatus} from './hap-server';
 
 const randomBytes = util.promisify(crypto.randomBytes);
 
@@ -66,7 +67,6 @@ async function genusername(storage) {
 let id = 0;
 
 const message_methods = {
-    'list-accessories': 'handleListAccessoriesMessage',
     'get-accessories': 'handleGetAccessoriesMessage',
     'get-accessories-permissions': 'handleGetAccessoriesPermissionsMessage',
     'get-characteristics': 'handleGetCharacteristicsMessage',
@@ -133,6 +133,12 @@ const message_methods = {
     'open-console': 'handleOpenConsoleMessage',
     'close-console': 'handleCloseConsoleMessage',
     'console-input': 'handleConsoleInputMessage',
+};
+
+const message_handlers = {
+    'list-accessories': 'listAccessories',
+
+    'get-web-interface-plugins': 'getWebInterfacePlugins',
 };
 
 const hide_authentication_keys = [
@@ -252,13 +258,15 @@ export default class Connection {
         this.ws.send('**:' + JSON.stringify(data));
     }
 
-    async respond(messageid, data) {
+    async respond(messageid, data, error) {
         if (data instanceof Promise) {
             try {
+                error = false;
                 data = await data;
             } catch (err) {
                 this.log.error('Error in message handler', data.type, err);
 
+                error = true;
                 data = {
                     reject: true,
                     error: err instanceof Error,
@@ -268,7 +276,11 @@ export default class Connection {
             }
         }
 
-        this.ws.send('*' + messageid + ':' + JSON.stringify(data));
+        this.ws.send((error ? '!' : '*') + messageid + ':' + JSON.stringify(data));
+    }
+
+    sendProgress(messageid, data) {
+        this.ws.send('&' + messageid + ':' + JSON.stringify(data));
     }
 
     handleMessage(messageid, data) {
@@ -279,12 +291,16 @@ export default class Connection {
             return;
         }
 
-        if (data && data.type && message_methods[data.type]) {
-            try {
+        try {
+            if (data && data.type && message_methods[data.type]) {
                 this[message_methods[data.type]].call(this, messageid, data);
-            } catch (err) {
-                this.log.error('Error in message handler', data.type, err);
+            } else if (data && data.type && typeof message_handlers[data.type] === 'string') {
+                this.respond(messageid, this[message_handlers[data.type]].call(this, data));
+            } else if (data && data.type && typeof message_handlers[data.type] === 'function') {
+                this.respond(messageid, message_handlers[data.type].call(this, data, this));
             }
+        } catch (err) {
+            this.log.error('Error in message handler', data.type, err);
         }
     }
 
@@ -326,10 +342,6 @@ export default class Connection {
     /**
      * Gets the UUID of every accessory.
      */
-    handleListAccessoriesMessage(messageid, data) {
-        this.respond(messageid, this.listAccessories());
-    }
-
     async listAccessories() {
         const uuids = [];
 
@@ -410,13 +422,27 @@ export default class Connection {
             this.permissions.checkCanGetAccessory(uuid),
             this.permissions.checkCanSetAccessoryData(uuid),
 
-            Promise.all(accessory.services.map(async s => {
-                return [s.UUID, await Promise.all(s.characteristics.map(c => c.UUID)
-                    .filter(c => this.permissions.checkCanSetCharacteristic(uuid, s.UUID, c)))];
-            })).then(s => s.reduce((services, v) => services[v[0]] = v[1], {})),
+            this.getCharacteristicsWithSetPermission(accessory),
         ]);
 
         return {get, set, set_characteristics};
+    }
+
+    async getCharacteristicsWithSetPermission(accessory) {
+        const services = {};
+
+        await Promise.all(accessory.services.map(async service => {
+            const characteristics = [];
+            await Promise.all(service.characteristics.map(async characteristic => {
+                if (await this.permissions.checkCanSetCharacteristic(accessory.UUID, service.UUID,
+                    characteristic.UUID)) characteristics.push(characteristic.UUID);
+            }));
+            if (characteristics.length) services[service.UUID + (service.subtype ? '.' + service.subtype : '')] = characteristics;
+        }));
+
+        // await Promise.all(service.characteristics.map(async characteristic => this.permissions.checkCanSetCharacteristic(uuid, service.UUID, characteristic.UUID).then(can_set => can_set ? characteristic.UUID)))
+
+        return services;
     }
 
     /**
@@ -447,7 +473,17 @@ export default class Connection {
         const characteristic = service.characteristics.find(c => c.UUID === characteristic_uuid);
         if (!characteristic) return;
 
-        return characteristic.toHAP();
+        const hap = characteristic.toHAP();
+
+        try {
+            hap.value = await new Promise((resolve, reject) => {
+                characteristic.getValue((err, value) => err ? reject(err) : resolve(value));
+            });
+        } catch (err) {
+            hap.status = hapStatus(err);
+        }
+
+        return hap;
     }
 
     /**
@@ -1983,6 +2019,7 @@ export default class Connection {
     }
 
     async getPairingPermissions(id) {
+        // eslint-disable-next-line no-unused-vars
         const [get, set, info] = await Promise.all([
             this.permissions.checkCanGetPairing(id),
             this.permissions.checkCanSetPairing(id),
@@ -2023,41 +2060,41 @@ export default class Connection {
     }
 
     /**
-     * Gets accessory UIs.
+     * Gets web interface plugins.
      */
     handleGetAccessoryUIsMessage(messageid, data) {
-        this.respond(messageid, this.getAccessoryUIs());
+        this.respond(messageid, this.getWebInterfacePlugins());
     }
 
-    getAccessoryUIs() {
-        return PluginManager.getAccessoryUIs().map(accessory_ui => {
+    getWebInterfacePlugins() {
+        return PluginManager.getWebInterfacePlugins().map(ui_plugin => {
             const plugin_authentication_handlers = {};
-            for (const [localid, authentication_handler] of accessory_ui.plugin.authentication_handlers.entries()) {
+            for (const [localid, authentication_handler] of ui_plugin.plugin.authentication_handlers.entries()) {
                 plugin_authentication_handlers[localid] = authentication_handler.id;
             }
 
             const plugin_user_management_handlers = {};
-            for (const [localid, user_management_handler] of accessory_ui.plugin.user_management_handlers.entries()) {
+            for (const [localid, user_management_handler] of ui_plugin.plugin.user_management_handlers.entries()) {
                 plugin_user_management_handlers[localid] = user_management_handler.id;
             }
 
             const plugin_accessory_discovery_handlers = {};
             const plugin_accessory_discovery_handler_setup_handlers = {};
-            for (const [localid, accessory_discovery] of accessory_ui.plugin.accessory_discovery.entries()) {
+            for (const [localid, accessory_discovery] of ui_plugin.plugin.accessory_discovery.entries()) {
                 plugin_accessory_discovery_handlers[localid] = accessory_discovery.id;
                 plugin_accessory_discovery_handler_setup_handlers[localid] = accessory_discovery.setup.id;
             }
 
             const plugin_accessory_setup_handlers = {};
-            for (const [localid, accessory_setup] of accessory_ui.plugin.accessory_setup.entries()) {
+            for (const [localid, accessory_setup] of ui_plugin.plugin.accessory_setup.entries()) {
                 plugin_accessory_setup_handlers[localid] = accessory_setup.id;
             }
 
             return {
-                id: accessory_ui.id,
-                scripts: accessory_ui.scripts,
+                id: ui_plugin.id,
+                scripts: ui_plugin.scripts,
 
-                plugin: accessory_ui.plugin.name,
+                plugin: ui_plugin.plugin.name,
                 plugin_authentication_handlers,
                 plugin_user_management_handlers,
                 plugin_accessory_discovery_handlers,
@@ -2070,6 +2107,10 @@ export default class Connection {
     async handleAuthenticateMessage(messageid, data) {
         try {
             if (typeof data.authentication_handler_id === 'number') {
+                if (!await this.server.storage.getItem('HasCompletedSetup')) {
+                    await this.server.storage.setItem('HasCompletedSetup', true);
+                }
+
                 const id = data.authentication_handler_id;
                 const authentication_handler = PluginManager.getAuthenticationHandler(id);
 
@@ -2086,6 +2127,10 @@ export default class Connection {
 
                 await this.sendAuthenticateResponse(messageid, response);
             } else if (data.token) {
+                if (!await this.server.storage.getItem('HasCompletedSetup')) {
+                    await this.server.storage.setItem('HasCompletedSetup', true);
+                }
+
                 const token = data.token;
 
                 this.log.info('Resuming session');
@@ -2115,7 +2160,31 @@ export default class Connection {
                 this.authenticated_user = new AuthenticatedUser('cli-token', 'Admin');
 
                 return this.respond(messageid, {
-                    success: true,
+                    data: this.authenticated_user,
+                    user_id: this.authenticated_user.id,
+                });
+            } else if (data.setup_token) {
+                const token = data.setup_token.toLowerCase().replace(/\s+/g, ' ').replace(/[^a-z ]/g, '');
+
+                this.log.info('Authenticating with setup token', token);
+
+                if ([...this.server.wss.clients].map(s => this.constructor.getConnectionForWebSocket(s))
+                    .find(c => c.authenticated_user && c.authenticated_user.id === 'cli-token')
+                ) {
+                    throw new Error('Another client is authenticated as the setup user.');
+                }
+
+                if (await this.server.storage.getItem('HasCompletedSetup')) {
+                    throw new Error('Setup has already been completed.');
+                }
+
+                if (!this.server.setup_token || this.server.setup_token.join(' ') !== token) {
+                    throw new Error('Invalid token.');
+                }
+
+                this.authenticated_user = new AuthenticatedUser('cli-token', 'Setup user');
+
+                return this.respond(messageid, {
                     data: this.authenticated_user,
                     user_id: this.authenticated_user.id,
                 });
@@ -2126,11 +2195,10 @@ export default class Connection {
             this.log.error('Error authenticating', err);
 
             this.respond(messageid, {
-                reject: true,
                 error: err instanceof Error,
                 constructor: err.constructor.name,
                 data: err instanceof Error ? {message: err.message, code: err.code, stack: err.stack} : err,
-            });
+            }, true);
         }
     }
 
@@ -2186,18 +2254,15 @@ export default class Connection {
 
             const response = await user_management_handler.handleMessage(data.data, this);
 
-            return this.respond(messageid, {
-                data: response,
-            });
+            return this.respond(messageid, response);
         } catch (err) {
             this.log.error('Error in user management handler', err);
 
             this.respond(messageid, {
-                reject: true,
                 error: err instanceof Error,
                 constructor: err.constructor.name,
                 data: err instanceof Error ? {message: err.message, code: err.code, stack: err.stack} : err,
-            });
+            }, true);
         }
     }
 
@@ -2267,18 +2332,15 @@ export default class Connection {
 
             const response = await accessory_setup.handleMessage(data.data, this);
 
-            return this.respond(messageid, {
-                data: response,
-            });
+            return this.respond(messageid, response);
         } catch (err) {
             this.log.error('Error in accessory setup handler', err);
 
             this.respond(messageid, {
-                reject: true,
                 error: err instanceof Error,
                 constructor: err.constructor.name,
                 data: err instanceof Error ? {message: err.message, code: err.code, stack: err.stack} : err,
-            });
+            }, true);
         }
     }
 

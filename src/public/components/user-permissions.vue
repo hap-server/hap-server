@@ -144,8 +144,9 @@
             <dropdown v-if="Object.values(client.accessories).find(a => !accessories[a.uuid])" class="ml-3"
                 colour="dark" label="Add" align="right" :disabled="loading || saving || admin"
             >
-                <a v-for="accessory in client.accessories" v-if="!accessories[accessory.uuid]" class="dropdown-item"
-                    href="#"
+                <!-- eslint-disable-next-line vue/no-use-v-if-with-v-for -->
+                <a v-for="accessory in client.accessories" :key="accessory.uuid" v-if="!accessories[accessory.uuid]"
+                    class="dropdown-item" href="#"
                     @click.prevent="$set(accessories, accessory.uuid, JSON.parse(JSON.stringify(accessories['*'])))"
                 >
                     {{ accessory.name || accessory.uuid }}
@@ -166,7 +167,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="(permissions, accessory_uuid) in accessories">
+                    <tr v-for="(permissions, accessory_uuid) in accessories" :key="accessory_uuid">
                         <td :class="{'text-muted': accessory_uuid === '*'}">
                             {{ accessory_uuid === '*' ? 'Default' : client.accessories &&
                                 client.accessories[accessory_uuid] && client.accessories[accessory_uuid].name ||
@@ -176,8 +177,8 @@
                             <input v-if="admin" type="checkbox" :checked="true" disabled />
                             <input v-else v-model="accessories[accessory_uuid].get" type="checkbox"
                                 :disabled="loading || saving || accessories[accessory_uuid].set ||
-                                accessories[accessory_uuid].manage || accessories[accessory_uuid].config ||
-                                accessories[accessory_uuid].delete" />
+                                    accessories[accessory_uuid].manage || accessories[accessory_uuid].config ||
+                                    accessories[accessory_uuid].delete" />
                         </td>
                         <td>
                             <input v-if="admin" type="checkbox" :checked="true" disabled />
@@ -214,8 +215,9 @@
             <dropdown v-if="Object.values(client.layouts).find(l => !layouts[l.uuid])" class="ml-3"
                 colour="dark" label="Add" align="right" :disabled="loading || saving || admin"
             >
+                <!-- eslint-disable-next-line vue/no-use-v-if-with-v-for -->
                 <a v-for="layout in client.layouts" v-if="!layouts[layout.uuid] && !layout.uuid.startsWith('Overview.')"
-                    class="dropdown-item" href="#"
+                    :key="layout.uuid" class="dropdown-item" href="#"
                     @click.prevent="$set(layouts, layout.uuid, JSON.parse(JSON.stringify(layouts['*'])))"
                 >
                     {{ layout.name || layout.uuid }}
@@ -234,7 +236,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="(permissions, layout_uuid) in layouts">
+                    <tr v-for="(permissions, layout_uuid) in layouts" :key="layout_uuid">
                         <td :class="{'text-muted': layout_uuid === '*'}">
                             {{ layout_uuid === '*' ? 'Default' : client.layouts && client.layouts[layout_uuid] &&
                                 client.layouts[layout_uuid].data.name || layout_uuid }}
@@ -243,7 +245,7 @@
                             <input v-if="admin" type="checkbox" :checked="true" disabled />
                             <input v-else v-model="layouts[layout_uuid].get" type="checkbox"
                                 :disabled="loading || saving || layouts[layout_uuid].set ||
-                                layouts[layout_uuid].delete" />
+                                    layouts[layout_uuid].delete" />
                         </td>
                         <td>
                             <input v-if="admin" type="checkbox" :checked="true" disabled />
@@ -270,7 +272,8 @@
             <dropdown v-if="Object.values(client.scenes).find(s => !scenes[s.uuid])" class="ml-3" colour="dark"
                 label="Add" align="right" :disabled="loading || saving || admin"
             >
-                <a v-for="scene in client.scenes" v-if="!scenes[scene.uuid]" class="dropdown-item"
+                <!-- eslint-disable-next-line vue/no-use-v-if-with-v-for -->
+                <a v-for="scene in client.scenes" :key="scene.uuid" v-if="!scenes[scene.uuid]" class="dropdown-item"
                     href="#" @click.prevent="$set(scenes, scene.uuid, JSON.parse(JSON.stringify(scenes['*'])))"
                 >
                     {{ scene.data.name || scene.uuid }}
@@ -290,7 +293,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="(permissions, scene_uuid) in scenes">
+                    <tr v-for="(permissions, scene_uuid) in scenes" :key="scene_uuid">
                         <td :class="{'text-muted': scene_uuid === '*'}">
                             {{ scene_uuid === '*' ? 'Default' : client.scenes && client.scenes[scene_uuid] &&
                                 client.scenes[scene_uuid].data.name || scene_uuid }}
@@ -299,7 +302,7 @@
                             <input v-if="admin" type="checkbox" :checked="true" disabled />
                             <input v-else v-model="scenes[scene_uuid].get" type="checkbox"
                                 :disabled="loading || saving || scenes[scene_uuid].activate ||
-                                scenes[scene_uuid].set || scenes[scene_uuid].delete" />
+                                    scenes[scene_uuid].set || scenes[scene_uuid].delete" />
                         </td>
                         <td>
                             <input v-if="admin" type="checkbox" :checked="true" disabled />

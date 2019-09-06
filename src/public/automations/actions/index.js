@@ -1,4 +1,4 @@
-import {action_components} from '..';
+import {AutomationActionComponents as action_components} from '../../component-registry';
 
 const contextRequire = require.context('.', true, /\.vue$/);
 

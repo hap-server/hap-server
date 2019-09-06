@@ -3,6 +3,8 @@ import url from 'url';
 
 import gulp from 'gulp';
 import pump from 'pump';
+import watch from 'gulp-watch';
+import plumber from 'gulp-plumber';
 import babel from 'gulp-babel';
 import typescript from 'gulp-typescript';
 import webpack from 'webpack-stream';
@@ -33,6 +35,16 @@ import {compilerOptions as typescript_config} from './tsconfig';
 const webpack_config = {
     context: __dirname,
     mode: 'development',
+    entry: {
+        main: [
+            path.join(__dirname, 'src/public/scss/index.scss'),
+            path.join(__dirname, 'src/public/index.js'),
+        ],
+        modal: [
+            path.join(__dirname, 'src/public/scss/index.scss'),
+            path.join(__dirname, 'src/public/modal.js'),
+        ],
+    },
     module: {
         rules: [
             {
@@ -64,10 +76,17 @@ const webpack_config = {
         new VueLoaderPlugin(),
         new HtmlWebpackPlugin({
             template: 'src/public/index.html',
+            chunks: ['runtime', 'vendors', 'main'],
         }),
         new HtmlWebpackPlugin({
             template: 'src/public/app.html',
             filename: 'app.html',
+            chunks: ['runtime', 'vendors', 'main'],
+        }),
+        new HtmlWebpackPlugin({
+            template: 'src/public/modal.html',
+            filename: 'modal.html',
+            chunks: ['runtime', 'vendors', 'modal'],
         }),
         new ScriptExtHtmlPlugin({
             prefetch: {
@@ -112,11 +131,18 @@ const webpack_config = {
 };
 
 export const webpack_hot_config = Object.assign({}, webpack_config, {
-    entry: [
-        'webpack-hot-middleware/client',
-        path.join(__dirname, 'src/public/scss/index.scss'),
-        path.join(__dirname, 'src/public/index.js'),
-    ],
+    entry: {
+        main: [
+            'webpack-hot-middleware/client',
+            path.join(__dirname, 'src/public/scss/index.scss'),
+            path.join(__dirname, 'src/public/index.js'),
+        ],
+        modal: [
+            'webpack-hot-middleware/client',
+            path.join(__dirname, 'src/public/scss/index.scss'),
+            path.join(__dirname, 'src/public/modal.js'),
+        ],
+    },
     module: Object.assign({}, webpack_config.module, {
         rules: webpack_config.module.rules.map((rule, i) => i === 1 ? {
             test: /\.(s?c|sa)ss$/,
@@ -143,6 +169,7 @@ gulp.task('build-backend', function () {
                 gulp.src(['src/**/*.ts', '!src/public/**/*.ts']),
                 typescript(typescript_config),
             ]),
+            gulp.src(['src/**/*', '!src/public/**/*', '!src/**/*.js', '!src/**/*.ts']),
         ]),
         gulp.dest('dist'),
     ]);
@@ -172,9 +199,15 @@ gulp.task('build-example-plugins', gulp.parallel(function () {
 
 gulp.task('build', gulp.parallel('build-backend', 'build-frontend', 'build-example-plugins'));
 
-gulp.task('watch-backend', gulp.series('build-backend', function () {
-    return gulp.watch(['src', '!src/public'], gulp.series('build-backend'));
-}));
+gulp.task('watch-backend', function () {
+    return pump([
+        watch(['src/**/*.js', '!src/public/**/*.js'], {verbose: true}),
+        plumber(),
+        babel(),
+        watch(['src/**/*', '!src/public/**/*', '!src/**/*.js'], {verbose: true}),
+        gulp.dest('dist'),
+    ]);
+});
 
 gulp.task('watch-frontend', function () {
     return pump([
@@ -185,8 +218,18 @@ gulp.task('watch-frontend', function () {
     ]);
 });
 
-gulp.task('watch-example-plugins', gulp.series('build-example-plugins', function () {
-    return gulp.watch('example-plugins/src/**/*.js*', gulp.series('build-example-plugins'));
+gulp.task('watch-example-plugins', gulp.parallel(function () {
+    return pump([
+        watch('example-plugins/src/**/*.js', {verbose: true}),
+        plumber(),
+        babel(),
+        gulp.dest('example-plugins/dist'),
+    ]);
+}, function () {
+    return pump([
+        watch('example-plugins/src/**/*.json', {verbose: true}),
+        gulp.dest('example-plugins/dist'),
+    ]);
 }));
 
 gulp.task('watch', gulp.parallel('watch-backend', 'watch-frontend', 'watch-example-plugins'));

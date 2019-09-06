@@ -21,6 +21,8 @@ const broadcast_message_methods = {
     'add-scene': 'handleAddSceneMessage',
     'remove-scene': 'handleRemoveSceneMessage',
     'update-scene': 'handleUpdateSceneMessage',
+    'scene-activating': 'handleSceneActivatingMessage',
+    'scene-deactivating': 'handleSceneDeactivatingMessage',
     'scene-activated': 'handleSceneActivatedMessage',
     'scene-deactivated': 'handleSceneDeactivatedMessage',
     'scene-progress': 'handleSceneProgressMessage',
@@ -52,10 +54,10 @@ export default class Connection extends EventEmitter {
 
         if (is_ws) {
             this.ws.on('message', this.handleData.bind(this));
-            this.ws.on('close', event => this.emit('disconnected', event));
+            this.ws.on('close', this.handleDisconnect.bind(this));
         } else {
             this.ws.onmessage = message => this.handleData(message.data);
-            this.ws.onclose = event => this.emit('disconnected', event);
+            this.ws.onclose = this.handleDisconnect.bind(this);
         }
     }
 
@@ -86,20 +88,33 @@ export default class Connection extends EventEmitter {
             return;
         }
 
-        const match = data.match(/^\*([0-9]+)\:(.*)$/);
+        const match = data.match(/^(\*|!|&)([0-9]+)\:(.*)$/);
 
         if (match) {
-            const messageid = parseInt(match[1]);
-            const data = match[2] !== 'undefined' ? JSON.parse(match[2]) : undefined;
+            const type = match[1] === '&' ? 'progress' :
+                match[1] === '!' ? 'error' : 'success';
+            const messageid = parseInt(match[2]);
+            const data = match[3] !== 'undefined' ? JSON.parse(match[3]) : undefined;
 
             if (!this.callbacks.has(messageid)) {
                 console.error('Unknown messageid');
                 return;
             }
 
-            const callback = this.callbacks.get(messageid);
+            const [resolve, reject, progress] = this.callbacks.get(messageid);
 
-            callback.call(this, data);
+            if (type === 'progress') {
+                if (!progress) {
+                    console.warning('Received progress update for a request with no progress handler');
+                } else {
+                    progress.call(this, data);
+                }
+
+                return;
+            }
+
+            if (type === 'error') reject.call(this, data);
+            else resolve.call(this, data);
 
             this.callbacks.delete(messageid);
 
@@ -121,13 +136,21 @@ export default class Connection extends EventEmitter {
         console.error('Invalid message');
     }
 
-    send(data) {
+    handleDisconnect(event) {
+        this.emit('disconnected', event);
+
+        for (const [, reject] of this.callbacks.values()) {
+            reject.call(this, event);
+        }
+    }
+
+    send(data, progress) {
         return new Promise((resolve, reject) => {
             const messageid = this.messageid++;
 
             this.ws.send('*' + messageid + ':' + JSON.stringify(data));
 
-            this.callbacks.set(messageid, resolve);
+            this.callbacks.set(messageid, [resolve, reject, progress]);
         });
     }
 
@@ -614,10 +637,14 @@ export default class Connection extends EventEmitter {
         return this.setPairingsData([id, data]);
     }
 
-    getAccessoryUIs() {
+    getWebInterfacePlugins() {
         return this.send({
-            type: 'get-accessory-uis',
+            type: 'get-web-interface-plugins',
         });
+    }
+
+    getAccessoryUIs() {
+        return this.getWebInterfacePlugins();
     }
 
     getUsersPermissions(...id) {
@@ -748,6 +775,14 @@ export default class Connection extends EventEmitter {
         this.emit('update-scene', data.uuid, data.data);
     }
 
+    handleSceneActivatingMessage(data) {
+        this.emit('scene-activating', data.uuid, data.context);
+    }
+
+    handleSceneDeactivatingMessage(data) {
+        this.emit('scene-deactivating', data.uuid, data.context);
+    }
+
     handleSceneActivatedMessage(data) {
         this.emit('scene-activated', data.uuid, data.context);
     }
@@ -844,33 +879,35 @@ export class AuthenticationHandlerConnection {
      * @return {Promise<*>}
      */
     async send(data) {
-        const response = await this.connection.send({
-            type: 'authenticate',
-            authentication_handler_id: this.authentication_handler_id,
-            data,
-        });
+        try {
+            const response = await this.connection.send({
+                type: 'authenticate',
+                authentication_handler_id: this.authentication_handler_id,
+                data,
+            });
 
-        if (response.reject) {
-            if (response.error) {
-                const error = new (global[response.constructor] || Error)(response.data.message);
-                error.code = response.data.code;
+            if (response.success) {
+                const authenticated_user = new AuthenticatedUser(response.authentication_handler_id, response.user_id);
+
+                Object.defineProperty(authenticated_user, 'token', {value: response.token});
+                Object.defineProperty(authenticated_user, 'asset_token', {value: response.asset_token});
+                Object.assign(authenticated_user, response.data);
+
+                return authenticated_user;
+            }
+
+            return response.data;
+        } catch (err) {
+            if (typeof err !== 'object' || !err.data) throw err;
+
+            if (err.error) {
+                const error = new (global[err.constructor] || Error)(err.data.message);
+                error.code = err.data.code;
                 throw error;
             }
 
-            throw response.data;
+            throw err.data;
         }
-
-        if (response.success) {
-            const authenticated_user = new AuthenticatedUser(response.authentication_handler_id, response.user_id);
-
-            Object.defineProperty(authenticated_user, 'token', {value: response.token});
-            Object.defineProperty(authenticated_user, 'asset_token', {value: response.asset_token});
-            Object.assign(authenticated_user, response.data);
-
-            return authenticated_user;
-        }
-
-        return response.data;
     }
 }
 
@@ -894,13 +931,15 @@ export class UserManagementConnection {
      * @return {Promise<*>}
      */
     async send(data) {
-        const response = await this.connection.send({
-            type: 'user-management',
-            user_management_handler_id: this.user_management_handler_id,
-            data,
-        });
+        try {
+            return await this.connection.send({
+                type: 'user-management',
+                user_management_handler_id: this.user_management_handler_id,
+                data,
+            });
+        } catch (err) {
+            if (typeof err !== 'object' || !err.data) throw err;
 
-        if (response.reject) {
             if (response.error) {
                 const error = new (global[response.constructor] || Error)(response.data.message);
                 error.code = response.data.code;
@@ -909,8 +948,6 @@ export class UserManagementConnection {
 
             throw response.data;
         }
-
-        return response.data;
     }
 }
 
@@ -936,13 +973,15 @@ export class AccessorySetupConnection {
      * @return {Promise<*>}
      */
     async send(data) {
-        const response = await this.connection.send({
-            type: 'accessory-setup',
-            accessory_setup_id: this.accessory_setup_id,
-            data,
-        });
+        try {
+            return await this.connection.send({
+                type: 'accessory-setup',
+                accessory_setup_id: this.accessory_setup_id,
+                data,
+            });
+        } catch (err) {
+            if (typeof err !== 'object' || !err.data) throw err;
 
-        if (response.reject) {
             if (response.error) {
                 const error = new (global[response.constructor] || Error)(response.data.message);
                 error.code = response.data.code;
@@ -951,7 +990,5 @@ export class AccessorySetupConnection {
 
             throw response.data;
         }
-
-        return response.data;
     }
 }
