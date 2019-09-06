@@ -3,7 +3,24 @@ import PluginManager from '../server/plugins';
 import EventEmitter from 'events';
 import vm from 'vm';
 
+import Server from '../server/server';
+import Automations, {AutomationRunner} from '.';
+import Scene from './scene';
+import Logger from '../common/logger';
+import {Accessory, Service, Characteristic} from 'hap-nodejs';
+
 export default class AutomationCondition extends EventEmitter {
+    private static id = 0;
+    static readonly types: {
+        [key: string]: typeof AutomationCondition,
+    } = {};
+
+    readonly automations: Automations;
+    readonly id: number;
+    readonly uuid?: string;
+    readonly config;
+    readonly log: Logger;
+
     /**
      * Creates an AutomationCondition.
      *
@@ -14,7 +31,7 @@ export default class AutomationCondition extends EventEmitter {
      * @param {string} [uuid]
      * @param {Logger} [log]
      */
-    constructor(automations, config, uuid, log) {
+    constructor(automations: Automations, config?, uuid?: string, log?: Logger) {
         super();
 
         Object.defineProperty(this, 'automations', {value: automations});
@@ -64,19 +81,16 @@ export default class AutomationCondition extends EventEmitter {
      * @param {AutomationCondition} ...parent_conditions
      * @return {Promise<boolean>}
      */
-    async check(runner, setProgress) {
+    async check(runner: AutomationRunner | Scene, setProgress: (progress: number) => void, ...parent_conditions: AutomationCondition[]): Promise<boolean> {
         throw new Error('AutomationCondition did not override the check function');
     }
 }
-
-AutomationCondition.id = 0;
-AutomationCondition.types = {};
 
 /**
  * An AutomationCondition that always passes.
  */
 export class TestCondition extends AutomationCondition {
-    check(runner) {
+    async check(runner) {
         this.log.info('Running test condition with runner #%d', runner.id);
 
         return true;
@@ -89,17 +103,19 @@ AutomationCondition.types.Test = TestCondition;
  * An AutomationCondition that passes if any of it's child conditions passes.
  */
 export class AnyCondition extends AutomationCondition {
+    private conditions: AutomationCondition[];
+
     async load() {
         this.conditions = await Promise.all(this.config.conditions.map((config, index) =>
             this.automations.loadAutomationCondition(config, null, this.log.withPrefix('Child #' + index +
-                ' (' + (AutomationCondition.id + 1) + ')'))));
+                ' (' + ((AutomationCondition as any).id + 1) + ')'))));
     }
 
     async check(runner, setProgress, ...parent_conditions) {
         this.log.info('Running any condition with runner #%d', runner.id);
 
-        for (let index in this.conditions) { // eslint-disable-line guard-for-in
-            index = parseInt(index);
+        for (let i in this.conditions) { // eslint-disable-line guard-for-in
+            const index = parseInt(i);
             const condition = this.conditions[index];
 
             try {
@@ -138,17 +154,19 @@ AutomationCondition.types.Any = AnyCondition;
  * An AutomationCondition that passed if all of it's child conditions pass.
  */
 export class AllCondition extends AutomationCondition {
+    private conditions: AutomationCondition[];
+
     async load() {
         this.conditions = await Promise.all(this.config.conditions.map((config, index) =>
             this.automations.loadAutomationCondition(config, null, this.log.withPrefix('Child #' + index +
-                ' (' + (AutomationCondition.id + 1) + ')'))));
+                ' (' + ((AutomationCondition as any).id + 1) + ')'))));
     }
 
     async check(runner, setProgress, ...parent_conditions) {
         this.log('Running all condition with runner #%d', runner.id);
 
-        for (let index in this.conditions) { // eslint-disable-line guard-for-in
-            index = parseInt(index);
+        for (let i in this.conditions) { // eslint-disable-line guard-for-in
+            const index = parseInt(i);
             const condition = this.conditions[index];
 
             try {
@@ -187,6 +205,18 @@ AutomationCondition.types.All = AllCondition;
  * An AutomationCondition that runs a JavaScript VM.
  */
 export class ScriptCondition extends AutomationCondition {
+    private sandbox: {
+        server: Server,
+        getAccessory: (uuid: string) => typeof Accessory,
+        getService: (uuid: string, uuid2?: string) => typeof Service,
+        getCharacteristic: (uuid: string, uuid2?: string, uuid3?: string) => typeof Characteristic,
+
+        automations: Automations,
+        automation_condition: ScriptCondition,
+        log: Logger,
+    };
+    private script: vm.Script;
+
     load() {
         this.sandbox = Object.freeze({
             server: this.automations.server,

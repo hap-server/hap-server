@@ -78,6 +78,8 @@ interface AutomationConfiguration {
 type Includes<T> = string | {include: string} | T;
 
 interface ConfigurationFile {
+    hostname?: string;
+
     'data-path'?: string;
     'plugin-path'?: string | string[];
 

@@ -1,6 +1,8 @@
 import {Event} from '..';
 import {Server} from '../../server';
-import {Automations, AutomationTrigger} from '../../automations';
+import Automations, {AutomationRunner} from '../../automations';
+import AutomationTrigger from '../../automations/trigger';
+import AutomationAction from '../../automations/action';
 
 export class AutomationTriggerEvent extends Event {
     static type = 'automation-trigger';
@@ -15,7 +17,7 @@ export class AutomationTriggerEvent extends Event {
      * @param {AutomationTrigger} trigger
      * @param {object} [context]
      */
-    constructor(trigger: AutomationTrigger, context) {
+    constructor(trigger: AutomationTrigger | AutomationAction, context?) {
         super();
 
         Object.defineProperty(this, 'trigger', {value: trigger});
@@ -35,7 +37,9 @@ AutomationTriggerEvent.type = 'automation-trigger';
 AutomationTriggerEvent.types = ['trigger'];
 
 export class AutomationRunningEvent extends Event {
-    constructor(runner) {
+    readonly runner: AutomationRunner;
+
+    constructor(runner: AutomationRunner) {
         super();
 
         Object.defineProperty(this, 'runner', {value: runner});

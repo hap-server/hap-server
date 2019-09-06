@@ -4,7 +4,35 @@ import {
     SceneDeactivatedEvent,
 } from '../events/server';
 
+import Automations from '.';
+import AutomationCondition from './condition';
+import AutomationAction from './action';
+import Logger from '../common/logger';
+
 export default class Scene extends Events {
+    private static id = 0;
+
+    readonly automations: Automations;
+    readonly id: number;
+    readonly uuid?: string;
+    readonly config;
+    readonly log: Logger;
+
+    readonly conditions: AutomationCondition[];
+    readonly enable_actions: AutomationAction[];
+    readonly disable_actions: AutomationAction[];
+
+    private _active: Promise<boolean>;
+    private check_active_progress: number;
+    private last_active: boolean;
+    private last_active_time: number;
+
+    private _enabling: Promise<void>;
+    private enable_progress: number;
+
+    private _disabling: Promise<void>;
+    private disable_progress: number;
+
     /**
      * Creates a Scene.
      *
@@ -12,7 +40,7 @@ export default class Scene extends Events {
      * @param {object} config
      * @param {string} [uuid]
      */
-    constructor(automations, config, uuid) {
+    constructor(automations: Automations, config?, uuid?: string) {
         super();
 
         this.parent_emitter = automations;
@@ -27,8 +55,6 @@ export default class Scene extends Events {
         this.conditions = [];
         this.enable_actions = [];
         this.disable_actions = [];
-
-        this.running = [];
     }
 
     /**
@@ -37,7 +63,7 @@ export default class Scene extends Events {
      *
      * @return {Promise<boolean>}
      */
-    get active() {
+    get active(): Promise<boolean> {
         if (this._active) return this._active;
 
         this.emit('checking-active');
@@ -65,11 +91,11 @@ export default class Scene extends Events {
         });
     }
 
-    async _checkActive(setProgress) {
+    private async _checkActive(setProgress) {
         this.log.info('Checking if scene is active');
 
-        for (let index in this.conditions) { // eslint-disable-line guard-for-in
-            index = parseInt(index);
+        for (let i in this.conditions) { // eslint-disable-line guard-for-in
+            const index = parseInt(i);
             const condition = this.conditions[index];
 
             try {
@@ -106,7 +132,7 @@ export default class Scene extends Events {
      *
      * @param {AutomationCondition} condition
      */
-    addActiveCondition(...conditions) {
+    addActiveCondition(...conditions: AutomationCondition[]) {
         for (const condition of conditions) {
             if (condition.automations !== this.automations) {
                 throw new Error('Cannot add a condition from a different automations group');
@@ -127,8 +153,8 @@ export default class Scene extends Events {
      *
      * @param {AutomationCondition} condition
      */
-    removeActiveCondition(...condition) {
-        for (const condition of condition) {
+    removeActiveCondition(...conditions: AutomationCondition[]) {
+        for (const condition of conditions) {
             let index;
             while ((index = this.conditions.indexOf(condition)) > -1) this.conditions.splice(index, 1);
         }
@@ -140,7 +166,7 @@ export default class Scene extends Events {
      * @param {object} [context]
      * @return {Promise}
      */
-    enable(context) {
+    enable(context?): Promise<void> {
         const trigger_event = new SceneTriggerEvent(this, true, context || {});
         this.emit(trigger_event, true, trigger_event.context);
 
@@ -167,7 +193,7 @@ export default class Scene extends Events {
         });
     }
 
-    async _enable(setProgress) {
+    private async _enable(setProgress) {
         await Promise.all(this.enable_actions.map(async (action, index) => {
             try {
                 this.log.debug('Running scene #%d enable action #%d', this.id, action.id);
@@ -195,7 +221,7 @@ export default class Scene extends Events {
      *
      * @param {AutomationAction} action
      */
-    addEnableAction(...actions) {
+    addEnableAction(...actions: AutomationAction[]) {
         for (const action of actions) {
             if (action.automations !== this.automations) {
                 throw new Error('Cannot add an action from a different automations group');
@@ -216,7 +242,7 @@ export default class Scene extends Events {
      *
      * @param {AutomationAction} action
      */
-    removeEnableAction(...actions) {
+    removeEnableAction(...actions: AutomationAction[]) {
         for (const action of actions) {
             let index;
             while ((index = this.enable_actions.indexOf(action)) > -1) this.enable_actions.splice(index, 1);
@@ -229,7 +255,7 @@ export default class Scene extends Events {
      * @param {object} [context]
      * @return {Promise}
      */
-    disable(context) {
+    disable(context?): Promise<void> {
         const trigger_event = new SceneTriggerEvent(this, false, context || {});
         this.emit(trigger_event, false, trigger_event.context);
 
@@ -258,7 +284,7 @@ export default class Scene extends Events {
         });
     }
 
-    async _disable(setProgress) {
+    private async _disable(setProgress) {
         await Promise.all(this.disable_actions.map(async (action, index) => {
             try {
                 this.log.debug('Running scene #%d disable action #%d', this.id, action.id);
@@ -286,7 +312,7 @@ export default class Scene extends Events {
      *
      * @param {AutomationAction} action
      */
-    addDisableAction(...actions) {
+    addDisableAction(...actions: AutomationAction[]) {
         for (const action of actions) {
             if (action.automations !== this.automations) {
                 throw new Error('Cannot add an action from a different automations group');
@@ -307,12 +333,10 @@ export default class Scene extends Events {
      *
      * @param {AutomationAction} action
      */
-    removeDisableAction(...actions) {
+    removeDisableAction(...actions: AutomationAction[]) {
         for (const action of actions) {
             let index;
             while ((index = this.disable_actions.indexOf(action)) > -1) this.disable_actions.splice(index, 1);
         }
     }
 }
-
-Scene.id = 0;

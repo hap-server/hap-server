@@ -7,14 +7,26 @@ import AutomationCondition from './condition';
 import AutomationAction from './action';
 import Scene from './scene';
 
+import Server from '../server/server';
+import Logger from '../common/logger';
+
 export default class Automations extends Events {
+    readonly server: Server;
+    readonly log: Logger;
+
+    readonly automations: Automation[];
+    readonly scenes: Scene[];
+    readonly runners: {[key: number]: AutomationRunner};
+
+    running = false;
+
     /**
      * Creates an Automations group.
      *
      * @param {Server} server
      * @param {Logger} [log]
      */
-    constructor(server, log) {
+    constructor(server: Server, log?: Logger) {
         super();
         this.parent_emitter = server;
 
@@ -31,10 +43,10 @@ export default class Automations extends Events {
      *
      * @return {Promise}
      */
-    start() {
+    async start(): Promise<void> {
         this.running = true;
 
-        return Promise.all(this.automations.map(a => Promise.all(a.triggers.map(t => t.start()))));
+        await Promise.all(this.automations.map(a => Promise.all(a.triggers.map(t => t.start()))));
     }
 
     /**
@@ -42,10 +54,10 @@ export default class Automations extends Events {
      *
      * @return {Promise}
      */
-    stop() {
+    async stop(): Promise<void> {
         this.running = false;
 
-        return Promise.all(this.automations.map(a => Promise.all(a.triggers.map(t => t.stop()))));
+        await Promise.all(this.automations.map(a => Promise.all(a.triggers.map(t => t.stop()))));
     }
 
     /**
@@ -55,7 +67,7 @@ export default class Automations extends Events {
      * @param {string} [uuid]
      * @return {Promise<Automation>}
      */
-    async loadAutomation(config, uuid) {
+    async loadAutomation(config, uuid?: string): Promise<Automation> {
         const automation = new Automation(this, config, uuid);
 
         this.addAutomation(automation);
@@ -69,7 +81,7 @@ export default class Automations extends Events {
      * @param {Automation} automation
      * @return {Promise}
      */
-    async addAutomation(...automations) {
+    async addAutomation(...automations: Automation[]): Promise<void> {
         for (const automation of automations) {
             this.log.debug('Adding automation', automation);
 
@@ -99,7 +111,7 @@ export default class Automations extends Events {
      * @param {Automation} automation
      * @return {Promise}
      */
-    async removeAutomation(...automations) {
+    async removeAutomation(...automations: Automation[]): Promise<void> {
         for (const automation of automations) {
             this.log.debug('Removing automation', automation);
 
@@ -122,9 +134,9 @@ export default class Automations extends Events {
      *
      * @param {object} config
      * @param {string} [uuid]
-     * @return {Promise<Automation>}
+     * @return {Promise<Scene>}
      */
-    async loadScene(config, uuid) {
+    async loadScene(config, uuid?: string): Promise<Scene> {
         const scene = new Scene(this, config, uuid);
 
         this.addScene(scene);
@@ -138,7 +150,7 @@ export default class Automations extends Events {
      * @param {Scene} scene
      * @return {Promise}
      */
-    async addScene(...scenes) {
+    async addScene(...scenes: Scene[]): Promise<void> {
         for (const scene of scenes) {
             this.log.debug('Adding scene', scene);
 
@@ -162,7 +174,7 @@ export default class Automations extends Events {
      * @param {Scene} scene
      * @return {Promise}
      */
-    async removeScene(...scenes) {
+    async removeScene(...scenes: Scene[]): Promise<void> {
         for (const scene of scenes) {
             this.log.debug('Removing scene', scene);
 
@@ -177,7 +189,7 @@ export default class Automations extends Events {
      * @param {number} id
      * @return {Automation}
      */
-    getAutomation(id) {
+    getAutomation(id: number): Automation {
         return this.automations.find(automation => automation.id === id);
     }
 
@@ -187,7 +199,7 @@ export default class Automations extends Events {
      * @param {string} uuid
      * @return {Automation}
      */
-    getAutomationByUUID(uuid) {
+    getAutomationByUUID(uuid: string): Automation {
         return this.automations.find(automation => automation.uuid === uuid);
     }
 
@@ -197,7 +209,7 @@ export default class Automations extends Events {
      * @param {number} id
      * @return {Scene}
      */
-    getScene(id) {
+    getScene(id: number): Scene {
         return this.scenes.find(scene => scene.id === id);
     }
 
@@ -207,7 +219,7 @@ export default class Automations extends Events {
      * @param {string} uuid
      * @return {Scene}
      */
-    getSceneByUUID(uuid) {
+    getSceneByUUID(uuid: string): Scene {
         return this.scenes.find(scene => scene.uuid === uuid);
     }
 
@@ -219,7 +231,7 @@ export default class Automations extends Events {
      * @param {Logger} [log]
      * @return {Promise<AutomationTrigger>}
      */
-    async loadAutomationTrigger(config, uuid, log) {
+    async loadAutomationTrigger(config, uuid?: string, log?: Logger): Promise<AutomationTrigger> {
         return AutomationTrigger.load(this, config, uuid, log);
     }
 
@@ -231,7 +243,7 @@ export default class Automations extends Events {
      * @param {Logger} [log]
      * @return {Promise<AutomationCondition>}
      */
-    async loadAutomationCondition(config, uuid, log) {
+    async loadAutomationCondition(config, uuid?: string, log?: Logger): Promise<AutomationCondition> {
         return AutomationCondition.load(this, config, uuid, log);
     }
 
@@ -243,7 +255,7 @@ export default class Automations extends Events {
      * @param {Logger} [log]
      * @return {Promise<AutomationAction>}
      */
-    async loadAutomationAction(config, uuid, log) {
+    async loadAutomationAction(config, uuid?: string, log?: Logger): Promise<AutomationAction> {
         return AutomationAction.load(this, config, uuid, log);
     }
 
@@ -263,6 +275,19 @@ export default class Automations extends Events {
 }
 
 export class Automation {
+    private static id: number = 0;
+
+    readonly automations: Automations;
+    readonly id: number;
+    readonly uuid?: string;
+    readonly config?: any;
+
+    readonly log: Logger;
+    readonly triggers: AutomationTrigger[];
+    readonly conditions: AutomationCondition[];
+    readonly actions: AutomationAction[];
+    readonly running: AutomationRunner[];
+
     /**
      * Creates an Automation.
      *
@@ -270,7 +295,7 @@ export class Automation {
      * @param {object} config
      * @param {string} [uuid]
      */
-    constructor(automations, config, uuid) {
+    constructor(automations: Automations, config, uuid) {
         Object.defineProperty(this, 'automations', {value: automations});
         Object.defineProperty(this, 'id', {value: Automation.id++});
         Object.defineProperty(this, 'uuid', {value: uuid});
@@ -293,7 +318,7 @@ export class Automation {
      * @param {TriggerEvent} event
      * @param {boolean} dont_run
      */
-    handleTrigger(event, dont_run) {
+    handleTrigger(event: AutomationTriggerEvent, dont_run?: boolean) {
         if (dont_run) return;
 
         this.log.info('Received automation trigger event', event);
@@ -305,7 +330,7 @@ export class Automation {
 
         runner.on('finished', () => {
             this.running.splice(this.running.indexOf(runner), 1);
-            delete this.automations.running[runner.id];
+            delete this.automations.runners[runner.id];
         });
 
         runner.run();
@@ -317,7 +342,7 @@ export class Automation {
      * @param {AutomationTrigger} trigger
      * @return {Promise}
      */
-    async addTrigger(...triggers) {
+    async addTrigger(...triggers: AutomationTrigger[]): Promise<void> {
         for (const trigger of triggers) {
             if (trigger.automations !== this.automations) {
                 throw new Error('Cannot add a trigger from a different automations group');
@@ -342,7 +367,7 @@ export class Automation {
      * @param {AutomationTrigger} trigger
      * @return {Promise}
      */
-    async removeTrigger(...triggers) {
+    async removeTrigger(...triggers: AutomationTrigger[]): Promise<void> {
         for (const trigger of triggers) {
             trigger.removeListener('trigger', this.handleTrigger);
             this.triggers.splice(this.triggers.indexOf(trigger), 1);
@@ -352,7 +377,7 @@ export class Automation {
                     await trigger.stop();
                 }
             } catch (err) {
-                this.triggers.push(automation);
+                this.triggers.push(trigger);
                 throw err;
             }
         }
@@ -363,7 +388,7 @@ export class Automation {
      *
      * @param {AutomationCondition} condition
      */
-    addCondition(...conditions) {
+    addCondition(...conditions: AutomationCondition[]) {
         for (const condition of conditions) {
             if (condition.automations !== this.automations) {
                 throw new Error('Cannot add a condition from a different automations group');
@@ -384,8 +409,8 @@ export class Automation {
      *
      * @param {AutomationCondition} condition
      */
-    removeCondition(...condition) {
-        for (const condition of condition) {
+    removeCondition(...conditions: AutomationCondition[]) {
+        for (const condition of conditions) {
             let index;
             while ((index = this.conditions.indexOf(condition)) > -1) this.conditions.splice(index, 1);
         }
@@ -396,7 +421,7 @@ export class Automation {
      *
      * @param {AutomationAction} action
      */
-    addAction(...actions) {
+    addAction(...actions: AutomationAction[]) {
         for (const action of actions) {
             if (action.automations !== this.automations) {
                 throw new Error('Cannot add an action from a different automations group');
@@ -417,7 +442,7 @@ export class Automation {
      *
      * @param {AutomationAction} action
      */
-    removeAction(...actions) {
+    removeAction(...actions: AutomationAction[]) {
         for (const action of actions) {
             let index;
             while ((index = this.actions.indexOf(action)) > -1) this.actions.splice(index, 1);
@@ -425,16 +450,26 @@ export class Automation {
     }
 }
 
-Automation.id = 0;
-
 export class AutomationRunner extends EventEmitter {
+    private static id: number = 0;
+
+    readonly automation: Automation;
+    readonly id: number;
+    readonly event: AutomationTriggerEvent;
+    readonly log: Logger;
+    readonly conditions: Map<AutomationCondition, number>;
+    readonly actions: Map<AutomationAction, number>;
+
+    private running?: Promise<void>;
+    private finished: boolean;
+
     /**
      * Creates an AutomationRunner.
      *
      * @param {Automation} automation
      * @param {TriggerEvent} event
      */
-    constructor(automation, event) {
+    constructor(automation: Automation, event: AutomationTriggerEvent) {
         super();
 
         Object.defineProperty(this, 'automation', {value: automation});
@@ -567,5 +602,3 @@ export class AutomationRunner extends EventEmitter {
         this.emit('finished', true);
     }
 }
-
-AutomationRunner.id = 0;

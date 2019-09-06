@@ -1,4 +1,4 @@
-import {AutomationTriggerEvent as TriggerEvent} from '../events/server';
+import {AutomationTriggerEvent} from '../events/server';
 import {AutomationRunner} from '.';
 import AutomationCondition from './condition';
 import PluginManager from '../server/plugins';
@@ -6,7 +6,24 @@ import PluginManager from '../server/plugins';
 import EventEmitter from 'events';
 import vm from 'vm';
 
+import Server from '../server/server';
+import Automations from '.';
+import Scene from './scene';
+import Logger from '../common/logger';
+import {Accessory, Service, Characteristic} from 'hap-nodejs';
+
 export default class AutomationAction extends EventEmitter {
+    private static id = 0;
+    static readonly types: {
+        [key: string]: typeof AutomationAction,
+    } = {};
+
+    readonly automations: Automations;
+    readonly id: number;
+    readonly uuid?: string;
+    readonly config;
+    readonly log: Logger;
+
     /**
      * Creates an AutomationAction.
      *
@@ -67,13 +84,10 @@ export default class AutomationAction extends EventEmitter {
      * @param {AutomationAction} ...parent_actions
      * @return {Promise}
      */
-    async run(runner, setProgress) {
+    async run(runner: AutomationRunner | Scene, setProgress: (progress: number) => void, ...parent_actions: AutomationAction[]): Promise<boolean | void> {
         throw new Error('AutomationAction did not override the check function');
     }
 }
-
-AutomationAction.id = 0;
-AutomationAction.types = {};
 
 /**
  * An AutomationAction that does nothing.
@@ -92,12 +106,15 @@ AutomationAction.types.Test = TestAction;
  * An AutomationAction that runs a condition before running it's child actions.
  */
 export class ConditionalAction extends AutomationAction {
+    private condition: AutomationCondition;
+    private actions: AutomationAction[];
+
     async load() {
         this.condition = await this.automations.loadAutomationCondition(this.config.condition, null,
-            this.log.withPrefix('Condition (#' + (AutomationCondition.id + 1) + ')'));
+            this.log.withPrefix('Condition (#' + ((AutomationCondition as any).id + 1) + ')'));
         this.actions = await Promise.all(this.config.actions.map((config, index) =>
             this.automations.loadAutomationAction(config, null, this.log.withPrefix('Child #' + index +
-                ' (' + (AutomationAction.id + 1) + ')'))));
+                ' (' + ((AutomationAction as any).id + 1) + ')'))));
     }
 
     async run(runner, setProgress, ...parent_actions) {
@@ -150,6 +167,18 @@ AutomationAction.types.Conditional = ConditionalAction;
  * An AutomationAction that runs a JavaScript VM.
  */
 export class ScriptAction extends AutomationAction {
+    private sandbox: {
+        server: Server,
+        getAccessory: (uuid: string) => typeof Accessory,
+        getService: (uuid: string, uuid2?: string) => typeof Service,
+        getCharacteristic: (uuid: string, uuid2?: string, uuid3?: string) => typeof Characteristic,
+
+        automations: Automations,
+        automation_action: ScriptAction,
+        log: Logger,
+    };
+    private script: vm.Script;
+
     load() {
         this.sandbox = Object.freeze({
             server: this.automations.server,
@@ -224,21 +253,21 @@ export class RunAutomationAction extends AutomationAction {
         const automation = this.automations.getAutomationByUUID(this.config.automation_uuid);
         if (!automation) return;
 
-        const event = new TriggerEvent(this, {
+        const event = new AutomationTriggerEvent(this, {
             action: this,
             parent_runner,
-        }, true);
-        automation.emit(event, this, event.context, true);
+        });
+        // automation.emit(event, this, event.context, true);
 
         const conditions = automation.conditions;
-        if (this.config.skip_conditions) automation.conditions = [];
+        if (this.config.skip_conditions) (automation as any).conditions = [];
 
         const runner = new AutomationRunner(automation, event);
         automation.running.push(runner);
         runner.on('finished', () => automation.running.splice(automation.running.indexOf(runner), 1));
         runner.on('progress', progress => setProgress(progress));
 
-        automation.conditions = conditions;
+        (automation as any).conditions = conditions;
 
         await runner.run();
     }

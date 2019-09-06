@@ -1,11 +1,28 @@
 import cron from 'node-cron';
 
-import Events from '../events';
+import Events, {EventListener} from '../events';
 import {AutomationTriggerEvent as TriggerEvent, SceneActivatedEvent} from '../events/server';
 
+import Automations from '.';
 import PluginManager from '../server/plugins';
+import Logger from '../common/logger';
 
 export default class AutomationTrigger extends Events {
+    private static id = 0;
+    static readonly types: {
+        [key: string]: typeof AutomationTrigger,
+    } = {};
+
+    readonly automations: Automations;
+    readonly id: number;
+    readonly uuid?: string;
+    readonly config;
+    readonly log: Logger;
+
+    private running = false;
+    private starting: Promise<boolean>;
+    private stopping: Promise<boolean>;
+
     /**
      * Creates an AutomationTrigger.
      *
@@ -16,7 +33,7 @@ export default class AutomationTrigger extends Events {
      * @param {string} [uuid]
      * @param {Logger} [log]
      */
-    constructor(automations, config, uuid, log) {
+    constructor(automations: Automations, config?, uuid?: string, log?: Logger) {
         super();
 
         this.parent_emitter = automations;
@@ -99,7 +116,7 @@ export default class AutomationTrigger extends Events {
      * @param {object} [context]
      * @return {TriggerEvent}
      */
-    trigger(context) {
+    trigger(context?) {
         if (!this.running) throw new Error('Cannot trigger when not running');
 
         const event = new TriggerEvent(this, context);
@@ -110,13 +127,12 @@ export default class AutomationTrigger extends Events {
     }
 }
 
-AutomationTrigger.id = 0;
-AutomationTrigger.types = {};
-
 /**
  * An AutomationTrigger that runs based on a cron schedule.
  */
 export class CronTrigger extends AutomationTrigger {
+    private task;
+
     onstart() {
         if (this.task) this.task.destroy(), this.task = null;
 
@@ -139,6 +155,8 @@ AutomationTrigger.types.Cron = CronTrigger;
  * An AutomationTrigger that runs when a scene is triggered.
  */
 export class SceneTrigger extends AutomationTrigger {
+    private listener: EventListener;
+
     onstart() {
         if (this.listener) this.listener.cancel(), this.listener = null;
 
