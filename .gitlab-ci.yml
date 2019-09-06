@@ -37,7 +37,6 @@ build:
     except:
         variables:
             - $NPM_AUDIT_SCHEDULE_SKIP_BUILD
-    interruptible: true
 
 lint:
     stage: test
@@ -63,7 +62,6 @@ lint:
         paths:
             - node_modules/
         policy: pull
-    interruptible: true
 
 audit:
     stage: test
@@ -87,8 +85,8 @@ audit:
         paths:
             - node_modules/
         policy: pull
+    when: always
     allow_failure: true
-    interruptible: true
 
 publish:
     stage: deploy
@@ -109,4 +107,3 @@ publish:
         paths:
             - node_modules/
         policy: pull
-    interruptible: false
