@@ -26,6 +26,7 @@
                 :ref="'modal-' + getModalID(modal)" :connection="client.connection" :accessories="client.accessories"
                 :layout="modal.layout" :delete-layout="true" @remove="removeLayout" @close="modals.remove(modal)" />
 
+            <!-- eslint-disable vue/html-indent -->
             <accessory-settings v-else-if="modal.type === 'accessory-settings'" :key="getModalID(modal)"
                 :ref="'modal-' + getModalID(modal)" :connection="client.connection" :accessory="modal.accessory"
                 :accessories="client.accessories" :bridge-uuids="bridgeUuids"
@@ -33,6 +34,7 @@
                 @show-service-settings="service => pushModal({type: 'service-settings', service,
                     fromAccessorySettings: () => modals.stack[index] === modal})"
                 @modal="pushModal" @close="modals.remove(modal)" />
+            <!-- eslint-enable vue/html-indent -->
             <accessory-settings v-else-if="modal.type === 'new-bridge'" :key="getModalID(modal)"
                 :ref="'modal-' + getModalID(modal)" :connection="client.connection" :accessories="client.accessories"
                 :bridge-uuids="bridgeUuids" :create-bridge="true" @accessory="addNewAccessory"

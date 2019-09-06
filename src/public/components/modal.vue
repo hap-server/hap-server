@@ -83,16 +83,15 @@
     import PluginManager from '../plugins';
     import {NativeHookSymbol, ModalsSymbol, ClientSymbol, GetAssetURLSymbol} from '../internal-symbols';
     import {Modal} from '../modals';
-    import Modals from '../window-modals';
 
     import Authenticate from './authenticate.vue';
-    import AccessoryDetails from './accessory-details.vue';
+    // import AccessoryDetails from './accessory-details.vue';
 
     export default {
         components: {
             Authenticate,
 
-            AccessoryDetails,
+            // AccessoryDetails,
 
             SceneSettings: () => import(/* webpackChunkName: 'automations' */ '../automations/scene-settings.vue'),
 
@@ -249,7 +248,7 @@
                             .includes(this.$route.query.accessory) ? null : [this.$route.query.accessory]
                         );
                         modal.accessory = this.client.accessories[this.$route.query.accessory];
-                        if (!modal.accessory) throw new Error('Unknown ' + (modal.bridge_uuids
+                        if (!modal.accessory) throw new Error('Unknown ' + (modal.bridge_uuids // eslint-disable-line curly
                             .includes(this.$route.query.accessory) ? 'bridge' : 'accessory'));
                     }
 

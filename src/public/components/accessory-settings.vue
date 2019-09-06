@@ -188,7 +188,8 @@
                     @click="save(true)">Delete</button>
             </template>
             <template v-else-if="createBridge || (tab === 'config' && config_changed) ||
-                    (config && can_set_config && tab === 'accessories' && accessories_changed)">
+                (config && can_set_config && tab === 'accessories' && accessories_changed)"
+            >
                 <button class="btn btn-default btn-sm" type="button" :disabled="changed || saving || saving_config"
                     @click="() => $refs.panel.close()">Cancel</button>&nbsp;
                 <button key="primary" class="btn btn-primary btn-sm" type="button"
