@@ -203,6 +203,7 @@ export default class Service extends EventEmitter {
         for (const collapsed_service_type of Object.keys(collapsed_services)) {
             const collapsed_service = collapsed_services[collapsed_service_type];
 
+            if (typeof collapsed_service === 'function') return collapsed_service.call(null, this) ? collapsed_service_type : null;
             if (collapsed_service.includes(this.type)) return collapsed_service_type;
         }
     }
@@ -325,7 +326,9 @@ export const system_types = [
 
 export const collapsed_services = {
     [Service.StatelessProgrammableSwitch]: [Service.StatelessProgrammableSwitch],
-    [Service.Television]: [Service.Television, Service.TelevisionSpeaker, Service.InputSource],
+    [Service.Television]: service => service.type === Service.Television ||
+        ([...Object.values(service.accessory.services)].find(s => s.type === Service.Television) &&
+            service.type === Service.TelevisionSpeaker),
 };
 
 global.Service = Service;
