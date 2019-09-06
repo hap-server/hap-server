@@ -5,6 +5,22 @@ rules:
     indentation:
         - 2
         - size: 4
+    final-newline: 2
     leading-zero:
         - 2
         - include: true
+    hex-length:
+        - 2
+        - style: long
+    no-duplicate-properties:
+        - 2
+        - exclude:
+            - position
+    mixins-before-declarations:
+        - 2
+        - exclude:
+            - dark-theme
+    single-line-per-selector: 2
+
+    # Disable this for now
+    property-sort-order: 0

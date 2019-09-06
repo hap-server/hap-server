@@ -108,7 +108,8 @@ html.theme-dark.modal-window .background {
     background-attachment: scroll;
 }
 
-.fade-enter-active, .fade-leave-active {
+.fade-enter-active,
+.fade-leave-active {
     transition: opacity 1s;
 }
 .fade-enter {
@@ -149,7 +150,8 @@ html.theme-dark.modal-window .background {
         }
     }
 
-    .left, .right {
+    .left,
+    .right {
         flex: 1 1 10%;
         margin: -4px 1rem;
     }
