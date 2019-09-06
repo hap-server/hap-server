@@ -75,13 +75,9 @@ const message_methods = {
     'unsubscribe-characteristics': 'handleUnsubscribeCharacteristicsMessage',
     'get-accessories-data': 'handleGetAccessoriesDataMessage',
     'set-accessories-data': 'handleSetAccessoriesDataMessage',
-    'start-accessory-discovery': 'handleStartAccessoryDiscoveryMessage',
-    'get-discovered-accessories': 'handleGetDiscoveredAccessoriesMessage',
-    'stop-accessory-discovery': 'handleStopAccessoryDiscoveryMessage',
-    'get-home-settings': 'handleGetHomeSettingsMessage',
-    'get-home-permissions': 'handleGetHomePermissionsMessage',
+
     'set-home-settings': 'handleSetHomeSettingsMessage',
-    'list-layouts': 'handleListLayoutsMessage',
+
     'create-layouts': 'handleCreateLayoutsMessage',
     'get-layouts': 'handleGetLayoutsMessage',
     'get-layouts-permissions': 'handleGetLayoutsPermissionsMessage',
@@ -92,13 +88,13 @@ const message_methods = {
     'get-layout-sections': 'handleGetLayoutSectionsMessage',
     'set-layout-sections': 'handleSetLayoutSectionsMessage',
     'delete-layout-sections': 'handleDeleteLayoutSectionsMessage',
-    'list-automations': 'handleListAutomationsMessage',
+
     'create-automations': 'handleCreateAutomationsMessage',
     'get-automations': 'handleGetAutomationsMessage',
     'get-automations-permissions': 'handleGetAutomationsPermissionsMessage',
     'set-automations': 'handleSetAutomationsMessage',
     'delete-automations': 'handleDeleteAutomationsMessage',
-    'list-scenes': 'handleListScenesMessage',
+
     'create-scenes': 'handleCreateScenesMessage',
     'get-scenes': 'handleGetScenesMessage',
     'get-scenes-permissions': 'handleGetScenesPermissionsMessage',
@@ -107,9 +103,7 @@ const message_methods = {
     'activate-scenes': 'handleActivateScenesMessage',
     'deactivate-scenes': 'handleDeactivateScenesMessage',
     'delete-scenes': 'handleDeleteScenesMessage',
-    'get-command-line-flags': 'handleGetCommandLineFlagsMessage',
-    'enable-proxy-stdout': 'handleEnableProxyStdoutMessage',
-    'disable-proxy-stdout': 'handleDisableProxyStdoutMessage',
+
     'list-bridges': 'handleListBridgesMessage',
     'create-bridges': 'handleCreateBridgesMessage',
     'get-bridges': 'handleGetBridgesMessage',
@@ -124,13 +118,13 @@ const message_methods = {
     'get-pairings-data': 'handleGetPairingsDataMessage',
     'get-pairings-permissions': 'handleGetPairingsPermissionsMessage',
     'set-pairings-data': 'handleSetPairingsDataMessage',
-    'get-accessory-uis': 'handleGetAccessoryUIsMessage',
+
     'authenticate': 'handleAuthenticateMessage',
     'user-management': 'handleUserManagementMessage',
     'get-users-permissions': 'handleGetUsersPermissionsMessage',
     'set-users-permissions': 'handleSetUsersPermissionsMessage',
     'accessory-setup': 'handleAccessorySetupMessage',
-    'open-console': 'handleOpenConsoleMessage',
+
     'close-console': 'handleCloseConsoleMessage',
     'console-input': 'handleConsoleInputMessage',
 };
@@ -138,7 +132,26 @@ const message_methods = {
 const message_handlers = {
     'list-accessories': 'listAccessories',
 
+    'start-accessory-discovery': 'startAccessoryDiscovery',
+    'get-discovered-accessories': 'getDiscoveredAccessories',
+    'stop-accessory-discovery': 'stopAccessoryDiscovery',
+    'get-home-settings': 'getHomeSettings',
+    'get-home-permissions': 'getHomePermissions',
+
+    'list-layouts': 'listLayouts',
+
+    'list-automations': 'listAutomations',
+
+    'list-scenes': 'listScenes',
+
+    'get-command-line-flags': 'getCommandLineFlags',
+    'enable-proxy-stdout': 'enableProxyStdout',
+    'disable-proxy-stdout': 'disableProxyStdout',
+
     'get-web-interface-plugins': 'getWebInterfacePlugins',
+    'get-accessory-uis': 'getWebInterfacePlugins', // deprecated
+
+    'open-console': 'openConsole',
 };
 
 const hide_authentication_keys = [
@@ -149,8 +162,34 @@ const ws_map = new WeakMap();
 
 const DEVELOPMENT = true;
 
+import Server from './server';
+import Logger from '../common/logger';
+import WebSocket from 'ws';
+import http from 'http';
+
 export default class Connection {
-    constructor(server, ws, req) {
+    readonly server: Server;
+    readonly ws: WebSocket;
+    readonly id: number;
+    readonly log: Logger;
+    authenticated_user?: AuthenticatedUser;
+    enable_accessory_discovery = false;
+    enable_proxy_stdout = false;
+    last_message?: number;
+    closed = false;
+    readonly req: http.IncomingMessage;
+    readonly uploads;
+    readonly open_consoles: Map<any, any>;
+    console_id: number;
+    readonly events: Set<any>;
+
+    readonly permissions: Permissions;
+
+    terminateInterval;
+
+    asset_token: string;
+
+    constructor(server: Server, ws: WebSocket, req: http.IncomingMessage) {
         Object.defineProperty(this, 'server', {value: server});
         Object.defineProperty(this, 'ws', {value: ws});
         Object.defineProperty(this, 'id', {enumerable: true, value: id++});
@@ -258,7 +297,7 @@ export default class Connection {
         this.ws.send('**:' + JSON.stringify(data));
     }
 
-    async respond(messageid, data, error) {
+    async respond(messageid: number, data, error?) {
         if (data instanceof Promise) {
             try {
                 error = false;
@@ -453,7 +492,7 @@ export default class Connection {
     }
 
     getCharacteristics(...ids) {
-        return Promise.all(ids.map(ids => this.getCharacteristic(...ids)));
+        return Promise.all(ids.map(ids => this.getCharacteristic(ids[0], ids[1], ids[2])));
     }
 
     async getCharacteristic(accessory_uuid, service_uuid, characteristic_uuid) {
@@ -494,7 +533,7 @@ export default class Connection {
     }
 
     setCharacteristics(...ids) {
-        return Promise.all(ids.map(ids => this.setCharacteristic(...ids)));
+        return Promise.all(ids.map(ids => this.setCharacteristic(ids[0], ids[1], ids[2], ids[3])));
     }
 
     async setCharacteristic(accessory_uuid, service_uuid, characteristic_uuid, value) {
@@ -530,7 +569,7 @@ export default class Connection {
     }
 
     subscribeCharacteristics(...ids) {
-        return Promise.all(ids.map(ids => this.subscribeCharacteristic(...ids)));
+        return Promise.all(ids.map(ids => this.subscribeCharacteristic(ids[0], ids[1], ids[2])));
     }
 
     async subscribeCharacteristic(accessory_uuid, service_uuid, characteristic_uuid) {
@@ -571,7 +610,7 @@ export default class Connection {
     }
 
     unsubscribeCharacteristics(...ids) {
-        return Promise.all(ids.map(ids => this.unsubscribeCharacteristic(...ids)));
+        return Promise.all(ids.map(ids => this.unsubscribeCharacteristic(ids[0], ids[1], ids[2])));
     }
 
     async unsubscribeCharacteristic(accessory_uuid, service_uuid, characteristic_uuid) {
@@ -655,10 +694,6 @@ export default class Connection {
     /**
      * Starts accessory discovery.
      */
-    handleStartAccessoryDiscoveryMessage(messageid, data) {
-        this.respond(messageid, this.startAccessoryDiscovery());
-    }
-
     async startAccessoryDiscovery() {
         await this.permissions.assertCanCreateAccessories();
 
@@ -673,10 +708,6 @@ export default class Connection {
     /**
      * Gets discovered accessories.
      */
-    handleGetDiscoveredAccessoriesMessage(messageid, data) {
-        this.respond(messageid, this.getDiscoveredAccessories());
-    }
-
     async getDiscoveredAccessories() {
         await this.permissions.assertCanCreateAccessories();
 
@@ -692,10 +723,6 @@ export default class Connection {
     /**
      * Stops accessory discovery.
      */
-    handleStopAccessoryDiscoveryMessage(messageid, data) {
-        this.respond(messageid, this.stopAccessoryDiscovery());
-    }
-
     async stopAccessoryDiscovery() {
         await this.permissions.assertCanCreateAccessories();
 
@@ -708,10 +735,6 @@ export default class Connection {
     /**
      * Gets global settings.
      */
-    handleGetHomeSettingsMessage(messageid, data) {
-        this.respond(messageid, this.getHomeSettings());
-    }
-
     async getHomeSettings() {
         await this.permissions.assertCanGetHomeSettings();
 
@@ -723,10 +746,6 @@ export default class Connection {
     /**
      * Gets the user's global permissions.
      */
-    handleGetHomePermissionsMessage(messageid) {
-        this.respond(messageid, this.getHomePermissions());
-    }
-
     async getHomePermissions() {
         const [
             get, set, add_accessories, create_layouts, has_automations, create_automations, create_bridges,
@@ -797,10 +816,6 @@ export default class Connection {
     /**
      * Gets the UUID of every layout.
      */
-    handleListLayoutsMessage(messageid, data) {
-        this.respond(messageid, this.listLayouts());
-    }
-
     async listLayouts() {
         const uuids = [].concat(await this.server.storage.getItem('Layouts'));
 
@@ -1061,7 +1076,7 @@ export default class Connection {
         if (data && data.background_url) {
             const home_settings = await this.server.storage.getItem('Home');
 
-            if (home_settings && home_settings.background_url === previous_data.background_url) return;
+            if (home_settings && home_settings.background_url === data.background_url) return;
 
             for (const layout_uuid of await this.server.storage.getItem('Layouts')) {
                 const layout = await this.server.storage.getItem('Layout.' + layout_uuid);
@@ -1209,10 +1224,6 @@ export default class Connection {
     /**
      * Gets the UUID of every automation.
      */
-    handleListAutomationsMessage(messageid, data) {
-        this.respond(messageid, this.listAutomations());
-    }
-
     async listAutomations() {
         const uuids = await this.server.storage.getItem('Automations') || [];
 
@@ -1370,10 +1381,6 @@ export default class Connection {
     /**
      * Gets the UUID of every scene.
      */
-    handleListScenesMessage(messageid, data) {
-        this.respond(messageid, this.listScenes());
-    }
-
     async listScenes() {
         const uuids = await this.server.storage.getItem('Scenes') || [];
 
@@ -1597,20 +1604,12 @@ export default class Connection {
         }, this.ws);
     }
 
-    handleGetCommandLineFlagsMessage(messageid) {
-        this.respond(messageid, this.getCommandLineFlags());
-    }
-
     async getCommandLineFlags() {
         await this.permissions.assertCanAccessServerRuntimeInfo();
 
         this.log.info('Getting command line flags for', this.id);
 
         return process.argv;
-    }
-
-    handleEnableProxyStdoutMessage(messageid) {
-        this.respond(messageid, this.enableProxyStdout());
     }
 
     async enableProxyStdout() {
@@ -1620,10 +1619,6 @@ export default class Connection {
         this.enable_proxy_stdout = true;
 
         setTimeout(() => this.log.info('Should work'), 1000);
-    }
-
-    handleDisableProxyStdoutMessage(messageid) {
-        this.respond(messageid, this.disableProxyStdout());
     }
 
     async disableProxyStdout() {
@@ -2020,7 +2015,7 @@ export default class Connection {
 
     async getPairingPermissions(id) {
         // eslint-disable-next-line no-unused-vars
-        const [get, set, info] = await Promise.all([
+        const [get, set /* , info */] = await Promise.all([
             this.permissions.checkCanGetPairing(id),
             this.permissions.checkCanSetPairing(id),
             // this.permissions.checkCanAccessServerRuntimeInfo(),
@@ -2062,10 +2057,6 @@ export default class Connection {
     /**
      * Gets web interface plugins.
      */
-    handleGetAccessoryUIsMessage(messageid, data) {
-        this.respond(messageid, this.getWebInterfacePlugins());
-    }
-
     getWebInterfacePlugins() {
         return PluginManager.getWebInterfacePlugins().map(ui_plugin => {
             const plugin_authentication_handlers = {};
@@ -2168,7 +2159,7 @@ export default class Connection {
 
                 this.log.info('Authenticating with setup token', token);
 
-                if ([...this.server.wss.clients].map(s => this.constructor.getConnectionForWebSocket(s))
+                if ([...this.server.wss.clients].map(s => (this.constructor as typeof Connection).getConnectionForWebSocket(s))
                     .find(c => c.authenticated_user && c.authenticated_user.id === 'cli-token')
                 ) {
                     throw new Error('Another client is authenticated as the setup user.');
@@ -2197,7 +2188,7 @@ export default class Connection {
             this.respond(messageid, {
                 error: err instanceof Error,
                 constructor: err.constructor.name,
-                data: err instanceof Error ? {message: err.message, code: err.code, stack: err.stack} : err,
+                data: err instanceof Error ? {message: err.message, code: (err as any).code, stack: err.stack} : err,
             }, true);
         }
     }
@@ -2261,7 +2252,7 @@ export default class Connection {
             this.respond(messageid, {
                 error: err instanceof Error,
                 constructor: err.constructor.name,
-                data: err instanceof Error ? {message: err.message, code: err.code, stack: err.stack} : err,
+                data: err instanceof Error ? {message: err.message, code: (err as any).code, stack: err.stack} : err,
             }, true);
         }
     }
@@ -2339,13 +2330,9 @@ export default class Connection {
             this.respond(messageid, {
                 error: err instanceof Error,
                 constructor: err.constructor.name,
-                data: err instanceof Error ? {message: err.message, code: err.code, stack: err.stack} : err,
+                data: err instanceof Error ? {message: err.message, code: (err as any).code, stack: err.stack} : err,
             }, true);
         }
-    }
-
-    handleOpenConsoleMessage(messageid, data) {
-        this.respond(messageid, this.openConsole());
     }
 
     async openConsole() {
@@ -2368,7 +2355,7 @@ export default class Connection {
             },
         });
 
-        const console = {input, output, subprocesses: new Set()};
+        const console = {input, output, subprocesses: new Set(), repl_server: null};
         this.open_consoles.set(id, console);
 
         setTimeout(() => {
@@ -2406,7 +2393,7 @@ export default class Connection {
                     console.subprocesses.add(subprocess);
                     subprocess.stdout.on('data', data => output.write(data));
                     subprocess.stderr.on('data', data => output.write(data));
-                    console.input = subprocess.stdin;
+                    console.input = subprocess.stdin as any;
                     const {code, signal} = await new Promise(rs =>
                         subprocess.on('exit', (code, signal) => rs({code, signal})));
                     console.input = input;
@@ -2462,7 +2449,7 @@ if (DEVELOPMENT) {
 
     message_methods['development-data'] = 'handleDevelopmentDataMessage';
 
-    Connection.prototype.handleDevelopmentDataMessage = function(messageid) {
+    (Connection as any).prototype.handleDevelopmentDataMessage = function(messageid) {
         this.respond(messageid, development_data);
     };
 

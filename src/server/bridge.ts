@@ -3,14 +3,39 @@ import os from 'os';
 import crypto from 'crypto';
 import chalk from 'chalk';
 import qrcode from 'qrcode-terminal';
-import {Bridge as HAPBridge, Accessory, Service, Characteristic} from 'hap-nodejs';
+import {Accessory, Service, Characteristic} from 'hap-nodejs';
+import {Bridge as HAPBridge} from 'hap-nodejs/lib/Bridge';
 import HAPServer from './hap-server';
 
 import {AccessoryInfo} from 'hap-nodejs/lib/model/AccessoryInfo';
 import {IdentifierCache} from 'hap-nodejs/lib/model/IdentifierCache';
 import {clone} from 'hap-nodejs/lib/util/clone';
 
+import Server from './server';
+import Logger from '../common/logger';
+
 export default class Bridge {
+    readonly server: Server;
+    readonly log: Logger;
+
+    readonly config;
+    readonly uuid: string;
+    readonly name: string;
+    readonly username: string;
+    readonly port: number;
+    readonly pincode: string;
+    readonly unauthenticated_access: boolean;
+
+    readonly accessory_uuids: string[];
+    readonly external_accessories: typeof Accessory[];
+    readonly external_accessory_accessory_infos: Map<typeof Accessory, AccessoryInfo>;
+    readonly external_accessory_identifier_caches: Map<typeof Accessory, IdentifierCache>;
+    readonly external_accessory_servers: Map<typeof Accessory, HAPServer>;
+    readonly cached_accessories: typeof Accessory[];
+
+    private bridge: HAPBridge;
+    _handleCharacteristicUpdate: any;
+
     constructor(server, log, config) {
         this.server = server;
         this.log = log;
@@ -285,7 +310,7 @@ export default class Bridge {
             s.UUID === Service.TemperatureSensor.UUID ||
             s.UUID === Service.AirQualitySensor.UUID)) return Accessory.Categories.SENSOR;
         if (accessory.services.find(s =>
-            s.UUID === Service.SecuritySystem.UUID)) return Accessory.Categories.SECURITY_SYSTEM;
+            s.UUID === Service.SecuritySystem.UUID)) return (Accessory.Categories as any).SECURITY_SYSTEM;
         if (accessory.services.find(s => s.UUID === Service.Door.UUID)) return Accessory.Categories.DOOR;
         if (accessory.services.find(s => s.UUID === Service.Window.UUID)) return Accessory.Categories.WINDOW;
         if (accessory.services.find(s =>
@@ -293,20 +318,20 @@ export default class Bridge {
         if (accessory.services.find(s =>
             s.UUID === Service.StatelessProgrammableSwitch.UUID)) return Accessory.Categories.PROGRAMMABLE_SWITCH;
         if (accessory.cameraSource && accessory.services.find(s =>
-            s.UUID === Service.Doorbell.UUID)) return Accessory.Categories.VIDEO_DOORBELL;
-        if (accessory.cameraSource) return Accessory.Categories.IP_CAMERA;
-        if (accessory.services.find(s => s.UUID === Service.AirPurifier.UUID)) return Accessory.Categories.AIR_PURIFIER;
-        if (accessory.services.find(s => s.UUID === Service.Television.UUID)) return Accessory.Categories.TELEVISION;
-        if (accessory.services.find(s => s.UUID === Service.Speaker.UUID)) return Accessory.Categories.SPEAKER;
+            s.UUID === Service.Doorbell.UUID)) return (Accessory.Categories as any).VIDEO_DOORBELL;
+        if (accessory.cameraSource) return (Accessory.Categories as any).IP_CAMERA;
+        if (accessory.services.find(s => s.UUID === Service.AirPurifier.UUID)) return (Accessory.Categories as any).AIR_PURIFIER;
+        if (accessory.services.find(s => s.UUID === Service.Television.UUID)) return (Accessory.Categories as any).TELEVISION;
+        if (accessory.services.find(s => s.UUID === Service.Speaker.UUID)) return (Accessory.Categories as any).SPEAKER;
         if (accessory.services.find(s => s.UUID === Service.Valve.UUID &&
             s.getCharacteristic(Characteristic.ValveType).value === Characteristic.ValveType.IRRIGATION
-        )) return Accessory.Categories.SPRINKLER;
+        )) return (Accessory.Categories as any).SPRINKLER;
         if (accessory.services.find(s => s.UUID === Service.Faucet.UUID || (s.UUID === Service.Valve.UUID &&
             s.getCharacteristic(Characteristic.ValveType).value === Characteristic.ValveType.WATER_FAUCET)
-        )) return Accessory.Categories.FAUCET;
+        )) return (Accessory.Categories as any).FAUCET;
         if (accessory.services.find(s => s.UUID === Service.Valve.UUID &&
             s.getCharacteristic(Characteristic.ValveType).value === Characteristic.ValveType.SHOWER_HEAD
-        )) return Accessory.Categories.SHOWER_HEAD;
+        )) return (Accessory.Categories as any).SHOWER_HEAD;
 
         return Accessory.Categories.OTHER;
     }
@@ -320,7 +345,7 @@ export default class Bridge {
             return this.external_accessory_accessory_infos.get(accessory);
         }
 
-        const username = this.constructor.generateExternalAccessoryUsername(this.username, accessory.UUID);
+        const username = (this.constructor as typeof Bridge).generateExternalAccessoryUsername(this.username, accessory.UUID);
 
         // Attempt to load existing AccessoryInfo from disk
         let accessory_info = AccessoryInfo.load(username);
@@ -342,7 +367,7 @@ export default class Bridge {
 
         // Make sure we have up-to-date values in AccessoryInfo, then save it in case they changed (or if we just created it)
         accessory_info.displayName = this.name + ' ' + accessory.displayName;
-        accessory_info.category = this.constructor.getExternalAccessoryCategory(accessory);
+        accessory_info.category = (this.constructor as typeof Bridge).getExternalAccessoryCategory(accessory);
         accessory_info.pincode = this.pincode;
         accessory_info.save();
 
@@ -359,7 +384,7 @@ export default class Bridge {
             return this.external_accessory_identifier_caches.get(accessory);
         }
 
-        const username = this.constructor.generateExternalAccessoryUsername(this.username, accessory.UUID);
+        const username = (this.constructor as typeof Bridge).generateExternalAccessoryUsername(this.username, accessory.UUID);
 
         // Create our IdentifierCache so we can provide clients with stable aid/iid's
         let identifier_cache = IdentifierCache.load(username);
@@ -409,7 +434,7 @@ export default class Bridge {
 
     expireExternalAccessoryUnusedIDs(accessory) {
         if (!this.external_accessory_identifier_caches.has(accessory) ||
-            !this.external_accessory_servers(accessory)) return;
+            !this.external_accessory_servers.has(accessory)) return;
 
         const identifier_cache = this.external_accessory_identifier_caches.get(accessory);
         const hap_server = this.external_accessory_servers.get(accessory);
@@ -453,16 +478,16 @@ export default class Bridge {
 
         for (const a of this.cached_accessories) {
             if (a.UUID === accessory.UUID) continue;
-            if (!a.external_groups) continue;
-            if (a.plugin_accessory && a.plugin_accessory.cached_data &&
-                a.plugin_accessory.cached_data.bridge_uuids_external &&
-                a.plugin_accessory.cached_data.bridge_uuids_external.includes(this.uuid)) continue;
-            if (a.plugin_accessory && a.plugin_accessory.cached_data &&
-                a.plugin_accessory.cached_data.bridge_uuids &&
-                a.plugin_accessory.cached_data.bridge_uuids_external &&
-                a.plugin_accessory.cached_data.bridge_uuids.includes(this.uuid) &&
-                !a.plugin_accessory.cached_data.bridge_uuids_external.includes(this.uuid)) return false;
-            if (a.external_groups.find(g => accessory.external_groups.includes(g))) return true;
+            if (!(a as any).external_groups) continue;
+            if ((a as any).plugin_accessory && (a as any).plugin_accessory.cached_data &&
+                (a as any).plugin_accessory.cached_data.bridge_uuids_external &&
+                (a as any).plugin_accessory.cached_data.bridge_uuids_external.includes(this.uuid)) continue;
+            if ((a as any).plugin_accessory && (a as any).plugin_accessory.cached_data &&
+                (a as any).plugin_accessory.cached_data.bridge_uuids &&
+                (a as any).plugin_accessory.cached_data.bridge_uuids_external &&
+                (a as any).plugin_accessory.cached_data.bridge_uuids.includes(this.uuid) &&
+                !(a as any).plugin_accessory.cached_data.bridge_uuids_external.includes(this.uuid)) return false;
+            if ((a as any).external_groups.find(g => accessory.external_groups.includes(g))) return true;
         }
 
         return false;
@@ -569,7 +594,7 @@ export default class Bridge {
     removeCachedAccessory(accessory) {
         let index;
         while ((index = typeof accessory === 'string' ?
-            this.cached_accessories.findIndex(a => a.UUID === accessory.UUID) :
+            this.cached_accessories.findIndex(a => a.UUID === accessory) :
             this.cached_accessories.indexOf(accessory)
         ) !== -1) this.cached_accessories.splice(index, 1);
 

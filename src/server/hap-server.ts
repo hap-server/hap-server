@@ -1,23 +1,48 @@
 
-import {HAPServer, Accessory} from 'hap-nodejs';
+import {Accessory} from 'hap-nodejs';
+import {HAPServer} from 'hap-nodejs/lib/HAPServer';
 import {Advertiser} from 'hap-nodejs/lib/Advertiser';
+import {AccessoryInfo} from 'hap-nodejs/lib/model/AccessoryInfo';
+import {IdentifierCache} from 'hap-nodejs/lib/model/IdentifierCache';
+import {Camera as CameraSource} from 'hap-nodejs/lib/Camera';
 
-export function hapStatus(err) {
+import Logger from '../common/logger';
+
+export function hapStatus(err): number {
     let value = 0;
 
     for (const k in HAPServer.Status) {
-        if (err.message !== HAPServer.Status[k]) continue;
+        if (err.message !== k) continue;
 
-        value = err.message;
+        value = HAPServer.Status[k];
         break;
     }
 
     if (value === 0) value = HAPServer.Status.SERVICE_COMMUNICATION_FAILURE; // Default if not found or 0
 
-    return parseInt(value);
+    return value;
 }
 
 export default class Server {
+    private static instances = new Set();
+
+    readonly bridge;
+    readonly config;
+    readonly log: Logger;
+    readonly accessories: typeof Accessory[];
+    readonly cached_accessories: typeof Accessory[];
+
+    readonly accessory_info: AccessoryInfo;
+    readonly identifier_cache: IdentifierCache;
+    readonly camera_source?: CameraSource;
+
+    readonly server: HAPServer;
+    readonly advertiser: Advertiser;
+    readonly mdns;
+
+    require_first_pairing?: string;
+    allowed_pairings?: string[];
+
     /**
      * Creates a HAPServer.
      *
@@ -31,7 +56,7 @@ export default class Server {
      * @param {IdentifierCache} identifier_cache
      * @param {Camera} camera_source
      */
-    constructor(bridge, config, log, accessory_info, identifier_cache, camera_source) {
+    constructor(bridge, config, log, accessory_info, identifier_cache, camera_source?) {
         this.bridge = bridge;
         this.config = config;
         this.log = log;
@@ -82,25 +107,25 @@ export default class Server {
     start() {
         if (this.started) return;
 
-        if ([...this.constructor.instances.values()].find(s => s.accessory_info.username === this.accessory_info.username)) {
+        if ([...(this.constructor as typeof Server).instances.values()].find((s: Server) => s.accessory_info.username === this.accessory_info.username)) {
             throw new Error('Already running another HAP server with the same ID/username');
         }
 
         this.log.info('Starting HAP server for %s (username %s)',
             this.bridge.displayName, this.accessory_info.username);
 
-        this.constructor.instances.add(this);
+        (this.constructor as typeof Server).instances.add(this);
         this.server.listen(this.config.port);
 
         // The advertisement will be started when the server is started
     }
 
     get started() {
-        return this.constructor.instances.has(this);
+        return (this.constructor as typeof Server).instances.has(this);
     }
 
     stop() {
-        this.constructor.instances.delete(this);
+        (this.constructor as typeof Server).instances.delete(this);
         this.server.stop();
         this.stopAdvertising();
     }
@@ -112,7 +137,7 @@ export default class Server {
      * @param {boolean} [include_cached]
      * @return {Accessory}
      */
-    getAccessoryByID(aid, include_cached) {
+    getAccessoryByID(aid, include_cached = false) {
         if (aid === 1) return this.bridge;
 
         for (const accessory of this.accessories) {
@@ -333,7 +358,7 @@ export default class Server {
      * @param {object} [options]
      * @return {object}
      */
-    toHAP(options) {
+    toHAP(options?) {
         return {
             // Array of Accessory HAP
             // _handleGetCharacteristics will return SERVICE_COMMUNICATION_FAILURE for cached characteristics
@@ -352,7 +377,7 @@ export default class Server {
      * @param {boolean} [is_cached]
      * @return {object}
      */
-    accessoryToHAP(accessory, options, is_cached) {
+    accessoryToHAP(accessory, options?, is_cached = false) {
         return {
             aid: this.getAccessoryID(accessory),
             services: accessory.services.map(service => ({
@@ -602,5 +627,3 @@ export default class Server {
         }
     }
 }
-
-Server.instances = new Set();
