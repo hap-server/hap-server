@@ -343,7 +343,6 @@
                 }
             },
             tab() {
-                this.editing_user = null;
                 this.creating_user = null;
             },
             editing_user(editing_user) {

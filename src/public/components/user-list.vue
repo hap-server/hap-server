@@ -6,7 +6,7 @@
                 <template v-for="(users, handler_id) in handler_users" v-if="users.length">
                     <h4 :key="handler_id">{{ getHandlerName(handler_id) || handler_id }}</h4>
                     <div v-for="user in users" :key="handler_id + '-' + user.id"
-                        class="list-group-item list-group-item-action clickable" :class="{active: value === user}"
+                        class="list-group-item list-group-item-action clickable" :class="{active: value && value.id === user.id}"
                         @click="$emit('input', user)"
                     >
                         <div class="list-group-item-contents">{{ user.name || user.id }}</div>
