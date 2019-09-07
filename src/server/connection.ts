@@ -67,96 +67,33 @@ async function genusername(storage) {
 let id = 0;
 
 const message_methods = {
-    'get-accessories': 'handleGetAccessoriesMessage',
-    'get-accessories-permissions': 'handleGetAccessoriesPermissionsMessage',
-    'get-characteristics': 'handleGetCharacteristicsMessage',
-    'set-characteristics': 'handleSetCharacteristicsMessage',
-    'subscribe-characteristics': 'handleSubscribeCharacteristicsMessage',
-    'unsubscribe-characteristics': 'handleUnsubscribeCharacteristicsMessage',
-    'get-accessories-data': 'handleGetAccessoriesDataMessage',
-    'set-accessories-data': 'handleSetAccessoriesDataMessage',
-
-    'set-home-settings': 'handleSetHomeSettingsMessage',
-
-    'create-layouts': 'handleCreateLayoutsMessage',
-    'get-layouts': 'handleGetLayoutsMessage',
-    'get-layouts-permissions': 'handleGetLayoutsPermissionsMessage',
-    'set-layouts': 'handleSetLayoutsMessage',
-    'delete-layouts': 'handleDeleteLayoutsMessage',
-    'list-layout-sections': 'handleListLayoutSectionsMessage',
-    'create-layout-sections': 'handleCreateLayoutSectionsMessage',
-    'get-layout-sections': 'handleGetLayoutSectionsMessage',
-    'set-layout-sections': 'handleSetLayoutSectionsMessage',
-    'delete-layout-sections': 'handleDeleteLayoutSectionsMessage',
-
-    'create-automations': 'handleCreateAutomationsMessage',
-    'get-automations': 'handleGetAutomationsMessage',
-    'get-automations-permissions': 'handleGetAutomationsPermissionsMessage',
-    'set-automations': 'handleSetAutomationsMessage',
-    'delete-automations': 'handleDeleteAutomationsMessage',
-
-    'create-scenes': 'handleCreateScenesMessage',
-    'get-scenes': 'handleGetScenesMessage',
-    'get-scenes-permissions': 'handleGetScenesPermissionsMessage',
-    'set-scenes': 'handleSetScenesMessage',
-    'check-scenes-active': 'handleCheckScenesActiveMessage',
-    'activate-scenes': 'handleActivateScenesMessage',
-    'deactivate-scenes': 'handleDeactivateScenesMessage',
-    'delete-scenes': 'handleDeleteScenesMessage',
-
-    'list-bridges': 'handleListBridgesMessage',
-    'create-bridges': 'handleCreateBridgesMessage',
-    'get-bridges': 'handleGetBridgesMessage',
-    'get-bridges-configuration': 'handleGetBridgesConfigurationMessage',
-    'get-bridges-permissions': 'handleGetBridgesConfigurationPermissionsMessage',
-    'set-bridges-configuration': 'handleSetBridgesConfigurationMessage',
-    'delete-bridges': 'handleDeleteBridgesMessage',
-    'get-bridges-pairing-details': 'handleGetBridgesPairingDetailsMessage',
-    'reset-bridges-pairings': 'handleResetBridgesPairingsMessage',
-    'list-pairings': 'handleListPairingsMessage',
-    'get-pairings': 'handleGetPairingsMessage',
-    'get-pairings-data': 'handleGetPairingsDataMessage',
-    'get-pairings-permissions': 'handleGetPairingsPermissionsMessage',
-    'set-pairings-data': 'handleSetPairingsDataMessage',
-
     'authenticate': 'handleAuthenticateMessage',
     'user-management': 'handleUserManagementMessage',
-    'get-users-permissions': 'handleGetUsersPermissionsMessage',
-    'set-users-permissions': 'handleSetUsersPermissionsMessage',
     'accessory-setup': 'handleAccessorySetupMessage',
-
-    'close-console': 'handleCloseConsoleMessage',
-    'console-input': 'handleConsoleInputMessage',
 };
 
 const message_handlers = {
-    'list-accessories': 'listAccessories',
-
-    'start-accessory-discovery': 'startAccessoryDiscovery',
-    'get-discovered-accessories': 'getDiscoveredAccessories',
-    'stop-accessory-discovery': 'stopAccessoryDiscovery',
-    'get-home-settings': 'getHomeSettings',
-    'get-home-permissions': 'getHomePermissions',
-
-    'list-layouts': 'listLayouts',
-
-    'list-automations': 'listAutomations',
-
-    'list-scenes': 'listScenes',
-
-    'get-command-line-flags': 'getCommandLineFlags',
-    'enable-proxy-stdout': 'enableProxyStdout',
-    'disable-proxy-stdout': 'disableProxyStdout',
-
-    'get-web-interface-plugins': 'getWebInterfacePlugins',
     'get-accessory-uis': 'getWebInterfacePlugins', // deprecated
-
-    'open-console': 'openConsole',
 };
 
 const hide_authentication_keys = [
     'password', 'token',
 ];
+
+function messagehandler(type, handler?) {
+    return messagehandler2.bind(null, type, handler);
+}
+function messagehandler2(type: string, handler: (messageid: number, data) => void, target: Connection, method: string) {
+    if (handler) {
+        const key = '_handleMessage-' + type + '-' + method;
+        target[key] = function(messageid, data) {
+            return this.respond(messageid, this[method].apply(this, handler.call(this, data)));
+        };
+        message_methods[type] = key;
+    } else {
+        message_handlers[type] = method;
+    }
+}
 
 const ws_map = new WeakMap();
 
@@ -381,6 +318,7 @@ export default class Connection {
     /**
      * Gets the UUID of every accessory.
      */
+    @messagehandler('list-accessories')
     async listAccessories() {
         const uuids = [];
 
@@ -412,10 +350,7 @@ export default class Connection {
      * Gets the details of accessories.
      * This is what the accessory exposes.
      */
-    handleGetAccessoriesMessage(messageid, data) {
-        this.respond(messageid, this.getAccessories(...data.id));
-    }
-
+    @messagehandler('get-accessories', data => data.id)
     getAccessories(...id) {
         return Promise.all(id.map(id => this.getAccessory(id)));
     }
@@ -444,10 +379,7 @@ export default class Connection {
     /**
      * Gets the user's permissions for accessories.
      */
-    handleGetAccessoriesPermissionsMessage(messageid, data) {
-        this.respond(messageid, this.getAccessoriesPermissions(...data.id));
-    }
-
+    @messagehandler('get-accessories-permissions', data => data.id)
     getAccessoriesPermissions(...id) {
         return Promise.all(id.map(id => this.getAccessoryPermissions(id)));
     }
@@ -487,10 +419,7 @@ export default class Connection {
     /**
      * Gets the value of a characteristic.
      */
-    handleGetCharacteristicsMessage(messageid, data) {
-        this.respond(messageid, this.getCharacteristics(...data.ids));
-    }
-
+    @messagehandler('get-characteristics', data => data.ids)
     getCharacteristics(...ids) {
         return Promise.all(ids.map(ids => this.getCharacteristic(ids[0], ids[1], ids[2])));
     }
@@ -528,10 +457,7 @@ export default class Connection {
     /**
      * Sets the value of a characteristic.
      */
-    handleSetCharacteristicsMessage(messageid, data) {
-        this.respond(messageid, this.setCharacteristics(...data.ids_data));
-    }
-
+    @messagehandler('set-characteristics', data => data.ids_data)
     setCharacteristics(...ids) {
         return Promise.all(ids.map(ids => this.setCharacteristic(ids[0], ids[1], ids[2], ids[3])));
     }
@@ -564,10 +490,7 @@ export default class Connection {
     /**
      * Subscribes to characteristic updates.
      */
-    handleSubscribeCharacteristicsMessage(messageid, data) {
-        this.respond(messageid, this.subscribeCharacteristics(...data.ids));
-    }
-
+    @messagehandler('subscribe-characteristics', data => data.ids)
     subscribeCharacteristics(...ids) {
         return Promise.all(ids.map(ids => this.subscribeCharacteristic(ids[0], ids[1], ids[2])));
     }
@@ -605,10 +528,7 @@ export default class Connection {
     /**
      * Unsubscribes from characteristic updates.
      */
-    handleUnsubscribeCharacteristicsMessage(messageid, data) {
-        this.respond(messageid, this.unsubscribeCharacteristics(...data.ids));
-    }
-
+    @messagehandler('unsubscribe-characteristics', data => data.ids)
     unsubscribeCharacteristics(...ids) {
         return Promise.all(ids.map(ids => this.unsubscribeCharacteristic(ids[0], ids[1], ids[2])));
     }
@@ -647,10 +567,7 @@ export default class Connection {
      * Gets the details of accessories.
      * This is stored by the web UI.
      */
-    handleGetAccessoriesDataMessage(messageid, data) {
-        this.respond(messageid, this.getAccessoriesData(...data.id));
-    }
-
+    @messagehandler('get-accessories-data', data => data.id)
     getAccessoriesData(...id) {
         return Promise.all(id.map(id => this.getAccessoryData(id)));
     }
@@ -668,10 +585,7 @@ export default class Connection {
      * Sets extra data of accessories.
      * This is stored by the web UI.
      */
-    handleSetAccessoriesDataMessage(messageid, data) {
-        this.respond(messageid, this.setAccessoriesData(...data.id_data));
-    }
-
+    @messagehandler('set-accessories-data', data => data.id_data)
     setAccessoriesData(...id_data) {
         return Promise.all(id_data.map(([id, data]) => this.setAccessoryData(id, data)));
     }
@@ -694,6 +608,7 @@ export default class Connection {
     /**
      * Starts accessory discovery.
      */
+    @messagehandler('start-accessory-discovery')
     async startAccessoryDiscovery() {
         await this.permissions.assertCanCreateAccessories();
 
@@ -708,6 +623,7 @@ export default class Connection {
     /**
      * Gets discovered accessories.
      */
+    @messagehandler('get-discovered-accessories')
     async getDiscoveredAccessories() {
         await this.permissions.assertCanCreateAccessories();
 
@@ -723,6 +639,7 @@ export default class Connection {
     /**
      * Stops accessory discovery.
      */
+    @messagehandler('stop-accessory-discovery')
     async stopAccessoryDiscovery() {
         await this.permissions.assertCanCreateAccessories();
 
@@ -735,6 +652,7 @@ export default class Connection {
     /**
      * Gets global settings.
      */
+    @messagehandler('get-home-settings')
     async getHomeSettings() {
         await this.permissions.assertCanGetHomeSettings();
 
@@ -746,6 +664,7 @@ export default class Connection {
     /**
      * Gets the user's global permissions.
      */
+    @messagehandler('get-home-permissions')
     async getHomePermissions() {
         const [
             get, set, add_accessories, create_layouts, has_automations, create_automations, create_bridges,
@@ -773,10 +692,7 @@ export default class Connection {
     /**
      * Sets global settings.
      */
-    handleSetHomeSettingsMessage(messageid, data) {
-        this.respond(messageid, this.setHomeSettings(data.data));
-    }
-
+    @messagehandler('set-home-settings', data => [data.data])
     async setHomeSettings(data) {
         await this.permissions.assertCanSetHomeSettings();
 
@@ -816,6 +732,7 @@ export default class Connection {
     /**
      * Gets the UUID of every layout.
      */
+    @messagehandler('list-layouts')
     async listLayouts() {
         const uuids = [].concat(await this.server.storage.getItem('Layouts'));
 
@@ -830,10 +747,7 @@ export default class Connection {
     /**
      * Creates layouts.
      */
-    handleCreateLayoutsMessage(messageid, data) {
-        this.respond(messageid, this.createLayouts(...data.data));
-    }
-
+    @messagehandler('create-layouts', data => data.data)
     createLayouts(...data) {
         return Promise.all(data.map(data => this.createLayout(data)));
     }
@@ -873,10 +787,7 @@ export default class Connection {
     /**
      * Gets data of layouts.
      */
-    handleGetLayoutsMessage(messageid, data) {
-        this.respond(messageid, this.getLayouts(...data.id));
-    }
-
+    @messagehandler('get-layouts', data => data.id)
     getLayouts(...id) {
         return Promise.all(id.map(id => this.getLayout(id)));
     }
@@ -892,10 +803,7 @@ export default class Connection {
     /**
      * Gets the user's permissions for layouts.
      */
-    handleGetLayoutsPermissionsMessage(messageid, data) {
-        this.respond(messageid, this.getLayoutsPermissions(...data.id));
-    }
-
+    @messagehandler('get-layouts-permissions', data => data.id)
     getLayoutsPermissions(...id) {
         return Promise.all(id.map(id => this.getLayoutPermissions(id)));
     }
@@ -913,10 +821,7 @@ export default class Connection {
     /**
      * Sets data of layouts.
      */
-    handleSetLayoutsMessage(messageid, data) {
-        this.respond(messageid, this.setLayouts(...data.id_data));
-    }
-
+    @messagehandler('set-layouts', data => data.id_data)
     setLayouts(...id_data) {
         return Promise.all(id_data.map(([id, data]) => this.setLayout(id, data)));
     }
@@ -1038,10 +943,7 @@ export default class Connection {
     /**
      * Deletes layouts.
      */
-    handleDeleteLayoutsMessage(messageid, data) {
-        this.respond(messageid, this.deleteLayouts(...data.id));
-    }
-
+    @messagehandler('delete-layouts', data => data.id)
     deleteLayouts(...id) {
         return Promise.all(id.map(id => this.deleteLayout(id)));
     }
@@ -1093,8 +995,9 @@ export default class Connection {
     /**
      * Gets the UUID of every layout section.
      */
-    handleListLayoutSectionsMessage(messageid, data) {
-        this.respond(messageid, Promise.all(data.id.map(id => this.listLayoutSections(id))));
+    @messagehandler('list-layout-sections', data => data.id)
+    listAllLayoutSections(...id) {
+        return Promise.all(id.map(id => this.listLayoutSections(id)));
     }
 
     async listLayoutSections(uuid) {
@@ -1106,10 +1009,7 @@ export default class Connection {
     /**
      * Creates layout sections.
      */
-    handleCreateLayoutSectionsMessage(messageid, data) {
-        this.respond(messageid, this.createLayoutSections(...data.id_data));
-    }
-
+    @messagehandler('create-layout-sections', data => data.id_data)
     createLayoutSections(...id_data) {
         return Promise.all(id_data.map(([layout_uuid, data]) => this.createLayoutSection(layout_uuid, data)));
     }
@@ -1141,10 +1041,7 @@ export default class Connection {
     /**
      * Gets data of layouts.
      */
-    handleGetLayoutSectionsMessage(messageid, data) {
-        this.respond(messageid, this.getLayoutSections(...data.ids));
-    }
-
+    @messagehandler('get-layout-sections', data => data.ids)
     getLayoutSections(...ids) {
         return Promise.all(ids.map(([layout_uuid, id]) => this.getLayoutSection(layout_uuid, id)));
     }
@@ -1160,10 +1057,7 @@ export default class Connection {
     /**
      * Sets data of layout sections.
      */
-    handleSetLayoutSectionsMessage(messageid, data) {
-        this.respond(messageid, this.setLayoutSections(...data.ids_data));
-    }
-
+    @messagehandler('set-layout-sections', data => data.ids_data)
     setLayoutSections(...ids_data) {
         return Promise.all(ids_data.map(([layout_uuid, id, data]) => this.setLayoutSection(layout_uuid, id, data)));
     }
@@ -1192,10 +1086,7 @@ export default class Connection {
     /**
      * Deletes layout sections.
      */
-    handleDeleteLayoutSectionsMessage(messageid, data) {
-        this.respond(messageid, this.deleteLayoutSections(...data.ids));
-    }
-
+    @messagehandler('delete-layout-sections', data => data.ids)
     deleteLayoutSections(...ids) {
         return Promise.all(ids.map(([layout_uuid, id]) => this.deleteLayoutSection(layout_uuid, id)));
     }
@@ -1224,6 +1115,7 @@ export default class Connection {
     /**
      * Gets the UUID of every automation.
      */
+    @messagehandler('list-automations')
     async listAutomations() {
         const uuids = await this.server.storage.getItem('Automations') || [];
 
@@ -1234,10 +1126,7 @@ export default class Connection {
     /**
      * Creates automations.
      */
-    handleCreateAutomationsMessage(messageid, data) {
-        this.respond(messageid, this.createAutomations(...data.data));
-    }
-
+    @messagehandler('create-automations', data => data.data)
     createAutomations(...data) {
         return Promise.all(data.map(data => this.createAutomation(data)));
     }
@@ -1271,10 +1160,7 @@ export default class Connection {
     /**
      * Gets data of automations.
      */
-    handleGetAutomationsMessage(messageid, data) {
-        this.respond(messageid, this.getAutomations(...data.id));
-    }
-
+    @messagehandler('get-automations', data => data.id)
     getAutomations(...id) {
         return Promise.all(id.map(id => this.getAutomation(id)));
     }
@@ -1290,10 +1176,7 @@ export default class Connection {
     /**
      * Gets the user's permissions for automations.
      */
-    handleGetAutomationsPermissionsMessage(messageid, data) {
-        this.respond(messageid, this.getAutomationsPermissions(...data.id));
-    }
-
+    @messagehandler('get-automations-permissions', data => data.id)
     getAutomationsPermissions(...id) {
         return Promise.all(id.map(id => this.getAutomationPermissions(id)));
     }
@@ -1311,10 +1194,7 @@ export default class Connection {
     /**
      * Sets data of automations.
      */
-    handleSetAutomationsMessage(messageid, data) {
-        this.respond(messageid, this.setAutomations(...data.id_data));
-    }
-
+    @messagehandler('set-automations', data => data.id_data)
     setAutomations(...id_data) {
         return Promise.all(id_data.map(([id, data]) => this.setAutomation(id, data)));
     }
@@ -1345,10 +1225,7 @@ export default class Connection {
     /**
      * Deletes automations.
      */
-    handleDeleteAutomationsMessage(messageid, data) {
-        this.respond(messageid, this.deleteAutomations(...data.id));
-    }
-
+    @messagehandler('delete-automations', data => data.id)
     deleteAutomations(...id) {
         return Promise.all(id.map(id => this.deleteAutomation(id)));
     }
@@ -1381,6 +1258,7 @@ export default class Connection {
     /**
      * Gets the UUID of every scene.
      */
+    @messagehandler('list-scenes')
     async listScenes() {
         const uuids = await this.server.storage.getItem('Scenes') || [];
 
@@ -1391,10 +1269,7 @@ export default class Connection {
     /**
      * Creates scenes.
      */
-    handleCreateScenesMessage(messageid, data) {
-        this.respond(messageid, this.createScenes(...data.data));
-    }
-
+    @messagehandler('create-scenes', data => data.data)
     createScenes(...data) {
         return Promise.all(data.map(data => this.createScene(data)));
     }
@@ -1428,10 +1303,7 @@ export default class Connection {
     /**
      * Gets data of scenes.
      */
-    handleGetScenesMessage(messageid, data) {
-        this.respond(messageid, this.getScenes(...data.id));
-    }
-
+    @messagehandler('get-scenes', data => data.id)
     getScenes(...id) {
         return Promise.all(id.map(id => this.getScene(id)));
     }
@@ -1447,10 +1319,7 @@ export default class Connection {
     /**
      * Gets the user's permissions for scenes.
      */
-    handleGetScenesPermissionsMessage(messageid, data) {
-        this.respond(messageid, this.getScenesPermissions(...data.id));
-    }
-
+    @messagehandler('get-scenes-permissions', data => data.id)
     getScenesPermissions(...id) {
         return Promise.all(id.map(id => this.getScenePermissions(id)));
     }
@@ -1469,10 +1338,7 @@ export default class Connection {
     /**
      * Sets data of scenes.
      */
-    handleSetScenesMessage(messageid, data) {
-        this.respond(messageid, this.setScenes(...data.id_data));
-    }
-
+    @messagehandler('set-scenes', data => data.id_data)
     setScenes(...id_data) {
         return Promise.all(id_data.map(([id, data]) => this.setScene(id, data)));
     }
@@ -1503,10 +1369,7 @@ export default class Connection {
     /**
      * Checks if scenes are active.
      */
-    handleCheckScenesActiveMessage(messageid, data) {
-        this.respond(messageid, this.checkScenesActive(...data.id));
-    }
-
+    @messagehandler('check-scenes-active', data => data.id)
     checkScenesActive(...id) {
         return Promise.all(id.map(id => this.checkSceneActive(id)));
     }
@@ -1525,10 +1388,7 @@ export default class Connection {
     /**
      * Activates scenes.
      */
-    handleActivateScenesMessage(messageid, data) {
-        this.respond(messageid, this.activateScenes(...data.id_data));
-    }
-
+    @messagehandler('activate-scenes', data => data.id_data)
     activateScenes(...id_data) {
         return Promise.all(id_data.map(([id, data]) => this.activateScene(id, data)));
     }
@@ -1548,10 +1408,7 @@ export default class Connection {
     /**
      * Deactivates scenes.
      */
-    handleDeactivateScenesMessage(messageid, data) {
-        this.respond(messageid, this.deactivateScenes(...data.id_data));
-    }
-
+    @messagehandler('deactivate-scenes', data => data.id_data)
     deactivateScenes(...id_data) {
         return Promise.all(id_data.map(([id, data]) => this.deactivateScene(id, data)));
     }
@@ -1571,10 +1428,7 @@ export default class Connection {
     /**
      * Deletes scenes.
      */
-    handleDeleteScenesMessage(messageid, data) {
-        this.respond(messageid, this.deleteScenes(...data.id));
-    }
-
+    @messagehandler('delete-scenes', data => data.id)
     deleteScenes(...id) {
         return Promise.all(id.map(id => this.deleteScene(id)));
     }
@@ -1604,6 +1458,7 @@ export default class Connection {
         }, this.ws);
     }
 
+    @messagehandler('get-command-line-flags')
     async getCommandLineFlags() {
         await this.permissions.assertCanAccessServerRuntimeInfo();
 
@@ -1612,6 +1467,7 @@ export default class Connection {
         return process.argv;
     }
 
+    @messagehandler('enable-proxy-stdout')
     async enableProxyStdout() {
         await this.permissions.assertCanAccessServerRuntimeInfo();
 
@@ -1621,6 +1477,7 @@ export default class Connection {
         setTimeout(() => this.log.info('Should work'), 1000);
     }
 
+    @messagehandler('disable-proxy-stdout')
     async disableProxyStdout() {
         await this.permissions.assertCanAccessServerRuntimeInfo();
 
@@ -1631,10 +1488,7 @@ export default class Connection {
     /**
      * Gets the UUID of every bridge.
      */
-    handleListBridgesMessage(messageid, data) {
-        this.respond(messageid, this.listBridges(data.include_homebridge));
-    }
-
+    @messagehandler('list-bridges', data => [data.include_homebridge])
     async listBridges(include_homebridge) {
         const uuids = [];
 
@@ -1648,10 +1502,7 @@ export default class Connection {
         return uuids.filter(uuid => authorised_uuids.includes(uuid));
     }
 
-    handleCreateBridgesMessage(messageid, data) {
-        this.respond(messageid, this.createBridges(...data.data));
-    }
-
+    @messagehandler('create-bridges', data => data.data)
     createBridges(...data) {
         return Promise.all(data.map(data => this.createBridge(data)));
     }
@@ -1688,10 +1539,7 @@ export default class Connection {
     /**
      * Gets the details of a bridge.
      */
-    handleGetBridgesMessage(messageid, data) {
-        this.respond(messageid, this.getBridges(...data.uuid));
-    }
-
+    @messagehandler('get-bridges', data => data.uuid)
     getBridges(...uuid) {
         return Promise.all(uuid.map(uuid => this.getBridge(uuid)));
     }
@@ -1720,10 +1568,7 @@ export default class Connection {
     /**
      * Gets the configuration of a bridge.
      */
-    handleGetBridgesConfigurationMessage(messageid, data) {
-        this.respond(messageid, this.getBridgesConfiguration(...data.uuid));
-    }
-
+    @messagehandler('get-bridges-configuration', data => data.uuid)
     getBridgesConfiguration(...uuid) {
         return Promise.all(uuid.map(uuid => this.getBridgeConfiguration(uuid)));
     }
@@ -1743,10 +1588,7 @@ export default class Connection {
     /**
      * Gets the user's permissions for a bridge.
      */
-    handleGetBridgesConfigurationPermissionsMessage(messageid, data) {
-        this.respond(messageid, this.getBridgesConfigurationPermissions(...data.uuid));
-    }
-
+    @messagehandler('get-bridges-permissions', data => data.uuid)
     getBridgesConfigurationPermissions(...uuid) {
         return Promise.all(uuid.map(uuid => this.getBridgeConfigurationPermissions(uuid)));
     }
@@ -1770,10 +1612,7 @@ export default class Connection {
     /**
      * Sets the configuration of a bridge.
      */
-    handleSetBridgesConfigurationMessage(messageid, data) {
-        this.respond(messageid, this.setBridgesConfiguration(...data.uuid_data));
-    }
-
+    @messagehandler('set-bridges-configuration', data => data.uuid_data)
     setBridgesConfiguration(...uuid_data) {
         return Promise.all(uuid_data.map(([uuid, data]) => this.setBridgeConfiguration(uuid, data)));
     }
@@ -1844,10 +1683,7 @@ export default class Connection {
     /**
      * Deletes a bridge.
      */
-    handleDeleteBridgesMessage(messageid, data) {
-        this.respond(messageid, this.deleteBridges(...data.uuid));
-    }
-
+    @messagehandler('delete-bridges', data => data.uuid)
     deleteBridges(...uuid) {
         return Promise.all(uuid.map(uuid => this.deleteBridge(uuid)));
     }
@@ -1882,10 +1718,7 @@ export default class Connection {
     /**
      * Get bridges pairing details.
      */
-    handleGetBridgesPairingDetailsMessage(messageid, data) {
-        this.respond(messageid, this.getBridgesPairingDetails(data.bridge_uuid));
-    }
-
+    @messagehandler('get-bridges-pairing-details', data => [data.bridge_uuid])
     getBridgesPairingDetails(bridge_uuid) {
         return Promise.all(bridge_uuid.map(bridge_uuid => this.getBridgePairingDetails(bridge_uuid)));
     }
@@ -1907,10 +1740,7 @@ export default class Connection {
     /**
      * Reset bridge pairings.
      */
-    handleResetBridgesPairingsMessage(messageid, data) {
-        this.respond(messageid, this.resetBridgesPairings(data.bridge_uuid));
-    }
-
+    @messagehandler('reset-bridges-pairings', data => [data.bridge_uuid])
     resetBridgesPairings(bridge_uuid) {
         return Promise.all(bridge_uuid.map(bridge_uuid => this.resetBridgePairings(bridge_uuid)));
     }
@@ -1933,10 +1763,7 @@ export default class Connection {
     /**
      * Lists pairings.
      */
-    handleListPairingsMessage(messageid, data) {
-        this.respond(messageid, this.listPairings(data.bridge_uuid));
-    }
-
+    @messagehandler('list-pairings', data => [data.bridge_uuid])
     async listPairings(bridge_uuid) {
         await this.permissions.assertCanGetAccessory(bridge_uuid);
         // await this.permissions.assertCanAccessServerRuntimeInfo();
@@ -1956,10 +1783,7 @@ export default class Connection {
     /**
      * Gets the details of pairings.
      */
-    handleGetPairingsMessage(messageid, data) {
-        this.respond(messageid, this.getPairings(...data.ids));
-    }
-
+    @messagehandler('get-pairings', data => data.ids)
     getPairings(...id) {
         return Promise.all(id.map(([bridge_uuid, id]) => this.getPairing(bridge_uuid, id)));
     }
@@ -1984,10 +1808,7 @@ export default class Connection {
      * Gets the details of HAP pairings.
      * This is stored by the web interface.
      */
-    handleGetPairingsDataMessage(messageid, data) {
-        this.respond(messageid, this.getPairingsData(...data.id));
-    }
-
+    @messagehandler('get-pairings-data', data => data.id)
     getPairingsData(...id) {
         return Promise.all(id.map(id => this.getPairingData(id)));
     }
@@ -2005,10 +1826,7 @@ export default class Connection {
      * Gets the user's permissions for HAP pairings.
      * This is stored by the web interface.
      */
-    handleGetPairingsPermissionsMessage(messageid, data) {
-        this.respond(messageid, this.getPairingsPermissions(...data.id));
-    }
-
+    @messagehandler('get-pairings-permissions', data => data.id)
     getPairingsPermissions(...id) {
         return Promise.all(id.map(id => this.getPairingPermissions(id)));
     }
@@ -2031,10 +1849,7 @@ export default class Connection {
      * Sets extra data of HAP pairings.
      * This is stored by the web interface.
      */
-    handleSetPairingsDataMessage(messageid, data) {
-        this.respond(messageid, this.setPairingsData(...data.id_data));
-    }
-
+    @messagehandler('set-pairings-data', data => data.id_data)
     setPairingsData(...id_data) {
         return Promise.all(id_data.map(([id, data]) => this.setPairingData(id, data)));
     }
@@ -2057,6 +1872,7 @@ export default class Connection {
     /**
      * Gets web interface plugins.
      */
+    @messagehandler('get-web-interface-plugins')
     getWebInterfacePlugins() {
         return PluginManager.getWebInterfacePlugins().map(ui_plugin => {
             const plugin_authentication_handlers = {};
@@ -2260,11 +2076,8 @@ export default class Connection {
     /**
      * Gets user permissions.
      */
-    handleGetUsersPermissionsMessage(messageid, data) {
-        this.respond(messageid, this.getUsersPermissions(data.id));
-    }
-
-    async getUsersPermissions(id) {
+    @messagehandler('get-users-permissions', data => data.id)
+    async getUsersPermissions(...id) {
         return Promise.all(id.map(id => this.getUserPermissions(id)));
     }
 
@@ -2278,11 +2091,8 @@ export default class Connection {
     /**
      * Sets user permissions.
      */
-    handleSetUsersPermissionsMessage(messageid, data) {
-        this.respond(messageid, this.setUsersPermissions(data.id_data));
-    }
-
-    async setUsersPermissions(id_data) {
+    @messagehandler('set-users-permissions', data => data.id_data)
+    async setUsersPermissions(...id_data) {
         return Promise.all(id_data.map(([id, data]) => this.setUserPermissions(id, data)));
     }
 
@@ -2335,6 +2145,7 @@ export default class Connection {
         }
     }
 
+    @messagehandler('open-console')
     async openConsole() {
         await this.permissions.assertCanOpenWebConsole();
 
@@ -2412,10 +2223,7 @@ export default class Connection {
         return id;
     }
 
-    handleCloseConsoleMessage(messageid, data) {
-        this.respond(messageid, this.closeConsole(data.id));
-    }
-
+    @messagehandler('close-console', data => [data.id])
     async closeConsole(id) {
         const {repl_server, subprocesses} = this.open_consoles.get(id) || {};
         if (!repl_server) throw new Error('Unknown console with ID "' + id + '"');
@@ -2428,10 +2236,7 @@ export default class Connection {
         }
     }
 
-    handleConsoleInputMessage(messageid, data) {
-        this.respond(messageid, this.handleConsoleInput(data.id, data.data));
-    }
-
+    @messagehandler('console-input', data => [data.id, data.data])
     async handleConsoleInput(id, data) {
         const {repl_server, input} = this.open_consoles.get(id) || {};
         if (!repl_server) throw new Error('Unknown console with ID "' + id + '"');

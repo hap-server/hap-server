@@ -3,6 +3,7 @@
         "noImplicitAny": false,
         "target": "es6",
         "esModuleInterop": true,
+        "experimentalDecorators": true,
         "module": "commonjs",
         "declaration": true,
         "outDir": "./dist"
