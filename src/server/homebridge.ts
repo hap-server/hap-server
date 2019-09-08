@@ -8,6 +8,8 @@ import {_system as homebridge_logger} from 'homebridge/lib/logger';
 homebridge_logger.prefix = 'Homebridge';
 
 export default class Homebridge extends Bridge {
+    readonly homebridge: HomebridgeServer;
+
     constructor(server, log, config, unauthenticated_access) {
         HomebridgeUser.configPath = () => undefined;
         HomebridgeUser.config = () => config;
@@ -39,12 +41,12 @@ export default class Homebridge extends Bridge {
         const bridge = config.homebridge._bridge;
 
         bridge._handlePair = this._handlePair.bind(this, bridge, bridge._handlePair);
-        bridge._handleUnpair = this._handlePair.bind(this, bridge, bridge._handleUnpair);
+        bridge._handleUnpair = this._handleUnpair.bind(this, bridge, bridge._handleUnpair);
 
         return bridge;
     }
 
-    _handlePair(bridge, handlePair, ...args) {
+    private _handlePair(bridge, handlePair, ...args) {
         const r = handlePair.call(bridge, ...args);
 
         this.server.handlePairingsUpdate(this);
@@ -52,7 +54,7 @@ export default class Homebridge extends Bridge {
         return r;
     }
 
-    _handleUnpair(bridge, handleUnpair, ...args) {
+    private _handleUnpair(bridge, handleUnpair, ...args) {
         const r = handleUnpair.call(bridge, ...args);
 
         this.server.handlePairingsUpdate(this);
