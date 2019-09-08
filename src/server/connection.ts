@@ -186,7 +186,7 @@ export default class Connection {
 
             try {
                 if (this.authenticated_user && this.authenticated_user.authentication_handler) {
-                    this.authenticated_user.authentication_handler.handleDisconnect(this.authenticated_user);
+                    this.authenticated_user.authentication_handler.handleDisconnect(this.authenticated_user, this);
                 }
             } catch (err) {
                 this.log.error('Error in disconnect handler', err);
@@ -1964,7 +1964,7 @@ export default class Connection {
                     throw new Error('Invalid token');
                 }
 
-                this.authenticated_user = new AuthenticatedUser('cli-token', 'Admin');
+                this.authenticated_user = new AuthenticatedUser(null, 'cli-token', 'Admin');
 
                 return this.respond(messageid, {
                     data: this.authenticated_user,
@@ -1989,7 +1989,7 @@ export default class Connection {
                     throw new Error('Invalid token.');
                 }
 
-                this.authenticated_user = new AuthenticatedUser('cli-token', 'Setup user');
+                this.authenticated_user = new AuthenticatedUser(null, 'cli-token', 'Setup user');
 
                 return this.respond(messageid, {
                     data: this.authenticated_user,
@@ -2035,7 +2035,7 @@ export default class Connection {
                 data: response,
                 user_id: response.id,
                 token: response.token,
-                authentication_handler_id: response.authentication_handler_id,
+                authentication_handler_id: response.authentication_handler.id,
                 asset_token: await this.getAssetToken(),
             });
         }

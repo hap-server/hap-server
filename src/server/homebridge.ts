@@ -37,7 +37,7 @@ export default class Homebridge extends Bridge {
         this.homebridge = homebridge;
     }
 
-    _createBridge(config) {
+    protected _createBridge(config) {
         const bridge = config.homebridge._bridge;
 
         bridge._handlePair = this._handlePair.bind(this, bridge, bridge._handlePair);

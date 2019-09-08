@@ -70,7 +70,7 @@ export default class Bridge {
         this.bridge.on('service-characteristic-change', this._handleCharacteristicUpdate);
     }
 
-    _createBridge(config) {
+    protected _createBridge(config) {
         const bridge = new HAPBridge(this.name, this.uuid);
 
         bridge.on('hap-server-update-pairings', () => this.server.handlePairingsUpdate(this));
