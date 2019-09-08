@@ -2035,7 +2035,8 @@ export default class Connection {
                 data: response,
                 user_id: response.id,
                 token: response.token,
-                authentication_handler_id: response.authentication_handler.id,
+                // @ts-ignore
+                authentication_handler_id: response.authentication_handler_id, // what
                 asset_token: await this.getAssetToken(),
             });
         }

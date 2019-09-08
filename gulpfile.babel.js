@@ -311,6 +311,8 @@ gulp.task('release-package', function () {
         json(packagejson => {
             packagejson.private = false;
             packagejson.main = 'index.js';
+            packagejson.types = 'index.d.ts';
+            packagejson.dependencies['@hap-server/api'] = 'file:types/api';
             packagejson.devDependencies = [];
             packagejson.scripts = {
                 start: 'bin/hap-server',
