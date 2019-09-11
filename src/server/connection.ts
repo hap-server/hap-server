@@ -362,6 +362,7 @@ export default class Connection {
 
         if (!accessory) return null;
 
+        // @ts-ignore
         const hap = accessory.toHAP()[0];
 
         // Add service subtypes
@@ -438,9 +439,10 @@ export default class Connection {
             ((!service.subtype && !service_subtype) || service.subtype === service_subtype));
         if (!service) return;
 
-        const characteristic = service.characteristics.find(c => c.UUID === characteristic_uuid);
+        const characteristic: any = service.characteristics.find((c: any) => c.UUID === characteristic_uuid);
         if (!characteristic) return;
 
+        // @ts-ignore
         const hap = characteristic.toHAP();
 
         try {
@@ -479,7 +481,7 @@ export default class Connection {
             ((!service.subtype && !service_subtype) || service.subtype === service_subtype));
         if (!service) return this.log.warn('Unknown service %s', service_uuid);
 
-        const characteristic = service.characteristics.find(c => c.UUID === characteristic_uuid);
+        const characteristic: any = service.characteristics.find((c: any) => c.UUID === characteristic_uuid);
         if (!characteristic) return this.log.warn('Unknown characteristic %s', characteristic_uuid);
 
         return new Promise((resolve, reject) => {
@@ -510,7 +512,7 @@ export default class Connection {
             ((!service.subtype && !service_subtype) || service.subtype === service_subtype));
         if (!service) return this.log.warn('Unknown service %s', service_uuid);
 
-        const characteristic = service.characteristics.find(c => c.UUID === characteristic_uuid);
+        const characteristic: any = service.characteristics.find((c: any) => c.UUID === characteristic_uuid);
         if (!characteristic) return this.log.warn('Unknown characteristic %s', characteristic_uuid);
 
         const event_name = accessory.UUID + '.' + service.UUID + (service.subtype ? '.' + service.subtype : '') + '.' +
@@ -548,7 +550,7 @@ export default class Connection {
             ((!service.subtype && !service_subtype) || service.subtype === service_subtype));
         if (!service) return this.log.warn('Unknown service %s', service_uuid);
 
-        const characteristic = service.characteristics.find(c => c.UUID === characteristic_uuid);
+        const characteristic: any = service.characteristics.find((c: any) => c.UUID === characteristic_uuid);
         if (!characteristic) return this.log.warn('Unknown characteristic %s', characteristic_uuid);
 
         const event_name = accessory.UUID + '.' + service.UUID + (service.subtype ? '.' + service.subtype : '') + '.' +
@@ -1985,6 +1987,7 @@ export default class Connection {
                     throw new Error('Setup has already been completed.');
                 }
 
+                // @ts-ignore
                 if (!this.server.setup_token || this.server.setup_token.join(' ') !== token) {
                     throw new Error('Invalid token.');
                 }

@@ -18,15 +18,15 @@ export default class Bridge {
     readonly server: Server;
     readonly log: Logger;
 
-    readonly config;
+    config;
     readonly uuid: string;
     readonly name: string;
     readonly username: string;
     readonly port: number;
     readonly pincode: string;
-    readonly unauthenticated_access: boolean;
+    unauthenticated_access: boolean;
 
-    readonly accessory_uuids: string[];
+    accessory_uuids: (string | {0?: string, 1?: string, 2: string})[];
     readonly external_accessories: typeof Accessory[];
     readonly external_accessory_accessory_infos: Map<typeof Accessory, AccessoryInfo>;
     readonly external_accessory_identifier_caches: Map<typeof Accessory, IdentifierCache>;

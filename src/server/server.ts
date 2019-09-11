@@ -39,9 +39,51 @@ import Automations from '../automations';
 
 import {events} from '..';
 
+// Types
+import {AccessoryPlatform, AccessoryDiscovery} from './plugins';
+import {PlatformAccessory} from 'homebridge/lib/platformAccessory';
+
 const DEVELOPMENT = true;
 
 export default class Server extends Events {
+    static instances = new Set<Server>();
+
+    hostname?: string;
+    readonly config;
+    readonly assets_path: string;
+    readonly cli_auth_token?: string;
+    setup_token?: string;
+    readonly storage: typeof persist;
+    readonly log: Logger;
+
+    readonly accessories: PluginAccessory[];
+    readonly accessory_platforms: AccessoryPlatform[];
+    readonly cached_accessories: PluginAccessory[];
+    readonly bridges: Bridge[];
+    readonly homebridge: Homebridge;
+    readonly plugins: Map<typeof ServerPlugin, ServerPlugin>;
+
+    private readonly config_automation_triggers: any[];
+    private readonly config_automation_conditions: any[];
+    private readonly config_automation_actions: any[];
+
+    private accessory_discovery_counter: number;
+    private readonly accessory_discovery_handlers: Set<AccessoryDiscovery>;
+    private readonly accessory_discovery_handlers_events: WeakMap<AccessoryDiscovery, {[key: string]: Function}>;
+
+    readonly app: express;
+    readonly wss: WebSocket.Server;
+    readonly multer: multer;
+
+    private readonly characteristic_change_handlers: WeakMap<typeof Accessory, Function>;
+    readonly _handleCharacteristicUpdate;
+    private readonly configuration_change_handlers: WeakMap<typeof Accessory, Function>;
+    private readonly _handleConfigurationChange;
+
+    private readonly _handleRegisterHomebridgePlatformAccessories;
+    private readonly _handleUnregisterHomebridgePlatformAccessories;
+    private readonly _handleRegisterExternalHomebridgeAccessories;
+
     /**
      * Creates a Server.
      *
@@ -54,7 +96,16 @@ export default class Server extends Events {
      * @param {node-persist} storage
      * @param {Logger} [log]
      */
-    constructor(options, storage, log) {
+    constructor(options: {
+        data_path: string,
+        config_path: string,
+        config,
+        cli_auth_token?: string,
+        hostname?: string,
+
+        // For development builds there's also a webpack_hot property
+        // webpack_hot = false,
+    }, storage: typeof persist, log?: Logger) {
         super();
 
         this.parent_emitter = events;
@@ -114,11 +165,11 @@ export default class Server extends Events {
             next();
         });
 
-        if (!DEVELOPMENT || !options.webpack_hot) {
+        if (!DEVELOPMENT || !(options as any).webpack_hot) {
             this.app.use(express.static(path.resolve(__dirname, '..', 'public')));
         }
 
-        if (DEVELOPMENT && options.webpack_hot) {
+        if (DEVELOPMENT && (options as any).webpack_hot) {
             const webpack = require('webpack');
             const devmiddleware = require('webpack-dev-middleware');
             const hotmiddleware = require('webpack-hot-middleware');
@@ -290,7 +341,7 @@ export default class Server extends Events {
      * @param {object} [config]
      * @return {Promise}
      */
-    async loadPlugin(server_plugin, config) {
+    async loadPlugin(server_plugin, config?) {
         if (typeof server_plugin !== 'function' || !(server_plugin.prototype instanceof ServerPlugin)) {
             throw new Error('server_plugin must be a class that extends ServerPlugin');
         }
@@ -324,7 +375,7 @@ export default class Server extends Events {
         return Promise.all(this.config.bridges.map(bridge_config => this.loadBridge(bridge_config)));
     }
 
-    async loadBridgesFromStorage(dont_throw) {
+    async loadBridgesFromStorage(dont_throw = false) {
         const bridge_uuids = await this.storage.getItem('Bridges') || [];
 
         return Promise.all(bridge_uuids.map(async uuid => {
@@ -334,7 +385,7 @@ export default class Server extends Events {
             } catch (err) {
                 if (!dont_throw && typeof dont_throw !== 'undefined') throw err;
 
-                this.log.warn('Error loading bridge', cache.plugin, cache.accessory.displayName, err);
+                this.log.warn('Error loading bridge', uuid, err);
             }
         }));
     }
@@ -353,7 +404,7 @@ export default class Server extends Events {
      * @param {string} [uuid]
      * @return {Bridge}
      */
-    loadBridge(bridge_config, uuid) {
+    loadBridge(bridge_config, uuid?: string) {
         // bridge_config.username is required - all other properties are optional
         const name = bridge_config.name || 'Bridge ' + bridge_config.username.match(/(.{2}\:.{2})$/)[1];
 
@@ -379,12 +430,14 @@ export default class Server extends Events {
             if (accessory_uuid instanceof Array) {
                 const accessory = this.accessories.find(accessory =>
                     accessory_uuid[0] === accessory.plugin ? accessory.plugin.name : null &&
+                    // @ts-ignore
                     accessory_uuid[1] === accessory.accessory_type &&
                     accessory_uuid[2] === accessory.accessory.displayName);
                 if (accessory) bridge.addAccessory(accessory.accessory);
 
                 const cached_accessory = this.cached_accessories.find(accessory =>
                     accessory_uuid[0] === accessory.plugin ? accessory.plugin.name : null &&
+                    // @ts-ignore
                     accessory_uuid[1] === accessory.accessory_type &&
                     accessory_uuid[2] === accessory.accessory.displayName);
                 if (cached_accessory) bridge.addCachedAccessory(cached_accessory.accessory);
@@ -427,7 +480,7 @@ export default class Server extends Events {
 
         // config.bridge, config.accessories and config.platforms are for Homebridge
         // If any of these exist, the user wants to run Homebridge as well
-        this.homebridge = new Homebridge(this, this.log.withPrefix('Homebridge'), {
+        (this as any).homebridge = new Homebridge(this, this.log.withPrefix('Homebridge'), {
             bridge: this.config.bridge,
             accessories: this.config.accessories,
             platforms: this.config.platforms,
@@ -445,7 +498,7 @@ export default class Server extends Events {
             this.addAccessory(plugin_accessory);
         }
 
-        for (const platform_accessory of Object.values(this.homebridge.homebridge._publishedAccessories)) {
+        for (const platform_accessory of Object.values(this.homebridge.homebridge._publishedAccessories) as any) {
             const plugin_accessory = new HomebridgeAccessory(this, platform_accessory._associatedHAPAccessory,
                 platform_accessory);
 
@@ -494,7 +547,7 @@ export default class Server extends Events {
         }
     }
 
-    async loadCachedAccessories(dont_throw) {
+    async loadCachedAccessories(dont_throw = false) {
         const cached_accessories = await this.storage.getItem('CachedAccessories') || [];
 
         await Promise.all(cached_accessories.map(cache => this.loadCachedAccessory(cache).catch(err => {
@@ -529,7 +582,7 @@ export default class Server extends Events {
      * @param {string} [accessory_type]
      * @return {PluginStandaloneAccessory}
      */
-    getCachedAccessory(uuid, plugin, accessory_type) {
+    getCachedAccessory(uuid: string, plugin?: Plugin, accessory_type?: string) {
         return this.cached_accessories.find(accessory => accessory.uuid === uuid &&
             (!plugin || accessory.plugin === plugin) &&
             accessory instanceof PluginStandaloneAccessory &&
@@ -545,9 +598,9 @@ export default class Server extends Events {
      * @return {PluginAccessoryPlatformAccessory[]}
      */
     getCachedAccessoryPlatformAccessories(base_uuid, plugin, accessory_platform_name) {
-        return this.cached_accessories.filter(accessory => accessory.base_uuid === base_uuid &&
+        return this.cached_accessories.filter(accessory => accessory instanceof PluginAccessoryPlatformAccessory &&
+            accessory.base_uuid === base_uuid &&
             accessory.plugin === plugin &&
-            accessory instanceof PluginAccessoryPlatformAccessory &&
             accessory.accessory_platform_name === accessory_platform_name);
     }
 
@@ -591,7 +644,7 @@ export default class Server extends Events {
         if (prev_characteristic_change_handler) {
             plugin_accessory.accessory.removeListener('service-characteristic-change', prev_characteristic_change_handler);
         }
-        const characteristic_change_handler = this._handleCharacteristicUpdate.bind(this.server, plugin_accessory.accessory);
+        const characteristic_change_handler = this._handleCharacteristicUpdate.bind(this, plugin_accessory.accessory);
         this.characteristic_change_handlers.set(plugin_accessory.accessory, characteristic_change_handler);
         plugin_accessory.accessory.on('service-characteristic-change', characteristic_change_handler);
 
@@ -599,7 +652,7 @@ export default class Server extends Events {
         if (prev_configuration_change_handler) {
             plugin_accessory.accessory.removeListener('service-configurationChange', prev_configuration_change_handler);
         }
-        const configuration_change_handler = this._handleConfigurationChange.bind(this.server, plugin_accessory.accessory);
+        const configuration_change_handler = this._handleConfigurationChange.bind(this, plugin_accessory.accessory);
         this.configuration_change_handlers.set(plugin_accessory.accessory, configuration_change_handler);
         plugin_accessory.accessory.on('service-configurationChange', configuration_change_handler);
 
@@ -613,7 +666,7 @@ export default class Server extends Events {
                     'homebridge' : null) &&
                 accessory_uuid[1] === (plugin_accessory instanceof PluginStandaloneAccessory ?
                     plugin_accessory.accessory_type : plugin_accessory instanceof PluginAccessoryPlatformAccessory ?
-                        plugin_accessory.accessory_platform : null) &&
+                        plugin_accessory.accessory_platform_name : null) &&
                 accessory_uuid[2] === plugin_accessory.accessory.displayName :
                 accessory_uuid === plugin_accessory.uuid
         ))) {
@@ -632,7 +685,7 @@ export default class Server extends Events {
         const characteristic_change_handler = this.characteristic_change_handlers.get(plugin_accessory.accessory);
         if (characteristic_change_handler) {
             plugin_accessory.accessory.removeListener('service-characteristic-change',
-                this.server.__handleCharacteristicUpdate);
+                this._handleCharacteristicUpdate);
         }
         const configuration_change_handler = this.configuration_change_handlers.get(plugin_accessory.accessory);
         if (configuration_change_handler) {
@@ -657,7 +710,7 @@ export default class Server extends Events {
         await this.loadAccessories(this.config.accessories2 || [], true);
     }
 
-    async loadAccessories(accessories, dont_throw) {
+    async loadAccessories(accessories, dont_throw = false) {
         await Promise.all(accessories.map(accessory_config => this.loadAccessory(accessory_config).catch(err => {
             if (!dont_throw) throw err;
 
@@ -701,7 +754,7 @@ export default class Server extends Events {
         await this.loadAccessoryPlatforms(this.config.platforms2 || [], true);
     }
 
-    async loadAccessoryPlatforms(accessories, dont_throw) {
+    async loadAccessoryPlatforms(accessories, dont_throw = false) {
         await Promise.all(accessories.map(accessory_platform_config =>
             this.loadAccessoryPlatform(accessory_platform_config).catch(err => {
                 if (!dont_throw) throw err;
@@ -738,7 +791,7 @@ export default class Server extends Events {
 
         // eslint-disable-next-line curly
         if (this.accessory_platforms.find(p => p.config.uuid === config.uuid)) throw new Error('Already have an' +
-            ' accessory platform with the UUID base "' + accessory.config.uuid + '"');
+            ' accessory platform with the UUID base "' + config.uuid + '"');
 
         const cached_accessories = this.getCachedAccessoryPlatformAccessories(config.uuid, plugin,
             accessory_platform_name).map(plugin_accessory => plugin_accessory.accessory);
@@ -755,49 +808,49 @@ export default class Server extends Events {
         return Object.defineProperty(this, 'automations', {value: new Automations(this)}).automations;
     }
 
-    async loadAutomationTriggersFromConfig(dont_throw) {
+    async loadAutomationTriggersFromConfig(dont_throw = false) {
         if (this.config_automation_triggers) return this.config_automation_triggers;
         const triggers = {};
 
-        await Promise.all(Object.entries(this.config['automation-triggers'] || {}).map(([key, config]) =>
+        await Promise.all((Object.entries(this.config['automation-triggers'] || {}) as any).map(([key, config]) =>
             this.automations.loadAutomationTrigger(config).then(t => triggers[key] = t).catch(err => {
                 if (!dont_throw) throw err;
 
                 this.log.warn('Error loading automation trigger', config.plugin, config.trigger, err);
             })));
 
-        return this.config_automation_triggers = triggers;
+        return (this as any).config_automation_triggers = triggers;
     }
 
-    async loadAutomationConditionsFromConfig(dont_throw) {
+    async loadAutomationConditionsFromConfig(dont_throw = false) {
         if (this.config_automation_conditions) return this.config_automation_conditions;
         const conditions = {};
 
-        await Promise.all(Object.entries(this.config['automation-conditions'] || {}).map(([key, config]) =>
+        await Promise.all((Object.entries(this.config['automation-conditions'] || {}) as any).map(([key, config]) =>
             this.automations.loadAutomationCondition(config).then(t => conditions[key] = t).catch(err => {
                 if (!dont_throw) throw err;
 
                 this.log.warn('Error loading automation condition', config.plugin, config.condition, err);
             })));
 
-        return this.config_automation_conditions = conditions;
+        return (this as any).config_automation_conditions = conditions;
     }
 
-    async loadAutomationActionsFromConfig(dont_throw) {
+    async loadAutomationActionsFromConfig(dont_throw = false) {
         if (this.config_automation_actions) return this.config_automation_actions;
         const actions = {};
 
-        await Promise.all(Object.entries(this.config['automation-actions'] || {}).map(([key, config]) =>
+        await Promise.all((Object.entries(this.config['automation-actions'] || {}) as any).map(([key, config]) =>
             this.automations.loadAutomationAction(config).then(t => actions[key] = t).catch(err => {
                 if (!dont_throw) throw err;
 
                 this.log.warn('Error loading automation action', config.plugin, config.action, err);
             })));
 
-        return this.config_automation_actions = actions;
+        return (this as any).config_automation_actions = actions;
     }
 
-    async loadAutomationsFromConfig(dont_throw) {
+    async loadAutomationsFromConfig(dont_throw = false) {
         const [triggers, conditions, actions] = await Promise.all([
             this.loadAutomationTriggersFromConfig(dont_throw),
             this.loadAutomationConditionsFromConfig(dont_throw),
@@ -822,7 +875,7 @@ export default class Server extends Events {
         return {automations, triggers, conditions, actions};
     }
 
-    async loadAutomationsFromStorage(dont_throw) {
+    async loadAutomationsFromStorage(dont_throw = false) {
         const automation_uuids = await this.storage.getItem('Automations') || [];
 
         return Promise.all(automation_uuids.map(async uuid => {
@@ -991,7 +1044,7 @@ export default class Server extends Events {
         return this.automations.getAutomation(id);
     }
 
-    async loadScenesFromStorage(dont_throw) {
+    async loadScenesFromStorage(dont_throw = false) {
         const scene_uuids = await this.storage.getItem('Scenes') || [];
 
         return Promise.all(scene_uuids.map(async uuid => {
@@ -1305,7 +1358,7 @@ export default class Server extends Events {
      * @param {string} uuid
      * @return {Accessory}
      */
-    getAccessory(uuid) {
+    getAccessory(uuid: string): typeof Accessory {
         const plugin_accessory = this.getPluginAccessory(uuid);
 
         if (plugin_accessory) return plugin_accessory.accessory;
@@ -1330,7 +1383,7 @@ export default class Server extends Events {
      * @param {string} uuid
      * @return {PluginAccessory}
      */
-    getPluginAccessory(uuid) {
+    getPluginAccessory(uuid: string): PluginAccessory {
         return this.accessories.find(accessory => accessory.uuid === uuid);
     }
 
@@ -1341,7 +1394,7 @@ export default class Server extends Events {
      * @param {string} [service_uuid]
      * @return {Service}
      */
-    getService(uuid, service_uuid) {
+    getService(uuid: string | string[], service_uuid?: string): typeof Service {
         if (uuid instanceof Array) [uuid, service_uuid] = uuid;
 
         const accessory_uuid = uuid.split('.')[0];
@@ -1364,7 +1417,7 @@ export default class Server extends Events {
      * @param {string} [characteristic_uuid]
      * @return {Characteristic}
      */
-    getCharacteristic(uuid, service_uuid, characteristic_uuid) {
+    getCharacteristic(uuid: string | string[], service_uuid?: string, characteristic_uuid?: string): typeof Characteristic {
         if (uuid instanceof Array) [uuid, service_uuid, characteristic_uuid] = uuid;
 
         const accessory_uuid = uuid.split('.')[0];
@@ -1419,11 +1472,11 @@ export default class Server extends Events {
     /**
      * Handles a HTTP request.
      *
-     * @param {http.IncomingRequest} req
+     * @param {http.IncomingMessage} req
      * @param {http.ServerResponse} res
      * @param {function} next
      */
-    handle(req, res, next) {
+    handle(req: http.IncomingMessage, res: http.ServerResponse, next?) {
         res.setHeader('X-Content-Type-Options', 'nosniff');
         res.setHeader('X-Frame-Options', 'deny');
         res.setHeader('X-XSS-Protection', '1');
@@ -1466,11 +1519,11 @@ export default class Server extends Events {
     /**
      * Handles a HTTP upgrade.
      *
-     * @param {http.IncomingRequest} request
+     * @param {http.IncomingMessage} request
      * @param {net.Socket} socket
      * @param {*} head
      */
-    upgrade(request, socket, head) {
+    upgrade(request: http.IncomingMessage, socket, head) {
         if (url.parse(request.url).pathname !== '/websocket') {
             socket.destroy();
         }
@@ -1490,7 +1543,7 @@ export default class Server extends Events {
      * @param {*} data
      * @param {Array} except An array of WebSocket clients to not send the message to
      */
-    sendBroadcast(data, except) {
+    sendBroadcast(data, except?: WebSocket | Connection | (WebSocket | Connection)[]) {
         const message = '**:' + JSON.stringify(data);
 
         for (const ws of this.wss.clients) {
@@ -1583,11 +1636,11 @@ export default class Server extends Events {
     async cleanAssets() {
         const home_settings = await this.storage.getItem('Home');
 
-        const layouts = await Promise.all((await this.storage.getItem('Layouts') || [])
+        const layouts: any[] = await Promise.all((await this.storage.getItem('Layouts') || [])
             .map(uuid => this.storage.getItem('Layout.' + uuid)));
         const background_urls = [...new Set(layouts.map(l => l && l.background_url).filter(b => b))];
 
-        const assets = await new Promise((rs, rj) =>
+        const assets = await new Promise<string[]>((rs, rj) =>
             fs.readdir(this.assets_path, (err, dir) => err ? rj(err) : rs(dir)));
         const unused_assets = assets.filter(a => !(home_settings && home_settings.background_url === a) &&
             !background_urls.includes(a));
@@ -1603,11 +1656,16 @@ export default class Server extends Events {
     }
 }
 
-Server.instances = new Set();
 Server.patchStdout();
 
 export class PluginAccessory {
-    constructor(server, accessory, plugin, data) {
+    readonly server: Server;
+    readonly accessory: typeof Accessory;
+    readonly plugin: Plugin;
+    readonly data;
+    readonly cached_data;
+
+    constructor(server: Server, accessory: typeof Accessory, plugin: Plugin, data?) {
         Object.defineProperty(this, 'server', {value: server});
         Object.defineProperty(this, 'accessory', {value: accessory});
         Object.defineProperty(this, 'plugin', {value: plugin});
@@ -1625,7 +1683,7 @@ export class PluginAccessory {
             this.server.log.warn('Accessory %s doesn\'t have a destory handler', this.uuid);
         }
 
-        this.accessory.emit('destroy');
+        (this.accessory as any).emit('destroy');
     }
 
     /**
@@ -1642,7 +1700,7 @@ export class PluginAccessory {
                     displayName: service.displayName,
                     UUID: service.UUID,
                     subtype: service.subtype,
-                    characteristics: service.characteristics.map(characteristic => ({
+                    characteristics: service.characteristics.map((characteristic: any) => ({
                         displayName: characteristic.displayName,
                         UUID: characteristic.UUID,
                         value: characteristic.value,
@@ -1650,7 +1708,7 @@ export class PluginAccessory {
                         eventOnlyCharacteristic: characteristic.eventOnlyCharacteristic,
                         props: characteristic.props,
                     })),
-                    optionalCharacteristics: service.optionalCharacteristics.map(characteristic => ({
+                    optionalCharacteristics: service.optionalCharacteristics.map((characteristic: any) => ({
                         displayName: characteristic.displayName,
                         UUID: characteristic.UUID,
                         value: characteristic.value,
@@ -1659,14 +1717,14 @@ export class PluginAccessory {
                         props: characteristic.props,
                     })),
                 })),
-                external_groups: this instanceof HomebridgeAccessory ? undefined : this.accessory.external_groups,
+                external_groups: this instanceof HomebridgeAccessory ? undefined : (this.accessory as any).external_groups,
             },
             plugin: this.plugin ? this.plugin.name : null,
             uuid: this.uuid,
             is_homebridge: this instanceof HomebridgeAccessory,
-            accessory_type: this.accessory_type,
-            base_uuid: this.base_uuid,
-            accessory_platform: this.accessory_platform_name,
+            accessory_type: (this as any as PluginStandaloneAccessory).accessory_type,
+            base_uuid: (this as any as PluginAccessoryPlatformAccessory).base_uuid,
+            accessory_platform: (this as any as PluginAccessoryPlatformAccessory).accessory_platform_name,
             data: this.data,
             bridge_uuids: this.server.bridges.filter(b => b.accessory_uuids.includes(this.accessory.UUID)).map(b => b.uuid),
             bridge_uuids_external: this.server.bridges.filter(b => b.accessory_uuids.includes(this.accessory.UUID) &&
@@ -1703,11 +1761,12 @@ export class PluginAccessory {
 
         if (cache.is_homebridge) {
             const plugin_accessory = new HomebridgeAccessory(server, accessory);
+            // @ts-ignore
             plugin_accessory.cached_data = cache;
             return plugin_accessory;
         }
 
-        accessory.external_groups = cache.accessory.external_groups;
+        (accessory as any).external_groups = cache.accessory.external_groups;
 
         const is_builtin = !cache.plugin && (builtin_accessory_types[cache.accessory_type] ||
             builtin_accessory_platforms[cache.accessory_platform]);
@@ -1732,6 +1791,7 @@ export class PluginAccessory {
             new PluginAccessoryPlatformAccessory(server, accessory, plugin, cache.accessory_platform, cache.base_uuid) :
             new PluginStandaloneAccessory(server, accessory, plugin, cache.accessory_type, null, cache.uuid);
 
+        // @ts-ignore
         plugin_accessory.cached_data = cache;
 
         return plugin_accessory;
@@ -1739,6 +1799,10 @@ export class PluginAccessory {
 }
 
 export class PluginStandaloneAccessory extends PluginAccessory {
+    readonly config;
+    readonly uuid: string;
+    readonly accessory_type: string;
+
     constructor(server, accessory, plugin, accessory_type, config, uuid) {
         super(server, accessory, plugin);
 
@@ -1749,6 +1813,9 @@ export class PluginStandaloneAccessory extends PluginAccessory {
 }
 
 export class PluginAccessoryPlatformAccessory extends PluginAccessory {
+    readonly base_uuid: string;
+    readonly accessory_platform_name: string;
+
     constructor(server, accessory, plugin, accessory_platform_name, base_uuid) {
         super(server, accessory, plugin);
 
@@ -1758,7 +1825,9 @@ export class PluginAccessoryPlatformAccessory extends PluginAccessory {
 }
 
 export class HomebridgeAccessory extends PluginAccessory {
-    constructor(server, accessory, platform_accessory) {
+    readonly platform_accessory: PlatformAccessory;
+
+    constructor(server, accessory, platform_accessory?) {
         super(server, accessory, null);
 
         Object.defineProperty(this, 'platform_accessory', {value: platform_accessory});

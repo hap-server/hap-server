@@ -27,6 +27,7 @@ import {Accessory} from 'hap-nodejs';
 declare module '@hap-server/api' {
     export const plugin: Plugin;
     export const parent_module: Module;
+    // @ts-ignore
     export default PluginAPI;
     export const log: Logger;
 
@@ -65,6 +66,7 @@ declare module '@hap-server/api' {
         constructor(localid: string, handler: (data, connection: Connection) => any);
     }
 
+    // @ts-ignore
     export {
         AutomationTrigger,
         AutomationCondition,

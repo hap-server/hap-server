@@ -536,7 +536,7 @@ export async function handler(argv) {
     ]);
 
     if (server.homebridge) {
-        if (server.homebridge._asyncCalls !== 0) {
+        if (server.homebridge.homebridge._asyncCalls !== 0) {
             log.info('Waiting for Homebridge to finish loading');
             await new Promise(rs => server.homebridge.bridge.once('listening', rs));
         }

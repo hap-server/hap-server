@@ -10,7 +10,7 @@ homebridge_logger.prefix = 'Homebridge';
 export default class Homebridge extends Bridge {
     readonly homebridge: HomebridgeServer;
 
-    constructor(server, log, config, unauthenticated_access) {
+    constructor(server, log, config, unauthenticated_access = false) {
         HomebridgeUser.configPath = () => undefined;
         HomebridgeUser.config = () => config;
 
