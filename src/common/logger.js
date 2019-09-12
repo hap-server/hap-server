@@ -2,6 +2,7 @@ import chalk from 'chalk';
 
 export default class Logger {
     constructor(...prefix) {
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
         const logger = this;
 
         const loggerfunction = function() {

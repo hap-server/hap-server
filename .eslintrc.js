@@ -58,7 +58,13 @@ module.exports = {
             },
         },
         {
-            files: ['*.ts'],
+            files: ['*.js'],
+            rules: {
+                '@typescript-eslint/explicit-function-return-type': 'off',
+            },
+        },
+        {
+            files: ['*.js', '*.ts'],
             parserOptions: {
                 // https://eslint.vuejs.org/user-guide/#how-to-use-custom-parser
                 parser: '@typescript-eslint/parser',
@@ -70,9 +76,14 @@ module.exports = {
                 '@typescript-eslint/no-var-requires': 'warn',
 
                 '@typescript-eslint/no-use-before-define': 'off',
+                '@typescript-eslint/no-empty-function': 'warn',
 
                 '@typescript-eslint/ban-ts-ignore': 'warn',
-
+            },
+        },
+        {
+            files: ['*.js', '*.ts'],
+            rules: {
                 'vue/no-duplicate-attributes': 'off',
                 'vue/no-template-key': 'off',
                 'vue/no-textarea-mustache': 'off',
