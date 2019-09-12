@@ -304,6 +304,8 @@ export default class Events extends EventEmitter {
      * @param {*} [...data]
      * @return {(Promise|boolean)} A promise that resolves when all event handlers finish if the event is an ExtendableEvent
      */
+    emit(event: string | symbol, ...data: any)
+    emit<T extends Event, A>(event: (new (...args: A[]) => T) | T, ...data: A[])
     emit(event, ...data: any) {
         if (event.prototype instanceof Event) {
             event = new event(...data); // eslint-disable-line new-cap
@@ -369,7 +371,7 @@ export default class Events extends EventEmitter {
     }
 
     on(type: string | symbol, handler, event_listeners?: EventListeners): this
-    on<T>(type: new (...args) => T, handler: (event: T, ...args: any[]) => void, event_listeners?: EventListeners): this
+    on<T extends Event>(type: new (...args) => T, handler: (event: T, ...args: any[]) => void, event_listeners?: EventListeners): this
     on(type, listener?, event_listeners?: EventListeners): this {
         this.listen(type, listener, event_listeners);
         return this;
@@ -384,7 +386,7 @@ export default class Events extends EventEmitter {
      * @return {EventListener}
      */
     listen(type: string | symbol, handler, event_listeners?: EventListeners): EventListener
-    listen<T>(type: new (...args) => T, handler: (event: T, ...args: any[]) => void, event_listeners?: EventListeners): EventListener
+    listen<T extends Event>(type: new (...args) => T, handler: (event: T, ...args: any[]) => void, event_listeners?: EventListeners): EventListener
     listen(type, handler?, event_listeners?: EventListeners): EventListener {
         if (type.prototype instanceof Event) {
             type = type.type;

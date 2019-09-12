@@ -61,7 +61,7 @@ export default class Server extends Events {
     readonly cached_accessories: PluginAccessory[];
     readonly bridges: Bridge[];
     readonly homebridge: Homebridge;
-    readonly plugins: Map<typeof ServerPlugin, ServerPlugin>;
+    readonly plugins: Map<number, ServerPlugin>;
 
     private readonly config_automation_triggers: any[];
     private readonly config_automation_conditions: any[];
@@ -341,7 +341,7 @@ export default class Server extends Events {
      * @param {object} [config]
      * @return {Promise}
      */
-    async loadPlugin(server_plugin, config?) {
+    async loadPlugin(server_plugin: typeof ServerPlugin, config?) {
         if (typeof server_plugin !== 'function' || !(server_plugin.prototype instanceof ServerPlugin)) {
             throw new Error('server_plugin must be a class that extends ServerPlugin');
         }
@@ -350,6 +350,7 @@ export default class Server extends Events {
             throw new Error('Already have a server plugin with the ID "' + server_plugin.id + '"');
         }
 
+        // @ts-ignore
         const instance = new server_plugin(this, config); // eslint-disable-line new-cap
 
         this.plugins.set(server_plugin.id, instance);
@@ -363,10 +364,10 @@ export default class Server extends Events {
      * @param {(function|number)} id A class that extends ServerPlugin or an ID
      * @return {ServerPlugin}
      */
-    getPlugin(id) {
+    getPlugin(id: ServerPlugin | typeof ServerPlugin | number): ServerPlugin {
         if (typeof id === 'function' || typeof id === 'object') id = id.id;
 
-        return this.plugins.get(id);
+        return this.plugins.get(id as number);
     }
 
     loadBridgesFromConfig() {

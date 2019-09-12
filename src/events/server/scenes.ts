@@ -69,7 +69,7 @@ export class SceneActivateProgressEvent extends Event {
 export class SceneActivatedEvent extends Event {
     static readonly type = 'scene-activated';
 
-    constructor(scene: Scene, parent: AutomationTriggerEvent) {
+    constructor(scene: Scene, parent: AutomationTriggerEvent | SceneTriggerEvent) {
         super(scene, parent);
     }
 
@@ -129,7 +129,7 @@ export class SceneDeactivateProgressEvent extends Event {
 export class SceneDeactivatedEvent extends Event {
     static readonly type = 'scene-deactivated';
 
-    constructor(scene: Scene, parent: AutomationTriggerEvent) {
+    constructor(scene: Scene, parent: AutomationTriggerEvent | SceneTriggerEvent) {
         super(scene, parent);
     }
 
