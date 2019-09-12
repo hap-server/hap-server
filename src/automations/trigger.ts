@@ -6,6 +6,7 @@ import {AutomationTriggerEvent as TriggerEvent, SceneActivatedEvent} from '../ev
 import Automations from '.';
 import PluginManager from '../server/plugins';
 import Logger from '../common/logger';
+import {AutomationTriggerConfiguration} from '../cli/configuration';
 
 export default class AutomationTrigger extends Events {
     private static id = 0;
@@ -127,10 +128,22 @@ export default class AutomationTrigger extends Events {
     }
 }
 
+type CronTriggerType = 'Cron';
+
+export interface CronTriggerConfiguration extends AutomationTriggerConfiguration {
+    readonly plugin: undefined;
+    readonly trigger: CronTriggerType;
+
+    readonly expression: string;
+    readonly timezone: string;
+}
+
 /**
  * An AutomationTrigger that runs based on a cron schedule.
  */
 export class CronTrigger extends AutomationTrigger {
+    readonly config: CronTriggerConfiguration;
+
     private task;
 
     onstart() {
@@ -151,11 +164,22 @@ export class CronTrigger extends AutomationTrigger {
 
 AutomationTrigger.types.Cron = CronTrigger;
 
+type SceneTriggerType = 'Scene';
+
+export interface SceneTriggerConfiguration extends AutomationTriggerConfiguration {
+    readonly plugin: undefined;
+    readonly trigger: SceneTriggerType;
+
+    readonly scene_uuid: string;
+}
+
 /**
  * An AutomationTrigger that runs when a scene is triggered.
  */
 export class SceneTrigger extends AutomationTrigger {
-    private listener: EventListener;
+    readonly config: SceneTriggerConfiguration;
+
+    private listener?: EventListener;
 
     onstart() {
         if (this.listener) this.listener.cancel(), this.listener = null;

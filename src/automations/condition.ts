@@ -8,6 +8,7 @@ import Automations, {AutomationRunner} from '.';
 import Scene from './scene';
 import Logger from '../common/logger';
 import {Accessory, Service, Characteristic} from 'hap-nodejs';
+import {AutomationConditionConfiguration} from '../cli/configuration';
 
 export default class AutomationCondition extends EventEmitter {
     private static id = 0;
@@ -99,10 +100,21 @@ export class TestCondition extends AutomationCondition {
 
 AutomationCondition.types.Test = TestCondition;
 
+type AnyConditionType = 'Conditional';
+
+export interface AnyConditionConfiguration extends AutomationConditionConfiguration {
+    readonly plugin: undefined;
+    readonly condition: AnyConditionType;
+
+    readonly conditions: AutomationConditionConfiguration[];
+}
+
 /**
  * An AutomationCondition that passes if any of it's child conditions passes.
  */
 export class AnyCondition extends AutomationCondition {
+    readonly config: AnyConditionConfiguration;
+
     private conditions: AutomationCondition[];
 
     async load() {
@@ -150,10 +162,21 @@ export class AnyCondition extends AutomationCondition {
 
 AutomationCondition.types.Any = AnyCondition;
 
+type AllConditionType = 'Conditional';
+
+export interface AllConditionConfiguration extends AutomationConditionConfiguration {
+    readonly plugin: undefined;
+    readonly condition: AllConditionType;
+
+    readonly conditions: AutomationConditionConfiguration[];
+}
+
 /**
  * An AutomationCondition that passed if all of it's child conditions pass.
  */
 export class AllCondition extends AutomationCondition {
+    readonly config: AllConditionConfiguration;
+
     private conditions: AutomationCondition[];
 
     async load() {
@@ -201,10 +224,21 @@ export class AllCondition extends AutomationCondition {
 
 AutomationCondition.types.All = AllCondition;
 
+type ScriptConditionType = 'Script';
+
+export interface ScriptConditionConfiguration extends AutomationConditionConfiguration {
+    readonly plugin: undefined;
+    readonly condition: ScriptConditionType;
+
+    readonly script: string | string[];
+}
+
 /**
  * An AutomationCondition that runs a JavaScript VM.
  */
 export class ScriptCondition extends AutomationCondition {
+    readonly config: ScriptConditionConfiguration;
+
     private sandbox: {
         server: Server;
         getAccessory: (uuid: string) => typeof Accessory;

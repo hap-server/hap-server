@@ -11,6 +11,7 @@ import Automations from '.';
 import Scene from './scene';
 import Logger from '../common/logger';
 import {Accessory, Service, Characteristic} from 'hap-nodejs';
+import {AutomationActionConfiguration, AutomationConditionConfiguration} from '../cli/configuration';
 
 export default class AutomationAction extends EventEmitter {
     private static id = 0;
@@ -34,7 +35,7 @@ export default class AutomationAction extends EventEmitter {
      * @param {string} [uuid]
      * @param {Logger} [log]
      */
-    constructor(automations, config, uuid, log) {
+    constructor(automations: Automations, config, uuid?: string, log?: Logger) {
         super();
 
         Object.defineProperty(this, 'automations', {value: automations});
@@ -46,7 +47,7 @@ export default class AutomationAction extends EventEmitter {
         Object.defineProperty(this, 'log', {value: log || automations.log.withPrefix('Action #' + this.id)});
     }
 
-    static load(automations, config, uuid, log) {
+    static load(automations: Automations, config, uuid?: string, log?: Logger): AutomationAction {
         const Action = this.getActionClass(config.action, config.plugin);
         const action = new Action(automations, config, uuid, log);
 
@@ -55,7 +56,7 @@ export default class AutomationAction extends EventEmitter {
         return action;
     }
 
-    static getActionClass(type, plugin_name) {
+    static getActionClass(type, plugin_name): typeof AutomationAction {
         if (plugin_name) {
             const plugin = PluginManager.getPlugin(plugin_name);
 
@@ -102,10 +103,22 @@ export class TestAction extends AutomationAction {
 
 AutomationAction.types.Test = TestAction;
 
+type ConditionalActionType = 'Conditional';
+
+export interface ConditionalActionConfiguration extends AutomationActionConfiguration {
+    readonly plugin: undefined;
+    readonly action: ConditionalActionType;
+
+    readonly condition: AutomationConditionConfiguration;
+    readonly actions: AutomationActionConfiguration[];
+}
+
 /**
  * An AutomationAction that runs a condition before running it's child actions.
  */
 export class ConditionalAction extends AutomationAction {
+    readonly config: ConditionalActionConfiguration;
+
     private condition: AutomationCondition;
     private actions: AutomationAction[];
 
@@ -163,10 +176,21 @@ export class ConditionalAction extends AutomationAction {
 
 AutomationAction.types.Conditional = ConditionalAction;
 
+type ScriptActionType = 'Script';
+
+export interface ScriptActionConfiguration extends AutomationActionConfiguration {
+    readonly plugin: undefined;
+    readonly action: ScriptActionType;
+
+    readonly script: string | string[];
+}
+
 /**
  * An AutomationAction that runs a JavaScript VM.
  */
 export class ScriptAction extends AutomationAction {
+    readonly config: ScriptActionConfiguration;
+
     private sandbox: {
         server: Server;
         getAccessory: (uuid: string) => typeof Accessory;
@@ -216,10 +240,26 @@ export class ScriptAction extends AutomationAction {
 
 AutomationAction.types.Script = ScriptAction;
 
+type SetCharacteristicActionType = 'SetCharacteristic';
+
+interface BaseSetCharacteristicActionConfiguration extends AutomationActionConfiguration {
+    readonly plugin: undefined;
+    readonly action: SetCharacteristicActionType;
+
+    readonly characteristic: string | string[];
+}
+
+export type SetCharacteristicActionConfiguration =
+    (BaseSetCharacteristicActionConfiguration & {value: any}) |
+    (BaseSetCharacteristicActionConfiguration & {increase: number}) |
+    (BaseSetCharacteristicActionConfiguration & {decrease: number});
+
 /**
  * An AutomationAction that sets a characteristic.
  */
 export class SetCharacteristicAction extends AutomationAction {
+    readonly config: SetCharacteristicActionConfiguration;
+
     async run(runner, setProgress, ...parent_actions) {
         const characteristic = this.automations.server.getCharacteristic(this.config.characteristic);
 
@@ -245,10 +285,22 @@ export class SetCharacteristicAction extends AutomationAction {
 
 AutomationAction.types.SetCharacteristic = SetCharacteristicAction;
 
+type RunAutomationActionType = 'Script';
+
+export interface RunAutomationActionConfiguration extends AutomationActionConfiguration {
+    readonly plugin: undefined;
+    readonly action: RunAutomationActionType;
+
+    readonly automation_uuid: string;
+    readonly skip_conditions?: boolean;
+}
+
 /**
  * An AutomationAction that triggers an automation.
  */
 export class RunAutomationAction extends AutomationAction {
+    readonly config: RunAutomationActionConfiguration;
+
     async run(parent_runner, setProgress, ...parent_actions) {
         const automation = this.automations.getAutomationByUUID(this.config.automation_uuid);
         if (!automation) return;

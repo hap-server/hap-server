@@ -368,6 +368,8 @@ export default class Events extends EventEmitter {
         Reflect.apply(listener, this, listener.expects_hap_event && event ? [event] : args);
     }
 
+    on(type: string | symbol, handler, event_listeners?: EventListeners): this
+    on<T>(type: new (...args) => T, handler: (event: T, ...args: any[]) => void, event_listeners?: EventListeners): this
     on(type, listener?, event_listeners?: EventListeners): this {
         this.listen(type, listener, event_listeners);
         return this;
@@ -381,6 +383,8 @@ export default class Events extends EventEmitter {
      * @param {EventListeners} [event_listeners] An EventListener group to add the listener to
      * @return {EventListener}
      */
+    listen(type: string | symbol, handler, event_listeners?: EventListeners): EventListener
+    listen<T>(type: new (...args) => T, handler: (event: T, ...args: any[]) => void, event_listeners?: EventListeners): EventListener
     listen(type, handler?, event_listeners?: EventListeners): EventListener {
         if (type.prototype instanceof Event) {
             type = type.type;

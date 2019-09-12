@@ -1,11 +1,11 @@
-interface HomebridgeBridgeConfiguration {
+export interface HomebridgeBridgeConfiguration {
     name?: string;
     username: string;
     port?: number;
     pin?: string;
 }
 
-interface HomebridgeAccessoryConfiguration {
+export interface HomebridgeAccessoryConfiguration {
     accessory: string;
     name: string;
     uuid_base?: string;
@@ -13,14 +13,14 @@ interface HomebridgeAccessoryConfiguration {
     [key: string]: any;
 }
 
-interface HomebridgePlatformConfiguration {
+export interface HomebridgePlatformConfiguration {
     platform: string;
     name?: string;
 
     [key: string]: any;
 }
 
-interface BridgeConfiguration {
+export interface BridgeConfiguration {
     name?: string;
     uuid?: string;
     username: string;
@@ -30,7 +30,7 @@ interface BridgeConfiguration {
     accessories?: Array<string | [string, string, string] | ['homebridge', null, string]>;
 }
 
-interface AccessoryConfiguration {
+export interface AccessoryConfiguration {
     plugin: string;
     accessory: string;
     name: string;
@@ -39,7 +39,7 @@ interface AccessoryConfiguration {
     [key: string]: any;
 }
 
-interface AccessoryPlatformConfiguration {
+export interface AccessoryPlatformConfiguration {
     plugin: string;
     platform: string;
     name: string;
@@ -48,28 +48,28 @@ interface AccessoryPlatformConfiguration {
     [key: string]: any;
 }
 
-interface AutomationTriggerConfiguration {
+export interface AutomationTriggerConfiguration {
     plugin: string;
     trigger: string;
 
     [key: string]: any;
 }
 
-interface AutomationConditionConfiguration {
+export interface AutomationConditionConfiguration {
     plugin: string;
     condition: string;
 
     [key: string]: any;
 }
 
-interface AutomationActionConfiguration {
+export interface AutomationActionConfiguration {
     plugin: string;
     action: string;
 
     [key: string]: any;
 }
 
-interface AutomationConfiguration {
+export interface AutomationConfiguration {
     triggers?: string[];
     conditions?: string[];
     actions?: string[];
