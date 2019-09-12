@@ -158,6 +158,21 @@ export const webpack_hot_config = Object.assign({}, webpack_config, {
     ]),
 });
 
+gulp.task('build-backend-no-ts', function () {
+    return pump([
+        merge([
+            pump([
+                gulp.src(['src/**/*.js', '!src/public/**/*.js']),
+                babel(),
+            ]),
+            gulp.src(['src/**/*', '!src/public/**/*', '!src/**/*.js', '!src/**/*.ts']),
+        ]),
+        gulp.dest('dist'),
+    ]);
+});
+
+const tsProject = typescript.createProject(typescript_config);
+
 gulp.task('build-backend', function () {
     return pump([
         merge([
@@ -167,7 +182,7 @@ gulp.task('build-backend', function () {
             ]),
             pump([
                 gulp.src(['src/**/*.ts', '!src/public/**/*.ts']),
-                typescript(typescript_config),
+                tsProject(),
             ]),
             gulp.src(['src/**/*', '!src/public/**/*', '!src/**/*.js', '!src/**/*.ts']),
         ]),
@@ -199,15 +214,25 @@ gulp.task('build-example-plugins', gulp.parallel(function () {
 
 gulp.task('build', gulp.parallel('build-backend', 'build-frontend', 'build-example-plugins'));
 
-gulp.task('watch-backend', function () {
+gulp.task('watch-backend-no-ts', function () {
     return pump([
         watch(['src/**/*.js', '!src/public/**/*.js'], {verbose: true}),
         plumber(),
         babel(),
-        watch(['src/**/*', '!src/public/**/*', '!src/**/*.js'], {verbose: true}),
+        watch(['src/**/*', '!src/public/**/*', '!src/**/*.js', '!src/**/*.ts'], {verbose: true}),
         gulp.dest('dist'),
     ]);
-});
+})
+
+gulp.task('watch-backend', gulp.parallel('watch-backend-no-ts', function () {
+    return gulp.watch(['src/**/*.ts', '!src/public/**/*.ts'], function () {
+        return pump([
+            gulp.src(['src/**/*.ts', '!src/public/**/*.ts']),
+            tsProject(),
+            gulp.dest('dist'),
+        ]);
+    });
+}));
 
 gulp.task('watch-frontend', function () {
     return pump([
