@@ -87,6 +87,7 @@ function messagehandler2(type: string, handler: (messageid: number, data) => voi
     if (handler) {
         const key = '_handleMessage-' + type + '-' + method;
         target[key] = function(messageid, data) {
+            // eslint-disable-next-line prefer-spread
             return this.respond(messageid, this[method].apply(this, handler.call(this, data)));
         };
         message_methods[type] = key;
@@ -1834,7 +1835,7 @@ export default class Connection {
     }
 
     async getPairingPermissions(id) {
-        // eslint-disable-next-line no-unused-vars
+        // eslint-disable-next-line no-unused-vars, array-bracket-spacing
         const [get, set /* , info */] = await Promise.all([
             this.permissions.checkCanGetPairing(id),
             this.permissions.checkCanSetPairing(id),

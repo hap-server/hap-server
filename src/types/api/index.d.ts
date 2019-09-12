@@ -79,7 +79,7 @@ declare module '@hap-server/api' {
         EventListenerPromise,
         EventListeners,
         events,
-    }
+    };
 }
 
 declare module '@hap-server/api/events' {

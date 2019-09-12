@@ -26,7 +26,7 @@ export default class Bridge {
     readonly pincode: string;
     unauthenticated_access: boolean;
 
-    accessory_uuids: (string | {0?: string, 1?: string, 2: string})[];
+    accessory_uuids: (string | {0?: string; 1?: string; 2: string})[];
     readonly external_accessories: typeof Accessory[];
     readonly external_accessory_accessory_infos: Map<typeof Accessory, AccessoryInfo>;
     readonly external_accessory_identifier_caches: Map<typeof Accessory, IdentifierCache>;

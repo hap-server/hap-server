@@ -52,6 +52,8 @@
     },
     "devDependencies": {
         "@types/node": "^12.6.1",
+        "@typescript-eslint/eslint-plugin": "^2.2.0",
+        "@typescript-eslint/parser": "^2.2.0",
         "@vue/devtools": "^5.1.1",
         "axios": "^0.18.1",
         "babel-core": "^6.26.3",

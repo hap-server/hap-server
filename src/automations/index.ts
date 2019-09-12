@@ -275,7 +275,7 @@ export default class Automations extends Events {
 }
 
 export class Automation {
-    private static id: number = 0;
+    private static id = 0;
 
     readonly automations: Automations;
     readonly id: number;
@@ -451,7 +451,7 @@ export class Automation {
 }
 
 export class AutomationRunner extends EventEmitter {
-    private static id: number = 0;
+    private static id = 0;
 
     readonly automation: Automation;
     readonly id: number;

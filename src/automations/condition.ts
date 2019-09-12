@@ -12,7 +12,7 @@ import {Accessory, Service, Characteristic} from 'hap-nodejs';
 export default class AutomationCondition extends EventEmitter {
     private static id = 0;
     static readonly types: {
-        [key: string]: typeof AutomationCondition,
+        [key: string]: typeof AutomationCondition;
     } = {};
 
     readonly automations: Automations;
@@ -114,7 +114,7 @@ export class AnyCondition extends AutomationCondition {
     async check(runner, setProgress, ...parent_conditions) {
         this.log.info('Running any condition with runner #%d', runner.id);
 
-        for (let i in this.conditions) { // eslint-disable-line guard-for-in
+        for (const i in this.conditions) { // eslint-disable-line guard-for-in
             const index = parseInt(i);
             const condition = this.conditions[index];
 
@@ -165,7 +165,7 @@ export class AllCondition extends AutomationCondition {
     async check(runner, setProgress, ...parent_conditions) {
         this.log('Running all condition with runner #%d', runner.id);
 
-        for (let i in this.conditions) { // eslint-disable-line guard-for-in
+        for (const i in this.conditions) { // eslint-disable-line guard-for-in
             const index = parseInt(i);
             const condition = this.conditions[index];
 
@@ -206,14 +206,14 @@ AutomationCondition.types.All = AllCondition;
  */
 export class ScriptCondition extends AutomationCondition {
     private sandbox: {
-        server: Server,
-        getAccessory: (uuid: string) => typeof Accessory,
-        getService: (uuid: string, uuid2?: string) => typeof Service,
-        getCharacteristic: (uuid: string, uuid2?: string, uuid3?: string) => typeof Characteristic,
+        server: Server;
+        getAccessory: (uuid: string) => typeof Accessory;
+        getService: (uuid: string, uuid2?: string) => typeof Service;
+        getCharacteristic: (uuid: string, uuid2?: string, uuid3?: string) => typeof Characteristic;
 
-        automations: Automations,
-        automation_condition: ScriptCondition,
-        log: Logger,
+        automations: Automations;
+        automation_condition: ScriptCondition;
+        log: Logger;
     };
     private script: vm.Script;
 

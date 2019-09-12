@@ -94,7 +94,7 @@ export default class Scene extends Events {
     private async _checkActive(setProgress) {
         this.log.info('Checking if scene is active');
 
-        for (let i in this.conditions) { // eslint-disable-line guard-for-in
+        for (const i in this.conditions) { // eslint-disable-line guard-for-in
             const index = parseInt(i);
             const condition = this.conditions[index];
 

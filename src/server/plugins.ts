@@ -1064,7 +1064,10 @@ export abstract class AccessoryDiscovery extends EventEmitter {
         if (this.running) return;
         if (this.starting) return this.starting;
 
-        return this.starting = Promise.all([this.onstart()]).then(() => {this.starting = null, this.running = true;});
+        return this.starting = Promise.all([this.onstart()]).then(() => {
+            this.starting = null;
+            this.running = true;
+        });
     }
 
     abstract onstart();

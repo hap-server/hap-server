@@ -6,7 +6,7 @@ export class Event {
     private _throw: boolean;
     private _returnValue: any;
 
-    private static _type: string | Symbol;
+    private static _type: string | symbol;
 
     constructor(...args) {
         Object.defineProperty(this, 'emitter', {configurable: true, value: null});
@@ -381,13 +381,13 @@ export default class Events extends EventEmitter {
      * @param {EventListeners} [event_listeners] An EventListener group to add the listener to
      * @return {EventListener}
      */
-    listen(type, listener?, event_listeners?: EventListeners): EventListener {
+    listen(type, handler?, event_listeners?: EventListeners): EventListener {
         if (type.prototype instanceof Event) {
             type = type.type;
-            listener.expects_hap_event = true;
+            handler.expects_hap_event = true;
         }
 
-        const event_listener = new EventListener(this, type, listener);
+        const event_listener = new EventListener(this, type, handler);
 
         if (event_listeners instanceof EventListeners) event_listeners.add(event_listener);
 
@@ -401,18 +401,18 @@ export default class Events extends EventEmitter {
      * @param {function} [handler]
      * @return {(EventListener|EventListenerPromise<*>)}
      */
-    once(type, listener) {
-        if (!listener) {
+    once(type, handler) {
+        if (!handler) {
             const promise = new EventListenerPromise(this, type);
             return promise;
         }
 
         if (type.prototype instanceof Event) {
             type = type.type;
-            listener.expects_hap_event = true;
+            handler.expects_hap_event = true;
         }
 
-        return EventEmitter.prototype.once.call(this, type, listener);
+        return EventEmitter.prototype.once.call(this, type, handler);
     }
 
     /**
@@ -420,6 +420,7 @@ export default class Events extends EventEmitter {
      *
      * @param {(function|string)} type A class that extends Event or a string
      * @param {function} listener
+     * @return {Events}
      */
     removeListener(type, listener) {
         if (type.prototype instanceof Event) {

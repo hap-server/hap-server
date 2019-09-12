@@ -97,14 +97,14 @@ export default class Server extends Events {
      * @param {Logger} [log]
      */
     constructor(options: {
-        data_path: string,
-        config_path: string,
-        config,
-        cli_auth_token?: string,
-        hostname?: string,
+        data_path: string;
+        config_path: string;
+        config;
+        cli_auth_token?: string;
+        hostname?: string;
 
         // For development builds there's also a webpack_hot property
-        // webpack_hot = false,
+        // webpack_hot = false;
     }, storage: typeof persist, log?: Logger) {
         super();
 

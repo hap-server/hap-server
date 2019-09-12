@@ -15,7 +15,7 @@ import {Accessory, Service, Characteristic} from 'hap-nodejs';
 export default class AutomationAction extends EventEmitter {
     private static id = 0;
     static readonly types: {
-        [key: string]: typeof AutomationAction,
+        [key: string]: typeof AutomationAction;
     } = {};
 
     readonly automations: Automations;
@@ -168,14 +168,14 @@ AutomationAction.types.Conditional = ConditionalAction;
  */
 export class ScriptAction extends AutomationAction {
     private sandbox: {
-        server: Server,
-        getAccessory: (uuid: string) => typeof Accessory,
-        getService: (uuid: string, uuid2?: string) => typeof Service,
-        getCharacteristic: (uuid: string, uuid2?: string, uuid3?: string) => typeof Characteristic,
+        server: Server;
+        getAccessory: (uuid: string) => typeof Accessory;
+        getService: (uuid: string, uuid2?: string) => typeof Service;
+        getCharacteristic: (uuid: string, uuid2?: string, uuid3?: string) => typeof Characteristic;
 
-        automations: Automations,
-        automation_action: ScriptAction,
-        log: Logger,
+        automations: Automations;
+        automation_action: ScriptAction;
+        log: Logger;
     };
     private script: vm.Script;
 

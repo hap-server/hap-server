@@ -10,7 +10,7 @@ import Logger from '../common/logger';
 export default class AutomationTrigger extends Events {
     private static id = 0;
     static readonly types: {
-        [key: string]: typeof AutomationTrigger,
+        [key: string]: typeof AutomationTrigger;
     } = {};
 
     readonly automations: Automations;
