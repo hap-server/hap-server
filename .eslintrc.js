@@ -4,24 +4,30 @@ module.exports = {
         'plugin:vue/recommended',
         'plugin:@typescript-eslint/recommended',
     ],
-    plugins: [
-        '@typescript-eslint',
-    ],
+    parser: 'vue-eslint-parser',
     parserOptions: {
         ecmaVersion: 8,
         sourceType: 'module',
 
         // https://eslint.vuejs.org/user-guide/#how-to-use-custom-parser
-        parser: 'babel-eslint',
+        parser: '@typescript-eslint/parser',
     },
     rules: {
-        indent: ['error', 4],
-        camelcase: 'off',
+        'indent': 'off',
+        '@typescript-eslint/indent': ['error', 4],
+        '@typescript-eslint/camelcase': 'off',
         'max-len': ['warn', {code: 120, ignoreComments: true}],
         'arrow-parens': ['warn', 'as-needed'],
         'quote-props': ['warn', 'consistent-as-needed'],
 
         'require-jsdoc': 'off',
+
+        '@typescript-eslint/no-var-requires': 'warn',
+
+        '@typescript-eslint/no-use-before-define': 'off',
+        '@typescript-eslint/no-empty-function': 'warn',
+
+        '@typescript-eslint/ban-ts-ignore': 'warn',
 
         'vue/html-indent': ['error', 4, {
             alignAttributesVertically: false,
@@ -54,31 +60,13 @@ module.exports = {
         {
             files: ['*.vue'],
             rules: {
-                'indent': 'off',
+                '@typescript-eslint/indent': 'off',
             },
         },
         {
             files: ['*.js'],
             rules: {
                 '@typescript-eslint/explicit-function-return-type': 'off',
-            },
-        },
-        {
-            files: ['*.js', '*.ts'],
-            parserOptions: {
-                // https://eslint.vuejs.org/user-guide/#how-to-use-custom-parser
-                parser: '@typescript-eslint/parser',
-            },
-            rules: {
-                'indent': 'off',
-                '@typescript-eslint/indent': ['error', 4],
-                '@typescript-eslint/camelcase': 'off',
-                '@typescript-eslint/no-var-requires': 'warn',
-
-                '@typescript-eslint/no-use-before-define': 'off',
-                '@typescript-eslint/no-empty-function': 'warn',
-
-                '@typescript-eslint/ban-ts-ignore': 'warn',
             },
         },
         {
