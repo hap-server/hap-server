@@ -11,6 +11,8 @@ import {User as HomebridgeUser} from 'homebridge/lib/user';
 import HomebridgeLogger from 'homebridge/lib/logger';
 import hap from 'hap-nodejs';
 
+import isEqual from 'lodash.isequal';
+
 import {Server, PluginManager, Logger, forceColourLogs, events} from '..';
 import {
     ServerStartupFinishedEvent, ServerStoppingEvent, ServerPluginRegisteredEvent,
@@ -647,4 +649,43 @@ export async function handler(argv) {
             setTimeout(() => process.exit(128 + (code as number)), 1000);
         });
     }
+
+    process.on('SIGHUP', reloadConfig.bind(null, server, {config, config_path, data_path}, argv));
+}
+
+async function reloadConfig(server: Server, old_options: {
+    config;
+    config_path: string;
+    data_path: string;
+}, argv) {
+    const log = new Logger('Reload');
+    log('Reloading configuration');
+
+    const {config, config_path, data_path} = await getConfig(argv);
+
+    // Reject new configuration if config/data paths change
+    if (config_path !== old_options.config_path) throw new Error('Cannot change configuration path while running');
+    if (data_path !== old_options.data_path) throw new Error('Cannot change data path while running');
+    if (!isEqual(config['plugin-path'], old_options.config['plugin-path'])) throw new Error('Cannot change plugin paths while running');
+
+    const nullchildren = {
+        hostname: null,
+    };
+
+    if (!isEqual(
+        Object.assign({}, nullchildren, old_options.config, nullchildren),
+        Object.assign({}, nullchildren, config, nullchildren)
+    )) {
+        log.warn('Some options that don\'t support reloading have changed. The new values will not take effect ' +
+            'until hap-server is restarted.');
+    }
+
+    if (!argv.advertiseWebInterface && old_options.config.hostname !== config.hostname) {
+        log.info('Changing hostname from %s to %s', old_options.config.hostname, config.hostname);
+
+        old_options.config.hostname = config.hostname;
+        server.setHostname(config.hostname);
+    }
+
+    log.info('Finished reloading configuration');
 }
