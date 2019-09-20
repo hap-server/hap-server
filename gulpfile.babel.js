@@ -5,6 +5,7 @@ import gulp from 'gulp';
 import pump from 'pump';
 import watch from 'gulp-watch';
 import plumber from 'gulp-plumber';
+import sourcemaps from 'gulp-sourcemaps';
 import babel from 'gulp-babel';
 import typescript from 'gulp-typescript';
 import webpack from 'webpack-stream';
@@ -163,7 +164,9 @@ gulp.task('build-backend-no-ts', function () {
         merge([
             pump([
                 gulp.src(['src/**/*.js', '!src/public/**/*.js']),
+                sourcemaps.init(),
                 babel(),
+                sourcemaps.write('.', {includeContent: false, destPath: 'dist'}),
             ]),
             gulp.src(['src/**/*', '!src/public/**/*', '!src/**/*.js', '!src/**/*.ts']),
         ]),
@@ -178,11 +181,15 @@ gulp.task('build-backend', function () {
         merge([
             pump([
                 gulp.src(['src/**/*.js', '!src/public/**/*.js']),
+                sourcemaps.init(),
                 babel(),
+                sourcemaps.write('.', {includeContent: false, destPath: 'dist'}),
             ]),
             pump([
                 gulp.src(['src/**/*.ts', '!src/public/**/*.ts']),
+                sourcemaps.init(),
                 tsProject(),
+                sourcemaps.write('.', {includeContent: false, destPath: 'dist'}),
             ]),
             gulp.src(['src/**/*', '!src/public/**/*', '!src/**/*.js', '!src/**/*.ts']),
         ]),
@@ -199,18 +206,16 @@ gulp.task('build-frontend', function () {
     ]);
 });
 
-gulp.task('build-example-plugins', gulp.parallel(function () {
+gulp.task('build-example-plugins', function () {
     return pump([
         gulp.src('example-plugins/src/**/*.js'),
+        sourcemaps.init(),
         babel(),
-        gulp.dest('example-plugins/dist'),
-    ]);
-}, function () {
-    return pump([
+        sourcemaps.write('.', {includeContent: false, destPath: 'example-plugins/dist'}),
         gulp.src('example-plugins/src/**/*.json'),
         gulp.dest('example-plugins/dist'),
     ]);
-}));
+});
 
 gulp.task('build', gulp.parallel('build-backend', 'build-frontend', 'build-example-plugins'));
 
@@ -218,7 +223,9 @@ gulp.task('watch-backend-no-ts', function () {
     return pump([
         watch(['src/**/*.js', '!src/public/**/*.js'], {verbose: true}),
         plumber(),
+        sourcemaps.init(),
         babel(),
+        sourcemaps.write('.', {includeContent: false, destPath: 'dist'}),
         watch(['src/**/*', '!src/public/**/*', '!src/**/*.js', '!src/**/*.ts'], {verbose: true}),
         gulp.dest('dist'),
     ]);
@@ -228,7 +235,9 @@ gulp.task('watch-backend', gulp.parallel('watch-backend-no-ts', function () {
     return gulp.watch(['src/**/*.ts', '!src/public/**/*.ts'], function () {
         return pump([
             gulp.src(['src/**/*.ts', '!src/public/**/*.ts']),
+            sourcemaps.init(),
             tsProject(),
+            sourcemaps.write('.', {includeContent: false, destPath: 'dist'}),
             gulp.dest('dist'),
         ]);
     });
@@ -243,19 +252,17 @@ gulp.task('watch-frontend', function () {
     ]);
 });
 
-gulp.task('watch-example-plugins', gulp.parallel(function () {
+gulp.task('watch-example-plugins', function () {
     return pump([
         watch('example-plugins/src/**/*.js', {verbose: true}),
         plumber(),
+        sourcemaps.init(),
         babel(),
-        gulp.dest('example-plugins/dist'),
-    ]);
-}, function () {
-    return pump([
+        sourcemaps.write('.', {includeContent: false, destPath: 'example-plugins/dist'}),
         watch('example-plugins/src/**/*.json', {verbose: true}),
         gulp.dest('example-plugins/dist'),
     ]);
-}));
+});
 
 gulp.task('watch', gulp.parallel('watch-backend', 'watch-frontend', 'watch-example-plugins'));
 
