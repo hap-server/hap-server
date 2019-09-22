@@ -36,7 +36,7 @@ yargs.option('force-colour', {
     default: false,
 });
 
-import ConfigurationFileData from './configuration';
+import ConfigurationFileData, {validate, Warning} from './configuration';
 
 interface ConfigData {
     config: ConfigurationFileData;
@@ -195,6 +195,43 @@ command('./server', '$0 [config]', 'Run the HAP and web server');
 command('./make-admin', 'make-admin <user>', 'Promote a user to administrator');
 command('./get-characteristics', 'get-characteristics <config> <characteristics>', 'Get characteristics');
 command('./set-characteristic', 'set-characteristic <config> <characteristic> <value>', 'Set a characteristic');
+
+yargs.command('validate-configuration <config>', 'Validates a configuration file', yargs => {
+    yargs.option('strict', {
+        alias: 'S',
+        describe: 'Exit with an error code for warnings',
+        type: 'boolean',
+        default: false,
+    });
+}, async argv => {
+    const {config, config_path, data_path} = getConfig(argv);
+    const errors = await validate(config, data_path);
+
+    if (!errors.length) {
+        log.info('No errors.');
+    } else {
+        const warnings = errors.filter(e => e instanceof Warning);
+        const onlyerrors = errors.filter(e => !(e instanceof Warning));
+
+        if (!warnings.length || !onlyerrors.length) {
+            log.info((warnings.length === 1 ? '%d warning' : '%d error') + (errors.length === 1 ? '.' : 's.'),
+                errors.length);
+        } else {
+            log.info(`%d error${onlyerrors.length === 1 ? '' : 's'} and %d warning${warnings.length === 1 ? '' : 's'}.`,
+                onlyerrors.length, warnings.length);
+        }
+    }
+
+    for (const error of errors) {
+        if (error instanceof Warning) {
+            console.warn(chalk[argv.strict ? 'red' : 'yellow']('[Warning]'), error.message);
+        } else {
+            console.error(chalk.red('[Error]'), error.message);
+        }
+    }
+
+    if (errors.find(e => argv.strict || !(e instanceof Warning))) return process.exit(1);
+});
 
 function homebridgeApiVersion() {
     const match = require('homebridge/lib/api').API.toString()

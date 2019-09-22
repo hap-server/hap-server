@@ -115,7 +115,7 @@ export function builder(yargs) {
  * @param {string} [base_path]
  * @return {Array}
  */
-function parseAddress(address, base_path) {
+export function parseAddress(address, base_path?: string) {
     let match;
 
     if (typeof address === 'number' || address.match(/^\d+$/)) {
@@ -139,7 +139,7 @@ function parseAddress(address, base_path) {
  * @param {Array} address
  * @return {string}
  */
-function addressToString(address) {
+export function addressToString(address) {
     if (address[0] === 'net' && net.isIPv4(address[1])) {
         return `${address[1]}:${address[2]}`;
     } else if (address[0] === 'net' && net.isIPv6(address[1])) {
@@ -151,7 +151,7 @@ function addressToString(address) {
     throw new Error('Invalid address array');
 }
 
-function normaliseAddress(address, base_path) {
+export function normaliseAddress(address, base_path?: string) {
     return addressToString(parseAddress(address, base_path));
 }
 
@@ -162,7 +162,7 @@ function normaliseAddress(address, base_path) {
  * @param {string} [base_path]
  * @return {Promise<string[]>}
  */
-function getCertificates(certificates, base_path) {
+function getCertificates(certificates: string | string[], base_path) {
     return Promise.all([].concat(certificates || []).map(async certificate => {
         if (certificate.startsWith('-----')) return certificate;
 

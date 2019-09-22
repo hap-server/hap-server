@@ -85,6 +85,20 @@ export default class Logger {
 
         return logger;
     }
+
+    /**
+     * Wraps console.log/error to listen to output.
+     *
+     * @param {function} fn The original console.log/error function
+     * @param {function} callback A function to call on log call
+     * @return {function} The new console.log/error function
+     */
+    static wrapConsoleFn(fn, callback) {
+        return (data, ...args) => {
+            callback(data, ...args);
+            return fn(data, ...args);
+        };
+    }
 }
 
 Logger.enable_debug = false;

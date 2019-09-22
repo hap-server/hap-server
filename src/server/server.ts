@@ -296,7 +296,7 @@ export default class Server extends Events {
         const console_log = console.log;
         const console_error = console.error;
 
-        const wrapConsoleFn = (fn, type) => (data, ...args) => {
+        const wrapConsoleFn = (fn, type) => Logger.wrapConsoleFn(fn, (data, ...args) => {
             for (const server of Server.instances) {
                 for (const ws of server.wss.clients) {
                     const connection = Connection.getConnectionForWebSocket(ws);
@@ -310,9 +310,7 @@ export default class Server extends Events {
                     }
                 }
             }
-
-            fn(data, ...args);
-        };
+        });
 
         console.log = wrapConsoleFn(console_log, 'stdout');
         console.error = wrapConsoleFn(console_error, 'stderr');
