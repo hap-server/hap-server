@@ -1,7 +1,10 @@
 import Service from './service';
 
 export default class CollapsedService extends Service {
-    constructor(accessory, uuid, type, data, services) {
+    collapsed_service_type: string;
+    services: Service[];
+
+    constructor(accessory, uuid, type: string, data, services?: Service[]) {
         super(accessory, uuid, {characteristics: []}, data);
 
         this.collapsed_service_type = type;

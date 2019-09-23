@@ -14,10 +14,12 @@ import VueRouter from 'vue-router';
 
 Vue.use(VueRouter);
 
+// @ts-ignore
 import MainComponent from './components/main-component.vue';
 
 // Use './window-modals' to open modals in separate windows
 import Modals from './modals';
+// @ts-ignore
 import ModalsComponent from './components/modals.vue';
 
 const router = new VueRouter({
@@ -33,6 +35,15 @@ const router = new VueRouter({
 
 import PluginManager from './plugins';
 
+type VueRouterMode = 'history' | 'hash';
+interface NativeHook {
+    Client?: typeof Client;
+    Modals?: {new (client: Client): Modals;};
+    base_url?: string;
+    router_mode?: VueRouterMode;
+}
+
+// @ts-ignore
 const native_hook = global.__HAP_SERVER_NATIVE_HOOK__ ? global.__HAP_SERVER_NATIVE_HOOK__({
     InternalSymbols,
     PluginManager,
@@ -43,11 +54,13 @@ const native_hook = global.__HAP_SERVER_NATIVE_HOOK__ ? global.__HAP_SERVER_NATI
     router,
     Modals,
     ModalsComponent,
-}) : null;
+}) as NativeHook : null;
 
 if (native_hook && native_hook.router_mode !== 'history') {
     // Re-initialise the router using the hash mode
+    // @ts-ignore
     router.options.mode = 'hash';
+    // @ts-ignore
     router.constructor.call(router, router.options);
 }
 
@@ -87,6 +100,9 @@ const vue = new Vue({
 
 vue.$mount(document.body.firstElementChild);
 
+// @ts-ignore
 global.client = client;
+// @ts-ignore
 global.native_hook = native_hook;
+// @ts-ignore
 global.$root = vue;

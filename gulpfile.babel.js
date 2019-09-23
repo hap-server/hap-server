@@ -39,15 +39,24 @@ const webpack_config = {
     entry: {
         main: [
             path.join(__dirname, 'src/public/scss/index.scss'),
-            path.join(__dirname, 'src/public/index.js'),
+            path.join(__dirname, 'src/public/index.ts'),
         ],
         modal: [
             path.join(__dirname, 'src/public/scss/index.scss'),
-            path.join(__dirname, 'src/public/modal.js'),
+            path.join(__dirname, 'src/public/modal.ts'),
         ],
     },
     module: {
         rules: [
+            {
+                test: /\.tsx?$/,
+                loader: 'ts-loader',
+                options: {
+                    compilerOptions: Object.assign({}, typescript_config, {
+                        declaration: false,
+                    }),
+                },
+            },
             {
                 test: /\.vue$/,
                 loader: 'vue-loader',
@@ -108,6 +117,8 @@ const webpack_config = {
         }),
     ],
     resolve: {
+        // Add `.ts` and `.tsx` as a resolvable extension
+        extensions: ['.ts', '.tsx', '.js', '.json'],
         alias: {
             // Include the template compiler for plugin with accessory UIs
             'vue$': 'vue/dist/vue.esm.js', // 'vue/dist/vue.common.js' for webpack 1
@@ -136,12 +147,12 @@ export const webpack_hot_config = Object.assign({}, webpack_config, {
         main: [
             'webpack-hot-middleware/client',
             path.join(__dirname, 'src/public/scss/index.scss'),
-            path.join(__dirname, 'src/public/index.js'),
+            path.join(__dirname, 'src/public/index.ts'),
         ],
         modal: [
             'webpack-hot-middleware/client',
             path.join(__dirname, 'src/public/scss/index.scss'),
-            path.join(__dirname, 'src/public/modal.js'),
+            path.join(__dirname, 'src/public/modal.ts'),
         ],
     },
     module: Object.assign({}, webpack_config.module, {
@@ -200,7 +211,7 @@ gulp.task('build-backend', function () {
 gulp.task('build-frontend', function () {
     return pump([
         gulp.src('src/public/scss/index.scss'),
-        gulp.src('src/public/index.js'),
+        gulp.src('src/public/index.ts'),
         webpack(webpack_config),
         gulp.dest('dist/public'),
     ]);
@@ -246,7 +257,7 @@ gulp.task('watch-backend', gulp.parallel('watch-backend-no-ts', function () {
 gulp.task('watch-frontend', function () {
     return pump([
         gulp.src('src/public/scss/index.scss'),
-        gulp.src('src/public/index.js'),
+        gulp.src('src/public/index.ts'),
         webpack(Object.assign({watch: true}, webpack_config)),
         gulp.dest('dist/public'),
     ]);
@@ -315,7 +326,7 @@ gulp.task('build-backend-release', function () {
 gulp.task('build-frontend-release', function () {
     return pump([
         gulp.src('src/public/scss/index.scss'),
-        gulp.src('src/public/index.js'),
+        gulp.src('src/public/index.ts'),
         webpack(release_webpack_config),
         gulp.dest('release/public'),
     ]);

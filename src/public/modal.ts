@@ -16,6 +16,7 @@ Vue.use(VueRouter);
 
 import Modals from './modals';
 import WindowModals from './window-modals';
+// @ts-ignore
 import ModalComponent from './components/modal.vue';
 
 const router = new VueRouter({
@@ -24,6 +25,7 @@ const router = new VueRouter({
 
 import PluginManager from './plugins';
 
+// @ts-ignore
 const native_hook = global.__HAP_SERVER_NATIVE_HOOK__ ? global.__HAP_SERVER_NATIVE_HOOK__({
     InternalSymbols,
     PluginManager,
@@ -71,6 +73,9 @@ const vue = new Vue({
 
 vue.$mount(document.body.firstElementChild);
 
+// @ts-ignore
 global.client = client;
+// @ts-ignore
 global.native_hook = native_hook;
+// @ts-ignore
 global.$root = vue;

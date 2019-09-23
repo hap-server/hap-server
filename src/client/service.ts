@@ -5,6 +5,14 @@ import Accessory from './accessory';
 import Characteristic, {type_uuids as characteristic_type_uuids} from './characteristic';
 
 export default class Service extends EventEmitter {
+    readonly accessory: Accessory;
+    readonly uuid: string;
+    readonly characteristics: {[key: string]: Characteristic};
+
+    private _details;
+    private _data;
+    private _permissions;
+
     /**
      * Creates a Service.
      *
@@ -14,7 +22,7 @@ export default class Service extends EventEmitter {
      * @param {object} data Configuration data stored by the web UI (read/write)
      * @param {Array} permissions An array of characteristic UUIDs the user has permission to update
      */
-    constructor(accessory, uuid, details, data, permissions) {
+    constructor(accessory: Accessory, uuid: string, details?, data?, permissions?) {
         super();
 
         this.accessory = accessory;
@@ -92,7 +100,7 @@ export default class Service extends EventEmitter {
         return this._data;
     }
 
-    _setData(data, here) {
+    _setData(data, here?) {
         this._data = Object.freeze(data);
 
         this.emit('data-updated', here);
@@ -152,8 +160,8 @@ export default class Service extends EventEmitter {
         return this.findCharacteristic(characteristic => characteristic.type === type);
     }
 
-    getCharacteristicValue(type, use_target_value) {
-        if (use_target_value === undefined) use_target_value = true;
+    getCharacteristicValue(type, use_target_value = true) {
+        // if (use_target_value === undefined) use_target_value = true;
         const characteristic = this.getCharacteristic(type);
 
         if (characteristic) return use_target_value ? characteristic.target_value : characteristic.value;
@@ -163,7 +171,7 @@ export default class Service extends EventEmitter {
         return this.getCharacteristic(characteristic_type_uuids[name]);
     }
 
-    getCharacteristicValueByName(name, use_target_value) {
+    getCharacteristicValueByName(name, use_target_value = true) {
         return this.getCharacteristicValue(characteristic_type_uuids[name], use_target_value);
     }
 
@@ -210,6 +218,8 @@ export default class Service extends EventEmitter {
 }
 
 export class BridgeService extends Service {
+    private static services = new WeakMap<Accessory, BridgeService>();
+
     /**
      * Creates a fake Service for bridges.
      *
@@ -234,6 +244,8 @@ export class BridgeService extends Service {
 }
 
 export class UnsupportedService extends Service {
+    private static services = new WeakMap<Accessory, UnsupportedService>();
+
     /**
      * Creates a fake Service to display when an accessory has no supported services.
      *
@@ -273,7 +285,7 @@ export class UnavailableService extends Service {
         if (!service_uuid) service_uuid = uuid.substr(accessory_uuid.length + 1);
 
         if (!accessories) accessories = {};
-        const accessory = accessories[accessory_uuid] || new Accessory(connection, accessory_uuid);
+        const accessory = accessories[accessory_uuid] || new Accessory(connection, accessory_uuid, null, null, null);
 
         const service = new this(accessory, service_uuid);
 
@@ -295,9 +307,9 @@ export class UnavailableService extends Service {
     }
 }
 
-export const types = {};
-export const type_uuids = {};
-export const type_names = {};
+export const types: {[key: string]: string} = {};
+export const type_uuids: {[key: string]: string} = {};
+export const type_names: {[key: string]: string} = {};
 
 import {Service as HAPService} from 'hap-nodejs/lib/Service';
 import 'hap-nodejs/lib/gen/HomeKitTypes';
@@ -315,9 +327,9 @@ for (const key of Object.keys(type_uuids)) {
 }
 
 export const system_types = [
-    Service.AccessoryInformation,
-    Service.BatteryService,
-    Service.InputSource, // Input Source services are used by the Television service
+    type_uuids.AccessoryInformation,
+    type_uuids.BatteryService,
+    type_uuids.InputSource, // Input Source services are used by the Television service
 
     // Bridge Setup
     // https://github.com/nfarina/homebridge/blob/0d77bb93d33a7b6e158efe4b4d546636d976d5c7/lib/bridgeSetupManager.js
@@ -325,10 +337,11 @@ export const system_types = [
 ];
 
 export const collapsed_services = {
-    [Service.StatelessProgrammableSwitch]: [Service.StatelessProgrammableSwitch],
-    [Service.Television]: service => service.type === Service.Television ||
-        ([...Object.values(service.accessory.services)].find(s => s.type === Service.Television) &&
-            service.type === Service.TelevisionSpeaker),
+    [type_uuids.StatelessProgrammableSwitch]: [type_uuids.StatelessProgrammableSwitch],
+    [type_uuids.Television]: service => service.type === type_uuids.Television ||
+        ([...Object.values(service.accessory.services)].find((s: Service) => s.type === type_uuids.Television) &&
+            service.type === type_uuids.TelevisionSpeaker),
 };
 
+// @ts-ignore
 global.Service = Service;

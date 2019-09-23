@@ -1,10 +1,20 @@
 import EventEmitter from 'events';
 
 import {$set, $delete} from './client';
+import Connection from './connection';
 import CollapsedService from './collapsed-service';
 import Service, {type_uuids as service_types} from './service';
 
 export default class Accessory extends EventEmitter {
+    connection: Connection;
+    readonly uuid: string;
+    readonly services: {[key: string]: Service};
+    readonly display_services: Service[];
+
+    private _details;
+    private _data;
+    private _permissions;
+
     /**
      * Creates an Accessory.
      *
@@ -14,7 +24,7 @@ export default class Accessory extends EventEmitter {
      * @param {object} data Configuration data stored by the web UI (read/write)
      * @param {object} permissions
      */
-    constructor(connection, uuid, details, data, permissions) {
+    constructor(connection: Connection, uuid: string, details, data, permissions) {
         super();
 
         this.connection = connection;
@@ -38,7 +48,7 @@ export default class Accessory extends EventEmitter {
         return this._details;
     }
 
-    _setDetails(details, dont_update_services) {
+    _setDetails(details, dont_update_services = false) {
         if (!dont_update_services) this._updateServicesFrom(details);
 
         this._details = Object.freeze(details);
@@ -114,7 +124,7 @@ export default class Accessory extends EventEmitter {
         const removed_collapsed_service_types = {};
 
         for (const service of added_services) {
-            if (this.constructor.service_components.has(service.type)) {
+            if ((this.constructor as typeof Accessory).service_components.has(service.type)) {
                 added_display_services.push(service);
                 continue;
             }
@@ -138,7 +148,7 @@ export default class Accessory extends EventEmitter {
         }
 
         for (const service of removed_services) {
-            if (this.constructor.service_components.has(service.type)) {
+            if ((this.constructor as typeof Accessory).service_components.has(service.type)) {
                 removed_display_services.push(service);
                 continue;
             }
@@ -168,12 +178,12 @@ export default class Accessory extends EventEmitter {
             Object.entries(removed_collapsed_service_types)
         ) {
             const collapsed_service = this.display_services.find(service => service instanceof CollapsedService &&
-                service.collapsed_service_type === collapsed_service_type);
+                service.collapsed_service_type === collapsed_service_type) as CollapsedService;
 
-            if (removed_collapsed_services.length === collapsed_service.services.length) {
+            if ((removed_collapsed_services as Array<any>).length === collapsed_service.services.length) {
                 removed_display_services.push(collapsed_service);
             } else {
-                collapsed_service.removeService(...removed_collapsed_services);
+                collapsed_service.removeService(...removed_collapsed_services as Array<any>);
             }
         }
 
@@ -214,7 +224,7 @@ export default class Accessory extends EventEmitter {
         return this._data;
     }
 
-    _setData(data, here) {
+    _setData(data, here?) {
         this._data = Object.freeze(data);
 
         for (const key of Object.keys(data).filter(key => key.startsWith('Service.'))) {
@@ -271,21 +281,21 @@ export default class Accessory extends EventEmitter {
         this.emit('permissions-updated', permissions);
     }
 
-    get can_get() {
+    get can_get(): boolean {
         return this._permissions.get;
     }
 
-    get can_set() {
+    get can_set(): boolean {
         return this._permissions.set;
     }
 
-    findService(callback) {
+    findService(callback: (service: Service) => boolean) {
         for (const service of Object.values(this.services)) {
             if (callback.call(this, service)) return service;
         }
     }
 
-    findServices(callback) {
+    findServices(callback: (service: Service) => boolean) {
         const services = [];
 
         for (const service of Object.values(this.services)) {
@@ -295,27 +305,27 @@ export default class Accessory extends EventEmitter {
         return services;
     }
 
-    getService(uuid, include_display_services) {
+    getService(uuid: string, include_display_services = false) {
         return this.services[uuid] ||
             include_display_services ? this.display_services.find(s => s.uuid === uuid) : null;
     }
 
-    getServiceByName(name) {
+    getServiceByName(name: string): Service {
         return this.services[service_types[name]];
     }
 
-    get accessory_information() {
+    get accessory_information(): Service {
         return this.getService('0000003E-0000-1000-8000-0026BB765291');
     }
 
-    getCharacteristic(service_uuid, characteristic_uuid) {
+    getCharacteristic(service_uuid: string, characteristic_uuid: string) {
         if (!this.services[service_uuid]) return;
         if (!this.services[service_uuid].characteristics[characteristic_uuid]) return;
 
         return this.services[service_uuid].characteristics[characteristic_uuid];
     }
 
-    getCharacteristicValue(service_uuid, characteristic_uuid) {
+    getCharacteristicValue(service_uuid: string, characteristic_uuid: string) {
         const characteristic = this.getCharacteristic(service_uuid, characteristic_uuid);
         if (!characteristic) return;
 

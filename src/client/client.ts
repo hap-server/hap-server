@@ -2,12 +2,15 @@ import EventEmitter from 'events';
 
 import Connection, {Console} from './connection';
 import Accessory from './accessory';
+import Service from './service';
+import Characteristic from './characteristic';
 import Layout from './layout';
 import Automation from './automation';
 import Scene from './scene';
 
-export function $set(object, key, value) {
+export function $set<T>(object: object, key: string, value: T): T {
     try {
+        // @ts-ignore
         if (require.cache[require.resolveWeak('vue')]) {
             const {default: Vue} = require('vue');
 
@@ -18,7 +21,7 @@ export function $set(object, key, value) {
     return object[key] = value;
 }
 
-export function $delete(object, key) {
+export function $delete(object: object, key: string) {
     try {
         if (require.cache[require.resolve('vue')]) {
             const {default: Vue} = require('vue');
@@ -31,9 +34,42 @@ export function $delete(object, key) {
 }
 
 export default class Client extends EventEmitter {
-    constructor(url, _WebSocket) {
+    readonly url: string;
+    connection?: Connection;
+    connected: boolean;
+    connect_error?: Error;
+    WebSocket;
+    is_ws: boolean;
+
+    home_settings?: any = null;
+    accessories?: {[key: string]: Accessory} = null;
+    layouts?: {[key: string]: Layout} = null;
+    automations?: {[key: string]: Automation} = null;
+    scenes?: {[key: string]: Scene} = null;
+
+    loading_home_settings: boolean = false;
+    loading_accessories: boolean = false;
+    loading_layouts: boolean = false;
+    loading_automations: boolean = false;
+    loading_scenes: boolean = false;
+
+    private home_settings_dependencies: Set<any> = new Set();
+    private accessories_dependencies: Map<any, string[] | boolean> = new Map();
+    private layouts_dependencies: Map<any, string[] | boolean> = new Map();
+    private automations_dependencies: Map<any, string[] | boolean> = new Map();
+    private scenes_dependencies: Map<any, string[] | boolean> = new Map();
+
+    private _handleBroadcastMessage;
+    private _handleDisconnected;
+
+    private _connect?: Promise<Connection>;
+    private _disconnect?: Promise<void>;
+    old_connection?: Connection;
+
+    constructor(url?: string, _WebSocket?) {
         super();
 
+        // @ts-ignore
         global.client = this;
 
         this.url = url || Connection.getDefaultURL();
@@ -42,24 +78,6 @@ export default class Client extends EventEmitter {
         this.connect_error = null;
         this.WebSocket = _WebSocket;
         this.is_ws = !!_WebSocket;
-
-        this.home_settings = null;
-        this.accessories = null;
-        this.layouts = null;
-        this.automations = null;
-        this.scenes = null;
-
-        this.loading_home_settings = false;
-        this.loading_accessories = false;
-        this.loading_layouts = false;
-        this.loading_automations = false;
-        this.loading_scenes = false;
-
-        this.home_settings_dependencies = new Set();
-        this.accessories_dependencies = new Map();
-        this.layouts_dependencies = new Map();
-        this.automations_dependencies = new Map();
-        this.scenes_dependencies = new Map();
 
         this._handleBroadcastMessage = this.handleBroadcastMessage.bind(this);
         this._handleDisconnected = this.handleDisconnected.bind(this);
@@ -86,8 +104,8 @@ export default class Client extends EventEmitter {
                 accessory.connection = connection;
 
                 // Resubscribe to any characteristics
-                for (const service of Object.values(accessory.services)) {
-                    for (const characteristic of Object.values(service.characteristics)) {
+                for (const service of Object.values(accessory.services) as Service[]) {
+                    for (const characteristic of Object.values(service.characteristics) as Characteristic[]) {
                         if (!characteristic.subscription_dependencies.size) continue;
 
                         characteristic.subscribe();
@@ -232,9 +250,9 @@ export default class Client extends EventEmitter {
             if (!accessory_uuids.length) return;
 
             const [[accessory_details], [accessory_data], [accessory_permissions]] = await Promise.all([
-                this.connection.getAccessories(...accessory_uuid),
-                this.connection.getAccessoriesData(...accessory_uuid),
-                this.connection.getAccessoriesPermissions(...accessory_uuid),
+                this.connection.getAccessories(...accessory_uuids),
+                this.connection.getAccessoriesData(...accessory_uuids),
+                this.connection.getAccessoriesPermissions(...accessory_uuids),
             ]);
 
             const accessories = accessory_uuids.map((uuid, index) => new Accessory(this.connection, uuid,
@@ -272,7 +290,7 @@ export default class Client extends EventEmitter {
         }
 
         if (this.accessories && data.type === 'update-accessory-data') {
-            const accessory = this.accessory[data.uuid];
+            const accessory = this.accessories[data.uuid];
             if (!accessory) return;
 
             accessory._setData(data.data);
@@ -280,9 +298,11 @@ export default class Client extends EventEmitter {
 
         if (this.accessories && data.type === 'update-characteristic') {
             const accessory = this.accessories[data.accessory_uuid];
-            const service = !accessory || accessory.findService(s => s.uuid === data.service_id);
-            const characteristic = !accessory || !service || service.findCharacteristic(c => c.uuid === data.characteristic_id);
-            if (!accessory || !service || !characteristic) return;
+            if (!accessory) return;
+            const service = accessory.findService(s => s.uuid === data.service_id);
+            if (!service) return;
+            const characteristic = service.findCharacteristic(c => c.uuid === data.characteristic_id);
+            if (!characteristic) return;
 
             characteristic._setDetails(data.details);
         }
@@ -324,9 +344,9 @@ export default class Client extends EventEmitter {
             const layout = this.layouts[data.layout_uuid];
             if (!layout) return;
 
-            const [data] = await this.connection.getLayoutSection(data.layout_uuid, data.uuid);
+            const [layout_data] = await this.connection.getLayoutSection(data.layout_uuid, data.uuid);
 
-            layout._handleNewLayoutSection(data.uuid, data);
+            layout._handleNewLayoutSection(data.uuid, layout_data);
         }
 
         if (this.layouts && data.type === 'remove-layout-section') {
@@ -348,12 +368,12 @@ export default class Client extends EventEmitter {
         if (this.automations && data.type === 'add-automation') {
             if (this.automations[data.uuid]) return;
 
-            const [[data], [permissions]] = await Promise.all([
-                this.connection.getAutomations(uuid),
-                this.connection.getAutomationsPermissions(uuid),
+            const [[automation_data], [permissions]] = await Promise.all([
+                this.connection.getAutomations(data.uuid),
+                this.connection.getAutomationsPermissions(data.uuid),
             ]);
 
-            const automation = new Automation(this.connection, uuid, data, permissions);
+            const automation = new Automation(this.connection, data.uuid, automation_data, permissions);
 
             $set(this.automations, automation.uuid, automation);
             this.emit('new-automation', automation);
@@ -362,17 +382,17 @@ export default class Client extends EventEmitter {
         }
 
         if (this.automations && data.type === 'remove-automation') {
-            const automation = this.automations[uuid];
+            const automation = this.automations[data.uuid];
             if (!automation) return;
 
-            this.$delete(this.automations, automation.uuid);
-            this.$emit('removed-automation', automation);
-            this.$emit('removed-automations', [automation]);
-            this.$emit('updated-automations', [], [automation]);
+            $delete(this.automations, automation.uuid);
+            this.emit('removed-automation', automation);
+            this.emit('removed-automations', [automation]);
+            this.emit('updated-automations', [], [automation]);
         }
 
         if (this.automations && data.type === 'update-automation') {
-            const automation = this.automations[uuid];
+            const automation = this.automations[data.uuid];
             if (!automation) return;
 
             automation._setData(data);
@@ -403,10 +423,10 @@ export default class Client extends EventEmitter {
 
             const scene = new Scene(this.connection, data.uuid, scene_data, scene_permissions);
 
-            $set(this.scene, scene.uuid, scene);
-            this.emit('new-scene', layout);
-            this.emit('new-scenes', [layout]);
-            this.emit('updated-scenes', [layout], []);
+            $set(this.scenes, scene.uuid, scene);
+            this.emit('new-scene', scene);
+            this.emit('new-scenes', [scene]);
+            this.emit('updated-scenes', [scene], []);
         }
 
         if (this.scenes && data.type === 'remove-scene') {
@@ -480,7 +500,7 @@ export default class Client extends EventEmitter {
      * @param {Array} [accessory_uuids]
      * @return {Promise}
      */
-    async loadAccessories(dep, accessory_uuids) {
+    async loadAccessories(dep?, accessory_uuids?: string[]) {
         const required_accessory_uuids = this.getRequiredAccessoryUUIDs();
         const load_accessories = !this.accessories || (required_accessory_uuids && accessory_uuids &&
             accessory_uuids.find(uuid => !required_accessory_uuids.has(uuid))) ||
@@ -499,7 +519,7 @@ export default class Client extends EventEmitter {
      *
      * @param {*} [dep]
      */
-    unloadAccessories(dep) {
+    unloadAccessories(dep?) {
         if (dep) {
             this.accessories_dependencies.delete(dep);
 
@@ -524,7 +544,7 @@ export default class Client extends EventEmitter {
         return required_accessory_uuids;
     }
 
-    async refreshAccessories(dont_emit_events) {
+    async refreshAccessories(dont_emit_events = false) {
         if (this.loading_accessories) throw new Error('Already loading accessories');
         this.loading_accessories = true;
 
@@ -591,7 +611,7 @@ export default class Client extends EventEmitter {
         }
     }
 
-    loadLayouts(dep, layout_uuids) {
+    loadLayouts(dep?, layout_uuids?: string[]) {
         const required_layout_uuids = this.getRequiredLayoutUUIDs();
         const load_layouts = !this.layouts || (required_layout_uuids && layout_uuids &&
             layout_uuids.find(uuid => !required_layout_uuids.has(uuid))) || (required_layout_uuids && !layout_uuids);
@@ -604,7 +624,7 @@ export default class Client extends EventEmitter {
         if (load_layouts && this.connection) this.refreshLayouts();
     }
 
-    unloadLayouts(dep) {
+    unloadLayouts(dep?) {
         if (dep) {
             this.layouts_dependencies.delete(dep);
 
@@ -629,7 +649,7 @@ export default class Client extends EventEmitter {
         return required_layout_uuids;
     }
 
-    async refreshLayouts(dont_emit_events) {
+    async refreshLayouts(dont_emit_events = false) {
         if (this.loading_layouts) throw new Error('Already loading layouts');
         this.loading_layouts = true;
 
@@ -717,7 +737,7 @@ export default class Client extends EventEmitter {
         }
     }
 
-    loadAutomations(dep, automation_uuids) {
+    loadAutomations(dep?, automation_uuids?: string[]) {
         const required_automation_uuids = this.getRequiredAutomationUUIDs();
         const load_automations = !this.automations || (required_automation_uuids && automation_uuids &&
             automation_uuids.find(uuid => !required_automation_uuids.has(uuid))) ||
@@ -731,7 +751,7 @@ export default class Client extends EventEmitter {
         if (load_automations && this.connection) this.refreshAutomations();
     }
 
-    unloadAutomations(dep) {
+    unloadAutomations(dep?) {
         if (dep) {
             this.automations_dependencies.delete(dep);
 
@@ -756,7 +776,7 @@ export default class Client extends EventEmitter {
         return required_automation_uuids;
     }
 
-    async refreshAutomations(dont_emit_events) {
+    async refreshAutomations(dont_emit_events = false) {
         if (this.loading_automations) throw new Error('Already loading');
         this.loading_automations = true;
 
@@ -814,7 +834,7 @@ export default class Client extends EventEmitter {
         }
     }
 
-    loadScenes(dep, scene_uuids) {
+    loadScenes(dep?, scene_uuids?: string[]) {
         const required_scene_uuids = this.getRequiredSceneUUIDs();
         const load_scenes = !this.scenes || (required_scene_uuids && scene_uuids &&
             scene_uuids.find(uuid => !required_scene_uuids.has(uuid))) || (required_scene_uuids && !scene_uuids);
@@ -827,7 +847,7 @@ export default class Client extends EventEmitter {
         if (load_scenes && this.connection) this.refreshScenes();
     }
 
-    unloadScenes(dep) {
+    unloadScenes(dep?) {
         if (dep) {
             this.scenes_dependencies.delete(dep);
 
@@ -852,7 +872,7 @@ export default class Client extends EventEmitter {
         return required_scene_uuids;
     }
 
-    async refreshScenes(dont_emit_events) {
+    async refreshScenes(dont_emit_events = false) {
         if (this.loading_scenes) throw new Error('Already loading scenes');
         this.loading_scenes = true;
 
@@ -922,7 +942,7 @@ export default class Client extends EventEmitter {
      * @param {Characteristic[]} characteristics
      * @return {Promise}
      */
-    async subscribeCharacteristics(characteristics) {
+    async subscribeCharacteristics(characteristics: Characteristic[]) {
         const uuids = characteristics.map(characteristic => [
             characteristic.service.accessory.uuid, characteristic.service.uuid, characteristic.uuid,
         ]);
@@ -939,11 +959,11 @@ export default class Client extends EventEmitter {
         }
     }
 
-    subscribeCharacteristic(characteristic) {
+    subscribeCharacteristic(characteristic: Characteristic) {
         return this.subscribeCharacteristics([characteristic]);
     }
 
-    static queueSubscribeCharacteristic(characteristic) {
+    static queueSubscribeCharacteristic(characteristic: Characteristic): Promise<any> {
         return new Promise((resolve, reject) => {
             const connection = characteristic.service.accessory.connection;
             const queue = connection.subscribe_queue || (connection.subscribe_queue = []);
@@ -983,7 +1003,7 @@ export default class Client extends EventEmitter {
         });
     }
 
-    static async processCharacteristicSubscribeQueue(connection) {
+    static async processCharacteristicSubscribeQueue(connection: Connection) {
         const queue = connection.subscribe_queue || [];
         clearTimeout(connection.subscribe_queue_timeout);
 
@@ -1021,7 +1041,7 @@ export default class Client extends EventEmitter {
      * @param {Characteristic[]} characteristics
      * @return {Promise}
      */
-    async unsubscribeCharacteristics(characteristics) {
+    async unsubscribeCharacteristics(characteristics: Characteristic[]) {
         const uuids = characteristics.map(characteristic => [
             characteristic.service.accessory.uuid, characteristic.service.uuid, characteristic.uuid,
         ]);
@@ -1038,11 +1058,11 @@ export default class Client extends EventEmitter {
         }
     }
 
-    unsubscribeCharacteristic(characteristic) {
+    unsubscribeCharacteristic(characteristic: Characteristic) {
         return this.unsubscribeCharacteristics([characteristic]);
     }
 
-    static queueUnsubscribeCharacteristic(characteristic) {
+    static queueUnsubscribeCharacteristic(characteristic: Characteristic): Promise<any> {
         return new Promise((resolve, reject) => {
             const connection = characteristic.service.accessory.connection;
             const queue = connection.unsubscribe_queue || (connection.unsubscribe_queue = []);
@@ -1081,7 +1101,7 @@ export default class Client extends EventEmitter {
         });
     }
 
-    static async processCharacteristicUnsubscribeQueue(connection) {
+    static async processCharacteristicUnsubscribeQueue(connection: Connection) {
         const queue = connection.unsubscribe_queue || [];
         clearTimeout(connection.unsubscribe_queue_timeout);
 

@@ -1,5 +1,5 @@
 import querystring from 'querystring';
-import Modals from './modals';
+import Modals, {Modal} from './modals';
 
 const modal_windows = new WeakMap();
 
@@ -32,7 +32,7 @@ export class WindowModals extends Modals {
 
         const qs = Object.assign({
             type: modal.type,
-        }, this.constructor.getQueryStringForModal(modal));
+        }, (this.constructor as typeof WindowModals).getQueryStringForModal(modal));
 
         const features = {
             menubar: false,
@@ -68,7 +68,7 @@ export class WindowModals extends Modals {
         modal_windows.delete(modal);
     }
 
-    static getQueryStringForModal(modal) {
+    static getQueryStringForModal(modal: Modal): any {
         if (modal.type === 'layout-settings' || modal.type === 'delete-layout') {
             return {layout: modal.layout.uuid};
         }
@@ -96,12 +96,13 @@ export class WindowModals extends Modals {
 }
 
 export class ModalWindowModals extends Modals {
-    get stack() {
+    get stack(): Modal[] {
         throw new Error('Cannot read modal stack from child windows');
     }
 
-    set stack(stack) {}
+    set stack(stack: Modal[]) {}
 
+    // @ts-ignore
     add(modal) {
         window.opener.postMessage({
             type: 'modal',

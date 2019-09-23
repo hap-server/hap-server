@@ -1,13 +1,13 @@
+import {Component} from 'vue';
+
 class ComponentRegistry {
-    constructor() {
-        this.builtin_components = new Map();
-        this.plugin_components = new Map();
+    private readonly builtin_components: Map<string | number, Component> = new Map();
+    private readonly plugin_components: Map<any, Map<string | number, Component>> = new Map();
 
-        // Force Vue to rerender when this property is updated
-        this._vue = false;
-    }
+    // Force Vue to rerender when this property is updated
+    private _vue = false;
 
-    get(key) {
+    get(key: string): Component {
         // Force Vue to watch this property
         this._vue;
 
@@ -20,28 +20,28 @@ class ComponentRegistry {
         }
     }
 
-    has(key) {
+    has(key: string) {
         // Force Vue to watch this property
         this._vue;
 
         return this.builtin_components.has(key) || !![...this.plugin_components.values()].find(c => c.has(key));
     }
 
-    set(key, value) {
+    set(key: string | number, value: Component) {
         this.builtin_components.set(key, value);
 
         // Force Vue to rerender
         this._vue = !this._vue;
     }
 
-    push(value) {
+    push(value: Component) {
         let i = this.builtin_components.size;
         while (this.builtin_components.has(i)) i++;
 
         this.set(i, value);
     }
 
-    addPluginComponent(ui_plugin, key, value) {
+    addPluginComponent(ui_plugin, key: string, value: Component) {
         let components = this.plugin_components.get(ui_plugin);
         if (!components) this.plugin_components.set(ui_plugin, components = new Map());
 
@@ -55,12 +55,12 @@ class ComponentRegistry {
         this._vue = !this._vue;
     }
 
-    pushPluginComponent(ui_plugin, key, value) {
+    pushPluginComponent(ui_plugin, key: string, value: Component) {
         let components = this.plugin_components.get(ui_plugin);
         if (!components) this.plugin_components.set(ui_plugin, components = new Map());
 
-        let i = this.components.size;
-        while (this.components.has(i)) i++;
+        let i = components.size;
+        while (components.has(i)) i++;
 
         components.set(i, value);
 
@@ -83,14 +83,16 @@ class ComponentRegistry {
         // Force Vue to watch this property
         this._vue;
 
-        return [...this.builtin_components.keys()].concat(...[...this.plugin_components.values()].map(c => [...c.keys()]));
+        return [...this.builtin_components.keys()]
+            .concat(...[...this.plugin_components.values()].map(c => [...c.keys()]));
     }
 
     values() {
         // Force Vue to watch this property
         this._vue;
 
-        return [...this.builtin_components.values()].concat(...[...this.plugin_components.values()].map(c => [...c.values()]));
+        return [...this.builtin_components.values()]
+            .concat(...[...this.plugin_components.values()].map(c => [...c.values()]));
     }
 
     [Symbol.iterator]() {
@@ -101,10 +103,11 @@ class ComponentRegistry {
         // Force Vue to watch this property
         this._vue;
 
-        return [...this.builtin_components.entries()].concat(...[...this.plugin_components.values()].map(c => [...c.entries()]));
+        return [...this.builtin_components.entries()]
+            .concat(...[...this.plugin_components.values()].map(c => [...c.entries()]));
     }
 
-    find(filter) {
+    find(filter: (component: Component) => void) {
         for (const component of this.builtin_components.values()) {
             if (filter.call(null, component)) return component;
         }
@@ -129,6 +132,7 @@ export const AutomationTriggerComponents = new ComponentRegistry();
 export const AutomationConditionComponents = new ComponentRegistry();
 export const AutomationActionComponents = new ComponentRegistry();
 
+// @ts-ignore
 global.components = {
     ServiceTileComponents,
     ServiceDetailsComponents,

@@ -1,8 +1,7 @@
 
 export default class Modals {
-    constructor() {
-        this.stack = [];
-    }
+    protected stack: Modal[] = [];
+    component?;
 
     add(data) {
         if (data instanceof Modal) {
@@ -10,9 +9,9 @@ export default class Modals {
                 throw new Error('Invalid modal');
             }
 
-            this.stack.push(modal);
-            modal.onopen();
-            this._add(modal);
+            this.stack.push(data);
+            data.onopen();
+            this._add(data);
             return data;
         } else {
             const modal = new (Modal.types[data.type] || Modal)(this, data);
@@ -50,8 +49,11 @@ export default class Modals {
 }
 
 export class Modal {
-    constructor(modals, data) {
-        this.modals = modals;
+    static readonly types: {[key: string]: typeof Modal} = {};
+
+    [key: string]: any;
+
+    constructor(readonly modals: Modals, data) {
         Object.assign(this, data);
     }
 
@@ -66,8 +68,6 @@ export class Modal {
     onopen() {}
     onclose() {}
 }
-
-Modal.types = {};
 
 export class AuthenticateModal extends Modal {
     get title() {

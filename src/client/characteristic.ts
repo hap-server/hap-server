@@ -3,8 +3,26 @@ import Client from './client';
 
 import {Characteristic as HAPCharacteristic} from 'hap-nodejs/lib/Characteristic';
 import 'hap-nodejs/lib/gen/HomeKitTypes';
+import Service from './service';
 
 export default class Characteristic extends EventEmitter {
+    static Formats: {[key: string]: string};
+    static Units: {[key: string]: string};
+    static Perms: {[key: string]: string};
+
+    readonly service: Service;
+    readonly uuid: string;
+
+    private _details;
+    private _permissions;
+    
+    _subscribed = false;
+    subscription_dependencies = new Set<any>();
+    _getting = 0;
+    _target_value = null;
+    _setting: any[] = [];
+    error;
+
     /**
      * Creates a Characteristic.
      *
@@ -13,7 +31,7 @@ export default class Characteristic extends EventEmitter {
      * @param {object} details The HAP characteristic data (read only)
      * @param {boolean} permissions Whether the user can set this characteristic
      */
-    constructor(service, uuid, details, permissions) {
+    constructor(service: Service, uuid: string, details, permissions) {
         super();
 
         this.service = service;
@@ -117,7 +135,7 @@ export default class Characteristic extends EventEmitter {
                 this.service.accessory.uuid, this.service.uuid, this.uuid);
 
             this._setDetails(details);
-            this.error = err;
+            this.error = null;
         } catch (err) {
             this.error = err;
             throw err;
@@ -195,7 +213,7 @@ export default class Characteristic extends EventEmitter {
             !!this.service.accessory.connection.unsubscribe_queue.find(q => q[0] === this);
     }
 
-    subscribe(dep) {
+    subscribe(dep?) {
         if (this.service.characteristics[this.uuid] !== this) {
             throw new Error('This characteristic no longer exists');
         }
@@ -213,7 +231,7 @@ export default class Characteristic extends EventEmitter {
         return Client.queueSubscribeCharacteristic(this);
     }
 
-    unsubscribe(dep) {
+    unsubscribe(dep?) {
         if (dep) {
             this.subscription_dependencies.delete(dep);
 
