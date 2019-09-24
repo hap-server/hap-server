@@ -315,7 +315,7 @@ export default class Client extends EventEmitter {
                 this.connection.getLayoutsPermissions(data.uuid),
             ]);
 
-            const layout = new Layout(this.connection, data.uuid, layout_data, layout_permissions);
+            const layout = new Layout(this.connection, data.uuid, layout_data, null, layout_permissions);
 
             $set(this.layouts, layout.uuid, layout);
             this.emit('new-layout', layout);
@@ -421,7 +421,7 @@ export default class Client extends EventEmitter {
                 this.connection.getScenesPermissions(data.uuid),
             ]);
 
-            const scene = new Scene(this.connection, data.uuid, scene_data, scene_permissions);
+            const scene = new Scene(this.connection, data.uuid, scene_data, false, scene_permissions);
 
             $set(this.scenes, scene.uuid, scene);
             this.emit('new-scene', scene);

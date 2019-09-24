@@ -1,4 +1,6 @@
 import EventEmitter from 'events';
+import Characteristic from './characteristic';
+import {Component} from 'vue';
 
 const broadcast_message_methods = {
     'add-accessory': 'handleAddAccessoryMessage',
@@ -35,20 +37,22 @@ const broadcast_message_methods = {
 };
 
 export default class Connection extends EventEmitter {
-    constructor(ws, is_ws) {
+    ws: WebSocket | any;
+    private messageid = 0;
+    private callbacks = new Map<number, (() => void)[]>();
+    private authenticated_user: AuthenticatedUser = null;
+    open_consoles = new Set<Console>();
+
+    subscribed_characteristics = new Set<Characteristic>();
+    subscribe_queue?: any[] = null;
+    subscribe_queue_timeout?: NodeJS.Timeout = null;
+    unsubscribe_queue?: any[] = null;
+    unsubscribe_queue_timeout?: NodeJS.Timeout = null;
+
+    constructor(ws: WebSocket, is_ws: boolean) {
         super();
 
         this.ws = ws;
-        this.messageid = 0;
-        this.callbacks = new Map();
-        this.authenticated_user = null;
-        this.open_consoles = new Set();
-
-        this.subscribed_characteristics = new Set();
-        this.subscribe_queue = null;
-        this.subscribe_queue_timeout = null;
-        this.unsubscribe_queue = null;
-        this.unsubscribe_queue_timeout = null;
 
         // this.ws.send('something');
 
@@ -61,7 +65,7 @@ export default class Connection extends EventEmitter {
         }
     }
 
-    static connect(url, _WebSocket) {
+    static connect(url: string, _WebSocket): Promise<Connection> {
         return new Promise((resolve, reject) => {
             const ws = new (_WebSocket || WebSocket)(url || this.getDefaultURL());
 
@@ -105,7 +109,7 @@ export default class Connection extends EventEmitter {
 
             if (type === 'progress') {
                 if (!progress) {
-                    console.warning('Received progress update for a request with no progress handler');
+                    console.warn('Received progress update for a request with no progress handler');
                 } else {
                     progress.call(this, data);
                 }
@@ -144,7 +148,7 @@ export default class Connection extends EventEmitter {
         }
     }
 
-    send(data, progress) {
+    send(data, progress?: () => void): Promise<any> {
         return new Promise((resolve, reject) => {
             const messageid = this.messageid++;
 
@@ -210,6 +214,10 @@ export default class Connection extends EventEmitter {
         });
     }
 
+    getCharacteristic(accessory_uuid: string, service_id: string, characteristic_uuid) {
+        return this.getCharacteristics([accessory_uuid, service_id, characteristic_uuid]);
+    }
+
     setCharacteristics(...ids_data) {
         return this.send({
             type: 'set-characteristics',
@@ -229,7 +237,7 @@ export default class Connection extends EventEmitter {
     }
 
     subscribeCharacteristic(accessory_uuid, service_id, characteristic_id) {
-        return this.subscribeCharacteristics([accessory_uuid, service_uid, characteristic_id]);
+        return this.subscribeCharacteristics([accessory_uuid, service_id, characteristic_id]);
     }
 
     unsubscribeCharacteristics(...ids) {
@@ -240,7 +248,7 @@ export default class Connection extends EventEmitter {
     }
 
     unsubscribeCharacteristic(accessory_uuid, service_id, characteristic_id) {
-        return this.unsubscribeCharacteristics([accessory_uuid, service_uid, characteristic_id]);
+        return this.unsubscribeCharacteristics([accessory_uuid, service_id, characteristic_id]);
     }
 
     getAccessoriesData(...id) {
@@ -369,7 +377,7 @@ export default class Connection extends EventEmitter {
     }
 
     getLayoutSection(layout_uuid, section_id) {
-        return this.getLayoutSection([layout_uuid, section_id]);
+        return this.getLayoutSections([layout_uuid, section_id]);
     }
 
     setLayoutSections(...ids_data) {
@@ -491,7 +499,7 @@ export default class Connection extends EventEmitter {
         });
     }
 
-    activateScene(uuid, context) {
+    activateScene(uuid, context?) {
         return this.activateScenes([uuid, context]);
     }
 
@@ -502,7 +510,7 @@ export default class Connection extends EventEmitter {
         });
     }
 
-    deactivateScene(uuid, context) {
+    deactivateScene(uuid, context?) {
         return this.deactivateScenes([uuid, context]);
     }
 
@@ -821,7 +829,16 @@ export default class Connection extends EventEmitter {
 }
 
 export class Console extends EventEmitter {
-    constructor(connection, id) {
+    readonly connection: Connection;
+    readonly id: number;
+
+    private closing: Promise<void> = null;
+    closed = false;
+
+    _handleData;
+    _handleDisconnected;
+
+    constructor(connection: Connection, id: number) {
         super();
 
         Object.defineProperty(this, 'connection', {value: connection});
@@ -867,7 +884,10 @@ export class Console extends EventEmitter {
 }
 
 export class AuthenticationHandlerConnection {
-    constructor(connection, authentication_handler_id) {
+    readonly connection: Connection;
+    readonly authentication_handler_id: number;
+
+    constructor(connection: Connection, authentication_handler_id: number) {
         Object.defineProperty(this, 'connection', {value: connection});
         Object.defineProperty(this, 'authentication_handler_id', {value: authentication_handler_id});
     }
@@ -912,16 +932,31 @@ export class AuthenticationHandlerConnection {
 }
 
 export class AuthenticatedUser {
-    constructor(authentication_handler_id, id) {
+    authentication_handler_id: number;
+    id: string;
+
+    constructor(authentication_handler_id: number, id: string) {
         Object.defineProperty(this, 'authentication_handler_id', {value: authentication_handler_id});
         Object.defineProperty(this, 'id', {value: id});
     }
 }
 
 export class UserManagementConnection {
-    constructor(connection, user_management_handler_id) {
+    readonly connection: Connection;
+    readonly user_management_handler_id: number;
+
+    static component?: Component;
+
+    constructor(connection: Connection, user_management_handler_id: number) {
         Object.defineProperty(this, 'connection', {value: connection});
         Object.defineProperty(this, 'user_management_handler_id', {value: user_management_handler_id});
+    }
+
+    get component() {
+        return (this.constructor as typeof UserManagementConnection).component;
+    }
+    set component(component: Component) {
+        Object.defineProperty(this, 'component', {value: component, writable: true});
     }
 
     /**
@@ -940,28 +975,35 @@ export class UserManagementConnection {
         } catch (err) {
             if (typeof err !== 'object' || !err.data) throw err;
 
-            if (response.error) {
-                const error = new (global[response.constructor] || Error)(response.data.message);
-                error.code = response.data.code;
+            if (err.error) {
+                const error = new (global[err.constructor] || Error)(err.data.message);
+                error.code = err.data.code;
                 throw error;
             }
 
-            throw response.data;
+            throw err.data;
         }
     }
 }
 
 export class UserManagementUser {
-    constructor(user_management_handler, id, component) {
+    readonly user_management_handler: UserManagementConnection;
+    readonly id: string;
+    readonly component: Component;
+
+    constructor(user_management_handler: UserManagementConnection, id: string, component: Component) {
         Object.defineProperty(this, 'user_management_handler', {value: user_management_handler});
         Object.defineProperty(this, 'id', {configurable: true, writable: true, value: id});
         Object.defineProperty(this, 'component', {value: component || user_management_handler.component ||
-            user_management_handler.constructor.component});
+            (user_management_handler.constructor as typeof UserManagementConnection).component});
     }
 }
 
 export class AccessorySetupConnection {
-    constructor(connection, accessory_setup_id) {
+    readonly connection: Connection;
+    readonly accessory_setup_id: number;
+
+    constructor(connection: Connection, accessory_setup_id: number) {
         Object.defineProperty(this, 'connection', {value: connection});
         Object.defineProperty(this, 'accessory_setup_id', {value: accessory_setup_id});
     }
@@ -982,13 +1024,13 @@ export class AccessorySetupConnection {
         } catch (err) {
             if (typeof err !== 'object' || !err.data) throw err;
 
-            if (response.error) {
-                const error = new (global[response.constructor] || Error)(response.data.message);
-                error.code = response.data.code;
+            if (err.error) {
+                const error = new (global[err.constructor] || Error)(err.data.message);
+                error.code = err.data.code;
                 throw error;
             }
 
-            throw response.data;
+            throw err.data;
         }
     }
 }

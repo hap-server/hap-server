@@ -1,6 +1,19 @@
 import EventEmitter from 'events';
+import Connection from './connection';
 
 export default class Scene extends EventEmitter {
+    connection: Connection;
+    readonly uuid: string;
+    
+    active: boolean;
+    activating = false;
+    activating_progress = 0;
+    deactivating = false;
+    deactivating_progress = 0;
+
+    data;
+    _permissions;
+
     /**
      * Creates a Scene.
      *
@@ -10,7 +23,7 @@ export default class Scene extends EventEmitter {
      * @param {boolean} active
      * @param {object} permissions
      */
-    constructor(connection, uuid, data, active, permissions) {
+    constructor(connection: Connection, uuid: string, data, active, permissions) {
         super();
 
         this.connection = connection;
@@ -19,10 +32,6 @@ export default class Scene extends EventEmitter {
         this._setPermissions(permissions || {});
 
         this.active = !!active;
-        this.activating = false;
-        this.activating_progress = 0;
-        this.deactivating = false;
-        this.deactivating_progress = 0;
     }
 
     _setData(data) {
@@ -47,19 +56,19 @@ export default class Scene extends EventEmitter {
         this.emit('updated-permissions', permissions);
     }
 
-    get can_get() {
+    get can_get(): boolean {
         return this._permissions.get;
     }
 
-    get can_activate() {
+    get can_activate(): boolean {
         return this._permissions.activate;
     }
 
-    get can_set() {
+    get can_set(): boolean {
         return this._permissions.set;
     }
 
-    get can_delete() {
+    get can_delete(): boolean {
         return this._permissions.delete;
     }
 

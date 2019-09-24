@@ -1,9 +1,17 @@
 import EventEmitter from 'events';
 import isEqual from 'lodash.isequal';
+import Connection from './connection';
 
 let id = 0;
 
 export default class Automation extends EventEmitter {
+    readonly id: number;
+    connection: Connection;
+    readonly uuid: string;
+
+    _data;
+    _permissions;
+
     /**
      * Creates an Automation.
      *
@@ -12,7 +20,7 @@ export default class Automation extends EventEmitter {
      * @param {object} data
      * @param {object} permissions
      */
-    constructor(connection, uuid, data, permissions) {
+    constructor(connection: Connection, uuid: string, data?, permissions?) {
         super();
 
         this.id = id++;
@@ -23,11 +31,11 @@ export default class Automation extends EventEmitter {
         this._setData(data || {});
     }
 
-    get live() {
+    get live(): Automation {
         return this;
     }
 
-    get staged() {
+    get staged(): StagedAutomation {
         return Object.defineProperty(this, 'staged', {enumerable: true, value: new StagedAutomation(this)}).staged;
     }
 
@@ -74,27 +82,29 @@ export default class Automation extends EventEmitter {
         this.emit('permissions-updated', permissions);
     }
 
-    get can_get() {
+    get can_get(): boolean {
         return this._permissions.get;
     }
 
-    get can_set() {
+    get can_set(): boolean {
         return this._permissions.set;
     }
 
-    get can_delete() {
+    get can_delete(): boolean {
         return this._permissions.delete;
     }
 }
 
 export class StagedAutomation extends Automation {
+    readonly automation: Automation;
+    
     /**
      * Create a mutable automation.
      *
      * @param {Automation} automation
      */
     constructor(automation) {
-        if (automation instanceof StagedAutomation) return automation = automation.live;
+        if (automation instanceof StagedAutomation) return automation = automation.staged;
         super(automation.connection, automation.uuid);
 
         this.automation = automation;
@@ -133,7 +143,7 @@ export class StagedAutomation extends Automation {
         this._data = data;
     }
 
-    updateData(data) {
+    async updateData(data) {
         this._setData(data);
     }
 

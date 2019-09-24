@@ -1,8 +1,17 @@
 import EventEmitter from 'events';
 
 import {$set, $delete} from './client';
+import Connection from './connection';
 
 export default class Layout extends EventEmitter {
+    connection: Connection;
+    readonly uuid: string;
+    sections: {[key: string]: LayoutSection};
+    staged_sections_order: string[];
+
+    data;
+    _permissions;
+
     /**
      * Creates a Layout.
      *
@@ -62,15 +71,15 @@ export default class Layout extends EventEmitter {
         this.emit('updated-permissions', permissions);
     }
 
-    get can_get() {
+    get can_get(): boolean {
         return this._permissions.get;
     }
 
-    get can_set() {
+    get can_set(): boolean {
         return this._permissions.set;
     }
 
-    get can_delete() {
+    get can_delete(): boolean {
         return this._permissions.delete;
     }
 
@@ -131,6 +140,13 @@ export default class Layout extends EventEmitter {
 }
 
 export class LayoutSection extends EventEmitter {
+    readonly layout: Layout;
+    readonly uuid: string;
+    readonly unavailable_service_placeholders: {};
+
+    data;
+    staged_data?;
+    
     /**
      * Creates a LayoutSection.
      *
