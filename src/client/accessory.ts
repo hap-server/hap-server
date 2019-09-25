@@ -5,6 +5,10 @@ import Connection from './connection';
 import CollapsedService from './collapsed-service';
 import Service, {type_uuids as service_types} from './service';
 
+// Types
+import {Component} from 'vue';
+import ComponentRegistry from '../public/component-registry';
+
 export default class Accessory extends EventEmitter {
     connection: Connection;
     readonly uuid: string;
@@ -36,7 +40,7 @@ export default class Accessory extends EventEmitter {
         this._setDetails(details || {});
     }
 
-    static get service_components() {
+    static get service_components(): ComponentRegistry<Component> | Map<string | number, Component> {
         try {
             return require('../public/component-registry').ServiceTileComponents;
         } catch (err) {

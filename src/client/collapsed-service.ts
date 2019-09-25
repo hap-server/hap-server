@@ -13,7 +13,7 @@ export default class CollapsedService extends Service {
         this.services = services || [];
     }
 
-    addService(...services) {
+    addService(...services: Service[]) {
         for (const service of services) {
             this.services.push(service);
             this.emit('new-service', service);
@@ -22,7 +22,7 @@ export default class CollapsedService extends Service {
         this.emit('new-services', services);
     }
 
-    removeService(...services) {
+    removeService(...services: Service[]) {
         for (const service of services) {
             let index;
             while (index = this.services.indexOf(service)) this.services.splice(index, 1);

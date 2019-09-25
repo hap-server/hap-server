@@ -354,7 +354,7 @@ export default class Connection extends EventEmitter {
         });
     }
 
-    listLayoutSections(...id: string[]): Promise<string[]> {
+    listLayoutSections(...id: string[]): Promise<string[][]> {
         return this.send({
             type: 'list-layout-sections',
             id,

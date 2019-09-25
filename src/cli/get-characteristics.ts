@@ -25,13 +25,13 @@ export async function handler(argv) {
     const characteristic_uuids = [argv.characteristics].concat(argv._.slice(1));
 
     const characteristics = await connection.getCharacteristics(...characteristic_uuids.map((uuid, index) => {
-        const accessory_uuid = uuid.substr(0, uuid.indexOf('.'));
-        const service_uuid = uuid.substr(uuid.indexOf('.') + 1, uuid.lastIndexOf('.') - uuid.indexOf('.') - 1);
-        const characteristic_uuid = uuid.substr(uuid.lastIndexOf('.') + 1);
+        const accessory_uuid: string = uuid.substr(0, uuid.indexOf('.'));
+        const service_uuid: string = uuid.substr(uuid.indexOf('.') + 1, uuid.lastIndexOf('.') - uuid.indexOf('.') - 1);
+        const characteristic_uuid: string = uuid.substr(uuid.lastIndexOf('.') + 1);
 
         log.withPrefix(`Characteristic #${index + 1}`)
             .debug('UUID', [accessory_uuid, service_uuid, characteristic_uuid]);
-        return [accessory_uuid, service_uuid, characteristic_uuid];
+        return [accessory_uuid, service_uuid, characteristic_uuid] as any;
     }));
 
     // eslint-disable-next-line guard-for-in

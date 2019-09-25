@@ -686,6 +686,7 @@ export default class Client extends EventEmitter {
                     const flat_section_uuids = section_uuids.map((section_uuids, index) => {
                         return section_uuids.map(section_uuid =>
                             [new_layout_uuids[index], section_uuid, index]);
+                    // @ts-ignore
                     }).flat();
 
                     return this.connection.getLayoutSections(...flat_section_uuids.map(([
@@ -947,7 +948,7 @@ export default class Client extends EventEmitter {
             characteristic.service.accessory.uuid, characteristic.service.uuid, characteristic.uuid,
         ]);
 
-        await this.connection.subscribeCharacteristics(...uuids);
+        await this.connection.subscribeCharacteristics(...uuids as any);
 
         for (const characteristic of characteristics) {
             this.connection.subscribed_characteristics.add(characteristic);
@@ -1015,7 +1016,7 @@ export default class Client extends EventEmitter {
                 q[0].service.accessory.uuid, q[0].service.uuid, q[0].uuid,
             ]);
 
-            await connection.subscribeCharacteristics(...uuids);
+            await connection.subscribeCharacteristics(...uuids as any);
 
             // eslint-disable-next-line guard-for-in
             for (const index in queue) {
@@ -1046,7 +1047,7 @@ export default class Client extends EventEmitter {
             characteristic.service.accessory.uuid, characteristic.service.uuid, characteristic.uuid,
         ]);
 
-        await this.connection.unsubscribeCharacteristics(...uuids);
+        await this.connection.unsubscribeCharacteristics(...uuids as any);
 
         for (const characteristic of characteristics) {
             this.connection.subscribed_characteristics.delete(characteristic);
@@ -1111,7 +1112,7 @@ export default class Client extends EventEmitter {
         try {
             const uuids = queue.map(q => [q[0].service.accessory.uuid, q[0].service.uuid, q[0].uuid]);
 
-            await connection.unsubscribeCharacteristics(...uuids);
+            await connection.unsubscribeCharacteristics(...uuids as any);
 
             // eslint-disable-next-line guard-for-in
             for (const index in queue) {

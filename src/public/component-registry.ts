@@ -1,7 +1,7 @@
 import {UIPlugin, UserManagementHandler} from './plugins';
 import {Component} from 'vue';
 
-class ComponentRegistry<C> {
+export default class ComponentRegistry<C> {
     private readonly builtin_components: Map<string | number, C> = new Map();
     private readonly plugin_components: Map<UIPlugin, Map<string | number, C>> = new Map();
 
