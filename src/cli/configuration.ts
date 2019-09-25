@@ -251,7 +251,7 @@ export async function validate(configuration: ConfigurationFile, base_path?: str
                 errors.push(new Warning(`listen-https keys must be valid addresses (${listen} is not valid)`, err));
                 continue;
             }
-            
+
             if (!listen_addresses.includes(normalised)) {
                 errors.push(new Warning(`${listen} is not used as a listening address but has a HTTPS configuration`));
             }
@@ -469,7 +469,7 @@ export async function validate(configuration: ConfigurationFile, base_path?: str
 
             for (const key of Object.keys(bridge)) {
                 if (validbridgekeys.includes(key)) continue;
-        
+
                 errors.push(new Warning(`Unknown key bridges[${i}][${key}]`));
             }
 
@@ -550,7 +550,7 @@ export async function validate(configuration: ConfigurationFile, base_path?: str
                             errors.push(new Error(`bridges[${i}].accessories[${ai}] must have three items`));
                             continue;
                         }
-                        
+
                         if (typeof accessory_uuid[0] !== 'string') {
                             errors.push(new Error(`bridges[${i}].accessories[${ai}][0] must be a string`));
                         }

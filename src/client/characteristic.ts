@@ -15,7 +15,7 @@ export default class Characteristic extends EventEmitter {
 
     private _details;
     private _permissions;
-    
+
     _subscribed = false;
     subscription_dependencies = new Set<any>();
     _getting = 0;

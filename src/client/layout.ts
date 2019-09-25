@@ -146,7 +146,7 @@ export class LayoutSection extends EventEmitter {
 
     data;
     staged_data?;
-    
+
     /**
      * Creates a LayoutSection.
      *

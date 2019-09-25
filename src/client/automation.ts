@@ -97,7 +97,7 @@ export default class Automation extends EventEmitter {
 
 export class StagedAutomation extends Automation {
     readonly automation: Automation;
-    
+
     /**
      * Create a mutable automation.
      *

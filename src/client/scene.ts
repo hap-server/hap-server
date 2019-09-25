@@ -4,7 +4,7 @@ import Connection from './connection';
 export default class Scene extends EventEmitter {
     connection: Connection;
     readonly uuid: string;
-    
+
     active: boolean;
     activating = false;
     activating_progress = 0;
