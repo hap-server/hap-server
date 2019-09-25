@@ -115,7 +115,7 @@ export class StagedAutomation extends Automation {
         return this.automation;
     }
 
-    get staged() {
+    get staged(): StagedAutomation {
         return this;
     }
 

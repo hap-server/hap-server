@@ -1,10 +1,12 @@
+import Accessory from './accessory';
 import Service from './service';
+import Characteristic from './characteristic';
 
 export default class CollapsedService extends Service {
     collapsed_service_type: string;
     services: Service[];
 
-    constructor(accessory, uuid, type: string, data, services?: Service[]) {
+    constructor(accessory: Accessory, uuid: string, type: string, data, services?: Service[]) {
         super(accessory, uuid, {characteristics: []}, data);
 
         this.collapsed_service_type = type;
@@ -41,7 +43,7 @@ export default class CollapsedService extends Service {
         return this.configured_name || this.default_name;
     }
 
-    get configured_name() {
+    get configured_name(): string {
         return this.data.name;
     }
 
@@ -53,7 +55,7 @@ export default class CollapsedService extends Service {
         return 'CollapsedService.' + this.collapsed_service_type;
     }
 
-    findCharacteristic(callback) {
+    findCharacteristic(callback: (characteristic: Characteristic) => boolean) {
         for (const service of this.services) {
             const characteristic = service.findCharacteristic(callback);
 
@@ -61,8 +63,8 @@ export default class CollapsedService extends Service {
         }
     }
 
-    findCharacteristics(callback) {
-        const characteristics = [];
+    findCharacteristics(callback: (characteristic: Characteristic) => boolean) {
+        const characteristics: Characteristic[] = [];
 
         for (const service of this.services) {
             characteristics.push(...service.findCharacteristics(callback));

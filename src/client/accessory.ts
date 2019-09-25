@@ -118,7 +118,7 @@ export default class Accessory extends EventEmitter {
         }
     }
 
-    _updateDisplayServices(added_services, removed_services) {
+    _updateDisplayServices(added_services: Service[], removed_services: Service[]) {
         const added_display_services = [];
         const removed_display_services = [];
         const removed_collapsed_service_types = {};
@@ -258,11 +258,11 @@ export default class Accessory extends EventEmitter {
         return this.configured_name || this.default_name;
     }
 
-    get configured_name() {
+    get configured_name(): string {
         return this.data.name;
     }
 
-    get default_name() {
+    get default_name(): string {
         return this.getCharacteristicValue(
             '0000003E-0000-1000-8000-0026BB765291', '00000023-0000-1000-8000-0026BB765291');
     }
@@ -296,7 +296,7 @@ export default class Accessory extends EventEmitter {
     }
 
     findServices(callback: (service: Service) => boolean) {
-        const services = [];
+        const services: Service[] = [];
 
         for (const service of Object.values(this.services)) {
             if (callback.call(this, service)) services.push(service);
@@ -310,11 +310,11 @@ export default class Accessory extends EventEmitter {
             include_display_services ? this.display_services.find(s => s.uuid === uuid) : null;
     }
 
-    getServiceByName(name: string): Service {
+    getServiceByName(name: string) {
         return this.services[service_types[name]];
     }
 
-    get accessory_information(): Service {
+    get accessory_information() {
         return this.getService('0000003E-0000-1000-8000-0026BB765291');
     }
 

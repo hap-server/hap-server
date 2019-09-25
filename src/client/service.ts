@@ -1,6 +1,7 @@
 import EventEmitter from 'events';
 
 import {$set, $delete} from './client';
+import Connection from './connection';
 import Accessory from './accessory';
 import Characteristic, {type_uuids as characteristic_type_uuids} from './characteristic';
 
@@ -118,15 +119,15 @@ export default class Service extends EventEmitter {
         return this.configured_name || this.default_name;
     }
 
-    get configured_name() {
+    get configured_name(): string {
         return this.data.name;
     }
 
-    get default_name() {
+    get default_name(): string {
         return this.getCharacteristicValueByName('Name');
     }
 
-    get type() {
+    get type(): string {
         return this.details.type;
     }
 
@@ -140,14 +141,14 @@ export default class Service extends EventEmitter {
         this.emit('permissions-updated', permissions);
     }
 
-    findCharacteristic(callback) {
+    findCharacteristic(callback: (characteristic: Characteristic) => boolean) {
         for (const characteristic of Object.values(this.characteristics)) {
             if (callback.call(this, characteristic)) return characteristic;
         }
     }
 
-    findCharacteristics(callback) {
-        const characteristics = [];
+    findCharacteristics(callback: (characteristic: Characteristic) => boolean) {
+        const characteristics: Characteristic[] = [];
 
         for (const characteristic of Object.values(this.characteristics)) {
             if (callback.call(this, characteristic)) characteristics.push(characteristic);
@@ -156,32 +157,36 @@ export default class Service extends EventEmitter {
         return characteristics;
     }
 
-    getCharacteristic(type) {
+    getCharacteristic(type: string) {
         return this.findCharacteristic(characteristic => characteristic.type === type);
     }
 
-    getCharacteristicValue(type, use_target_value = true) {
+    /**
+     * @param {string} type The type UUID of the characteristic
+     * @param {boolean} [use_target_value] If true (default) and the client is waiting for the server to set the characteristic, use that value instead
+     */
+    getCharacteristicValue(type: string, use_target_value = true) {
         // if (use_target_value === undefined) use_target_value = true;
         const characteristic = this.getCharacteristic(type);
 
         if (characteristic) return use_target_value ? characteristic.target_value : characteristic.value;
     }
 
-    getCharacteristicByName(name) {
+    getCharacteristicByName(name: string) {
         return this.getCharacteristic(characteristic_type_uuids[name]);
     }
 
-    getCharacteristicValueByName(name, use_target_value = true) {
+    getCharacteristicValueByName(name: string, use_target_value = true) {
         return this.getCharacteristicValue(characteristic_type_uuids[name], use_target_value);
     }
 
-    setCharacteristic(type, value) {
+    setCharacteristic(type: string, value) {
         const characteristic = this.getCharacteristic(type);
 
         return characteristic.setValue(value);
     }
 
-    setCharacteristicByName(name, value) {
+    setCharacteristicByName(name: string, value) {
         return this.setCharacteristic(characteristic_type_uuids[name], value);
     }
 
@@ -225,11 +230,11 @@ export class BridgeService extends Service {
      *
      * @param {Accessory} accessory
      */
-    constructor(accessory) {
+    constructor(accessory: Accessory) {
         super(accessory, '--bridge');
     }
 
-    static for(accessory) {
+    static for(accessory: Accessory) {
         const services = this.services || (this.services = new WeakMap());
         if (services.has(accessory)) return services.get(accessory);
 
@@ -251,11 +256,11 @@ export class UnsupportedService extends Service {
      *
      * @param {Accessory} accessory
      */
-    constructor(accessory) {
+    constructor(accessory: Accessory) {
         super(accessory, '');
     }
 
-    static for(accessory) {
+    static for(accessory: Accessory) {
         const services = this.services || (this.services = new WeakMap());
         if (services.has(accessory)) return services.get(accessory);
 
@@ -276,11 +281,11 @@ export class UnavailableService extends Service {
      * @param {Accessory} accessory
      * @param {string} uuid
      */
-    constructor(accessory, uuid) {
+    constructor(accessory: Accessory, uuid: string) {
         super(accessory, uuid, null, accessory.data['Service.' + uuid]);
     }
 
-    static for(connection, accessories, uuid, service_uuid) {
+    static for(connection: Connection, accessories: {[key: string]: Accessory}, uuid: string, service_uuid: string) {
         const accessory_uuid = uuid.split('.', 1)[0];
         if (!service_uuid) service_uuid = uuid.substr(accessory_uuid.length + 1);
 

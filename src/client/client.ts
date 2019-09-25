@@ -530,10 +530,10 @@ export default class Client extends EventEmitter {
         this.accessories = null;
     }
 
-    getRequiredAccessoryUUIDs() {
+    getRequiredAccessoryUUIDs(): Set<string> {
         if (!this.accessories_dependencies.size) return new Set();
 
-        const required_accessory_uuids = new Set();
+        const required_accessory_uuids = new Set<string>();
 
         for (const accessory_uuids of this.accessories_dependencies.values()) {
             if (!(accessory_uuids instanceof Array)) return;
@@ -635,10 +635,10 @@ export default class Client extends EventEmitter {
         this.layouts = null;
     }
 
-    getRequiredLayoutUUIDs() {
+    getRequiredLayoutUUIDs(): Set<string> {
         if (!this.layouts_dependencies.size) return new Set();
 
-        const required_layout_uuids = new Set();
+        const required_layout_uuids = new Set<string>();
 
         for (const layout_uuids of this.layouts_dependencies.values()) {
             if (!(layout_uuids instanceof Array)) return;
@@ -762,10 +762,10 @@ export default class Client extends EventEmitter {
         this.automations = null;
     }
 
-    getRequiredAutomationUUIDs() {
+    getRequiredAutomationUUIDs(): Set<string> {
         if (!this.automations_dependencies.size) return new Set();
 
-        const required_automation_uuids = new Set();
+        const required_automation_uuids = new Set<string>();
 
         for (const automation_uuids of this.automations_dependencies.values()) {
             if (!(automation_uuids instanceof Array)) return;
@@ -858,10 +858,10 @@ export default class Client extends EventEmitter {
         this.scenes = null;
     }
 
-    getRequiredSceneUUIDs() {
+    getRequiredSceneUUIDs(): Set<string> {
         if (!this.scenes_dependencies.size) return new Set();
 
-        const required_scene_uuids = new Set();
+        const required_scene_uuids = new Set<string>();
 
         for (const scene_uuids of this.scenes_dependencies.values()) {
             if (!(scene_uuids instanceof Array)) return;

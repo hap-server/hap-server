@@ -62,23 +62,23 @@ export default class Characteristic extends EventEmitter {
         this.emit('updated');
     }
 
-    get description() {
+    get description(): string {
         return this.details.description;
     }
 
-    get type() {
+    get type(): string {
         return this.details.type;
     }
 
-    get type_name() {
+    get type_name(): string {
         return type_names[this.type];
     }
 
-    get perms() {
+    get perms(): string[] {
         return this.details.perms;
     }
 
-    get format() {
+    get format(): string {
         return this.details.format;
     }
 
@@ -95,31 +95,31 @@ export default class Characteristic extends EventEmitter {
         return this.value !== this.target_value;
     }
 
-    get valid_values() {
+    get valid_values(): string[] {
         return this.details['valid-values'];
     }
 
-    get valid_values_range() {
+    get valid_values_range(): string[] {
         return this.details['valid-values-range'];
     }
 
-    get unit() {
+    get unit(): string {
         return this.details.unit;
     }
 
-    get max_value() {
+    get max_value(): number {
         return this.details.maxValue;
     }
 
-    get min_value() {
+    get min_value(): number {
         return this.details.minValue;
     }
 
-    get min_step() {
+    get min_step(): number {
         return this.details.minStep;
     }
 
-    get max_length() {
+    get max_length(): number {
         return this.details.maxLen;
     }
 
@@ -154,7 +154,7 @@ export default class Characteristic extends EventEmitter {
         // }
 
         for (const queued of this._setting) queued[1].call();
-        const setting = (this._setting[this._setting.length - 1] || [Promise.resolve()])[0];
+        const setting: Promise<void> = (this._setting[this._setting.length - 1] || [Promise.resolve()])[0];
 
         let canceled = false;
 
@@ -214,7 +214,9 @@ export default class Characteristic extends EventEmitter {
     }
 
     subscribe(dep?) {
-        if (this.service.characteristics[this.uuid] !== this) {
+        if (this.service.characteristics[this.uuid] !== this ||
+            this.service.accessory.services[this.service.uuid] !== this.service
+        ) {
             throw new Error('This characteristic no longer exists');
         }
 

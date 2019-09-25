@@ -1,13 +1,14 @@
+import {UIPlugin, UserManagementHandler} from './plugins';
 import {Component} from 'vue';
 
-class ComponentRegistry {
-    private readonly builtin_components: Map<string | number, Component> = new Map();
-    private readonly plugin_components: Map<any, Map<string | number, Component>> = new Map();
+class ComponentRegistry<C> {
+    private readonly builtin_components: Map<string | number, C> = new Map();
+    private readonly plugin_components: Map<UIPlugin, Map<string | number, C>> = new Map();
 
     // Force Vue to rerender when this property is updated
     private _vue = false;
 
-    get(key: string): Component {
+    get(key: string | number): C {
         // Force Vue to watch this property
         this._vue;
 
@@ -20,28 +21,28 @@ class ComponentRegistry {
         }
     }
 
-    has(key: string) {
+    has(key: string | number) {
         // Force Vue to watch this property
         this._vue;
 
         return this.builtin_components.has(key) || !![...this.plugin_components.values()].find(c => c.has(key));
     }
 
-    set(key: string | number, value: Component) {
+    set(key: string | number, value: C) {
         this.builtin_components.set(key, value);
 
         // Force Vue to rerender
         this._vue = !this._vue;
     }
 
-    push(value: Component) {
+    push(value: C) {
         let i = this.builtin_components.size;
         while (this.builtin_components.has(i)) i++;
 
         this.set(i, value);
     }
 
-    addPluginComponent(ui_plugin, key: string, value: Component) {
+    addPluginComponent(ui_plugin: UIPlugin, key: string | number, value: C) {
         let components = this.plugin_components.get(ui_plugin);
         if (!components) this.plugin_components.set(ui_plugin, components = new Map());
 
@@ -55,7 +56,7 @@ class ComponentRegistry {
         this._vue = !this._vue;
     }
 
-    pushPluginComponent(ui_plugin, key: string, value: Component) {
+    pushPluginComponent(ui_plugin: UIPlugin, value: C) {
         let components = this.plugin_components.get(ui_plugin);
         if (!components) this.plugin_components.set(ui_plugin, components = new Map());
 
@@ -68,7 +69,7 @@ class ComponentRegistry {
         this._vue = !this._vue;
     }
 
-    removePluginComponents(ui_plugin) {
+    removePluginComponents(ui_plugin: UIPlugin) {
         this.plugin_components.delete(ui_plugin);
 
         // Force Vue to rerender
@@ -107,7 +108,7 @@ class ComponentRegistry {
             .concat(...[...this.plugin_components.values()].map(c => [...c.entries()]));
     }
 
-    find(filter: (component: Component) => void) {
+    find(filter: (component: C) => void) {
         for (const component of this.builtin_components.values()) {
             if (filter.call(null, component)) return component;
         }
@@ -120,17 +121,45 @@ class ComponentRegistry {
     }
 }
 
-export const ServiceTileComponents = new ComponentRegistry();
-export const ServiceDetailsComponents = new ComponentRegistry();
-export const ServiceSettingsComponents = new ComponentRegistry();
-export const LayoutSectionComponents = new ComponentRegistry();
-export const AccessoryDiscoveryComponents = new ComponentRegistry();
-export const AccessorySetupComponents = new ComponentRegistry();
-export const AuthenticationHandlerComponents = new ComponentRegistry();
-export const UserManagementHandlers = new ComponentRegistry();
-export const AutomationTriggerComponents = new ComponentRegistry();
-export const AutomationConditionComponents = new ComponentRegistry();
-export const AutomationActionComponents = new ComponentRegistry();
+export const ServiceTileComponents = new ComponentRegistry<Component>();
+export const ServiceDetailsComponents = new ComponentRegistry<Component>();
+export const ServiceSettingsComponents = new ComponentRegistry<Component>();
+export const LayoutSectionComponents = new ComponentRegistry<{
+    component: Component,
+    name: string,
+}>();
+export const AccessoryDiscoveryComponents = new ComponentRegistry<{
+    component: Component,
+    setup_handler: number,
+}>();
+export const AccessorySetupComponents = new ComponentRegistry<{
+    component: Component,
+    name: string,
+    manual: boolean,
+}>();
+export const AuthenticationHandlerComponents = new ComponentRegistry<{
+    component: Component,
+    name: string,
+}>();
+export const UserManagementHandlers = new ComponentRegistry<typeof UserManagementHandler>();
+export const AutomationTriggerComponents = new ComponentRegistry<{
+    component: Component,
+    plugin: string,
+    type: string,
+    name: string,
+}>();
+export const AutomationConditionComponents = new ComponentRegistry<{
+    component: Component,
+    plugin: string,
+    type: string,
+    name: string,
+}>();
+export const AutomationActionComponents = new ComponentRegistry<{
+    component: Component,
+    plugin: string,
+    type: string,
+    name: string,
+}>();
 
 // @ts-ignore
 global.components = {

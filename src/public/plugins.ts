@@ -6,6 +6,7 @@ import axios from 'axios';
 import * as vue_module from 'vue';
 import * as axios_module from 'axios';
 
+import Accessory from '../client/accessory';
 import Service, {
     type_names as service_type_names,
     system_types as system_service_types,
@@ -13,17 +14,23 @@ import Service, {
 } from '../client/service';
 import Characteristic from '../client/characteristic';
 
-import {
+import Connection, {
     AuthenticationHandlerConnection, AuthenticatedUser,
     UserManagementConnection, UserManagementUser,
     AccessorySetupConnection,
 } from '../client/connection';
 
+import Vue, {Component} from 'vue';
+
+// @ts-ignore
 import * as sortable_component_module from './components/sortable.vue';
+// @ts-ignore
 import * as panel_tabs_component_module from './components/panel-tabs.vue';
+// @ts-ignore
 import * as dropdown_component_module from './components/dropdown.vue';
 import * as vue_mixins from './mixins';
 
+// @ts-ignore
 import {instances as main_component_instances} from './components/main-component.vue';
 import {
     ServiceTileComponents,
@@ -38,15 +45,24 @@ import {
     AutomationConditionComponents,
     AutomationActionComponents,
 } from './component-registry';
+// @ts-ignore
 import * as service_component_module from './components/services/service.vue';
+// @ts-ignore
 import * as accessory_details_component_module from './components/accessory-details/accessory-details.vue';
+// @ts-ignore
 import icon_component_modules from './components/icons';
+// @ts-ignore
 import * as layout_section_component_module from './components/layout-section.vue';
+// @ts-ignore
 import * as accessory_discovery_component_module from './components/accessory-discovery/accessory-discovery.vue';
 
+// @ts-ignore
 import * as vue_color_chrome_module from 'vue-color/src/components/Chrome.vue';
+// @ts-ignore
 import * as vue_color_swatches_module from 'vue-color/src/components/Swatches.vue';
+// @ts-ignore
 import * as vue_color_sketch_module from 'vue-color/src/components/Sketch.vue';
+// @ts-ignore
 import {DiscoveredAccessory} from './components/add-accessory.vue';
 
 let automation_trigger_component_module;
@@ -58,19 +74,48 @@ let vue_codemirror_module;
 
 let instance;
 
+export interface UIPlugin {
+    id: number;
+    /** The plugin that registered the UI plugin */
+    plugin: string;
+    scripts: string[];
+    plugin_accessory_discovery_handlers: {[key: string]: number}; // Maps names to IDs
+    plugin_accessory_discovery_handler_setup_handlers: {[key: string]: number};
+    plugin_accessory_setup_handlers: {[key: string]: number};
+    plugin_authentication_handlers: {[key: string]: number};
+    plugin_user_management_handlers: {[key: string]: number};
+}
+
+interface Module {
+    readonly url: string;
+    readonly relative_url: string;
+    exports: any;
+    readonly ui_plugin: UIPlugin;
+    readonly parent?: Module;
+    require: {
+        (request: string): any;
+        cache: RequireCache;
+        import(request: string): Promise<any>;
+    };
+    import(request: string): Promise<any>;
+
+    // Deprecated
+    accessory_ui;
+}
+interface RequireCache {
+    [key: string]: Module;
+}
+
 export class PluginManager {
-    constructor() {
-        // this.accessory_uis = new Set();
-        this.require_caches = new WeakMap();
-        this.plugin_apis = new Map();
-        this.base_url = '';
-    }
+    private readonly require_caches = new WeakMap<UIPlugin, {[key: string]: Module}>();
+    private readonly plugin_apis = new Map();
+    base_url = '';
 
     static get instance() {
         return instance || (instance = new PluginManager());
     }
 
-    async loadWebInterfacePlugin(ui_plugin) {
+    async loadWebInterfacePlugin(ui_plugin: UIPlugin) {
         for (const script of ui_plugin.scripts) {
             try {
                 await this.loadWebInterfacePluginScript(ui_plugin, script);
@@ -84,7 +129,7 @@ export class PluginManager {
         return this.loadWebInterfacePlugin(ui_plugin);
     }
 
-    async loadWebInterfacePluginScript(ui_plugin, script) {
+    async loadWebInterfacePluginScript(ui_plugin: UIPlugin, script: string) {
         if (!script.startsWith('/')) script = '/' + script;
 
         return this.import(ui_plugin, undefined, this.getModuleCache(ui_plugin), undefined, script);
@@ -100,7 +145,7 @@ export class PluginManager {
      * @param {string} request The name of the module to return the exports of
      * @return {*}
      */
-    require(ui_plugin, script, cache, module, request) {
+    require(ui_plugin: UIPlugin, script: string, cache: RequireCache, module: Module, request: string) {
         if (request === '.' || request === '..' || request.startsWith('./') || request.startsWith('../')) {
             request = path.resolve(path.dirname(script), request);
         }
@@ -181,7 +226,7 @@ export class PluginManager {
      * @param {string} request The name of the module to return the exports of
      * @return {Promise<*>}
      */
-    async import(ui_plugin, script, cache, parent, request) {
+    async import(ui_plugin: UIPlugin, script: string, cache: RequireCache, parent: Module, request: string) {
         if (script) request = path.resolve(path.dirname(script), request);
 
         if (request.match(/^@hap-server\/accessory-ui-api(\/.*)?$/)) {
@@ -194,12 +239,15 @@ export class PluginManager {
         }
 
         if (request === '@hap-server/ui-api/automation-trigger') {
+            // @ts-ignore
             return import(/* webpackChunkName: 'automations' */ './automations/trigger.vue')
                 .then(m => automation_trigger_component_module = m);
         } else if (request === '@hap-server/ui-api/automation-condition') {
+            // @ts-ignore
             return import(/* webpackChunkName: 'automations' */ './automations/condition.vue')
                 .then(m => automation_condition_component_module = m);
         } else if (request === '@hap-server/ui-api/automation-action') {
+            // @ts-ignore
             return import(/* webpackChunkName: 'automations' */ './automations/action.vue')
                 .then(m => automation_action_component_module = m);
         } else if (request === 'vuedraggable') {
@@ -219,9 +267,15 @@ export class PluginManager {
             '\n})',
         ];
 
-        const module_function = eval(wrapper[0] + js + wrapper[1]);
+        const module_function: (
+            exports: any,
+            require: (request: string) => any,
+            module: Module,
+            __filename: string,
+            __dirname: string
+        ) => any = eval(wrapper[0] + js + wrapper[1]);
 
-        const module = {
+        const module: Module = {
             url: request_url,
             relative_url,
             exports: {},
@@ -254,7 +308,7 @@ export class PluginManager {
      * @param {AccessoryUI} ui_plugin
      * @return {object}
      */
-    getModuleCache(ui_plugin) {
+    getModuleCache(ui_plugin: UIPlugin) {
         if (this.require_caches.has(ui_plugin)) return this.require_caches.get(ui_plugin);
 
         const cache = {};
@@ -270,7 +324,7 @@ export class PluginManager {
      * @param {AccessoryUI} ui_plugin
      * @return {object}
      */
-    getPluginAPI(ui_plugin) {
+    getPluginAPI(ui_plugin: UIPlugin) {
         if (this.plugin_apis.has(ui_plugin)) return this.plugin_apis.get(ui_plugin);
 
         const plugin_api = new PluginAPI(this, ui_plugin);
@@ -283,8 +337,8 @@ export class PluginManager {
             AuthenticatedUser,
 
             UserManagementHandler: class extends UserManagementHandler {
-                constructor(...args) {
-                    super(ui_plugin, ...args);
+                constructor(/* id, */ connection) {
+                    super(ui_plugin /* , id */, connection);
                 }
             },
             UserManagementConnection,
@@ -307,7 +361,10 @@ export class PluginManager {
 export default PluginManager.instance;
 
 export class PluginAPI {
-    constructor(plugin_manager, ui_plugin) {
+    readonly plugin_manager: PluginManager;
+    readonly ui_plugin: UIPlugin;
+
+    constructor(plugin_manager: PluginManager, ui_plugin: UIPlugin) {
         Object.defineProperty(this, 'plugin_manager', {value: plugin_manager});
         Object.defineProperty(this, 'ui_plugin', {value: ui_plugin});
     }
@@ -326,7 +383,7 @@ export class PluginAPI {
      * use this directly.
      */
     refreshDisplayServices() {
-        for (const component of main_component_instances) {
+        for (const component of main_component_instances as (Vue & {accessories: {[key: string]: Accessory}})[]) {
             for (const accessory of Object.values(component.accessories)) {
                 accessory.refreshDisplayServices();
             }
@@ -339,12 +396,13 @@ export class PluginAPI {
      * @param {string} type The service type UUID
      * @param {VueComponent} component
      */
-    registerServiceTileComponent(type, component) {
+    registerServiceTileComponent(type: string, component: Component) {
         if (ServiceTileComponents.has(type)) {
             throw new Error('There is already a service component with the type "' + type + '"');
         }
 
         if (!component.name) {
+            // @ts-ignore
             component.name = service_type_names[type] || 'service-tile-' + type;
         }
 
@@ -363,12 +421,13 @@ export class PluginAPI {
      * @param {string} type The service type UUID
      * @param {VueComponent} component
      */
-    registerServiceDetailsComponent(type, component) {
+    registerServiceDetailsComponent(type: string, component: Component) {
         if (ServiceDetailsComponents.has(type)) {
             throw new Error('There is already a service details component with the type "' + type + '"');
         }
 
         if (!component.name) {
+            // @ts-ignore
             component.name = service_type_names[type] || 'service-details-' + type;
         }
 
@@ -397,7 +456,7 @@ export class PluginAPI {
      * @param {string} type The service type UUID to use for the display service
      * @param {string[]} collapsed_service_types An array of service type UUIDs to collapse
      */
-    registerCollapsedService(type, collapsed_service_types) {
+    registerCollapsedService(type: string, collapsed_service_types: string[]) {
         if (collapsed_services[type]) {
             throw new Error('There is already a collapsed service with the UUID "' + type + '"');
         }
@@ -407,8 +466,10 @@ export class PluginAPI {
         }
 
         for (const collapsed_service_type of collapsed_service_types) {
-            for (const registered_collapsed_service of collapsed_services) {
-                if (registered_collapsed_service.includes(collapsed_service_type)) {
+            for (const registered_collapsed_service of Object.values(collapsed_services)) {
+                if (registered_collapsed_service instanceof Array &&
+                    registered_collapsed_service.includes(collapsed_service_type)
+                ) {
                     throw new Error('The service type "' + collapsed_service_type + '" is already used in another' +
                         ' collapsed service');
                 }
@@ -426,7 +487,7 @@ export class PluginAPI {
      * @param {string} localid
      * @param {VueComponent} component
      */
-    registerAccessoryDiscoveryComponent(localid, component) {
+    registerAccessoryDiscoveryComponent(localid: string, component: Component) {
         const id = this.ui_plugin.plugin_accessory_discovery_handlers[localid];
         const setup_handler = this.ui_plugin.plugin_accessory_discovery_handler_setup_handlers[localid];
 
@@ -442,9 +503,8 @@ export class PluginAPI {
                 '" (global ID of "' + id + '")');
         }
 
-        if (!name) name = localid;
-
         if (!component.name) {
+            // @ts-ignore
             component.name = 'accessory-discovery-' + localid;
         }
 
@@ -460,7 +520,9 @@ export class PluginAPI {
      * @param {string} [options.name]
      * @param {boolean} [options.manual]
      */
-    registerAccessorySetupComponent(localid, component, options) {
+    registerAccessorySetupComponent(localid: string, component: Component, options?: {
+        name?: string, manual?: boolean,
+    }) {
         const id = this.ui_plugin.plugin_accessory_setup_handlers[localid];
         const name = options && options.name || localid;
         const manual = options && options.manual || false;
@@ -475,6 +537,7 @@ export class PluginAPI {
         }
 
         if (!component.name) {
+            // @ts-ignore
             component.name = 'accessory-setup-' + localid;
         }
 
@@ -487,13 +550,14 @@ export class PluginAPI {
      * @param {string} type The service type UUID
      * @param {VueComponent} component
      */
-    registerServiceSettingsComponent(type, component) {
+    registerServiceSettingsComponent(type: string, component: Component) {
         if (ServiceSettingsComponents.has(type)) {
-            throw new Error('There is already an accessory settings component with the type "' + type + '"');
+            throw new Error('There is already a service settings component with the type "' + type + '"');
         }
 
         if (!component.name) {
-            component.name = service_type_names[type] || 'accessory-settings-' + type;
+            // @ts-ignore
+            component.name = service_type_names[type] || 'service-settings-' + type;
         }
 
         ServiceSettingsComponents.addPluginComponent(this.ui_plugin, type, component);
@@ -510,7 +574,7 @@ export class PluginAPI {
      * @param {VueComponent} component
      * @param {string} name A display name for the authentication handler (used when multiple authentication handlers are available)
      */
-    registerAuthenticationHandlerComponent(localid, component, name) {
+    registerAuthenticationHandlerComponent(localid: string, component: Component, name?: string) {
         const id = this.ui_plugin.plugin_authentication_handlers[localid];
 
         if (typeof id === 'undefined') {
@@ -525,6 +589,7 @@ export class PluginAPI {
         if (!name) name = localid;
 
         if (!component.name) {
+            // @ts-ignore
             component.name = 'authentication-handler-' + localid;
         }
 
@@ -538,7 +603,7 @@ export class PluginAPI {
      * @param {function} handler A class that extends UserManagementHandler
      * @param {string} [name]
      */
-    registerUserManagementHandler(localid, handler, name) {
+    registerUserManagementHandler<H extends typeof UserManagementHandler>(localid: string, handler: H, name) {
         const id = this.ui_plugin.plugin_user_management_handlers[localid];
 
         if (typeof id === 'undefined') {
@@ -569,16 +634,17 @@ export class PluginAPI {
      * @param {VueComponent} component
      * @param {string} name A display name for the authentication handler
      */
-    registerLayoutSectionComponent(type, component, name) {
+    registerLayoutSectionComponent(type: string, component: Component, name: string) {
         if (LayoutSectionComponents.has(type)) {
             throw new Error('There is already a layout section component with the ID "' + type + '"');
         }
 
         if (!component.name) {
+            // @ts-ignore
             component.name = 'layout-section-' + type;
         }
 
-        LayoutSectionComponents.set(this.ui_plugin, type, {component, name});
+        LayoutSectionComponents.addPluginComponent(this.ui_plugin, type, {component, name});
     }
 
     /**
@@ -589,8 +655,8 @@ export class PluginAPI {
      * @param {string} name A display name for the automation trigger
      * @param {string} [plugin] The name of the plugin that registered the automation trigger
      */
-    registerAutomationTriggerComponent(type, component, name, plugin) {
-        if (!plugin) plugin = this.plugin;
+    registerAutomationTriggerComponent(type: string, component: Component, name: string, plugin?: string) {
+        if (!plugin) plugin = this.ui_plugin.plugin;
         if (!plugin) throw new Error('Unknown plugin');
 
         if (AutomationTriggerComponents.find(c => c.plugin === plugin && c.type === type)) {
@@ -600,9 +666,12 @@ export class PluginAPI {
 
         if (!name) name = type + ' (' + plugin + ')';
 
-        if (!component.name) component.name = 'automation-trigger-' + plugin + '-' + type;
+        if (!component.name) {
+            // @ts-ignore
+            component.name = 'automation-trigger-' + plugin + '-' + type;
+        }
 
-        AutomationTriggerComponents.pushPluginComponent({component, plugin, type, name});
+        AutomationTriggerComponents.pushPluginComponent(this.ui_plugin, {component, plugin, type, name});
     }
 
     /**
@@ -613,8 +682,8 @@ export class PluginAPI {
      * @param {string} name A display name for the automation condition
      * @param {string} [plugin] The name of the plugin that registered the automation condition
      */
-    registerAutomationConditionComponent(type, component, name, plugin) {
-        if (!plugin) plugin = this.plugin;
+    registerAutomationConditionComponent(type: string, component: Component, name: string, plugin?: string) {
+        if (!plugin) plugin = this.ui_plugin.plugin;
         if (!plugin) throw new Error('Unknown plugin');
 
         if (AutomationConditionComponents.find(c => c.plugin === plugin && c.type === type)) {
@@ -624,9 +693,12 @@ export class PluginAPI {
 
         if (!name) name = type + ' (' + plugin + ')';
 
-        if (!component.name) component.name = 'automation-condition-' + plugin + '-' + type;
+        if (!component.name) {
+            // @ts-ignore
+            component.name = 'automation-condition-' + plugin + '-' + type;
+        }
 
-        AutomationConditionComponents.pushPluginComponent({component, plugin, type, name});
+        AutomationConditionComponents.pushPluginComponent(this.ui_plugin, {component, plugin, type, name});
     }
 
     /**
@@ -637,7 +709,7 @@ export class PluginAPI {
      * @param {string} name A display name for the automation action
      * @param {string} [plugin] The name of the plugin that registered the automation action
      */
-    registerAutomationActionComponent(type, component, name, plugin) {
+    registerAutomationActionComponent(type: string, component: Component, name: string, plugin?: string) {
         if (!plugin) plugin = this.ui_plugin.plugin;
         if (!plugin) throw new Error('Unknown plugin');
 
@@ -648,17 +720,30 @@ export class PluginAPI {
 
         if (!name) name = type + ' (' + plugin + ')';
 
-        if (!component.name) component.name = 'automation-action-' + plugin + '-' + type;
+        if (!component.name) {
+            // @ts-ignore
+            component.name = 'automation-action-' + plugin + '-' + type;
+        }
 
-        AutomationActionComponents.pushPluginComponent({component, plugin, type, name});
+        AutomationActionComponents.pushPluginComponent(this.ui_plugin, {component, plugin, type, name});
     }
 }
 
-export class UserManagementHandler {
-    constructor(ui_plugin, /* id, */ connection) {
+export abstract class UserManagementHandler {
+    private static id = 0;
+
+    readonly id: number;
+    readonly ui_plugin: UIPlugin;
+    readonly connection: UserManagementConnection;
+
+    static user_management_handler_id: number;
+    static user_management_handler_localid: number;
+
+    constructor(ui_plugin: UIPlugin, /* id, */ connection: Connection) {
         Object.defineProperty(this, 'id', {value: UserManagementHandler.id++});
         Object.defineProperty(this, 'ui_plugin', {value: ui_plugin});
-        Object.defineProperty(this, 'connection', {value: new UserManagementConnection(connection, this.user_management_handler_id)});
+        Object.defineProperty(this, 'connection', {value:
+            new UserManagementConnection(connection, this.user_management_handler_id)});
     }
 
     get accessory_ui() {
@@ -666,10 +751,10 @@ export class UserManagementHandler {
     }
 
     get user_management_handler_id() {
-        return this.constructor.user_management_handler_id;
+        return (this.constructor as typeof UserManagementHandler).user_management_handler_id;
     }
     get user_management_handler_localid() {
-        return this.constructor.user_management_handler_localid;
+        return (this.constructor as typeof UserManagementHandler).user_management_handler_localid;
     }
 
     static get component() {
@@ -679,9 +764,7 @@ export class UserManagementHandler {
         Object.defineProperty(this, 'component', {writable: true, value});
     }
 
-    async getUsers() {
+    async getUsers(): Promise<UserManagementUser[]> {
         throw new Error('The user management handler didn\'t override the getUsers method');
     }
 }
-
-UserManagementHandler.id = 0;
