@@ -54,6 +54,7 @@ lint:
             - .eslintrc.js
             - .sass-lint.yml
             - src/**/*.js
+            - src/**/*.ts
             - src/**/*.vue
             - src/**/*.scss
             - example-plugins/src/**/*.js
