@@ -42,7 +42,7 @@ const broadcast_message_methods = {
 export default class Connection extends EventEmitter {
     ws: WebSocket | any;
     private messageid = 0;
-    private callbacks = new Map<number, (() => void)[]>();
+    private callbacks: Map<number, (() => void)[]> = new Map();
     private authenticated_user: AuthenticatedUser = null;
     open_consoles = new Set<Console>();
 
@@ -210,7 +210,7 @@ export default class Connection extends EventEmitter {
         });
     }
 
-    getCharacteristics(...ids: {0: string, 1: string, 2: string}[]): Promise<any[]> {
+    getCharacteristics(...ids: {0: string; 1: string; 2: string}[]): Promise<any[]> {
         return this.send({
             type: 'get-characteristics',
             ids,
@@ -221,7 +221,7 @@ export default class Connection extends EventEmitter {
         return this.getCharacteristics([accessory_uuid, service_id, characteristic_uuid]);
     }
 
-    setCharacteristics(...ids_data: {0: string, 1: string, 2: string, 3: any}[]): Promise<any[]> {
+    setCharacteristics(...ids_data: {0: string; 1: string; 2: string; 3: any}[]): Promise<any[]> {
         return this.send({
             type: 'set-characteristics',
             ids_data,
@@ -232,7 +232,7 @@ export default class Connection extends EventEmitter {
         return this.setCharacteristics([accessory_uuid, service_id, characteristic_id, value]);
     }
 
-    subscribeCharacteristics(...ids: {0: string, 1: string, 2: string}[]): Promise<any[]> {
+    subscribeCharacteristics(...ids: {0: string; 1: string; 2: string}[]): Promise<any[]> {
         return this.send({
             type: 'subscribe-characteristics',
             ids,
@@ -243,7 +243,7 @@ export default class Connection extends EventEmitter {
         return this.subscribeCharacteristics([accessory_uuid, service_id, characteristic_id]);
     }
 
-    unsubscribeCharacteristics(...ids: {0: string, 1: string, 2: string}[]): Promise<any[]> {
+    unsubscribeCharacteristics(...ids: {0: string; 1: string; 2: string}[]): Promise<any[]> {
         return this.send({
             type: 'unsubscribe-characteristics',
             ids,
@@ -261,7 +261,7 @@ export default class Connection extends EventEmitter {
         });
     }
 
-    setAccessoriesData(...id_data: {0: string, 1: any}[]): Promise<any[]> {
+    setAccessoriesData(...id_data: {0: string; 1: any}[]): Promise<any[]> {
         return this.send({
             type: 'set-accessories-data',
             id_data,
@@ -336,7 +336,7 @@ export default class Connection extends EventEmitter {
         });
     }
 
-    setLayouts(...id_data: {0: string, 1: any}[]): Promise<any[]> {
+    setLayouts(...id_data: {0: string; 1: any}[]): Promise<any[]> {
         return this.send({
             type: 'set-layouts',
             id_data,
@@ -363,8 +363,8 @@ export default class Connection extends EventEmitter {
 
     createLayoutSections(...id_data: {
         /** Layout UUID */
-        0: string,
-        1: any,
+        0: string;
+        1: any;
     }[]): Promise<string[]> {
         return this.send({
             type: 'create-layout-sections',
@@ -378,9 +378,9 @@ export default class Connection extends EventEmitter {
 
     getLayoutSections(...ids: {
         /** Layout UUID */
-        0: string,
+        0: string;
         /** Layout Section UUID */
-        1: string,
+        1: string;
     }[]): Promise<any[]> {
         return this.send({
             type: 'get-layout-sections',
@@ -392,7 +392,7 @@ export default class Connection extends EventEmitter {
         return this.getLayoutSections([layout_uuid, section_uuid]);
     }
 
-    setLayoutSections(...ids_data: {0: string, 1: string, 2: any}[]): Promise<any[]> {
+    setLayoutSections(...ids_data: {0: string; 1: string; 2: any}[]): Promise<any[]> {
         return this.send({
             type: 'set-layout-sections',
             ids_data,
@@ -403,7 +403,7 @@ export default class Connection extends EventEmitter {
         return this.setLayoutSections([layout_uuid, section_uuid, data]);
     }
 
-    deleteLayoutSections(...ids: {0: string, 1: string}[]) {
+    deleteLayoutSections(...ids: {0: string; 1: string}[]) {
         return this.send({
             type: 'delete-layout-sections',
             ids,
@@ -441,7 +441,7 @@ export default class Connection extends EventEmitter {
         });
     }
 
-    setAutomations(...id_data: {0: string, 1: any}[]): Promise<any[]> {
+    setAutomations(...id_data: {0: string; 1: any}[]): Promise<any[]> {
         return this.send({
             type: 'set-automations',
             id_data,
@@ -486,7 +486,7 @@ export default class Connection extends EventEmitter {
         });
     }
 
-    setScenes(...id_data: {0: string, 1: any}[]): Promise<any[]> {
+    setScenes(...id_data: {0: string; 1: any}[]): Promise<any[]> {
         return this.send({
             type: 'set-scenes',
             id_data,
@@ -504,7 +504,7 @@ export default class Connection extends EventEmitter {
         });
     }
 
-    activateScenes(...id_data: {0: string, 1: any}[]): Promise<any[]> {
+    activateScenes(...id_data: {0: string; 1: any}[]): Promise<any[]> {
         return this.send({
             type: 'activate-scenes',
             id_data,
@@ -515,7 +515,7 @@ export default class Connection extends EventEmitter {
         return this.activateScenes([uuid, context]);
     }
 
-    deactivateScenes(...id_data: {0: string, 1: any}[]): Promise<any[]> {
+    deactivateScenes(...id_data: {0: string; 1: any}[]): Promise<any[]> {
         return this.send({
             type: 'deactivate-scenes',
             id_data,
@@ -586,7 +586,7 @@ export default class Connection extends EventEmitter {
         });
     }
 
-    setBridgesConfiguration(...uuid_data: {0: string, 1: any}[]): Promise<any[]> {
+    setBridgesConfiguration(...uuid_data: {0: string; 1: any}[]): Promise<any[]> {
         return this.send({
             type: 'set-bridges-configuration',
             uuid_data,
@@ -625,7 +625,7 @@ export default class Connection extends EventEmitter {
         });
     }
 
-    getPairings(...ids: {0: string, 1: string}[]): Promise<any[]> {
+    getPairings(...ids: {0: string; 1: string}[]): Promise<any[]> {
         return this.send({
             type: 'get-pairings',
             ids,
@@ -650,7 +650,7 @@ export default class Connection extends EventEmitter {
         });
     }
 
-    setPairingsData(...id_data: {0: string, 1: any}[]): Promise<any[]> {
+    setPairingsData(...id_data: {0: string; 1: any}[]): Promise<any[]> {
         return this.send({
             type: 'set-pairings-data',
             id_data,
@@ -678,7 +678,7 @@ export default class Connection extends EventEmitter {
         });
     }
 
-    setUsersPermissions(...id_data: {0: string, 1: any}[]): Promise<any[]> {
+    setUsersPermissions(...id_data: {0: string; 1: any}[]): Promise<any[]> {
         return this.send({
             type: 'set-users-permissions',
             id_data,

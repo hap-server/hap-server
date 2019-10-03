@@ -38,7 +38,7 @@ import PluginManager from './plugins';
 type VueRouterMode = 'history' | 'hash';
 interface NativeHook {
     Client?: typeof Client;
-    Modals?: {new (client: Client): Modals;};
+    Modals?: {new (client: Client): Modals};
     base_url?: string;
     router_mode?: VueRouterMode;
 }

@@ -208,6 +208,7 @@ export async function validate(configuration: ConfigurationFile, base_path?: str
             if (!await isdir(path.resolve(base_path, configuration['plugin-path']))) {
                 errors.push(new Error('plugin-path doesn\'t exist or is not a directory'));
             }
+        // eslint-disable-next-line curly, guard-for-in
         } else if (configuration['plugin-path'] instanceof Array) for (const i in configuration['plugin-path']) {
             const _path = configuration['plugin-path'][i];
             if (typeof _path !== 'string') {
@@ -223,6 +224,7 @@ export async function validate(configuration: ConfigurationFile, base_path?: str
     const listen_addresses = [];
 
     if (typeof configuration.listen !== 'undefined') {
+        // eslint-disable-next-line curly, guard-for-in
         if (configuration.listen instanceof Array) for (const i in configuration.listen) {
             const listen = configuration.listen[i];
             try {
@@ -241,6 +243,7 @@ export async function validate(configuration: ConfigurationFile, base_path?: str
     }
 
     if (typeof configuration['listen-https'] !== 'undefined') {
+        // eslint-disable-next-line curly
         if (typeof configuration['listen-https'] === 'object' && configuration['listen-https'] !== null
         ) for (const [listen, https] of Object.entries(configuration['listen-https'])) {
             let normalised;
@@ -256,6 +259,7 @@ export async function validate(configuration: ConfigurationFile, base_path?: str
                 errors.push(new Warning(`${listen} is not used as a listening address but has a HTTPS configuration`));
             }
 
+            // eslint-disable-next-line curly, guard-for-in
             if (https instanceof Array) for (const i in https) {
                 const certificate = https[i];
                 if (typeof certificate !== 'string') {
@@ -274,6 +278,7 @@ export async function validate(configuration: ConfigurationFile, base_path?: str
     }
 
     if (typeof configuration['listen-https+request-client-certificate'] !== 'undefined') {
+        // eslint-disable-next-line curly
         if (typeof configuration['listen-https+request-client-certificate'] === 'object' &&
             configuration['listen-https+request-client-certificate'] !== null
         ) for (const [listen, https] of Object.entries(configuration['listen-https+request-client-certificate'])) {
@@ -292,6 +297,7 @@ export async function validate(configuration: ConfigurationFile, base_path?: str
                     'request-client-certificate configuration'));
             }
 
+            // eslint-disable-next-line curly, guard-for-in
             if (https instanceof Array) for (const i in https) {
                 const certificate = https[i];
                 if (typeof certificate !== 'string') {
@@ -313,6 +319,7 @@ export async function validate(configuration: ConfigurationFile, base_path?: str
     }
 
     if (typeof configuration['listen-https+require-client-certificate'] !== 'undefined') {
+        // eslint-disable-next-line curly
         if (typeof configuration['listen-https+require-client-certificate'] === 'object' &&
             configuration['listen-https+require-client-certificate'] !== null
         ) for (const [listen, https] of Object.entries(configuration['listen-https+require-client-certificate'])) {
@@ -331,6 +338,7 @@ export async function validate(configuration: ConfigurationFile, base_path?: str
                     'require-client-certificate configuration'));
             }
 
+            // eslint-disable-next-line curly, guard-for-in
             if (https instanceof Array) for (const i in https) {
                 const certificate = https[i];
                 if (typeof certificate !== 'string') {
@@ -352,6 +360,7 @@ export async function validate(configuration: ConfigurationFile, base_path?: str
     }
 
     if (typeof configuration['listen-https+crl'] !== 'undefined') {
+        // eslint-disable-next-line curly
         if (typeof configuration['listen-https+crl'] === 'object' && configuration['listen-https+crl'] !== null
         ) for (const [listen, crl] of Object.entries(configuration['listen-https+crl'])) {
             let normalised;
@@ -377,6 +386,7 @@ export async function validate(configuration: ConfigurationFile, base_path?: str
     }
 
     if (typeof configuration['listen-https+passphrase'] !== 'undefined') {
+        // eslint-disable-next-line curly
         if (typeof configuration['listen-https+passphrase'] === 'object' &&
             configuration['listen-https+passphrase'] !== null
         ) for (const [listen, passphrase] of Object.entries(configuration['listen-https+passphrase'])) {
@@ -459,6 +469,7 @@ export async function validate(configuration: ConfigurationFile, base_path?: str
     // TODO: validate Homebridge accessories and platforms configuration
 
     if (typeof configuration.bridges !== 'undefined') {
+        // eslint-disable-next-line curly, guard-for-in
         if (configuration.bridges instanceof Array) for (const i in configuration.bridges) {
             const bridge = configuration.bridges[i] as BridgeConfiguration;
 
@@ -540,6 +551,7 @@ export async function validate(configuration: ConfigurationFile, base_path?: str
             }
 
             if (typeof bridge.accessories !== 'undefined') {
+                // eslint-disable-next-line curly, guard-for-in
                 if (bridge.accessories instanceof Array) for (const ai in bridge.accessories) {
                     const accessory_uuid = bridge.accessories[ai];
 

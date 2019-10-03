@@ -125,40 +125,40 @@ export const ServiceTileComponents = new ComponentRegistry<Component>();
 export const ServiceDetailsComponents = new ComponentRegistry<Component>();
 export const ServiceSettingsComponents = new ComponentRegistry<Component>();
 export const LayoutSectionComponents = new ComponentRegistry<{
-    component: Component,
-    name: string,
+    component: Component;
+    name: string;
 }>();
 export const AccessoryDiscoveryComponents = new ComponentRegistry<{
-    component: Component,
-    setup_handler: number,
+    component: Component;
+    setup_handler: number;
 }>();
 export const AccessorySetupComponents = new ComponentRegistry<{
-    component: Component,
-    name: string,
-    manual: boolean,
+    component: Component;
+    name: string;
+    manual: boolean;
 }>();
 export const AuthenticationHandlerComponents = new ComponentRegistry<{
-    component: Component,
-    name: string,
+    component: Component;
+    name: string;
 }>();
 export const UserManagementHandlers = new ComponentRegistry<typeof UserManagementHandler>();
 export const AutomationTriggerComponents = new ComponentRegistry<{
-    component: Component,
-    plugin: string,
-    type: string,
-    name: string,
+    component: Component;
+    plugin: string;
+    type: string;
+    name: string;
 }>();
 export const AutomationConditionComponents = new ComponentRegistry<{
-    component: Component,
-    plugin: string,
-    type: string,
-    name: string,
+    component: Component;
+    plugin: string;
+    type: string;
+    name: string;
 }>();
 export const AutomationActionComponents = new ComponentRegistry<{
-    component: Component,
-    plugin: string,
-    type: string,
-    name: string,
+    component: Component;
+    plugin: string;
+    type: string;
+    name: string;
 }>();
 
 // @ts-ignore

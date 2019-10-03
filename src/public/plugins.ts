@@ -521,7 +521,7 @@ export class PluginAPI {
      * @param {boolean} [options.manual]
      */
     registerAccessorySetupComponent(localid: string, component: Component, options?: {
-        name?: string, manual?: boolean,
+        name?: string; manual?: boolean;
     }) {
         const id = this.ui_plugin.plugin_accessory_setup_handlers[localid];
         const name = options && options.name || localid;

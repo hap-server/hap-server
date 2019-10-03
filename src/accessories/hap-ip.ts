@@ -75,11 +75,11 @@ export default class HAPIP extends AccessoryPlatform {
     events_connection;
     subscribed_characteristics: string[] = [];
 
-    private get_queue?: {0: string; 1: () => void, 2: () => void}[];
+    private get_queue?: {0: string; 1: () => void; 2: () => void}[];
     private get_queue_timeout?;
-    private set_queue?: {0: string; 1: any, 2: () => void, 3: () => void}[];
+    private set_queue?: {0: string; 1: any; 2: () => void; 3: () => void}[];
     private set_queue_timeout?;
-    private subscribe_queue?: {0: string; 1: boolean, 2: () => void, 3: () => void}[];
+    private subscribe_queue?: {0: string; 1: boolean; 2: () => void; 3: () => void}[];
     private subscribe_queue_timeout?;
 
     async init(cached_accessories) {

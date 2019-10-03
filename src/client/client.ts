@@ -47,11 +47,11 @@ export default class Client extends EventEmitter {
     automations?: {[key: string]: Automation} = null;
     scenes?: {[key: string]: Scene} = null;
 
-    loading_home_settings: boolean = false;
-    loading_accessories: boolean = false;
-    loading_layouts: boolean = false;
-    loading_automations: boolean = false;
-    loading_scenes: boolean = false;
+    loading_home_settings = false;
+    loading_accessories = false;
+    loading_layouts = false;
+    loading_automations = false;
+    loading_scenes = false;
 
     private home_settings_dependencies: Set<any> = new Set();
     private accessories_dependencies: Map<any, string[] | boolean> = new Map();
