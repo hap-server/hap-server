@@ -55,8 +55,10 @@ declare module '@hap-server/api' {
     export class AuthenticationHandler extends BaseAuthenticationHandler {
         constructor(
             localid: string,
-            handler: (data, connection: Connection) => Promise<BaseAuthenticatedUser | any> | BaseAuthenticatedUser | any,
-            disconnect_handler?: (authenticated_user: BaseAuthenticatedUser, disconnected: boolean, connection: Connection) => any
+            handler: (data, connection: Connection) =>
+                Promise<BaseAuthenticatedUser | any> | BaseAuthenticatedUser | any,
+            disconnect_handler?: (authenticated_user: BaseAuthenticatedUser, disconnected: boolean,
+                connection: Connection) => any
         );
     }
     export class AuthenticatedUser extends BaseAuthenticatedUser {

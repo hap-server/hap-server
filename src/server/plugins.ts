@@ -303,7 +303,7 @@ export class PluginManager extends Events {
             }
 
             try {
-                // eslint-disable-next-line no-unused-vars
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 const package_stat = await fs_stat(path.join(plugin_path, 'package.json'));
 
                 await this.loadPlugin(plugin_path);
@@ -415,7 +415,8 @@ export default PluginManager.instance;
 export type AccessoryPlatformHandler =
     (config, cached_accessories: typeof Accessory[]) => (Promise<typeof Accessory[]> | typeof Accessory[]);
 export type DynamicAccessoryPlatformHandler =
-    (platform: AccessoryPlatform, config, cached_accessories: typeof Accessory[]) => (Promise<typeof Accessory[]> | typeof Accessory[]);
+    (platform: AccessoryPlatform, config, cached_accessories: typeof Accessory[]) =>
+        (Promise<typeof Accessory[]> | typeof Accessory[]);
 
 export class Plugin extends Events {
     readonly plugin_manager: PluginManager;
@@ -423,7 +424,8 @@ export class Plugin extends Events {
     readonly path: string;
     readonly name: string;
 
-    readonly accessories: Map<string, (config: any, cached_accessory?: typeof Accessory) => (Promise<typeof Accessory> | typeof Accessory)> = new Map();
+    readonly accessories: Map<string, (config: any, cached_accessory?: typeof Accessory) =>
+        (Promise<typeof Accessory> | typeof Accessory)> = new Map();
     readonly accessory_platforms: Map<string, typeof AccessoryPlatform> = new Map();
     readonly server_plugins: Set<typeof ServerPlugin> = new Set();
     readonly web_interface_plugins: Set<WebInterfacePlugin> = new Set();
@@ -646,7 +648,8 @@ export class Plugin extends Events {
     registerAuthenticationHandler(
         name: string,
         handler: ((data, connection: Connection) => Promise<AuthenticatedUser | any> | AuthenticatedUser | any),
-        disconnect_handler?: (authenticated_user: AuthenticatedUser, disconnected: boolean, connection: Connection) => any
+        disconnect_handler?: (authenticated_user: AuthenticatedUser, disconnected: boolean,
+            connection: Connection) => any
     ): void
     registerAuthenticationHandler(name, handler?, disconnect_handler?) {
         if (name instanceof AuthenticationHandler) {
@@ -1230,7 +1233,8 @@ export class AuthenticationHandler {
         plugin: Plugin,
         localid: string,
         handler: (data, connection: Connection) => Promise<AuthenticatedUser | any> | AuthenticatedUser | any,
-        disconnect_handler?: (authenticated_user: AuthenticatedUser, disconnected: boolean, connection: Connection) => any
+        disconnect_handler?: (authenticated_user: AuthenticatedUser, disconnected: boolean,
+            connection: Connection) => any
     ) {
         Object.defineProperty(this, 'id', {value: AuthenticationHandler.id++});
         Object.defineProperty(this, 'plugin', {value: plugin});
@@ -1356,7 +1360,8 @@ export class AuthenticatedUser {
     }
 
     async enableReauthentication() {
-        const bytes: Buffer = await new Promise((rs, rj) => crypto.randomBytes(48, (err, bytes) => err ? rj(err) : rs(bytes)));
+        const bytes: Buffer = await new Promise((rs, rj) =>
+            crypto.randomBytes(48, (err, bytes) => err ? rj(err) : rs(bytes)));
         const token = bytes.toString('hex');
 
         Object.defineProperty(this, 'token', {value: token});
@@ -1458,7 +1463,8 @@ export class PluginAPI {
     registerAuthenticationHandler(
         name: string,
         handler: ((data, connection: Connection) => Promise<AuthenticatedUser | any> | AuthenticatedUser | any),
-        disconnect_handler?: (authenticated_user: AuthenticatedUser, disconnected: boolean, connection: Connection) => any
+        disconnect_handler?: (authenticated_user: AuthenticatedUser, disconnected: boolean,
+            connection: Connection) => any
     ): void
     registerAuthenticationHandler(name, handler?, disconnect_handler?) {
         return this.plugin.registerAuthenticationHandler(name, handler, disconnect_handler);

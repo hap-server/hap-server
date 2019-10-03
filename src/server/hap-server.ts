@@ -107,7 +107,9 @@ export default class Server {
     start() {
         if (this.started) return;
 
-        if ([...(this.constructor as typeof Server).instances.values()].find((s: Server) => s.accessory_info.username === this.accessory_info.username)) {
+        if ([...(this.constructor as typeof Server).instances.values()]
+            .find((s: Server) => s.accessory_info.username === this.accessory_info.username)
+        ) {
             throw new Error('Already running another HAP server with the same ID/username');
         }
 

@@ -170,9 +170,9 @@ export default class Server extends Events {
         }
 
         if (DEVELOPMENT && (options as any).webpack_hot) {
-            const webpack = require('webpack');
-            const devmiddleware = require('webpack-dev-middleware');
-            const hotmiddleware = require('webpack-hot-middleware');
+            const webpack = require('webpack'); // eslint-disable-line @typescript-eslint/no-var-requires
+            const devmiddleware = require('webpack-dev-middleware'); // eslint-disable-line @typescript-eslint/no-var-requires
+            const hotmiddleware = require('webpack-hot-middleware'); // eslint-disable-line @typescript-eslint/no-var-requires
             require('babel-register');
 
             const compiler = webpack(require('../../gulpfile.babel').webpack_hot_config);
@@ -200,7 +200,8 @@ export default class Server extends Events {
             this.handleConfigurationChange(event.accessory || default_accessory, event.service, event.characteristic);
         }});
 
-        Object.defineProperty(this, '_handleRegisterHomebridgePlatformAccessories', {value: this.handleRegisterHomebridgePlatformAccessories.bind(this)});
+        Object.defineProperty(this, '_handleRegisterHomebridgePlatformAccessories', {value:
+            this.handleRegisterHomebridgePlatformAccessories.bind(this)});
         Object.defineProperty(this, '_handleUnregisterHomebridgePlatformAccessories', {value:
             this.handleUnregisterHomebridgePlatformAccessories.bind(this)});
         Object.defineProperty(this, '_handleRegisterExternalHomebridgeAccessories', {value:
@@ -641,7 +642,8 @@ export default class Server extends Events {
 
         const prev_characteristic_change_handler = this.characteristic_change_handlers.get(plugin_accessory.accessory);
         if (prev_characteristic_change_handler) {
-            plugin_accessory.accessory.removeListener('service-characteristic-change', prev_characteristic_change_handler);
+            plugin_accessory.accessory.removeListener('service-characteristic-change',
+                prev_characteristic_change_handler);
         }
         const characteristic_change_handler = this._handleCharacteristicUpdate.bind(this, plugin_accessory.accessory);
         this.characteristic_change_handlers.set(plugin_accessory.accessory, characteristic_change_handler);
@@ -874,7 +876,7 @@ export default class Server extends Events {
         return {automations, triggers, conditions, actions};
     }
 
-    async loadAutomationsFromStorage(dont_throw = false) {
+    async loadAutomationsFromStorage() {
         const automation_uuids = await this.storage.getItem('Automations') || [];
 
         return Promise.all(automation_uuids.map(async uuid => {
@@ -1043,7 +1045,7 @@ export default class Server extends Events {
         return this.automations.getAutomation(id);
     }
 
-    async loadScenesFromStorage(dont_throw = false) {
+    async loadScenesFromStorage() {
         const scene_uuids = await this.storage.getItem('Scenes') || [];
 
         return Promise.all(scene_uuids.map(async uuid => {
@@ -1416,7 +1418,9 @@ export default class Server extends Events {
      * @param {string} [characteristic_uuid]
      * @return {Characteristic}
      */
-    getCharacteristic(uuid: string | string[], service_uuid?: string, characteristic_uuid?: string): typeof Characteristic {
+    getCharacteristic(uuid: string | string[], service_uuid?: string, characteristic_uuid?: string):
+        typeof Characteristic
+    {
         if (uuid instanceof Array) [uuid, service_uuid, characteristic_uuid] = uuid;
 
         const accessory_uuid = uuid.split('.')[0];
@@ -1716,7 +1720,8 @@ export class PluginAccessory {
                         props: characteristic.props,
                     })),
                 })),
-                external_groups: this instanceof HomebridgeAccessory ? undefined : (this.accessory as any).external_groups,
+                external_groups: this instanceof HomebridgeAccessory ? undefined :
+                    (this.accessory as any).external_groups,
             },
             plugin: this.plugin ? this.plugin.name : null,
             uuid: this.uuid,
@@ -1725,7 +1730,8 @@ export class PluginAccessory {
             base_uuid: (this as any as PluginAccessoryPlatformAccessory).base_uuid,
             accessory_platform: (this as any as PluginAccessoryPlatformAccessory).accessory_platform_name,
             data: this.data,
-            bridge_uuids: this.server.bridges.filter(b => b.accessory_uuids.includes(this.accessory.UUID)).map(b => b.uuid),
+            bridge_uuids: this.server.bridges.filter(b => b.accessory_uuids.includes(this.accessory.UUID))
+                .map(b => b.uuid),
             bridge_uuids_external: this.server.bridges.filter(b => b.accessory_uuids.includes(this.accessory.UUID) &&
                 b.external_accessories.find(a => a.UUID === this.accessory.UUID)).map(b => b.uuid),
         };
