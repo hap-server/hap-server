@@ -10,6 +10,7 @@ import {Characteristic} from 'hap-nodejs';
 type GetCharacteristicHandler = (this: HAPNodeJS.Characteristic, context?: any, connection_id?: string) => Promise<any> | any;
 type SetCharacteristicHandler = (this: HAPNodeJS.Characteristic, new_value: any, context?: any, connection_id?: string) => Promise<void> | void;
 
+// eslint-disable-next-line @typescript-eslint/no-namespace
 declare namespace HAPNodeJS {
     interface Characteristic {
         get_handler?: GetCharacteristicHandler;

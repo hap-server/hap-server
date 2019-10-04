@@ -415,8 +415,8 @@ export default PluginManager.instance;
 export type AccessoryPlatformHandler =
     (config, cached_accessories: typeof Accessory[]) => (Promise<typeof Accessory[]> | typeof Accessory[]);
 export type DynamicAccessoryPlatformHandler =
-    (platform: AccessoryPlatform, config, cached_accessories: typeof Accessory[]) =>
-        (Promise<typeof Accessory[]> | typeof Accessory[]);
+    (platform: AccessoryPlatform, config, cached_accessories: typeof Accessory[]) => (Promise<typeof Accessory[]> |
+        typeof Accessory[]);
 
 export class Plugin extends Events {
     readonly plugin_manager: PluginManager;
@@ -424,8 +424,8 @@ export class Plugin extends Events {
     readonly path: string;
     readonly name: string;
 
-    readonly accessories: Map<string, (config: any, cached_accessory?: typeof Accessory) =>
-        (Promise<typeof Accessory> | typeof Accessory)> = new Map();
+    readonly accessories: Map<string, (config: any, cached_accessory?: typeof Accessory) => (Promise<typeof Accessory> |
+        typeof Accessory)> = new Map();
     readonly accessory_platforms: Map<string, typeof AccessoryPlatform> = new Map();
     readonly server_plugins: Set<typeof ServerPlugin> = new Set();
     readonly web_interface_plugins: Set<WebInterfacePlugin> = new Set();

@@ -58,7 +58,7 @@ declare module '@hap-server/api' {
         constructor(
             localid: string,
             handler: (data, connection: Connection) =>
-                Promise<BaseAuthenticatedUser | any> | BaseAuthenticatedUser | any,
+                Promise<BaseAuthenticatedUser | any> | BaseAuthenticatedUser | any, // eslint-disable-line @typescript-eslint/indent
             disconnect_handler?: (authenticated_user: BaseAuthenticatedUser, disconnected: boolean,
                 connection: Connection) => any
         );

@@ -1419,8 +1419,7 @@ export default class Server extends Events {
      * @return {Characteristic}
      */
     getCharacteristic(uuid: string | string[], service_uuid?: string, characteristic_uuid?: string):
-        typeof Characteristic
-    {
+        typeof Characteristic {
         if (uuid instanceof Array) [uuid, service_uuid, characteristic_uuid] = uuid;
 
         const accessory_uuid = uuid.split('.')[0];

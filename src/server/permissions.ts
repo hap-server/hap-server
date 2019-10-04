@@ -183,8 +183,7 @@ export default class Permissions {
      * @return {Promise<boolean>}
      */
     async checkCanSetCharacteristic(accessory_uuid: string, service_uuid: string, characteristic_uuid: string, value?):
-        Promise<boolean>
-    {
+    Promise<boolean> {
         if (DEVELOPMENT && (this as any).__development_allow_local()) return true;
 
         if (!this.user) return false;

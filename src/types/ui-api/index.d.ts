@@ -18,12 +18,14 @@ import {DiscoveredAccessory} from '../../public/components/add-accessory.vue';
 declare module '@hap-server/ui-api' {
     const plugin_api: PluginAPI;
 
+    // @ts-ignore
     export default plugin_api;
-    
+
     export abstract class UserManagementHandler extends BaseUserManagementHandler {
         constructor(/* id, */ connection: Connection);
     }
 
+    // @ts-ignore
     export {
         AuthenticationHandlerConnection,
         AuthenticatedUser,
