@@ -57,7 +57,7 @@ export default class Permissions {
     readonly connection: Connection;
     readonly log: Logger;
 
-    constructor(connection: Logger) {
+    constructor(connection: Connection) {
         this.connection = connection;
         this.log = connection.log.withPrefix('Permissions');
     }

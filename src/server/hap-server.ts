@@ -434,7 +434,7 @@ export default class Server {
         const characteristic = this.getCharacteristicByID(accessory, iid);
 
         if (!characteristic) {
-            this.log.warning('Could not find a characteristic with aid', aid, 'and iid', iid);
+            this.log.warn('Could not find a characteristic with aid', aid, 'and iid', iid);
 
             return {
                 aid, iid,
@@ -520,7 +520,7 @@ export default class Server {
         const characteristic = this.getCharacteristicByID(accessory, iid);
 
         if (!characteristic) {
-            this.log.warning('Could not find a characteristic with aid %d and iid %d', aid, iid);
+            this.log.warn('Could not find a characteristic with aid %d and iid %d', aid, iid);
 
             return {
                 aid, iid,

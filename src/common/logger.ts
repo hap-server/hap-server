@@ -1,26 +1,27 @@
 import chalk from 'chalk';
 
-export default class Logger {
-    constructor(...prefix) {
+type LogLevel = 'debug' | 'log' | 'info' | 'warning' | 'error';
+
+class Logger {
+    static enable_debug = false;
+    static enable_timestamps = true;
+
+    prefix: string[];
+    enable_timestamps = true;
+    enable_debug = true;
+
+    constructor(...prefix: string[]) {
         // eslint-disable-next-line @typescript-eslint/no-this-alias
         const logger = this;
 
-        const loggerfunction = function() {
+        const loggerfunction = function Logger() {
             // eslint-disable-next-line no-invalid-this, prefer-rest-params
             return logger.call(this, arguments);
-        };
+        } as Logger;
 
-        loggerfunction.__proto__ = this.constructor.prototype;
+        (loggerfunction as any).__proto__ = this;
 
         this.prefix = prefix;
-        this.enable_timestamps = true;
-        this.enable_debug = true;
-
-        Object.defineProperty(loggerfunction, 'prefix', {get: () => this.prefix, set: v => this.prefix = v});
-        Object.defineProperty(loggerfunction, 'enable_timestamps',
-            {get: () => this.enable_timestamps, set: v => this.enable_timestamps = v});
-        Object.defineProperty(loggerfunction, 'enable_debug',
-            {get: () => this.enable_debug, set: v => this.enable_debug = v});
 
         return loggerfunction;
     }
@@ -29,7 +30,7 @@ export default class Logger {
         this.log(...args);
     }
 
-    write(level, ...args) {
+    write(level: LogLevel, ...args) {
         let func = console.log;
         let format = typeof args[0] === 'string' ? args.shift() : '';
 
@@ -77,8 +78,8 @@ export default class Logger {
         this.write('error', ...args);
     }
 
-    withPrefix(...prefix) {
-        const logger = new this.constructor(this.prefix.concat(...prefix));
+    withPrefix(...prefix: string[]) {
+        const logger = new this.constructor(...this.prefix.concat(...prefix)) as this;
 
         logger.enable_timestamps = this.enable_timestamps;
         logger.enable_debug = this.enable_debug;
@@ -93,7 +94,7 @@ export default class Logger {
      * @param {function} callback A function to call on log call
      * @return {function} The new console.log/error function
      */
-    static wrapConsoleFn(fn, callback) {
+    static wrapConsoleFn(fn: typeof console.log, callback: typeof console.log): typeof console.log {
         return (data, ...args) => {
             callback(data, ...args);
             return fn(data, ...args);
@@ -101,8 +102,12 @@ export default class Logger {
     }
 }
 
-Logger.enable_debug = false;
-Logger.enable_timestamps = true;
+interface Logger {
+    (...args: any[]): void;
+    constructor: typeof Logger;
+}
+
+export default Logger;
 
 export function forceColour() {
     chalk.enabled = true;

@@ -152,7 +152,7 @@ export default class Connection {
 
         ws.on('message', message => {
             if (this.closed) {
-                this.log.warning('Received message from closed connection...!?');
+                this.log.warn('Received message from closed connection...!?');
                 this.ws.close();
                 return;
             }
