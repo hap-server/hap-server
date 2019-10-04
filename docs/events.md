@@ -72,11 +72,11 @@ const event = new CustomEvent('arg1', 'arg2', 'arg3');
 events.emit(event, 'arg1', 'arg2', 'arg3');
 ```
 
-#### `Events.prototype.on`, `Events.prototype.once`, `Events.prototype.removeListener`
+#### `Events.prototype.on`, `Events.prototype.listen`, `Events.prototype.once`, `Events.prototype.removeListener`
 
-To listen for events that have a class pass the constructor to the on/once/removeListener methods. This tells the
+To listen for events that have a class pass the constructor to the on/listen/once/removeListener methods. This tells the
 event emitter to pass the handler the event object instead of arguments. This is optional and hap-server EventEmitters
-will behave exactly like Node.js' EventEmitter if you pass a string to the on/once/removeListener methods.
+will behave exactly like Node.js' EventEmitter if you pass a string to the on/listen/once/removeListener methods.
 
 ```js
 events.on(CustomEvent, event => {
@@ -98,6 +98,37 @@ of the event object.
 events.on('custom-event', (arg1, arg2, arg3) => {
     //
 });
+```
+
+Use the listen method instead of the on method to get an EventListener object to easily remove the listener.
+
+```js
+const listener = events.listen(CustomEvent, event => {
+    // ...
+});
+
+// When the listener is no longer needed
+listener.cancel();
+```
+
+You can also create an EventListeners object to reference multiple listeners.
+
+```js
+import {EventListeners} from '@hap-server/hap-server';
+
+const listeners = new EventListeners();
+
+events.on(CustomEvent, event => {
+    // ...
+}, listeners);
+
+// Also works with the listen method
+const listener = events.listen(CustomEvent, event => {
+    // ...
+}, listeners);
+
+// When all listeners are no longer needed
+listeners.cancel();
 ```
 
 ### `events`

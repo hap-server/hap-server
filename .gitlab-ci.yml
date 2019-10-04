@@ -43,9 +43,10 @@ lint:
     script:
         # Run eslint for JS and Vue files separately
         - npx eslint --ext .js --color src example-plugins/src ; JS_EXIT_CODE="$?"
+        - npx eslint --ext .ts --color src ; TS_EXIT_CODE="$?"
         - npx eslint --ext .vue --color src ; VUE_EXIT_CODE="$?"
         - FORCE_COLOR=1 npx sass-lint -v ; SASS_EXIT_CODE="$?"
-        - sh -c "exit `expr $JS_EXIT_CODE + $VUE_EXIT_CODE + $SASS_EXIT_CODE`"
+        - sh -c "exit `expr $JS_EXIT_CODE + $TS_EXIT_CODE + $VUE_EXIT_CODE + $SASS_EXIT_CODE`"
     only:
         changes:
             - .gitlab-ci.yml
@@ -53,6 +54,7 @@ lint:
             - .eslintrc.js
             - .sass-lint.yml
             - src/**/*.js
+            - src/**/*.ts
             - src/**/*.vue
             - src/**/*.scss
             - example-plugins/src/**/*.js
@@ -67,8 +69,8 @@ lint:
 audit:
     stage: test
     script:
+        - npm audit --json > npm-audit.json || true
         - npm --color="always" audit
-        - npm audit --json > npm-audit.json
     artifacts:
         paths:
             - npm-audit.json
@@ -77,12 +79,6 @@ audit:
         changes:
             - .gitlab-ci.yml
             - package-lock.json
-            - .eslintrc.js
-            - .sass-lint.yml
-            - src/**/*.js
-            - src/**/*.vue
-            - src/**/*.scss
-            - example-plugins/src/**/*.js
     cache:
         paths:
             - node_modules/
@@ -90,7 +86,7 @@ audit:
     when: always
     allow_failure: true
 
-publish:
+publish-npm:
     stage: deploy
     script:
         - cd release
@@ -103,6 +99,26 @@ publish:
             - /^v.*$/
         variables:
             - $NPM_TOKEN
+    except:
+        - branches
+    cache:
+        paths:
+            - node_modules/
+        policy: pull
+
+publish-github:
+    stage: deploy
+    script:
+        - cd release
+        - echo "//npm.pkg.github.com/:_authToken=${GITHUB_NPM_TOKEN}" > .npmrc
+        - npm --color="always" --registry=https://npm.pkg.github.com/ publish
+    dependencies:
+        - build
+    only:
+        refs:
+            - /^v.*$/
+        variables:
+            - $GITHUB_NPM_TOKEN
     except:
         - branches
     cache:

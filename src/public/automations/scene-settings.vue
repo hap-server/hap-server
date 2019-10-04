@@ -142,6 +142,7 @@
             create: Boolean,
         },
         data() {
+            // eslint-disable-next-line @typescript-eslint/no-this-alias
             const $vm = this;
 
             return {

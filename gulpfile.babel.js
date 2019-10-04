@@ -5,12 +5,16 @@ import gulp from 'gulp';
 import pump from 'pump';
 import watch from 'gulp-watch';
 import plumber from 'gulp-plumber';
+import sourcemaps from 'gulp-sourcemaps';
 import babel from 'gulp-babel';
+import typescript from 'gulp-typescript';
 import webpack from 'webpack-stream';
 import json from 'gulp-json-editor';
 import file from 'gulp-file';
 import minify from 'gulp-minify';
 import replace from 'gulp-replace';
+import filter from 'gulp-filter';
+import merge from 'merge2';
 import del from 'del';
 import markdownlinks from 'transform-markdown-links';
 
@@ -28,21 +32,32 @@ const README_BASE_URL =
 const README_IMAGE_BASE_URL =
     `https://gitlab.fancy.org.uk/hap-server/hap-server/raw/v${require('./package').version}/README.md`;
 
+import {compilerOptions as typescript_config} from './tsconfig';
+
 const webpack_config = {
     context: __dirname,
     mode: 'development',
     entry: {
         main: [
             path.join(__dirname, 'src/public/scss/index.scss'),
-            path.join(__dirname, 'src/public/index.js'),
+            path.join(__dirname, 'src/public/index.ts'),
         ],
         modal: [
             path.join(__dirname, 'src/public/scss/index.scss'),
-            path.join(__dirname, 'src/public/modal.js'),
+            path.join(__dirname, 'src/public/modal.ts'),
         ],
     },
     module: {
         rules: [
+            {
+                test: /\.tsx?$/,
+                loader: 'ts-loader',
+                options: {
+                    compilerOptions: Object.assign({}, typescript_config, {
+                        declaration: false,
+                    }),
+                },
+            },
             {
                 test: /\.vue$/,
                 loader: 'vue-loader',
@@ -103,6 +118,8 @@ const webpack_config = {
         }),
     ],
     resolve: {
+        // Add `.ts` and `.tsx` as a resolvable extension
+        extensions: ['.ts', '.tsx', '.js', '.json'],
         alias: {
             // Include the template compiler for plugin with accessory UIs
             'vue$': 'vue/dist/vue.esm.js', // 'vue/dist/vue.common.js' for webpack 1
@@ -131,12 +148,12 @@ export const webpack_hot_config = Object.assign({}, webpack_config, {
         main: [
             'webpack-hot-middleware/client',
             path.join(__dirname, 'src/public/scss/index.scss'),
-            path.join(__dirname, 'src/public/index.js'),
+            path.join(__dirname, 'src/public/index.ts'),
         ],
         modal: [
             'webpack-hot-middleware/client',
             path.join(__dirname, 'src/public/scss/index.scss'),
-            path.join(__dirname, 'src/public/modal.js'),
+            path.join(__dirname, 'src/public/modal.ts'),
         ],
     },
     module: Object.assign({}, webpack_config.module, {
@@ -154,11 +171,40 @@ export const webpack_hot_config = Object.assign({}, webpack_config, {
     ]),
 });
 
+gulp.task('build-backend-no-ts', function () {
+    return pump([
+        merge([
+            pump([
+                gulp.src(['src/**/*.js', '!src/public/**/*.js']),
+                sourcemaps.init(),
+                babel(),
+                sourcemaps.write('.', {includeContent: false, destPath: 'dist'}),
+            ]),
+            gulp.src(['src/**/*', '!src/public/**/*', '!src/**/*.js', '!src/**/*.ts']),
+        ]),
+        gulp.dest('dist'),
+    ]);
+});
+
+const tsProject = typescript.createProject(typescript_config);
+
 gulp.task('build-backend', function () {
     return pump([
-        gulp.src(['src/**/*.js', '!src/public/**/*.js']),
-        babel(),
-        gulp.src(['src/**/*', '!src/public/**/*', '!src/**/*.js']),
+        merge([
+            pump([
+                gulp.src(['src/**/*.js', '!src/public/**/*.js']),
+                sourcemaps.init(),
+                babel(),
+                sourcemaps.write('.', {includeContent: false, destPath: 'dist'}),
+            ]),
+            pump([
+                gulp.src(['src/**/*.ts', '!src/public/**/*.ts']),
+                sourcemaps.init(),
+                tsProject(),
+                sourcemaps.write('.', {includeContent: false, destPath: 'dist'}),
+            ]),
+            gulp.src(['src/**/*', '!src/public/**/*', '!src/**/*.js', '!src/**/*.ts']),
+        ]),
         gulp.dest('dist'),
     ]);
 });
@@ -166,59 +212,69 @@ gulp.task('build-backend', function () {
 gulp.task('build-frontend', function () {
     return pump([
         gulp.src('src/public/scss/index.scss'),
-        gulp.src('src/public/index.js'),
+        gulp.src('src/public/index.ts'),
         webpack(webpack_config),
         gulp.dest('dist/public'),
     ]);
 });
 
-gulp.task('build-example-plugins', gulp.parallel(function () {
+gulp.task('build-example-plugins', function () {
     return pump([
         gulp.src('example-plugins/src/**/*.js'),
+        sourcemaps.init(),
         babel(),
-        gulp.dest('example-plugins/dist'),
-    ]);
-}, function () {
-    return pump([
+        sourcemaps.write('.', {includeContent: false, destPath: 'example-plugins/dist'}),
         gulp.src('example-plugins/src/**/*.json'),
         gulp.dest('example-plugins/dist'),
     ]);
-}));
+});
 
 gulp.task('build', gulp.parallel('build-backend', 'build-frontend', 'build-example-plugins'));
 
-gulp.task('watch-backend', function () {
+gulp.task('watch-backend-no-ts', function () {
     return pump([
         watch(['src/**/*.js', '!src/public/**/*.js'], {verbose: true}),
         plumber(),
+        sourcemaps.init(),
         babel(),
-        watch(['src/**/*', '!src/public/**/*', '!src/**/*.js'], {verbose: true}),
+        sourcemaps.write('.', {includeContent: false, destPath: 'dist'}),
+        watch(['src/**/*', '!src/public/**/*', '!src/**/*.js', '!src/**/*.ts'], {verbose: true}),
         gulp.dest('dist'),
     ]);
 });
 
+gulp.task('watch-backend', gulp.parallel('watch-backend-no-ts', function () {
+    return gulp.watch(['src/**/*.ts', '!src/public/**/*.ts'], function () {
+        return pump([
+            gulp.src(['src/**/*.ts', '!src/public/**/*.ts']),
+            sourcemaps.init(),
+            tsProject(),
+            sourcemaps.write('.', {includeContent: false, destPath: 'dist'}),
+            gulp.dest('dist'),
+        ]);
+    });
+}));
+
 gulp.task('watch-frontend', function () {
     return pump([
         gulp.src('src/public/scss/index.scss'),
-        gulp.src('src/public/index.js'),
+        gulp.src('src/public/index.ts'),
         webpack(Object.assign({watch: true}, webpack_config)),
         gulp.dest('dist/public'),
     ]);
 });
 
-gulp.task('watch-example-plugins', gulp.parallel(function () {
+gulp.task('watch-example-plugins', function () {
     return pump([
         watch('example-plugins/src/**/*.js', {verbose: true}),
         plumber(),
+        sourcemaps.init(),
         babel(),
-        gulp.dest('example-plugins/dist'),
-    ]);
-}, function () {
-    return pump([
+        sourcemaps.write('.', {includeContent: false, destPath: 'example-plugins/dist'}),
         watch('example-plugins/src/**/*.json', {verbose: true}),
         gulp.dest('example-plugins/dist'),
     ]);
-}));
+});
 
 gulp.task('watch', gulp.parallel('watch-backend', 'watch-frontend', 'watch-example-plugins'));
 
@@ -259,11 +315,32 @@ const release_webpack_config = Object.assign({}, webpack_config, {
 
 gulp.task('build-backend-release', function () {
     return pump([
-        gulp.src(['src/**/*.js', '!src/public/**/*.js']),
-        replace(/\bDEVELOPMENT\s*=\s*true\b/gi, 'DEVELOPMENT = false'),
-        replace(/\bDEVELOPMENT(?!\s*=)\b/gi, 'false'),
-        babel(),
-        minify(release_minify_config),
+        merge([
+            pump([
+                gulp.src(['src/**/*.js', '!src/public/**/*.js']),
+                replace(/\bDEVELOPMENT\s*=\s*true\b/gi, 'DEVELOPMENT = false'),
+                replace(/\bDEVELOPMENT(?!\s*=)\b/gi, 'false'),
+                babel(),
+                minify(release_minify_config),
+            ]),
+            pump([
+                gulp.src(['src/**/*.ts', '!src/public/**/*.ts']),
+                replace(/\bDEVELOPMENT\s*=\s*true\b/gi, 'DEVELOPMENT = false'),
+                replace(/\bDEVELOPMENT(?!\s*=)\b/gi, 'false'),
+                tsProject(),
+                minify(release_minify_config),
+            ]),
+            pump([
+                gulp.src(['src/public/component-registry.ts', 'src/public/plugins.ts'], {base: 'src'}),
+                typescript(typescript_config),
+                filter(['**/*.d.ts']),
+                gulp.dest('release'),
+            ]),
+            gulp.src([
+                'src/**/*', '!src/public/**/*', '!src/**/*.js', '!src/**/*.ts',
+                'src/types/**/*.d.ts',
+            ], {base: 'src'}),
+        ]),
         gulp.dest('release'),
     ]);
 });
@@ -271,7 +348,7 @@ gulp.task('build-backend-release', function () {
 gulp.task('build-frontend-release', function () {
     return pump([
         gulp.src('src/public/scss/index.scss'),
-        gulp.src('src/public/index.js'),
+        gulp.src('src/public/index.ts'),
         webpack(release_webpack_config),
         gulp.dest('release/public'),
     ]);
@@ -299,6 +376,9 @@ gulp.task('release-package', function () {
         json(packagejson => {
             packagejson.private = false;
             packagejson.main = 'index.js';
+            packagejson.types = 'index.d.ts';
+            packagejson.dependencies['@hap-server/api'] = 'file:types/api';
+            packagejson.dependencies['@hap-server/ui-api'] = 'file:types/ui-api';
             packagejson.devDependencies = [];
             packagejson.scripts = {
                 start: 'bin/hap-server',
