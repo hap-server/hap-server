@@ -13,6 +13,7 @@ import json from 'gulp-json-editor';
 import file from 'gulp-file';
 import minify from 'gulp-minify';
 import replace from 'gulp-replace';
+import filter from 'gulp-filter';
 import merge from 'merge2';
 import del from 'del';
 import markdownlinks from 'transform-markdown-links';
@@ -314,11 +315,32 @@ const release_webpack_config = Object.assign({}, webpack_config, {
 
 gulp.task('build-backend-release', function () {
     return pump([
-        gulp.src(['src/**/*.js', '!src/public/**/*.js']),
-        replace(/\bDEVELOPMENT\s*=\s*true\b/gi, 'DEVELOPMENT = false'),
-        replace(/\bDEVELOPMENT(?!\s*=)\b/gi, 'false'),
-        babel(),
-        minify(release_minify_config),
+        merge([
+            pump([
+                gulp.src(['src/**/*.js', '!src/public/**/*.js']),
+                replace(/\bDEVELOPMENT\s*=\s*true\b/gi, 'DEVELOPMENT = false'),
+                replace(/\bDEVELOPMENT(?!\s*=)\b/gi, 'false'),
+                babel(),
+                minify(release_minify_config),
+            ]),
+            pump([
+                gulp.src(['src/**/*.ts', '!src/public/**/*.ts']),
+                replace(/\bDEVELOPMENT\s*=\s*true\b/gi, 'DEVELOPMENT = false'),
+                replace(/\bDEVELOPMENT(?!\s*=)\b/gi, 'false'),
+                tsProject(),
+                minify(release_minify_config),
+            ]),
+            pump([
+                gulp.src(['src/public/component-registry.ts', 'src/public/plugins.ts'], {base: 'src'}),
+                typescript(typescript_config),
+                filter(['**/*.d.ts']),
+                gulp.dest('release'),
+            ]),
+            gulp.src([
+                'src/**/*', '!src/public/**/*', '!src/**/*.js', '!src/**/*.ts',
+                'src/types/**/*.d.ts',
+            ], {base: 'src'}),
+        ]),
         gulp.dest('release'),
     ]);
 });
