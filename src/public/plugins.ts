@@ -65,6 +65,7 @@ import * as vue_color_sketch_module from 'vue-color/src/components/Sketch.vue';
 // @ts-ignore
 import {DiscoveredAccessory} from './components/add-accessory.vue';
 
+let icon_component_modules_object;
 let automation_trigger_component_module;
 let automation_condition_component_module;
 let automation_action_component_module;
@@ -155,11 +156,20 @@ export class PluginManager {
             request = '@hap-server/ui-api' + request.substr(28);
         }
 
+        if (request === '@hap-server/ui-api/service') {
+            console.warn('Using deprecated @hap-server/ui-api/service module');
+            request = '@hap-server/ui-api/service-tile';
+        }
+        if (request === '@hap-server/ui-api/accessory-details') {
+            console.warn('Using deprecated @hap-server/ui-api/accessory-details module');
+            request = '@hap-server/ui-api/service-details';
+        }
+
         if (request === '@hap-server/ui-api') {
             return this.getPluginAPI(ui_plugin);
-        } else if (request === '@hap-server/ui-api/service') {
+        } else if (request === '@hap-server/ui-api/service-tile') {
             return service_component_module;
-        } else if (request === '@hap-server/ui-api/accessory-details') {
+        } else if (request === '@hap-server/ui-api/service-details') {
             return accessory_details_component_module;
         } else if (request === '@hap-server/ui-api/layout-section') {
             return layout_section_component_module;
@@ -171,6 +181,9 @@ export class PluginManager {
             return panel_tabs_component_module;
         } else if (request === '@hap-server/ui-api/dropdown') {
             return dropdown_component_module;
+        } else if (request === '@hap-server/ui-api/icons') {
+            return icon_component_modules_object || (icon_component_modules_object =
+                [...icon_component_modules.entries()].reduce((acc, cur) => (acc[cur[0]] = cur[1], acc), {}));
         } else if (request.startsWith('@hap-server/ui-api/icons/') &&
             icon_component_modules.has('./' + request.substr(25) + '.vue')
         ) {

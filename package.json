@@ -26,6 +26,7 @@
     },
     "dependencies": {
         "@hap-server/api": "file:src/types/api",
+        "@hap-server/ui-api": "file:src/types/ui-api",
         "bonjour": "^3.5.0",
         "chalk": "^2.4.2",
         "cookie-parser": "^1.4.4",
@@ -51,7 +52,8 @@
         "hap-controller": "^0.1.9"
     },
     "devDependencies": {
-        "@types/node": "^12.6.1",
+        "@types/node": "^12.7.10",
+        "@types/node-persist": "0.0.33",
         "@typescript-eslint/eslint-plugin": "^2.2.0",
         "@typescript-eslint/parser": "^2.2.0",
         "@vue/devtools": "^5.1.1",

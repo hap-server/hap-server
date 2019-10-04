@@ -240,7 +240,7 @@ gulp.task('watch-backend-no-ts', function () {
         watch(['src/**/*', '!src/public/**/*', '!src/**/*.js', '!src/**/*.ts'], {verbose: true}),
         gulp.dest('dist'),
     ]);
-})
+});
 
 gulp.task('watch-backend', gulp.parallel('watch-backend-no-ts', function () {
     return gulp.watch(['src/**/*.ts', '!src/public/**/*.ts'], function () {
@@ -356,6 +356,7 @@ gulp.task('release-package', function () {
             packagejson.main = 'index.js';
             packagejson.types = 'index.d.ts';
             packagejson.dependencies['@hap-server/api'] = 'file:types/api';
+            packagejson.dependencies['@hap-server/ui-api'] = 'file:types/ui-api';
             packagejson.devDependencies = [];
             packagejson.scripts = {
                 start: 'bin/hap-server',

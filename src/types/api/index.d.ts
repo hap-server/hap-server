@@ -25,10 +25,12 @@ import Module from 'module';
 import {Accessory} from 'hap-nodejs';
 
 declare module '@hap-server/api' {
+    const pluginapi: PluginAPI;
+
     export const plugin: Plugin;
     export const parent_module: Module;
     // @ts-ignore
-    export default PluginAPI;
+    export default pluginapi;
     export const log: Logger;
 
     export class AccessoryPlatform extends BaseAccessoryPlatform {
@@ -82,30 +84,4 @@ declare module '@hap-server/api' {
         EventListeners,
         events,
     };
-}
-
-declare module '@hap-server/api/events' {
-    export * from '../../events/server';
-}
-
-// declare module '@hap-server/api/plugin-config' {
-//     //
-// }
-
-import persist from 'node-persist';
-
-declare module '@hap-server/api/storage' {
-    export default persist.constructor;
-}
-
-import hap from 'hap-nodejs';
-
-declare module '@hap-server/api/hap' {
-    export = hap;
-}
-
-import express from 'express';
-
-declare module '@hap-server/api/express' {
-    export = express;
 }
