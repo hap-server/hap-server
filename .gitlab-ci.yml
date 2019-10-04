@@ -86,7 +86,7 @@ audit:
     when: always
     allow_failure: true
 
-publish:
+publish-npm:
     stage: deploy
     script:
         - cd release
@@ -99,6 +99,26 @@ publish:
             - /^v.*$/
         variables:
             - $NPM_TOKEN
+    except:
+        - branches
+    cache:
+        paths:
+            - node_modules/
+        policy: pull
+
+publish-github:
+    stage: deploy
+    script:
+        - cd release
+        - echo "//npm.pkg.github.com/:_authToken=${GITHUB_NPM_TOKEN}" > .npmrc
+        - npm --color="always" --registry=https://npm.pkg.github.com/ publish
+    dependencies:
+        - build
+    only:
+        refs:
+            - /^v.*$/
+        variables:
+            - $GITHUB_NPM_TOKEN
     except:
         - branches
     cache:

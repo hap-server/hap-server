@@ -179,6 +179,21 @@ hap-server make-admin {user-id}
 hap-server make-admin {user-id} --config data/config.yaml
 ```
 
+### GitHub Package Registry
+
+By default `npm` will install from https://npmjs.com. You can configure `npm` to install hap-server from
+GitHub Package Registry by adding this to your [`npmrc`](https://docs.npmjs.com/files/npmrc):
+
+```
+@hap-server:registry=https://npm.pkg.github.com
+```
+
+Run this to configure `npm` to use GitHub Package Registry for `@hap-server` scoped packages globally:
+
+```
+echo "@hap-server:registry=https://npm.pkg.github.com" >> `npm --global prefix`/etc/npmrc
+```
+
 Usage
 ---
 
