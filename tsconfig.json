@@ -1,6 +1,7 @@
 {
     "compilerOptions": {
         "noImplicitAny": false,
+        "noImplicitThis": true,
         "target": "es6",
         "esModuleInterop": true,
         "experimentalDecorators": true,

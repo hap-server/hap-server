@@ -1,7 +1,10 @@
 
+import {Component} from 'vue';
 import Characteristic from '../../client/characteristic';
 
-export default {
+const SubscribeCharacteristicsMixin: Component & {
+    subscribedCharacteristics?: Characteristic[],
+} = {
     watch: {
         subscribedCharacteristics(characteristics, old_characteristics) {
             for (const characteristic of old_characteristics) !characteristic || characteristic.unsubscribe(this);
@@ -19,3 +22,5 @@ export default {
         Characteristic.unsubscribeAll(this);
     },
 };
+
+export default SubscribeCharacteristicsMixin;

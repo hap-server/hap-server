@@ -1,9 +1,5 @@
 import './server/hap-async';
 
-// @types/node-persist doesn't include types for persist.create
-// This tells TypeScript about that function
-import './types/node-persist';
-
 import Events, {Event, ExtendableEvent, EventListeners} from './events';
 import * as ServerEvents from './events/server';
 

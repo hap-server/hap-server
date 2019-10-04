@@ -1,7 +1,7 @@
 
 /**
  * Add get_handler and set_handler properties and helper getHandler and setHandler methods to Characteristics
- * that wrap handlers so they can return a Promise/a value.
+ * that wrap handlers so they can return a Promise/a value instead of using a callback.
  */
 
 import Logger from '../common/logger';
@@ -40,7 +40,9 @@ Object.defineProperty(Characteristic.prototype, 'get_handler', {
         if (this._get_handler) this.removeListener('get', this._get_handler.listener);
 
         if (handler) {
-            const listener = async function(callback: (err, value) => void, context, connection_id) {
+            const listener = async function(this: HAPNodeJS.Characteristic,
+                callback: (err, value) => void, context?: any, connection_id?: string
+            ) {
                 try {
                     const value = await handler.call(this, context, connection_id); // eslint-disable-line no-invalid-this
 
@@ -59,7 +61,9 @@ Object.defineProperty(Characteristic.prototype, 'get_handler', {
     },
 });
 
-(Characteristic.prototype as HAPNodeJS.Characteristic).getHandler = function(this: HAPNodeJS.Characteristic, handler?: GetCharacteristicHandler) {
+(Characteristic.prototype as HAPNodeJS.Characteristic).getHandler = function(this: HAPNodeJS.Characteristic,
+    handler?: GetCharacteristicHandler
+) {
     this.get_handler = handler;
     return this;
 };
@@ -74,7 +78,9 @@ Object.defineProperty(Characteristic.prototype, 'set_handler', {
         if (this._set_handler) this.removeListener('set', this._set_handler.listener);
 
         if (handler) {
-            const listener = async function(new_value, callback: (err, value) => void, context, connection_id) {
+            const listener = async function(this: HAPNodeJS.Characteristic,
+                new_value, callback: (err, value) => void, context?: any, connection_id?: string
+            ) {
                 try {
                     const value = await handler.call(this, new_value, context, connection_id); // eslint-disable-line no-invalid-this
 
@@ -93,7 +99,9 @@ Object.defineProperty(Characteristic.prototype, 'set_handler', {
     },
 });
 
-(Characteristic.prototype as HAPNodeJS.Characteristic).setHandler = function(this: HAPNodeJS.Characteristic, handler?: SetCharacteristicHandler) {
+(Characteristic.prototype as HAPNodeJS.Characteristic).setHandler = function(this: HAPNodeJS.Characteristic,
+    handler?: SetCharacteristicHandler
+) {
     this.set_handler = handler;
     return this;
 };

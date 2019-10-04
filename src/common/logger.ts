@@ -14,7 +14,7 @@ class Logger {
         // eslint-disable-next-line @typescript-eslint/no-this-alias
         const logger = this;
 
-        const loggerfunction = function Logger() {
+        const loggerfunction = function Logger(this: any) {
             // eslint-disable-next-line no-invalid-this, prefer-rest-params
             return logger.call(this, arguments);
         } as Logger;
