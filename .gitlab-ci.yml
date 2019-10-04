@@ -69,8 +69,8 @@ lint:
 audit:
     stage: test
     script:
+        - npm audit --json > npm-audit.json || true
         - npm --color="always" audit
-        - npm audit --json > npm-audit.json
     artifacts:
         paths:
             - npm-audit.json
