@@ -31,19 +31,19 @@
                                 <p v-if="Object.keys(automation.data.conditions || {}).length">
                                     {{ $t('automations.automation_row_x_triggers_x_conditions_x_actions', {
                                         triggers: $tc('automations.automation_row_x_triggers',
-                                            Object.keys(automation.data.triggers || {}).length),
+                                            Object.keys(automation.data.triggers || {}).length), // eslint-disable-line vue/html-indent
                                         conditions: $tc('automations.automation_row_x_conditions',
-                                            Object.keys(automation.data.conditions || {}).length),
+                                            Object.keys(automation.data.conditions || {}).length), // eslint-disable-line vue/html-indent
                                         actions: $tc('automations.automation_row_x_actions',
-                                            Object.keys(automation.data.actions || {}).length),
+                                            Object.keys(automation.data.actions || {}).length), // eslint-disable-line vue/html-indent
                                     }) }}
                                 </p>
                                 <p v-else>
                                     {{ $t('automations.automation_row_x_triggers_x_actions', {
                                         triggers: $tc('automations.automation_row_x_triggers',
-                                            Object.keys(automation.data.triggers || {}).length),
+                                            Object.keys(automation.data.triggers || {}).length), // eslint-disable-line vue/html-indent
                                         actions: $tc('automations.automation_row_x_actions',
-                                            Object.keys(automation.data.actions || {}).length),
+                                            Object.keys(automation.data.actions || {}).length), // eslint-disable-line vue/html-indent
                                     }) }}
                                 </p>
                             </div>
