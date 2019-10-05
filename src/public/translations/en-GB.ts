@@ -1,8 +1,7 @@
 export default {
-    home: 'Home',
-
     menu: {
         menu: 'Menu',
+        home: 'Home',
         all_accessories: 'All accessories',
 
         layout_settings: '{name} Settings',
@@ -16,6 +15,14 @@ export default {
 
         settings: 'Settings',
         new_layout: 'New layout',
+    },
+
+    main: {
+        home: 'Home',
+        automations: 'Automations',
+
+        connecting: 'Connecting',
+        reconnecting: 'Reconnecting',
     },
 
     layout: {
@@ -254,5 +261,117 @@ export default {
             no_automations: 'You have no other automations.',
             skip_conditions: 'Skip conditions',
         },
+    },
+
+    modals: {
+        login: 'Login',
+        settings: 'Settings',
+        add_accessory: 'Add accessory',
+        layout_settings: '{name} Settings',
+        new_layout: 'New layout',
+        delete_layout: 'Delete {name}?',
+        accessory_settings: '{name} Settings',
+        new_bridge: 'New bridge',
+        delete_bridge: 'Delete {name}?',
+        pairing_settings: '{name} Settings',
+        service_settings: '{name} Settings',
+        scene_settings: '{name} Settings',
+        new_scene: 'New scene',
+        setup: 'Setup',
+    },
+
+    settings: {
+        loading: 'Loading',
+        saving: 'Saving',
+        cancel: 'Cancel',
+        save: 'Save',
+        done: 'Done',
+
+        unsaved_in_other_tab: 'You have unsaved changes in another tab',
+
+        // General
+        general: 'General',
+        name: 'Name',
+        wallpaper: 'Wallpaper',
+        choose_file: 'Choose file',
+
+        // Users
+        users: 'Users',
+        location: 'Location',
+        location_description: 'This device will be used to track this user\'s location for location based automations.',
+
+        permissions: {
+            permissions: 'Permissions',
+
+            admin: 'Admin',
+            admin_warning: 'This will give this user full access to the server as the user running hap-server.',
+
+            get_home_settings: 'Access home',
+            set_home_settings: 'Update home settings',
+
+            server_runtime_info: 'Access server info',
+            web_console: 'Access web console',
+            web_console_warning: 'This will give this user full access to the server as the user running hap-server.',
+
+            manage_users: 'Manage users',
+            manage_permissions: 'Manage user permissions',
+            manage_permissions_warning: 'This will allow this user to give themself any permissions you don\'t allow.',
+            manage_pairings: 'Manage pairing',
+
+            create_accessories: 'Create accessories',
+            create_layouts: 'Create layouts',
+            create_automations: 'Create automations',
+            create_scenes: 'Create scenes',
+            create_bridges: 'Create bridges',
+
+            accessories_bridges: 'Accessories and bridges',
+            layouts: 'Layouts',
+            scenes: 'Scenes',
+
+            default: 'Default',
+            unknown_accessory: 'Unknown {uuid}',
+            add: 'Add',
+            remove: 'Remove',
+
+            view: 'View',
+            read: 'Read',
+            activate: 'Activate',
+            write: 'Write',
+            edit: 'Edit',
+            manage: 'Manage',
+            configure: 'Configure',
+            delete: 'Delete',
+        },
+
+        save_permissions: 'Save permissions',
+
+        // Accessories
+        accessories: 'Accessories',
+        add_accessory: 'Add accessory',
+        refresh_accessories: 'Refresh accessories',
+
+        // Bridges
+        bridges: 'Bridges',
+        new_bridge: 'New bridge',
+
+        // Output
+        output: 'Output',
+        command: 'Command',
+
+        // Console
+        console: 'Console',
+        status: 'Status',
+    },
+
+    setup: {
+        token: 'Token',
+
+        loading: 'Loading',
+        next: 'Next',
+        done: 'Done',
+
+        finished_1: 'You are now authenticated to the server.',
+        finished_2: 'You should now setup your own user using a plugin with an authentication handler.',
+        finished_3: 'Once you login with your own account setup will be disabled.',
     },
 };

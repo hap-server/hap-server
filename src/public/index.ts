@@ -114,6 +114,7 @@ Object.defineProperty(PluginManager, 'base_url', {
 const client = new (native_hook && native_hook.Client ? native_hook.Client : Client)();
 const modals = new (native_hook && native_hook.Modals ? native_hook.Modals : Modals)(client);
 modals.component = ModalsComponent;
+modals.i18n = i18n;
 
 const vue = new Vue({
     router,

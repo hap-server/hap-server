@@ -4,20 +4,26 @@
 
         <form v-if="tab === 'general'" @submit.prevent="save(true)">
             <div class="form-group row">
-                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-name'">Name</label>
+                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-name'">
+                    {{ $t('settings.name') }}
+                </label>
                 <div class="col-sm-9">
                     <input :id="_uid + '-name'" v-model="name" type="text" class="form-control form-control-sm"
-                        placeholder="Home" :disabled="loading || saving" />
+                        :placeholder="$t('settings.name')" :disabled="loading || saving" />
                 </div>
             </div>
 
             <div class="form-group row">
-                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-wallpaper'">Wallpaper</label>
+                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-wallpaper'">
+                    {{ $t('settings.wallpaper') }}
+                </label>
                 <div class="col-sm-9">
                     <div class="custom-file form-control-sm">
                         <input :id="_uid + '-wallpaper'" ref="file" type="file" class="custom-file-input"
                             :disabled="loading || saving || uploading" @change="upload" />
-                        <label class="custom-file-label" :for="_uid + '-wallpaper'">Choose file</label>
+                        <label class="custom-file-label" :for="_uid + '-wallpaper'">
+                            {{ $t('settings.choose_file') }}
+                        </label>
                     </div>
                     <div v-if="uploading" class="progress mt-3">
                         <div class="progress-bar" :class="{'progress-bar-striped': typeof upload_progress !== 'number'}"
@@ -58,13 +64,13 @@
                     </template>
 
                     <template v-slot:location>
-                        <h4>Location</h4>
+                        <h4>{{ $t('settings.location') }}</h4>
 
                         <div class="form-group">
                             <input type="text" class="form-control form-control-sm" disabled />
 
                             <small class="text-muted">
-                                This device will be used to track this user's location for location based automations.
+                                {{ $t('settings.location_description') }}
                             </small>
                         </div>
                     </template>
@@ -92,6 +98,7 @@
 
                         <p v-if="accessory.display_services.length" class="mb-0">
                             <small>
+                                <!-- TODO: translate -->
                                 <template v-for="(service, index) in accessory.display_services">{{ service.name }}{{
                                     accessory.display_services.length - 2 === index ? ' and ' :
                                     accessory.display_services.length - 1 > index ? ', ' : '' }}</template>
@@ -113,7 +120,7 @@
 
         <div v-if="tab === 'output'" key="output" class="form-group">
             <dl v-if="command_line_flags.length" class="row">
-                <dt class="col-sm-3">Command</dt>
+                <dt class="col-sm-3">{{ $t('settings.command') }}</dt>
                 <dd class="col-sm-9 text-right selectable">
                     <template v-for="arg in command_line_flags">
                         {{ arg.match(/[^\\]\s/g) ? `"${arg}"` : arg }}
@@ -126,7 +133,7 @@
 
         <div v-if="tab === 'console'" key="console" class="form-group">
             <dl v-if="!console" class="row">
-                <dt class="col-sm-3">Status</dt>
+                <dt class="col-sm-3">{{ $t('settings.status') }}</dt>
                 <dd class="col-sm-9 text-right">{{ opening_console ? 'Starting' : 'Stopped' }}</dd>
             </dl>
 
@@ -136,57 +143,57 @@
         <div class="d-flex">
             <template v-if="tab === 'accessories'">
                 <button class="btn btn-default btn-sm" type="button" :disabled="!canAddAccessories"
-                    @click="$emit('modal', {type: 'add-accessory'})">Add accessory</button>&nbsp;
+                    @click="$emit('modal', {type: 'add-accessory'})">{{ $t('settings.add_accessory') }}</button>&nbsp;
             </template>
             <template v-if="tab === 'bridges'">
                 <button class="btn btn-default btn-sm" type="button" :disabled="!canCreateBridges"
-                    @click="$emit('modal', {type: 'new-bridge'})">New bridge</button>&nbsp;
+                    @click="$emit('modal', {type: 'new-bridge'})">{{ $t('settings.new_bridge') }}</button>&nbsp;
             </template>
-            <div v-if="loading">Loading</div>
-            <div v-else-if="saving">Saving</div>
+            <div v-if="loading">{{ $t('settings.loading') }}</div>
+            <div v-else-if="saving">{{ $t('settings.saving') }}</div>
             <div class="flex-fill"></div>
             <template v-if="tab === 'accessories'">
                 <button class="btn btn-default btn-sm" type="button" :disabled="loadingAccessories"
-                    @click="$emit('refresh-accessories')">Refresh accessories</button>&nbsp;
+                    @click="$emit('refresh-accessories')">{{ $t('settings.refresh_accessories') }}</button>&nbsp;
             </template>
             <template v-if="tab === 'general' && (changed || uploading)">
                 <button class="btn btn-default btn-sm" type="button"
                     :disabled="saving || uploading || editing_user_saving || editing_user_permissions_saving"
-                    @click="() => $refs.panel.close()">Cancel</button>&nbsp;
+                    @click="() => $refs.panel.close()">{{ $t('settings.cancel') }}</button>&nbsp;
                 <button key="primary" class="btn btn-primary btn-sm" type="button"
                     :disabled="loading || saving || uploading"
                     @click="save(!editing_user_changed && !editing_user_saving && !editing_user_permissions_changed &&
-                        !editing_user_permissions_saving)">Save</button>
+                        !editing_user_permissions_saving)">{{ $t('settings.save') }}</button>
             </template>
             <template v-else-if="tab === 'users' && editing_user && (editing_user_changed || editing_user_saving)">
                 <button class="btn btn-default btn-sm" type="button"
                     :disabled="saving || uploading || editing_user_saving || editing_user_permissions_saving"
-                    @click="() => $refs.panel.close()">Cancel</button>&nbsp;
+                    @click="() => $refs.panel.close()">{{ $t('settings.cancel') }}</button>&nbsp;
                 <button key="primary" class="btn btn-primary btn-sm" type="button" :disabled="editing_user_saving"
-                    @click="() => $refs['user-component'].save()">Save</button>
+                    @click="() => $refs['user-component'].save()">{{ $t('settings.save') }}</button>
             </template>
             <template v-else-if="tab === 'users' && editing_user &&
                 (editing_user_permissions_changed || editing_user_permissions_saving)"
             >
                 <button class="btn btn-default btn-sm" type="button"
                     :disabled="saving || uploading || editing_user_saving || editing_user_permissions_saving"
-                    @click="() => $refs.panel.close()">Cancel</button>&nbsp;
+                    @click="() => $refs.panel.close()">{{ $t('settings.cancel') }}</button>&nbsp;
                 <button key="primary" class="btn btn-primary btn-sm" type="button"
                     :disabled="editing_user_permissions_saving"
-                    @click="() => $refs['user-permissions'].save()">Save permissions</button>
+                    @click="() => $refs['user-permissions'].save()">{{ $t('settings.save_permissions') }}</button>
             </template>
             <template v-else>
                 <button v-if="changed || editing_user_changed || editing_user_permissions_changed"
                     class="btn btn-default btn-sm" type="button"
                     :disabled="saving || uploading || editing_user_saving || editing_user_permissions_saving"
-                    @click="() => $refs.panel.close()">Cancel</button>&nbsp;
+                    @click="() => $refs.panel.close()">{{ $t('settings.cancel') }}</button>&nbsp;
                 <button key="primary" class="btn btn-primary btn-sm" type="button"
                     :disabled="changed || editing_user_changed || editing_user_permissions_changed || loading ||
                         saving || uploading || editing_user_saving || editing_user_permissions_saving"
                     :title="loading || saving || editing_user_saving || editing_user_permissions_saving ? null :
                         changed || uploading || editing_user_changed || editing_user_permissions_changed ?
-                            'You have unsaved changes in another tab' : null"
-                    @click="() => $refs.panel.close()">Done</button>
+                            $t('settings.unsaved_in_other_tab') : null"
+                    @click="() => $refs.panel.close()">{{ $t('settings.done') }}</button>
             </template>
         </div>
     </panel>
@@ -245,12 +252,13 @@
 
                 tab: 'general',
                 tabs: {
-                    general: 'General',
-                    users: {label: 'Users', if: () => this.canManageUsers && user_management_components.size},
-                    accessories: 'Accessories',
-                    bridges: 'Bridges',
-                    output: {label: 'Output', if: () => this.canAccessServerInfo},
-                    console: {label: 'Console', if: () => this.canOpenConsole},
+                    general: () => this.$t('settings.general'),
+                    users: {label: () => this.$t('settings.users'), if: () => this.canManageUsers &&
+                        user_management_components.size},
+                    accessories: () => this.$t('settings.accessories'),
+                    bridges: () => this.$t('settings.bridges'),
+                    output: {label: () => this.$t('settings.output'), if: () => this.canAccessServerInfo},
+                    console: {label: () => this.$t('settings.console'), if: () => this.canOpenConsole},
                 },
 
                 terminal: null,

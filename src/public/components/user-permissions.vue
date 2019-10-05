@@ -1,25 +1,29 @@
 <template>
     <form class="user-permissions" @submit="save(true)">
-        <h4>Permissions</h4>
+        <h4>{{ $t('settings.permissions.permissions') }}</h4>
 
         <div class="form-group">
             <div class="custom-control custom-checkbox">
                 <input :id="_uid + '-admin'" v-model="admin" type="checkbox" class="custom-control-input"
                     :disabled="loading || saving" />
-                <label class="custom-control-label" :for="_uid + '-admin'">Admin</label>
+                <label class="custom-control-label" :for="_uid + '-admin'">
+                    {{ $t('settings.permissions.admin') }}
+                </label>
             </div>
             <small v-if="admin" class="text-warning">
-                This will give this user full access to the server as the user running hap-server.
+                {{ $t('settings.permissions.admin_warning') }}
             </small>
         </div>
 
         <div class="form-group">
             <div class="custom-control custom-checkbox">
-                <input v-if="admin || set_home_settings" :id="_uid + '-get-home-settings'" :checked="true" type="checkbox"
-                    class="custom-control-input" disabled />
+                <input v-if="admin || set_home_settings" :id="_uid + '-get-home-settings'"
+                    :checked="true" type="checkbox" class="custom-control-input" disabled />
                 <input v-else :id="_uid + '-get-home-settings'" v-model="get_home_settings" type="checkbox"
                     class="custom-control-input" :disabled="loading || saving || admin" />
-                <label class="custom-control-label" :for="_uid + '-get-home-settings'">Access home</label>
+                <label class="custom-control-label" :for="_uid + '-get-home-settings'">
+                    {{ $t('settings.permissions.get_home_settings') }}
+                </label>
             </div>
         </div>
 
@@ -29,7 +33,9 @@
                     class="custom-control-input" disabled />
                 <input v-else :id="_uid + '-set-home-settings'" v-model="set_home_settings" type="checkbox"
                     class="custom-control-input" :disabled="loading || saving" />
-                <label class="custom-control-label" :for="_uid + '-set-home-settings'">Update home settings</label>
+                <label class="custom-control-label" :for="_uid + '-set-home-settings'">
+                    {{ $t('settings.permissions.set_home_settings') }}
+                </label>
             </div>
         </div>
 
@@ -39,7 +45,9 @@
                     class="custom-control-input" disabled />
                 <input v-else :id="_uid + '-server-runtime-info'" v-model="server_runtime_info" type="checkbox"
                     class="custom-control-input" :disabled="loading || saving" />
-                <label class="custom-control-label" :for="_uid + '-server-runtime-info'">Access server info</label>
+                <label class="custom-control-label" :for="_uid + '-server-runtime-info'">
+                    {{ $t('settings.permissions.server_runtime_info') }}
+                </label>
             </div>
         </div>
 
@@ -49,10 +57,12 @@
                     class="custom-control-input" disabled />
                 <input v-else :id="_uid + '-web-console'" v-model="web_console" type="checkbox"
                     class="custom-control-input" :disabled="loading || saving" />
-                <label class="custom-control-label" :for="_uid + '-web-console'">Access web console</label>
+                <label class="custom-control-label" :for="_uid + '-web-console'">
+                    {{ $t('settings.permissions.web_console') }}
+                </label>
             </div>
             <small v-if="!admin && web_console" class="text-danger">
-                This will give this user full access to the server as the user running hap-server.
+                {{ $t('settings.permissions.web_console_warning') }}
             </small>
         </div>
 
@@ -62,7 +72,9 @@
                     class="custom-control-input" disabled />
                 <input v-else :id="_uid + '-manage-users'" v-model="manage_users" type="checkbox"
                     class="custom-control-input" :disabled="loading || saving" />
-                <label class="custom-control-label" :for="_uid + '-manage-users'">Manage users</label>
+                <label class="custom-control-label" :for="_uid + '-manage-users'">
+                    {{ $t('settings.permissions.manage_users') }}
+                </label>
             </div>
         </div>
 
@@ -72,10 +84,12 @@
                     class="custom-control-input" :disabled="loading || saving || admin" />
                 <input v-else :id="_uid + '-manage-permissions'" v-model="manage_permissions" type="checkbox"
                     class="custom-control-input" :disabled="loading || saving" />
-                <label class="custom-control-label" :for="_uid + '-manage-permissions'">Manage user permissions</label>
+                <label class="custom-control-label" :for="_uid + '-manage-permissions'">
+                    {{ $t('settings.permissions.manage_permissions') }}
+                </label>
             </div>
             <small v-if="!admin && manage_permissions" class="text-danger">
-                This will allow this user to give themself any permissions you don't allow.
+                {{ $t('settings.permissions.manage_permissions_warning') }}
             </small>
         </div>
 
@@ -85,7 +99,9 @@
                     class="custom-control-input" :disabled="loading || saving || admin" />
                 <input v-else :id="_uid + '-manage-pairings'" v-model="manage_pairings" type="checkbox"
                     class="custom-control-input" :disabled="loading || saving" />
-                <label class="custom-control-label" :for="_uid + '-manage-pairings'">Manage pairings</label>
+                <label class="custom-control-label" :for="_uid + '-manage-pairings'">
+                    {{ $t('settings.permissions.manage_pairings') }}
+                </label>
             </div>
         </div>
 
@@ -95,7 +111,9 @@
                     class="custom-control-input" disabled />
                 <input v-else :id="_uid + '-create-accessories'" v-model="create_accessories" type="checkbox"
                     class="custom-control-input" :disabled="loading || saving" />
-                <label class="custom-control-label" :for="_uid + '-create-accessories'">Create accessories</label>
+                <label class="custom-control-label" :for="_uid + '-create-accessories'">
+                    {{ $t('settings.permissions.create_accessories') }}
+                </label>
             </div>
         </div>
 
@@ -105,7 +123,9 @@
                     class="custom-control-input" disabled />
                 <input v-else :id="_uid + '-create-layouts'" v-model="create_layouts" type="checkbox"
                     class="custom-control-input" :disabled="loading || saving" />
-                <label class="custom-control-label" :for="_uid + '-create-layouts'">Create layouts</label>
+                <label class="custom-control-label" :for="_uid + '-create-layouts'">
+                    {{ $t('settings.permissions.create_layouts') }}
+                </label>
             </div>
         </div>
 
@@ -115,7 +135,9 @@
                     class="custom-control-input" disabled />
                 <input v-else :id="_uid + '-create-automations'" v-model="create_automations" type="checkbox"
                     class="custom-control-input" :disabled="loading || saving" />
-                <label class="custom-control-label" :for="_uid + '-create-automations'">Create automations</label>
+                <label class="custom-control-label" :for="_uid + '-create-automations'">
+                    {{ $t('settings.permissions.create_automations') }}
+                </label>
             </div>
         </div>
 
@@ -125,7 +147,9 @@
                     class="custom-control-input" disabled />
                 <input v-else :id="_uid + '-create-scenes'" v-model="create_scenes" type="checkbox"
                     class="custom-control-input" :disabled="loading || saving" />
-                <label class="custom-control-label" :for="_uid + '-create-scenes'">Create scenes</label>
+                <label class="custom-control-label" :for="_uid + '-create-scenes'">
+                    {{ $t('settings.permissions.create_scenes') }}
+                </label>
             </div>
         </div>
 
@@ -135,14 +159,17 @@
                     class="custom-control-input" disabled />
                 <input v-else :id="_uid + '-create-bridges'" v-model="create_bridges" type="checkbox"
                     class="custom-control-input" :disabled="loading || saving" />
-                <label class="custom-control-label" :for="_uid + '-create-bridges'">Create bridges</label>
+                <label class="custom-control-label" :for="_uid + '-create-bridges'">
+                    {{ $t('settings.permissions.create_bridges') }}
+                </label>
             </div>
         </div>
 
         <h5 class="d-flex">
-            <span class="flex-fill">Accessories and bridges</span>
+            <span class="flex-fill">{{ $t('settings.permissions.accessories_bridges') }}</span>
             <dropdown v-if="Object.values(client.accessories).find(a => !accessories[a.uuid])" class="ml-3"
-                colour="dark" label="Add" align="right" :disabled="loading || saving || admin"
+                colour="dark" :label="$t('settings.permissions.add')" align="right"
+                :disabled="loading || saving || admin"
             >
                 <!-- eslint-disable-next-line vue/no-use-v-if-with-v-for -->
                 <a v-for="accessory in client.accessories" :key="accessory.uuid" v-if="!accessories[accessory.uuid]"
@@ -158,18 +185,18 @@
                 <thead>
                     <tr>
                         <th></th>
-                        <th>Read</th>
-                        <th>Write</th>
-                        <th>Manage</th>
-                        <th>Configure</th>
-                        <th>Delete</th>
+                        <th>{{ $t('settings.permissions.read') }}</th>
+                        <th>{{ $t('settings.permissions.write') }}</th>
+                        <th>{{ $t('settings.permissions.manage') }}</th>
+                        <th>{{ $t('settings.permissions.configure') }}</th>
+                        <th>{{ $t('settings.permissions.delete') }}</th>
                         <th></th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr v-for="(permissions, accessory_uuid) in accessories" :key="accessory_uuid">
                         <td :class="{'text-muted': accessory_uuid === '*'}">
-                            {{ accessory_uuid === '*' ? 'Default' : client.accessories &&
+                            {{ accessory_uuid === '*' ? $t('settings.permissions.default') : client.accessories &&
                                 client.accessories[accessory_uuid] && client.accessories[accessory_uuid].name ||
                                 accessory_uuid }}
                         </td>
@@ -203,7 +230,8 @@
                         <td>
                             <button v-if="accessory_uuid !== '*'" class="btn btn-danger btn-sm"
                                 :disabled="loading || saving || admin"
-                                @click.stop="$delete(accessories, accessory_uuid)">Delete</button>
+                                @click.stop="$delete(accessories, accessory_uuid)"
+                            >{{ $t('settings.permissions.remove') }}</button>
                         </td>
                     </tr>
                 </tbody>
@@ -211,9 +239,9 @@
         </div>
 
         <h5 class="d-flex">
-            <span class="flex-fill">Layouts</span>
-            <dropdown v-if="Object.values(client.layouts).find(l => !layouts[l.uuid])" class="ml-3"
-                colour="dark" label="Add" align="right" :disabled="loading || saving || admin"
+            <span class="flex-fill">{{ $t('settings.permissions.layouts') }}</span>
+            <dropdown v-if="Object.values(client.layouts).find(l => !layouts[l.uuid])" class="ml-3" colour="dark"
+                :label="$t('settings.permissions.add')" align="right" :disabled="loading || saving || admin"
             >
                 <!-- eslint-disable-next-line vue/no-use-v-if-with-v-for -->
                 <a v-for="layout in client.layouts" v-if="!layouts[layout.uuid] && !layout.uuid.startsWith('Overview.')"
@@ -229,17 +257,17 @@
                 <thead>
                     <tr>
                         <th></th>
-                        <th>View</th>
-                        <th>Edit</th>
-                        <th>Delete</th>
+                        <th>{{ $t('settings.permissions.view') }}</th>
+                        <th>{{ $t('settings.permissions.edit') }}</th>
+                        <th>{{ $t('settings.permissions.delete') }}</th>
                         <th></th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr v-for="(permissions, layout_uuid) in layouts" :key="layout_uuid">
                         <td :class="{'text-muted': layout_uuid === '*'}">
-                            {{ layout_uuid === '*' ? 'Default' : client.layouts && client.layouts[layout_uuid] &&
-                                client.layouts[layout_uuid].data.name || layout_uuid }}
+                            {{ layout_uuid === '*' ? $t('settings.permissions.default') : client.layouts &&
+                                client.layouts[layout_uuid] && client.layouts[layout_uuid].data.name || layout_uuid }}
                         </td>
                         <td>
                             <input v-if="admin" type="checkbox" :checked="true" disabled />
@@ -260,7 +288,8 @@
                         <td>
                             <button v-if="layout_uuid !== '*'" class="btn btn-danger btn-sm"
                                 :disabled="loading || saving || admin"
-                                @click.stop="$delete(layouts, layout_uuid)">Delete</button>
+                                @click.stop="$delete(layouts, layout_uuid)"
+                            >{{ $t('settings.permissions.remove') }}</button>
                         </td>
                     </tr>
                 </tbody>
@@ -268,9 +297,9 @@
         </div>
 
         <h5 class="d-flex">
-            <span class="flex-fill">Scenes</span>
+            <span class="flex-fill">{{ $t('settings.permissions.scenes') }}</span>
             <dropdown v-if="Object.values(client.scenes).find(s => !scenes[s.uuid])" class="ml-3" colour="dark"
-                label="Add" align="right" :disabled="loading || saving || admin"
+                :label="$t('settings.permissions.add')" align="right" :disabled="loading || saving || admin"
             >
                 <!-- eslint-disable-next-line vue/no-use-v-if-with-v-for -->
                 <a v-for="scene in client.scenes" :key="scene.uuid" v-if="!scenes[scene.uuid]" class="dropdown-item"
@@ -285,18 +314,18 @@
                 <thead>
                     <tr>
                         <th></th>
-                        <th>View</th>
-                        <th>Activate</th>
-                        <th>Edit</th>
-                        <th>Delete</th>
+                        <th>{{ $t('settings.permissions.view') }}</th>
+                        <th>{{ $t('settings.permissions.activate') }}</th>
+                        <th>{{ $t('settings.permissions.edit') }}</th>
+                        <th>{{ $t('settings.permissions.delete') }}</th>
                         <th></th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr v-for="(permissions, scene_uuid) in scenes" :key="scene_uuid">
                         <td :class="{'text-muted': scene_uuid === '*'}">
-                            {{ scene_uuid === '*' ? 'Default' : client.scenes && client.scenes[scene_uuid] &&
-                                client.scenes[scene_uuid].data.name || scene_uuid }}
+                            {{ scene_uuid === '*' ? $t('settings.permissions.default') : client.scenes &&
+                                client.scenes[scene_uuid] && client.scenes[scene_uuid].data.name || scene_uuid }}
                         </td>
                         <td>
                             <input v-if="admin" type="checkbox" :checked="true" disabled />
@@ -322,7 +351,8 @@
                         <td>
                             <button v-if="scene_uuid !== '*'" class="btn btn-danger btn-sm"
                                 :disabled="loading || saving || admin"
-                                @click.stop="$delete(scenes, scene_uuid)">Delete</button>
+                                @click.stop="$delete(scenes, scene_uuid)"
+                            >{{ $t('settings.permissions.remove') }}</button>
                         </td>
                     </tr>
                 </tbody>
@@ -485,10 +515,10 @@
         },
         methods: {
             getAccessoryName(uuid) {
-                if (uuid === '*') return 'Default';
+                if (uuid === '*') return this.$t('settings.permissions.default');
 
                 const accessory = this.client.accessories[uuid];
-                if (!accessory) return 'Unknown ' + uuid;
+                if (!accessory) return this.$t('settings.permissions.unknown_accessory', {uuid});
 
                 return accessory.name || accessory.uuid;
             },

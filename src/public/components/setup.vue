@@ -2,7 +2,9 @@
     <panel ref="panel" @close="$emit('close')">
         <form v-if="stage === 'authenticate'" @submit.prevent="authenticate()">
             <div class="form-group row">
-                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-token'">Token</label>
+                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-token'">
+                    {{ $t('setup.token') }}
+                </label>
                 <div class="col-sm-9">
                     <input :id="_uid + '-token'" v-model="setup_token" type="text" class="form-control form-control-sm"
                         :class="{'is-invalid': error}" :disabled="loading" />
@@ -13,16 +15,19 @@
         </form>
 
         <div v-else>
-            <p>You are now authenticated to the server.</p>
-            <p>You should now setup your own user using a plugin with an authentication handler.</p>
-            <p>Once you login with your own account setup will be disabled.</p>
+            <p>{{ $t('setup.finished_1') }}</p>
+            <p>{{ $t('setup.finished_2') }}</p>
+            <p>{{ $t('setup.finished_3') }}</p>
         </div>
 
         <div class="d-flex">
-            <div v-if="loading">Loading</div>
+            <div v-if="loading">{{ $t('setup.loading') }}</div>
             <div class="flex-fill"></div>
-            <button v-if="stage === 'authenticate'" class="btn btn-primary btn-sm" type="button" :disabled="loading" @click="authenticate()">Next</button>
-            <button v-else class="btn btn-primary btn-sm" type="button" @click="() => $refs.panel.close()">Done</button>
+            <button v-if="stage === 'authenticate'" class="btn btn-primary btn-sm" type="button" :disabled="loading"
+                @click="authenticate()">{{ $t('setup.next') }}</button>
+            <button v-else class="btn btn-primary btn-sm" type="button" @click="() => $refs.panel.close()">
+                {{ $t('setup.done') }}
+            </button>
         </div>
     </panel>
 </template>

@@ -7,7 +7,8 @@
 
         <a v-if="authenticatedUser && layouts['Overview.' + authenticatedUser.id]" class="dropdown-item"
             :class="{active: value && value.uuid === 'Overview.' + authenticatedUser.id && !showAutomations}"
-            href="#" @click.prevent="setLayout(layouts['Overview.' + authenticatedUser.id])">{{ name }}</a>
+            href="#" @click.prevent="setLayout(layouts['Overview.' + authenticatedUser.id])"
+        >{{ name || $t('menu.home') }}</a>
         <a class="dropdown-item" :class="{active: !value && !showAutomations}" href="#"
             @click.prevent="setLayout(null)">{{ $t('menu.all_accessories') }}</a>
 
@@ -74,7 +75,7 @@
         props: {
             layouts: Object,
             value: Layout,
-            name: {type: String, default: 'Home'},
+            name: {type: String, default: null},
             authenticatedUser: AuthenticatedUser,
             canCreate: Boolean,
             canAccessServerSettings: Boolean,
@@ -87,7 +88,7 @@
                 if (!this.value) return this.$t('menu.all_accessories');
 
                 if (this.authenticatedUser && this.value.uuid === 'Overview.' + this.authenticatedUser.id) {
-                    return this.name;
+                    return this.name || this.$t('menu.home');
                 }
 
                 return this.value.name || this.value.uuid;
