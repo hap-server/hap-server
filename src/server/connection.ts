@@ -244,12 +244,7 @@ export default class Connection {
                 this.log.error('Error in message handler', data.type, err);
 
                 error = true;
-                data = {
-                    reject: true,
-                    error: err instanceof Error,
-                    constructor: err.constructor.name,
-                    data: err ? Object.assign({message: err.message, code: err.code, stack: err.stack}, err) : err,
-                };
+                data = this.serialiseError(err);
             }
         }
 
@@ -258,6 +253,15 @@ export default class Connection {
 
     sendProgress(messageid, data) {
         this.ws.send('&' + messageid + ':' + JSON.stringify(data));
+    }
+
+    serialiseError(err) {
+        return {
+            reject: true,
+            error: err instanceof Error,
+            constructor: err.constructor.name,
+            data: err ? Object.assign({message: err.message, code: err.code, stack: err.stack}, err) : err,
+        };
     }
 
     handleMessage(messageid, data) {
@@ -1385,7 +1389,11 @@ export default class Connection {
         const scene = this.server.automations.getSceneByUUID(uuid);
         if (!scene) throw new Error('Unknown scene');
 
-        return await scene.active;
+        try {
+            return await scene.active;
+        } catch (err) {
+            return this.serialiseError(err);
+        }
     }
 
     /**

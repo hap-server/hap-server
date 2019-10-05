@@ -6,7 +6,10 @@
         <div class="service scene" :class="{active: scene.active, updating: scene.activating || scene.deactivating, clickable: !scene.activating && !scene.deactivating && !editing}" @click="click">
             <div class="service-tile-contents">
                 <div class="service-top">
-                    <div class="service-icon">
+                    <div v-if="scene.active_error" class="service-icon service-error">
+                        <warning-icon />
+                    </div>
+                    <div v-else class="service-icon">
                         <home-icon />
                     </div>
                 </div>
@@ -37,10 +40,12 @@
     import {PushModalSymbol} from '../../../internal-symbols';
 
     import HomeIcon from '../../icons/home.vue';
+    import WarningIcon from '../../icons/warning.vue';
 
     export default {
         components: {
             HomeIcon,
+            WarningIcon,
         },
         props: {
             scene: Scene,

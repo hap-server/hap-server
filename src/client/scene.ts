@@ -5,7 +5,6 @@ export default class Scene extends EventEmitter {
     connection: Connection;
     readonly uuid: string;
 
-    active: boolean;
     activating = false;
     activating_progress = 0;
     deactivating = false;
@@ -13,6 +12,12 @@ export default class Scene extends EventEmitter {
 
     data;
     _permissions;
+    _active: boolean | {
+        reject: boolean;
+        error: boolean;
+        constructor: any;
+        data: any;
+    };
 
     /**
      * Creates a Scene.
@@ -31,7 +36,7 @@ export default class Scene extends EventEmitter {
         this._setData(data || {});
         this._setPermissions(permissions || {});
 
-        this.active = !!active;
+        this._active = active;
     }
 
     _setData(data) {
@@ -72,6 +77,14 @@ export default class Scene extends EventEmitter {
         return this._permissions.delete;
     }
 
+    get active() {
+        return typeof this._active !== 'object' ? !!this._active : false;
+    }
+
+    get active_error() {
+        return typeof this._active === 'object' ? this._active : null;
+    }
+
     /**
      * Activates this scene.
      *
@@ -87,7 +100,7 @@ export default class Scene extends EventEmitter {
     }
 
     _handleActivating(data) {
-        this.active = false;
+        this._active = false;
         this.activating = true;
         this.activating_progress = 0;
         this.emit('activating');
@@ -96,7 +109,7 @@ export default class Scene extends EventEmitter {
     _handleActivated(data) {
         if (this.active) return;
 
-        this.active = true;
+        this._active = true;
         this.activating = false;
         this.activating_progress = 0;
         this.emit('activated');
@@ -117,7 +130,7 @@ export default class Scene extends EventEmitter {
     }
 
     _handleDeactivating(data) {
-        this.active = true;
+        this._active = true;
         this.deactivating = true;
         this.deactivating_progress = 0;
         this.emit('deactivating');
@@ -126,7 +139,7 @@ export default class Scene extends EventEmitter {
     _handleDeactivated(data) {
         if (!this.active) return;
 
-        this.active = false;
+        this._active = false;
         this.deactivating = false;
         this.deactivating_progress = 0;
         this.emit('deactivated');
