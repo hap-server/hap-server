@@ -22,8 +22,12 @@ import Modals from './modals';
 // @ts-ignore
 import ModalsComponent from './components/modals.vue';
 
+type VueRouterMode = 'history' | 'hash';
+// @ts-ignore
+const default_router_mode: VueRouterMode = navigator.standalone ? 'hash' : 'history';
+
 const router = new VueRouter({
-    mode: 'history',
+    mode: default_router_mode,
     routes: [
         {name: 'user-default-layout', path: '/'},
         {name: 'layout', path: '/layout/:layout_uuid'},
@@ -35,7 +39,6 @@ const router = new VueRouter({
 
 import PluginManager from './plugins';
 
-type VueRouterMode = 'history' | 'hash';
 interface NativeHook {
     Client?: typeof Client;
     Modals?: {new (client: Client): Modals};
@@ -56,7 +59,7 @@ const native_hook = global.__HAP_SERVER_NATIVE_HOOK__ ? global.__HAP_SERVER_NATI
     ModalsComponent,
 }) as NativeHook : null;
 
-if (native_hook && native_hook.router_mode !== 'history') {
+if (native_hook && native_hook.router_mode !== default_router_mode) {
     // Re-initialise the router using the hash mode
     // @ts-ignore
     router.options.mode = 'hash';
