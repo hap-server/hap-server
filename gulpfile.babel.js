@@ -157,7 +157,7 @@ export const webpack_hot_config = Object.assign({}, webpack_config, {
         ],
     },
     module: Object.assign({}, webpack_config.module, {
-        rules: webpack_config.module.rules.map((rule, i) => i === 1 ? {
+        rules: webpack_config.module.rules.map((rule, i) => i === 2 ? {
             test: /\.(s?c|sa)ss$/,
             use: [
                 'style-loader',
