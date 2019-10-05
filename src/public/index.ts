@@ -11,8 +11,10 @@ import Connection from '../client/connection';
 
 import Vue from 'vue';
 import VueRouter from 'vue-router';
+import VueI18n from 'vue-i18n';
 
 Vue.use(VueRouter);
+Vue.use(VueI18n);
 
 // @ts-ignore
 import MainComponent from './components/main-component.vue';
@@ -35,6 +37,42 @@ const router = new VueRouter({
         {name: 'automations', path: '/automations'},
         {name: 'setup', path: '/setup'},
     ],
+});
+
+import messages from './translations/en-GB';
+const availableLocales = [];
+const translationsContextRequire: {
+    (key: string): any;
+    resolve: (key: string) => string | number; // string if using named modules, number otherwise
+    keys: () => string[];
+    id: string | number;
+// @ts-ignore
+} = require.context('./translations', true, /\.ts$/, 'weak');
+
+for (const file of translationsContextRequire.keys()) {
+    const [, locale] = file.match(/\/([^/]*)\.[^/.]+$/i);
+    console.log(locale, file);
+    availableLocales.push(locale);
+
+    // @ts-ignore
+    if (module.hot) {
+        const m = translationsContextRequire.resolve(file);
+        const c = updated => {
+            i18n.setLocaleMessage(locale, translationsContextRequire(file).default);
+        };
+
+        // @ts-ignore
+        module.hot.accept(m, c);
+        require.cache[translationsContextRequire.id].hot.accept(m, c);
+    }
+}
+
+const i18n = new VueI18n({
+    locale: 'en-GB',
+    fallbackLocale: 'en-GB',
+    messages: {'en-GB': messages},
+    // @ts-ignore
+    availableLocales,
 });
 
 import PluginManager from './plugins';
@@ -79,6 +117,8 @@ modals.component = ModalsComponent;
 
 const vue = new Vue({
     router,
+    i18n,
+
     provide() {
         return {
             [NativeHookSymbol]: native_hook,

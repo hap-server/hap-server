@@ -3,12 +3,12 @@
         <div class="automation-trigger-header">
             <div class="flex-fill">
                 <h4 v-if="trigger_component && trigger_component.name">{{ trigger_component.name }}</h4>
-                <h4 v-else>Trigger #{{ id }}</h4>
+                <h4 v-else>{{ $t('automation_settings.trigger_x', {x: id}) }}</h4>
             </div>
 
             <slot name="header-right" />
             <button v-if="editable" class="btn btn-danger btn-sm ml-3" type="button" :disabled="saving"
-                @click="$emit('delete')">Remove trigger</button>
+                @click="$emit('delete')">{{ $t('automation_settings.remove_trigger') }}</button>
         </div>
 
         <div class="automation-trigger-contents">

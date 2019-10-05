@@ -4,11 +4,15 @@
     >
         <television-icon slot="icon" />
 
-        <p>Television</p>
-        <p v-if="updating">Updating</p>
-        <p class="clickable" @click.stop="setActive(!active)">{{ active ? active_input_name || 'On' : 'Off' }}</p>
+        <p>{{ $t('services.television.television') }}</p>
+        <p v-if="updating">{{ $t('services.television.updating') }}</p>
+        <p class="clickable" @click.stop="setActive(!active)">
+            {{ active ? active_input_name || $t('services.television.on') : $t('services.television.off') }}
+        </p>
 
-        <dropdown v-if="inputs.length" slot="footer-left" :label="active_input_name || 'Input'" colour="dark" type="up">
+        <dropdown v-if="inputs.length" slot="footer-left" :label="active_input_name || $t('services.television.input')"
+            colour="dark" type="up"
+        >
             <a v-for="input in inputs" :key="input.uuid" class="dropdown-item" :class="{active: input === active_input}"
                 href="#" @click.prevent.stop="setActiveInput(input)"
             >{{ input.getCharacteristicValueByName('ConfiguredName') || input.name }}</a>

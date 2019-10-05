@@ -1,10 +1,10 @@
 <template>
-    <service class="service-television" :service="service" type="Television" :active="!!active" :updating="updating"
-        :changed="changed" @click="setActive(!active)"
+    <service class="service-television" :service="service" :type="$t('services.television.television')"
+        :active="!!active" :updating="updating" :changed="changed" @click="setActive(!active)"
     >
         <television-icon slot="icon" />
 
-        <p>{{ active ? active_input_name || 'On' : 'Off' }}</p>
+        <p>{{ active ? active_input_name || $t('services.television.on') : $t('services.television.off') }}</p>
     </service>
 </template>
 

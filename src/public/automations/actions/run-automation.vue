@@ -3,7 +3,7 @@
         :id="id" :action="action" :editable="editable" :saving="saving" @delete="$emit('delete')"
     >
         <template v-if="!Object.values(client.automations || {}).filter(a => !this_automation || a.uuid !== this_automation.uuid).length">
-            <p>You have no other automations.</p>
+            <p>{{ $t('automation_actions.run_automation.no_automations') }}</p>
         </template>
 
         <template v-else>
@@ -15,7 +15,9 @@
             <div class="form-group custom-control custom-checkbox">
                 <input v-model="action.skip_conditions" :id="_uid + '-skip-conditions'" type="checkbox"
                     class="custom-control-input" />
-                <label class="custom-control-label" :for="_uid + '-skip-conditions'">Skip conditions</label>
+                <label class="custom-control-label" :for="_uid + '-skip-conditions'">
+                    {{ $t('automation_actions.run_automation.skip_conditions') }}
+                </label>
             </div>
         </template>
     </automation-action>

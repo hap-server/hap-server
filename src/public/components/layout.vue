@@ -1,11 +1,9 @@
 <template>
     <div class="layout" :class="{'layout-edit': edit}">
-        <h1>{{ title }}</h1>
+        <h1>{{ title || $t('layout.home') }}</h1>
 
         <div class="section">
             <p v-for="(status_message, key) in status_messages" :key="key" class="mb-1">{{ status_message }}</p>
-
-            <button class="btn btn-default btn-sm mt-3" @click="$emit('ping')">Ping</button>
         </div>
 
         <component :is="edit ? 'draggable' : 'div'" v-model="effective_sections" handle=".drag-handle"
@@ -22,18 +20,20 @@
                     :section="section" :name="section.name" :editing="edit" @edit="$emit('edit', $event)"
                     @update-name="name => updateSectionName(section, name)"
                 >
-                    <p>Unknown layout section type "{{ section.type }}".</p>
+                    <p>{{ $t('layout.unknown_section_type', {type: section.type}) }}</p>
                 </layout-section>
             </template>
         </component>
 
         <div v-if="!accessories_count && !edit && !show_all_accessories" class="section">
-            <p>This layout has no accessories.</p>
-            <button v-if="can_edit" class="btn btn-primary btn-sm" @click="edit = true">Add accessories</button>
+            <p>{{ $t('layout.has_no_accessories') }}</p>
+            <button v-if="can_edit" class="btn btn-primary btn-sm" @click="edit = true">
+                {{ $t('layout.add_accessories') }}
+            </button>
         </div>
 
-        <service-container v-if="edit" title="Other accessories" :accessories="accessories" :sorted="other_accessories"
-            :edit="true" :group="'' + _uid"
+        <service-container v-if="edit" :title="$t('layout.other_accessories')" :accessories="accessories"
+            :sorted="other_accessories" :edit="true" :group="'' + _uid"
         >
             <template v-slot="{id}">
                 <service :key="id" :connection="client.connection" :service="getService(id)" :edit="edit"
@@ -56,9 +56,11 @@
 
         <div class="section">
             <p v-if="show_all_accessories || accessories_count === total_accessories_count">
-                {{ total_accessories_count }} accessor{{ total_accessories_count === 1 ? 'y' : 'ies' }}</p>
-            <p v-else>{{ accessories_count }} of {{ total_accessories_count }}
-                accessor{{ total_accessories_count === 1 ? 'y' : 'ies' }}</p>
+                {{ $tc('layout.x_accessories', total_accessories_count) }}
+            </p>
+            <p v-else>
+                {{ $tc('layout.x_of_x_accessories', total_accessories_count, {available: accessories_count}) }}
+            </p>
         </div>
     </div>
 </template>
@@ -87,7 +89,7 @@
         },
         props: {
             layout: Layout,
-            title: {type: String, default: 'Home'},
+            title: {type: String, default: null},
         },
         data() {
             return {
@@ -285,6 +287,8 @@
                 return status;
             },
             status_messages() {
+                // TODO: This - maybe move to a separate component?
+
                 const status = this.status;
                 const status_messages = {};
 
@@ -420,7 +424,7 @@
 
                     if (service && !service.data.room_name) {
                         const data = Object.assign({}, service.data, {
-                            room_name: this.title,
+                            room_name: this.layout.name,
                         });
 
                         const accessory_data = Object.assign({}, service.accessory.data, {
@@ -428,7 +432,7 @@
                         });
 
                         if (!service.accessory.data.room_name) {
-                            accessory_data.room_name = this.title;
+                            accessory_data.room_name = this.layout.name;
                         }
 
                         service.accessory.updateData(accessory_data);

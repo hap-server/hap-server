@@ -4,10 +4,8 @@
     >
         <button-icon slot="icon" />
 
-        <p>Programmable Switch</p>
-
-        <p>There {{ service.services.length === 1 ? 'is' : 'are' }} {{ service.services.length || 'no' }}
-            button{{ service.services.length !== 1 ? 's' : '' }}.</p>
+        <p>{{ $t('services.programmable_switch.programmable_switch') }}</p>
+        <p>{{ $t('services.programmable_switch.there_are_x_buttons') }}</p>
 
         <div class="programmable-switch-buttons">
             <div v-for="(button, index) in service.services" :key="index" class="programmable-switch-button">
@@ -44,7 +42,7 @@
         },
         methods: {
             getButtonName(button, index) {
-                if (!button.name) return 'Button #' + (index + 1);
+                if (!button.name) return this.$t('services.programmable_switch.button_x', {x: index + 1});
 
                 if (button.name.startsWith(this.service.name)) {
                     return button.name.substr(this.service.name.length).trim();

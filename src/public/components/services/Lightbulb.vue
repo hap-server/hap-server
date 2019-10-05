@@ -1,11 +1,11 @@
 <template>
-    <service class="service-lightbulb" :service="service" type="Lightbulb" :active="on" :updating="updating"
-        :changed="changed" :background-colour="on && colour ? colour : null"
+    <service class="service-lightbulb" :service="service" :type="$t('services.lightbulb.lightbulb')"
+        :active="on" :updating="updating" :changed="changed" :background-colour="on && colour ? colour : null"
         @click="service.setCharacteristicByName('On', !on)"
     >
         <lightbulb-icon slot="icon" />
 
-        <p>{{ on && brightness !== undefined ? brightness + '%' : on ? 'On' : 'Off' }}</p>
+        <p>{{ on && brightness !== undefined ? brightness + '%' : $t('services.lightbulb.' + (on ? 'on' : 'off')) }}</p>
     </service>
 </template>
 

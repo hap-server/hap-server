@@ -1,5 +1,7 @@
 <template>
-    <service class="service-programmable-switch" :service="service" type="Programmable Switch" :active="active">
+    <service class="service-programmable-switch" :service="service"
+        :type="$t('services.programmable_switch.programmable_switch')" :active="active"
+    >
         <button-icon slot="icon" />
 
         <p v-if="last_event_name">
@@ -45,9 +47,9 @@
                 return this.service.services.map(s => s.getCharacteristicByName('ProgrammableSwitchEvent'));
             },
             last_event_name() {
-                if (this.last_event === 0) return 'Single Press';
-                if (this.last_event === 1) return 'Double Press';
-                if (this.last_event === 2) return 'Long Press';
+                if (this.last_event === 0) return this.$t('services.programmable_switch.single_press');
+                if (this.last_event === 1) return this.$t('services.programmable_switch.double_press');
+                if (this.last_event === 2) return this.$t('services.programmable_switch.long_press');
 
                 return null;
             },
@@ -101,7 +103,11 @@
                 this.event_timeout = setTimeout(() => this.last_characteristic = this.last_event = null, 5000);
             },
             getButtonName(service) {
-                if (!service.name || true) return 'Button #' + (this.service.services.indexOf(service) + 1);
+                if (!service.name || true) {
+                    return this.$t('services.programmable_switch.button_x', {
+                        x: this.service.services.indexOf(service) + 1,
+                    });
+                }
 
                 if (service.name.startsWith(this.service.name)) {
                     return service.name.substr(this.service.name.length).trim();

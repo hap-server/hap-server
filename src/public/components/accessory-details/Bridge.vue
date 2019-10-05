@@ -4,7 +4,7 @@
     >
         <bridge-icon slot="icon" />
 
-        <p>Bridge</p>
+        <p>{{ $t('services.bridge.bridge') }}</p>
     </accessory-details>
 </template>
 

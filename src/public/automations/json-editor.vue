@@ -3,11 +3,11 @@
         <div class="automation-json-editor-header">
             <div class="flex-fill">
                 <h4 v-if="name">{{ name }}</h4>
-                <h4 v-else>{{ type.substr(0, 1).toUpperCase() + type.substr(1) }} #{{ index }}</h4>
+                <h4 v-else>{{ $t('automation_settings.' + type + '_x', {x: index}) }}</h4>
             </div>
 
             <button v-if="$listeners.delete" class="btn btn-danger btn-sm ml-3" type="button" :disabled="disabled"
-                @click="$emit('delete')">Remove {{ type }}</button>
+                @click="$emit('delete')">{{ $t('automation_settings.remove_' + type) }}</button>
         </div>
 
         <div class="automation-json-editor-contents">

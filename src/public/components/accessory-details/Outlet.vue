@@ -4,9 +4,11 @@
     >
         <outlet-icon slot="icon" />
 
-        <p>Outlet</p>
-        <p v-if="updating">Updating</p>
-        <p @click.stop="service.setCharacteristicByName('On', !on)">{{ on ? 'On' : 'Off' }}</p>
+        <p>{{ $t('services.outlet.outlet') }}</p>
+        <p v-if="updating">{{ $t('services.outlet.updating') }}</p>
+        <p @click.stop="service.setCharacteristicByName('On', !on)">
+            {{ $t('services.outlet.' + (on ? 'on' : 'off')) }}
+        </p>
     </accessory-details>
 </template>
 

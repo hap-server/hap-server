@@ -10,22 +10,22 @@
             @show-details="this.$emit('show-details', () => details_open = false); details_open = true" />
 
         <service v-else-if="service.is_system_service" class="unsupported-service"
-            :service="service" type="System service"
+            :service="service" :type="$t('service_tile.system_service')"
         >
-            <p>System service</p>
+            <p>{{ $t('service_tile.system_service') }}</p>
         </service>
 
         <service v-else-if="service.is_unavailable" class="unavailable-accessory"
             :class="{'details-open': details_open}" :service="service" :type="service_name" :error="true"
         >
-            <p>Not available</p>
+            <p>{{ $t('service_tile.not_available') }}</p>
         </service>
 
         <service v-else :key="service.accessory.uuid + '.' + service.uuid"
             class="unsupported-service" :class="{'details-open': details_open}"
             :service="service" :type="service_name"
         >
-            <p>Not supported</p>
+            <p>{{ $t('service_tile.not_supported') }}</p>
         </service>
     </div>
 </template>

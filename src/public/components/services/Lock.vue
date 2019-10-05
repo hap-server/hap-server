@@ -1,13 +1,13 @@
 <template>
     <service class="service-lock-mechanism" :class="{'service-error': jammed || unknown_state}" :service="service"
-        type="Lock" :active="unlocked || !locking" :updating="updating" :changed="changed" @click="setLocking(!locking)"
+        :type="$t('services.lock_mechanism.lock')" :active="unlocked || !locking" :updating="updating" :changed="changed" @click="setLocking(!locking)"
     >
         <switch-icon slot="icon" />
 
-        <p v-if="jammed">Jammed</p>
-        <p v-else-if="locked !== locking">{{ locking ? 'Locking' : 'Unlocking' }}</p>
-        <p v-else-if="locked || unlocked">{{ locked ? 'Locked' : 'Unlocked' }}</p>
-        <p v-else>Unknown state</p>
+        <p v-if="jammed">{{ $t('services.lock_mechanism.jammed') }}</p>
+        <p v-else-if="locked !== locking">{{ $t('services.lock_mechanism.' + (locking ? '' : 'un') + 'locking') }}</p>
+        <p v-else-if="locked || unlocked">{{ $t('services.lock_mechanism.' + (locked ? '' : 'un') + 'locked') }}</p>
+        <p v-else>{{ $t('services.lock_mechanism.unknown') }}</p>
     </service>
 </template>
 

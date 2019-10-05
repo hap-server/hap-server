@@ -1,10 +1,12 @@
 <template>
     <div class="automations">
         <div class="main">
-            <h1>Automations</h1>
+            <h1>{{ $t('automations.title') }}</h1>
 
             <div class="section">
-                <button class="btn btn-default btn-sm mt-3" @click="createAutomation">New</button>
+                <button class="btn btn-default btn-sm mt-3" @click="createAutomation">
+                    {{ $t('automations.new_button') }}
+                </button>
             </div>
 
             <div class="automation-groups-list">
@@ -26,18 +28,23 @@
                             <div class="automation-row-contents">
                                 <h3>{{ automation.data.name || automation.uuid }}</h3>
 
-                                <p>
-                                    {{ Object.keys(automation.data.triggers || {}).length === 0 ? 'No' :
-                                        Object.keys(automation.data.triggers || {}).length }}
-                                    trigger{{ Object.keys(automation.data.triggers || {}).length === 1 ? '' : 's'
-                                    }}<template v-if="Object.keys(automation.data.conditions || {}).length">,
-                                        {{ Object.keys(automation.data.conditions || {}).length }}
-                                        condition{{ Object.keys(automation.data.conditions || {}).length === 1 ?
-                                            '' : 's' }}
-                                    </template>
-                                    and {{ Object.keys(automation.data.actions || {}).length === 0 ? 'no' :
-                                        Object.keys(automation.data.actions || {}).length }}
-                                    action{{ Object.keys(automation.data.actions || {}).length === 1 ? '' : 's' }}.
+                                <p v-if="Object.keys(automation.data.conditions || {}).length">
+                                    {{ $t('automations.automation_row_x_triggers_x_conditions_x_actions', {
+                                        triggers: $tc('automations.automation_row_x_triggers',
+                                            Object.keys(automation.data.triggers || {}).length),
+                                        conditions: $tc('automations.automation_row_x_conditions',
+                                            Object.keys(automation.data.conditions || {}).length),
+                                        actions: $tc('automations.automation_row_x_actions',
+                                            Object.keys(automation.data.actions || {}).length),
+                                    }) }}
+                                </p>
+                                <p v-else>
+                                    {{ $t('automations.automation_row_x_triggers_x_actions', {
+                                        triggers: $tc('automations.automation_row_x_triggers',
+                                            Object.keys(automation.data.triggers || {}).length),
+                                        actions: $tc('automations.automation_row_x_actions',
+                                            Object.keys(automation.data.actions || {}).length),
+                                    }) }}
                                 </p>
                             </div>
                         </div>
@@ -112,11 +119,11 @@
             },
             title() {
                 if (this.open_automation) {
-                    if (!this.open_automation.uuid) return 'New automation';
-                    return this.open_automation.data.name + ' Settings';
+                    if (!this.open_automation.uuid) return this.$t('automations.new_automation');
+                    return this.$t('automation_settings.title', {name: this.open_automation.data.name});
                 }
 
-                return 'Automations';
+                return this.$t('automations.title');
             },
         },
         watch: {

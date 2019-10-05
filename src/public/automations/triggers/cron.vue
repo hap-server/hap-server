@@ -1,7 +1,9 @@
 <template>
     <automation-trigger :id="id" :trigger="trigger" :editable="editable" :saving="saving" @delete="$emit('delete')">
         <div class="form-group row">
-            <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-expression'">cron expression</label>
+            <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-expression'">
+                {{ $t('automation_triggers.cron.cron_expression') }}
+            </label>
             <div class="col-sm-9">
                 <input :id="_uid + '-expression'" v-model="trigger.expression" type="text"
                     class="form-control form-control-sm" :disabled="saving" />
@@ -9,7 +11,9 @@
         </div>
 
         <div class="form-group row">
-            <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-timezone'">Timezone</label>
+            <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-timezone'">
+                {{ $t('automation_triggers.cron.timezone') }}
+            </label>
             <div class="col-sm-9">
                 <select :id="_uid + '-timezone'" v-model="trigger.timezone"
                     class="custom-select custom-select-sm" :disabled="saving"

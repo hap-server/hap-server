@@ -3,33 +3,36 @@
         <div class="layout-section-header">
             <form v-if="editing" class="flex-fill" @submit.prevent="updateName">
                 <input :id="_uid + '-name'" ref="title_edit" :value="name" type="text"
-                    class="form-control form-control-sm" :placeholder="defaultName" @blur="updateName" />
+                    class="form-control form-control-sm" :placeholder="defaultName || $t('layout_section.accessories')"
+                    @blur="updateName" />
             </form>
 
             <div v-else class="flex-fill">
-                <h4>{{ name || defaultName }}</h4>
+                <h4>{{ name || defaultName || $t('layout_section.accessories') }}</h4>
             </div>
 
             <slot name="title-right">
                 <slot name="actions" />
 
                 <template v-if="editing">
-                    <dropdown class="ml-3" label="Add section" colour="dark" align="right">
+                    <dropdown class="ml-3" :label="$t('layout_section.add_section')" colour="dark" align="right">
                         <a v-for="[type, section_component] in layout_section_components.entries()" :key="type"
                             class="dropdown-item" href="#" @click.prevent="addSection(type)"
                         >{{ section_component.name }}</a>
                     </dropdown>
 
                     <button class="btn btn-danger btn-sm ml-3" type="button"
-                        @click="removeSection">Remove section</button>
+                        @click="removeSection">{{ $t('layout_section.remove_section') }}</button>
                     <button class="btn btn-dark btn-sm ml-3 drag-handle" type="button"
-                        :disabled="layout.staged_sections_order">Drag</button>
+                        :disabled="layout.staged_sections_order">{{ $t('layout_section.drag') }}</button>
                     <button class="btn btn-dark btn-sm ml-3" type="button"
-                        @click="() => $listeners.edit ? $emit('edit', false) : setEditing(false)">Finish editing</button>
+                        @click="() => $listeners.edit ? $emit('edit', false) : setEditing(false)"
+                    >{{ $t('layout_section.finish_editing') }}</button>
                 </template>
                 <template v-else-if="can_edit">
                     <button class="btn btn-dark btn-sm ml-3 layout-section-edit-button" type="button"
-                        @click="() => $listeners.edit ? $emit('edit', true) : setEditing(true)">Edit</button>
+                        @click="() => $listeners.edit ? $emit('edit', true) : setEditing(true)"
+                    >{{ $t('layout_section.edit') }}</button>
                 </template>
             </slot>
         </div>
@@ -55,7 +58,7 @@
         props: {
             section: LayoutSection,
             name: String,
-            defaultName: {type: String, default: 'Accessories'},
+            defaultName: {type: String, default: null},
             editing: Boolean,
         },
         data() {
@@ -90,7 +93,8 @@
             },
             addSection(type) {
                 if (this.layout.staged_sections_order) return;
-                this._addSection((this.layout.staged_sections_order || this.layout.sections_order).indexOf(this.section.uuid) + 1, {type});
+                this._addSection((this.layout.staged_sections_order || this.layout.sections_order)
+                    .indexOf(this.section.uuid) + 1, {type});
             },
             removeSection() {
                 this._removeSection(this.section);
