@@ -102,6 +102,12 @@ export default class Server {
 
         // Create our Advertiser which broadcasts our presence over mdns
         this.advertiser = new Advertiser(this.accessory_info, this.mdns);
+
+        const publish = this.advertiser._bonjourService.publish;
+        this.advertiser._bonjourService.publish = function(this: Advertiser, options) {
+            options.probe = false;
+            return publish.apply(this, arguments);
+        };
     }
 
     start() {
