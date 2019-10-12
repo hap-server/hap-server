@@ -60,12 +60,14 @@
         watch: {
             programmable_switch_events(programmable_switch_events, old_programmable_switch_events) {
                 for (const programmable_switch_event of old_programmable_switch_events) {
+                    if (!programmable_switch_event) continue;
                     programmable_switch_event.removeListener('value-updated',
                         this.programmable_switch_events_listeners.get(programmable_switch_event));
                     this.programmable_switch_events_listeners.delete(programmable_switch_event);
                 }
 
                 for (const programmable_switch_event of programmable_switch_events) {
+                    if (!programmable_switch_event) continue;
                     let listener = this.programmable_switch_events_listeners.get(programmable_switch_event);
                     if (!listener) this.programmable_switch_events_listeners.set(programmable_switch_event, // eslint-disable-line curly
                         listener = this.handleSwitchEvent.bind(null, programmable_switch_event));
@@ -75,6 +77,7 @@
         },
         created() {
             for (const programmable_switch_event of this.programmable_switch_events) {
+                if (!programmable_switch_event) continue;
                 let listener = this.programmable_switch_events_listeners.get(programmable_switch_event);
                 if (!listener) this.programmable_switch_events_listeners.set(programmable_switch_event, // eslint-disable-line curly
                     listener = this.handleSwitchEvent.bind(null, programmable_switch_event));
@@ -83,6 +86,7 @@
         },
         destroyed() {
             for (const programmable_switch_event of this.programmable_switch_events) {
+                if (!programmable_switch_event) continue;
                 programmable_switch_event.removeListener('value-updated',
                     this.programmable_switch_events_listeners.get(programmable_switch_event));
             }

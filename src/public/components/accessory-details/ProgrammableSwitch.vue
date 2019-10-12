@@ -5,7 +5,7 @@
         <button-icon slot="icon" />
 
         <p>{{ $t('services.programmable_switch.programmable_switch') }}</p>
-        <p>{{ $t('services.programmable_switch.there_are_x_buttons') }}</p>
+        <p>{{ $tc('services.programmable_switch.there_are_x_buttons', service.services.length) }}</p>
 
         <div class="programmable-switch-buttons">
             <div v-for="(button, index) in service.services" :key="index" class="programmable-switch-button">
