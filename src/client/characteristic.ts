@@ -18,7 +18,7 @@ export default class Characteristic extends EventEmitter {
 
     _subscribed = false;
     subscription_dependencies = new Set<any>();
-    _getting = 0;
+    _getting?: Promise<void>;
     _target_value = null;
     _setting: any[] = [];
     error;
@@ -40,7 +40,7 @@ export default class Characteristic extends EventEmitter {
         this._setPermissions(permissions);
         this._subscribed = false;
         this.subscription_dependencies = new Set();
-        this._getting = 0;
+        this._getting = null;
         this._target_value = null;
         this._setting = [];
         this.error = null;
@@ -127,10 +127,19 @@ export default class Characteristic extends EventEmitter {
         return !!this._getting;
     }
 
-    async updateValue() {
-        try {
-            this._getting++;
+    updateValue() {
+        if (this._getting) return this._getting;
 
+        return this._getting = this._updateValue().then(() => {
+            this._getting = null;
+        }, err => {
+            this._getting = null;
+            throw err;
+        });
+    }
+
+    private async _updateValue() {
+        try {
             const details = await this.service.accessory.connection.getCharacteristic(
                 this.service.accessory.uuid, this.service.uuid, this.uuid);
 
@@ -139,8 +148,6 @@ export default class Characteristic extends EventEmitter {
         } catch (err) {
             this.error = err;
             throw err;
-        } finally {
-            this._getting--;
         }
     }
 
@@ -204,12 +211,12 @@ export default class Characteristic extends EventEmitter {
     }
 
     get subscribing() {
-        return this.service.accessory.connection.subscribe_queue &&
+        return !!this.service.accessory.connection.subscribe_queue &&
             !!this.service.accessory.connection.subscribe_queue.find(q => q[0] === this);
     }
 
     get unsubscribing() {
-        return this.service.accessory.connection.unsubscribe_queue &&
+        return !!this.service.accessory.connection.unsubscribe_queue &&
             !!this.service.accessory.connection.unsubscribe_queue.find(q => q[0] === this);
     }
 

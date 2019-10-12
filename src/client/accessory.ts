@@ -61,13 +61,18 @@ export default class Accessory extends EventEmitter {
         this.emit('updated');
     }
 
-    _updateServicesFrom(details) {
+    private _updateServicesFrom(details) {
         const added_service_details = [];
         const removed_service_ids = [];
+        const primary_services = [];
+        const services_made_visible = [];
+        const services_made_hidden = [];
 
         for (const service_details of details.services || []) {
             const uuid = service_details.type + (service_details.subtype ? '.' + service_details.subtype : '');
             const service = this.services[uuid];
+
+            if (service_details.primary) primary_services.push(uuid);
 
             // Service doesn't already exist
             if (!service) {
@@ -75,7 +80,20 @@ export default class Accessory extends EventEmitter {
                 continue;
             }
 
+            const was_hidden = service.hidden;
+
             service._setDetails(service_details);
+
+            if (service.hidden !== was_hidden && service.hidden) {
+                services_made_visible.push(service);
+            } else if (service.hidden !== was_hidden) {
+                services_made_hidden.push(service);
+            }
+        }
+
+        if (primary_services.length > 1) {
+            console.warn('Accessory %O has multiple primary services. The first will be used as the primary service.',
+                this, primary_services);
         }
 
         for (const service_uuid of Object.keys(this.services)) {
@@ -115,14 +133,17 @@ export default class Accessory extends EventEmitter {
 
         if (removed_services.length) this.emit('removed-services', removed_services);
 
-        this._updateDisplayServices(added_services, removed_services);
+        this._updateDisplayServices(
+            added_services.filter(s => !s.hidden).concat(services_made_visible),
+            removed_services.filter(s => s.hidden).concat(services_made_hidden)
+        );
 
         if (added_services.length || removed_services.length) {
             this.emit('updated-services', added_services, removed_services);
         }
     }
 
-    _updateDisplayServices(added_services: Service[], removed_services: Service[]) {
+    private _updateDisplayServices(added_services: Service[], removed_services: Service[]) {
         const added_display_services = [];
         const removed_display_services = [];
         const removed_collapsed_service_types = {};
@@ -208,6 +229,8 @@ export default class Accessory extends EventEmitter {
         const services = [];
 
         for (const service of Object.values(this.services)) {
+            if (service.hidden) continue;
+
             if (this.display_services.find(display_service => {
                 if (service === display_service) return true;
 
@@ -222,6 +245,16 @@ export default class Accessory extends EventEmitter {
 
         // Call updateDisplayServices with services that aren't displayed
         this._updateDisplayServices(services, []);
+    }
+
+    get primary_service(): Service {
+        for (const service of Object.values(this.services)) {
+            if (!service.details.primary) continue;
+
+            return service;
+        }
+
+        return null;
     }
 
     get data() {
@@ -310,7 +343,7 @@ export default class Accessory extends EventEmitter {
     }
 
     getService(uuid: string, include_display_services = false) {
-        return this.services[uuid] ||
+        return this.services[uuid] ? this.services[uuid] :
             include_display_services ? this.display_services.find(s => s.uuid === uuid) : null;
     }
 

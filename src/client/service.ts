@@ -131,6 +131,14 @@ export default class Service extends EventEmitter {
         return this.details.type;
     }
 
+    get primary() {
+        return this.accessory.primary_service === this;
+    }
+
+    get hidden() {
+        return !!this.details.hidden;
+    }
+
     _setPermissions(permissions) {
         this._permissions = Object.freeze(permissions);
 
@@ -219,8 +227,11 @@ export default class Service extends EventEmitter {
         for (const collapsed_service_type of Object.keys(collapsed_services)) {
             const collapsed_service = collapsed_services[collapsed_service_type];
 
-            if (typeof collapsed_service === 'function') return collapsed_service.call(null, this) ? collapsed_service_type : null;
-            if (collapsed_service.includes(this.type)) return collapsed_service_type;
+            if (typeof collapsed_service === 'function') {
+                if (collapsed_service.call(null, this)) return collapsed_service_type;
+            } else if (collapsed_service.includes(this.type)) {
+                return collapsed_service_type;
+            }
         }
     }
 }
