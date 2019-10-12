@@ -396,6 +396,10 @@ export class PluginAPI {
      * use this directly.
      */
     refreshDisplayServices() {
+        (this.constructor as typeof PluginAPI).refreshDisplayServices();
+    }
+
+    static refreshDisplayServices() {
         for (const component of main_component_instances as (Vue & {accessories: {[key: string]: Accessory}})[]) {
             for (const accessory of Object.values(component.accessories)) {
                 accessory.refreshDisplayServices();

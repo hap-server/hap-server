@@ -1,4 +1,5 @@
 import {ServiceTileComponents as service_components} from '../../component-registry';
+import {PluginAPI} from '../../plugins';
 
 const contextRequire = require.context('.', true, /\.vue$/);
 
@@ -11,5 +12,7 @@ for (const file of contextRequire.keys()) {
 
     console.log('Service tile', file, service);
 }
+
+PluginAPI.refreshDisplayServices();
 
 export default service_components;
