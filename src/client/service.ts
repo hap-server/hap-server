@@ -381,7 +381,7 @@ export const collapsed_services = {
     [type_uuids.StatelessProgrammableSwitch]: [type_uuids.StatelessProgrammableSwitch],
     [type_uuids.Television]: service => service.type === type_uuids.Television ||
         ([...Object.values(service.accessory.services)].find((s: Service) => s.type === type_uuids.Television) &&
-            service.type === type_uuids.TelevisionSpeaker),
+            (service.type === type_uuids.InputSource || service.type === type_uuids.TelevisionSpeaker)),
 };
 
 // @ts-ignore
