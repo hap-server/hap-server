@@ -21,11 +21,11 @@
                 </div>
             </div>
 
-            <h5 v-if="accessory.findService(service => !service.is_system_service)">Services</h5>
+            <h5 v-if="accessory.findService(s => !s.is_system_service && !s.collapse_to, true)">Services</h5>
             <list-group class="mb-3">
                 <!-- eslint-disable-next-line vue/no-use-v-if-with-v-for -->
-                <list-item v-for="service in accessory.services" v-if="!service.is_system_service" :key="service.uuid"
-                    @click="$emit('show-service-settings', service)"
+                <list-item v-for="service in accessory.findServices(s => !s.is_system_service && !s.collapse_to, true)"
+                    :key="service.uuid" @click="$emit('show-service-settings', service)"
                 >
                     {{ service.name || service.uuid }}
                     <small v-if="service.name" class="text-muted">{{ service.uuid }}</small>

@@ -395,20 +395,41 @@ export default class Accessory extends EventEmitter {
         return this._permissions.set;
     }
 
-    findService(callback: (service: Service) => boolean) {
-        for (const service of Object.values(this.services)) {
+    findService(callback: (service: Service) => boolean, include_display_services = false) {
+        const services = Object.values(this.services);
+
+        for (const service of services) {
             if (callback.call(this, service)) return service;
         }
-    }
 
-    findServices(callback: (service: Service) => boolean) {
-        const services: Service[] = [];
+        if (include_display_services) {
+            for (const service of this.display_services) {
+                if (services.includes(service)) continue;
 
-        for (const service of Object.values(this.services)) {
-            if (callback.call(this, service)) services.push(service);
+                if (callback.call(this, service)) return service;
+            }
         }
 
-        return services;
+        return null;
+    }
+
+    findServices(callback: (service: Service) => boolean, include_display_services = false) {
+        const services = Object.values(this.services);
+        const filtered_services: Service[] = [];
+
+        for (const service of services) {
+            if (callback.call(this, service)) filtered_services.push(service);
+        }
+
+        if (include_display_services) {
+            for (const service of this.display_services) {
+                if (services.includes(service)) continue;
+
+                if (callback.call(this, service)) filtered_services.push(service);
+            }
+        }
+
+        return filtered_services;
     }
 
     getService(uuid: string, include_display_services = false) {
