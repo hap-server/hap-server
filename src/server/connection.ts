@@ -104,7 +104,6 @@ import Server from './server';
 import Logger from '../common/logger';
 import WebSocket from 'ws';
 import http from 'http';
-import { Characteristic } from '../client';
 
 interface AccessoryHap {
     aid: number;
@@ -125,12 +124,16 @@ interface ServiceHap {
     linked_indexes?: number[];
 }
 
+type CharacteristicPerms = 'pr' | 'pw' | 'ev' | 'aa' | 'tw' | 'hd' | 'wr';
+type CharacteristicFormat = 'bool' | 'int' | 'float' | 'string' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'data' |
+    'tlv8' | 'array' | 'dict'; // eslint-disable-line @typescript-eslint/indent
+type CharacteristicUnit = 'celsius' | 'percentage' | 'arcdegrees' | 'lux' | 'seconds';
+
 interface CharacteristicHap {
     iid: number;
     type: string;
-    perms: 'pr' | 'pw' | 'ev' | 'aa' | 'tw' | 'hd' | 'wr';
-    format: 'bool' | 'int' | 'float' | 'string' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'data' | 'tlv8' |
-        'array' | 'dict';
+    perms: CharacteristicPerms;
+    format: CharacteristicFormat;
 
     value?: any;
 
@@ -142,7 +145,7 @@ interface CharacteristicHap {
     'value-values'?: any[];
     'valid-values-range'?: [number, number];
 
-    unit?: 'celsius' | 'percentage' | 'arcdegrees' | 'lux' | 'seconds';
+    unit?: CharacteristicUnit;
     maxValue?: number;
     minValue?: number;
     minStep?: number;

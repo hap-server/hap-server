@@ -57,8 +57,8 @@ export default class Service extends EventEmitter {
     }
 
     /**
-     * @param service The service that was unlinked
-     * @param removed true if the service was removed from the accessory
+     * @param {Service} service The service that was unlinked
+     * @param {boolean} removed true if the service was removed from the accessory
      */
     _handleRemoveLinkedService(service: Service, removed: boolean) {
         if (!this.linked_services.includes(service)) return;

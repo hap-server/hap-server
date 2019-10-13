@@ -106,6 +106,7 @@ export default class Server {
         const publish = this.advertiser._bonjourService.publish;
         this.advertiser._bonjourService.publish = function(this: Advertiser, options) {
             options.probe = false;
+            // eslint-disable-next-line prefer-rest-params
             return publish.apply(this, arguments);
         };
     }
