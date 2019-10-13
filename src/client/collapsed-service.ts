@@ -3,12 +3,14 @@ import Service from './service';
 import Characteristic from './characteristic';
 
 export default class CollapsedService extends Service {
-    collapsed_service_type: string;
+    readonly collapsed_service_uuid: string;
+    readonly collapsed_service_type: string;
     services: Service[];
 
     constructor(accessory: Accessory, uuid: string, type: string, data, services?: Service[]) {
         super(accessory, uuid, {characteristics: []}, data);
 
+        this.collapsed_service_uuid = uuid;
         this.collapsed_service_type = type;
         this.services = services || [];
     }
@@ -34,7 +36,7 @@ export default class CollapsedService extends Service {
 
     async updateData(data) {
         const accessory_data = Object.assign({}, this.accessory.data);
-        accessory_data['CollapsedService.' + this.uuid] = data;
+        accessory_data['CollapsedService.' + this.collapsed_service_uuid] = data;
         await this.accessory.connection.setAccessoryData(this.accessory.uuid, accessory_data);
         this._setData(data, true);
     }

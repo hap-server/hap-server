@@ -342,8 +342,9 @@ export default class Accessory extends EventEmitter {
         }
 
         for (const key of Object.keys(data).filter(key => key.startsWith('CollapsedService.'))) {
-            const service_uuid = key.substr(8);
-            const service = this.display_services[service_uuid];
+            const collapsed_service_uuid = key.substr(17);
+            const service = this.display_services.find(s => s instanceof CollapsedService &&
+                s.collapsed_service_uuid === collapsed_service_uuid);
 
             if (!service) continue;
 
