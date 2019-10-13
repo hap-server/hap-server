@@ -21,8 +21,9 @@ A lot.
     - [x] Layouts
         - Customisable by dragging sections and accessories in the web interface.
         - [x] Scenes
-        - [x] [Custom sections with plugins](docs/plugins.md#accessoryuiregisterlayoutsectioncomponent)
-        - [ ] Accessory groups (one tile controls multiple accessories)
+        - [x] [Custom sections with plugins](docs/plugins.md#uipluginregisterlayoutsectioncomponent)
+        - [ ] Service groups (one tile controls multiple accessories)
+            - Group services into a single service with merged values
     - [x] Basic accessory control (on/off)
         - [x] Switch
         - [x] Lightbulb
@@ -32,7 +33,7 @@ A lot.
         - [x] Lock Mechanism
         - [x] Garage Door Opener
         - [ ] [All other services supported by hap-nodejs](https://github.com/khaost/hap-nodejs/tree/master/lib/gen)
-        - [x] [Other services with plugins](docs/plugins.md#accessoryuiregisterservicecomponent)
+        - [x] [Other services with plugins](docs/plugins.md#uipluginregisterservicecomponent)
     - [x] Accessory control
         - [x] Switch
         - [x] Lightbulb
@@ -44,7 +45,7 @@ A lot.
         - [ ] Lock Mechanism
         - [ ] Garage Door Opener
         - [ ] [All other services supported by hap-nodejs](https://github.com/khaost/hap-nodejs/tree/master/lib/gen)
-        - [x] [Other services with plugins](docs/plugins.md#accessoryuiregisteraccessorydetailscomponent)
+        - [x] [Other services with plugins](docs/plugins.md#uipluginregisteraccessorydetailscomponent)
     - [x] Dark theme [(system wide)](https://caniuse.com/#search=prefers-color-scheme)
     - [ ] Notifications
     - Configuration
@@ -109,6 +110,8 @@ A lot.
 - [ ] Temporary scheduled actions
     - "Turn the lights off in 10 minutes."
 - [ ] Camera accessories
+- [ ] Merged accessories
+    - Merge services from multiple accessories into a single accessory to add functionality with multiple plugins.
 - [x] Add HomeKit accessories
     - [x] HomeKit over IP
     - [ ] HomeKit over BLE
@@ -140,6 +143,7 @@ A lot.
     - [x] Cached accessories
         - Accessory configuration can be cached so the server can run immediately and have accessories load in the
             background.
+- [ ] Configuration reloading
 - [x] Full compatibility with Homebridge
     - Run instead of Homebridge and use all Homebridge plugins with the web interface. Homebridge accessories appear
         and can be controlled in the web interface, by automations on the server and with hap-server's HAP bridges.

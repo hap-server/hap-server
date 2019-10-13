@@ -21,6 +21,18 @@ To make hap-server load a Node.js package as a plugin you need to add the hap-se
 }
 ```
 
+As of version 0.9.0 hap-server includes TypeScript definitions, including for the plugin API. To use these include
+`@hap-server/hap-server` as a development dependency. Don't include `@hap-server/hap-server` as a production
+dependency as `npm` won't drop this when users install your plugin.
+
+```json
+{
+    "devDependencies": {
+        "@hap-server/hap-server": "^0.9.0"
+    }
+}
+```
+
 Plugins can support both hap-server and Homebridge.
 
 hap-server patches `Module._load` to allow plugins to load a virtual `@hap-server/api` module.
@@ -83,9 +95,13 @@ const tv_service = accessory.addService(Service.Television);
 
 // ...
 ```
+
+hap-server will only publish accessories separately if there is more than one accessory with that service. If the
+accessory should always be published separately set the `external` property.
+
 ```js
 const accessory = new Accessory(config.name, config.uuid);
-accessory.external_groups = [Service.CameraRTPStreamManagement.UUID];
+accessory.external = true;
 
 const camera = new Camera(/* ... */);
 accessory.configureCameraSource(camera);
@@ -119,10 +135,14 @@ hapserver.registerAccessory('AccessoryType', config => {
 });
 ```
 
-Most plugins will need to listen to the `destroy` event to disconnect from the accessory if it's removed from the
-server.
+In future versions plugins should listen to the `reload` and `destroy` events to reload the accessory's configuration
+and disconnect from the accessory if it's removed from the server.
 
 ```js
+accessory.on('reload', config => {
+    // ...
+});
+
 accessory.on('destroy', () => {
     // ...
 });
@@ -200,6 +220,28 @@ class AccessoryBridge extends AccessoryPlatform {
 hapserver.registerAccessoryPlatform(AccessoryBridge);
 ```
 
+In future versions plugins should define `reload` and `destroy` handlers to reload the accessory platform's
+configuration and disconnect from the accessories if it's removed from the server.
+
+```js
+class AccessoryBridge extends AccessoryPlatform {
+    // ...
+
+    async reload(config) {
+        if (this.config.host !== config.host) {
+            await this.bridge.disconnect();
+            this.bridge.host = config.host;
+            await this.bridge.connect();
+            await this.bridge.reloadLights();
+        }
+    }
+
+    async destroy() {
+        await this.bridge.disconnect();
+    }
+}
+```
+
 #### `hapserver.registerDynamicAccessoryPlatform`
 
 Registers an accessory platform and provides the AccessoryPlatform instance. This allows the accessory platform to
@@ -275,36 +317,36 @@ events.on(AddAccessoryEvent, event => {
 // listener function
 ```
 
-#### `hapserver.registerAccessoryUI`
+#### `hapserver.registerWebInterfacePlugin`
 
-Registers an Accessory UI object. Accessory UIs should load one or more scripts with `accessory_ui.loadScript` which
-register UI components. In this example the `ui` directory will be available at `/accessory-ui/{accessory_ui.id}` and
-the web interface will try to load `/accessory-ui/{accessory_ui.id}/index.js`.
+Registers a web interface plugin. Web interface plugins should load one or more scripts with `ui_plugin.loadScript`
+which register web interface components. In this example the `ui` directory will be available at
+`/ui-plugin/{ui_plugin.id}` and the web interface will try to load `/ui-plugin/{ui_plugin.id}/index.js`.
 
 ```js
-import hapserver, {AccessoryUI} from '@hap-server/api';
+import hapserver, {WebInterfacePlugin} from '@hap-server/api';
 import path from 'path';
 
-const accessory_ui = new AccessoryUI();
+const ui_plugin = new WebInterfacePlugin();
 
-accessory_ui.loadScript('/index.js');
-accessory_ui.static('/', path.join(__dirname, 'ui'));
+ui_plugin.loadScript('/index.js');
+ui_plugin.static('/', path.join(__dirname, 'ui'));
 
-hapserver.registerAccessoryUI(accessory_ui);
+hapserver.registerWebInterfacePlugin(ui_plugin);
 ```
 
-Accessory UIs have an [Express](https://expressjs.com) server at `accessory_ui.express`, which handles requests to
-`/accessory-ui/{accessory_ui.id}`.
+Web interface plugins have an [Express](https://expressjs.com) server at `ui_plugin.express`, which handles
+requests to `/ui-plugin/{ui_plugin.id}`.
 
-See [Accessory UIs](#accessory-uis) for information about what scripts can do once they're loaded into the web
-interface.
+See [Web interface plugins](#web-interface-plugins) for information about what scripts can do once they're loaded
+into the web interface.
 
 #### `hapserver.registerAccessoryDiscovery`
 
 Registers an accessory discovery handler. All accessory discovery handlers must have an accessory setup handler and
-an accessory UI providing an accessory discovery component.
+a web interface plugin providing an accessory discovery component.
 
-[See `accessoryui.registerAccessoryDiscoveryComponent`.](#accessoryuiregisteraccessorydiscoverycomponent)
+[See `uiplugin.registerAccessoryDiscoveryComponent`.](#uipluginregisteraccessorydiscoverycomponent)
 
 ```js
 import hapserver, {AccessoryDiscovery, AccessorySetup} from '@hap-server/api';
@@ -329,10 +371,10 @@ hapserver.registerAccessoryDiscovery(accessory_discovery);
 
 #### `hapserver.registerAccessorySetup`
 
-Registers an accessory setup handler. All accessory setup handlers must have an accessory UI providing an accessory
-setup component.
+Registers an accessory setup handler. All accessory setup handlers must have a web interface plugin providing an
+accessory setup component.
 
-[See `accessoryui.registerAccessorySetupComponent`.](#accessoryuiregisteraccessorysetupcomponent)
+[See `uiplugin.registerAccessorySetupComponent`.](#uipluginregisteraccessorysetupcomponent)
 
 ```js
 import hapserver, {AccessorySetup} from '@hap-server/api';
@@ -349,9 +391,9 @@ hapserver.registerAccessorySetup(accessory_setup);
 #### `hapserver.registerAuthenticationHandler`
 
 Registers an authentication handler. Authentication handlers receive authentication messages from the web interface
-and should register an accessory UI with an authentication handler component in the web interface.
+and should register a web interface plugin with an authentication handler component in the web interface.
 
-See [`accessoryui.registerAuthenticationHandlerComponent`](#accessoryui-registerauthenticationhandlercomponent).
+See [`uiplugin.registerAuthenticationHandlerComponent`](#uiplugin-registerauthenticationhandlercomponent).
 
 ```js
 import hapserver, {AuthenticatedUser} from '@hap-server/api';
@@ -417,7 +459,7 @@ hapserver.registerAuthenticationHandler(authentication_handler);
 Registers a user management handler. User management handlers run on the server and the web interface. User management
 handlers aren't linked to authenticate handlers and don't have to have the same IDs.
 
-See [`accessoryui.registerUserManagementHandler`](#accessoryui-registerusermanagementhandler).
+See [`uiplugin.registerUserManagementHandler`](#uiplugin-registerusermanagementhandler).
 
 ```js
 import hapserver, {UserManagementHandler} from '@hap-server/api';
@@ -498,26 +540,36 @@ class WebhookAction extends AutomationAction {
 hapserver.registerAutomationTrigger('Webhook', WebhookAction);
 ```
 
-### Accessory UIs
+### Web interface plugins
 
-Accessory UIs register components in the web interface. Accessory UI scripts should be registered with
-[`hapserver.registerAccessoryUI`](#hapserver-registeraccessoryui). Accessory UI scripts will have a `require` function
-like Node.js modules. `require` can be used to get the exports of any script exposed by the Express server *that have
-already been loaded*. You can load new scripts with `require.import`, which returns a Promise resolving to the script's
-exports. Like plugins running on the server, Accessory UIs use the `require` function to access the plugin API.
+Web interface plugins register components in the web interface. Web interface plugin scripts should be registered
+with [`hapserver.registerWebInterfacePlugin`](#hapserver-registerwebinterfaceplugin). Web interface plugin scripts
+will have a `require` function like Node.js modules. `require` can be used to get the exports of any script exposed
+by the Express server *that have already been loaded*. You can load new scripts with `require.import`, which returns
+a Promise resolving to the script's exports. Like plugins running on the server, web interface plugins use the
+`require` function to access the plugin API.
 
 > These examples are using Babel so `import Vue from 'vue';` maps to `const Vue = require('vue');`. Don't use the
 > default ES6 `import` provided by the browser for modules provided by hap-server.
 
-You can also use [webpack](https://webpack.js.org) to bundle your Accessory UI's dependencies. Remember to use
-`__non_webpack_require__` to access the Accessory UI API or add the API as
+You can also use [webpack](https://webpack.js.org) to bundle your web interface plugin's dependencies. Remember to use
+`__non_webpack_require__` to access the web interface plugin API or add the API as
 [external modules](https://webpack.js.org/configuration/externals/):
 
 ```js
     externals: [
-        (context, request, callback) => request.match(/^(@hap-server/accessory-ui-api(\/.+)|vue|axios|vue-color\/.+)$/g)
+        (context, request, callback) => request.match(/^(@hap-server/ui-api(\/.+)|vue|axios|vue-color\/.+)$/g)
             ? callback(null, `require(${JSON.stringify(request)})`) : callback(),
     ],
+```
+
+If you want to use multiple chunks remember to rename the `webpackJsonp` function otherwise it will conflict with
+hap-server's own webpack runtime and potentially other plugins' webpack runtime.
+
+```js
+    output: {
+        jsonpFunction: 'webpackJsonp_my_plugin',
+    },
 ```
 
 Don't include Vue as a dependency of your plugin. The web interface plugin manager exposes Vue and axios through the
@@ -538,21 +590,21 @@ You can also use the included `vuedraggable`, `codemirror` and `vue-codemirror` 
 const Draggable = await require.import('vuedraggable');
 ```
 
-#### `accessoryui.registerServiceComponent`
+#### `uiplugin.registerServiceTileComponent`
 
-Registers a service component (the small tile). This expects a service type and a
+Registers a service tile component. This expects a service type and a
 [Vue component](https://vuejs.org/v2/guide/). The Vue component will receive one prop, `service`.
 
 ```js
-import accessoryui, {Service} from '@hap-server/accessory-ui-api';
-import ServiceComponent from '@hap-server/accessory-ui-api/service';
+import uiplugin, {Service} from '@hap-server/ui-api';
+import ServiceTile from '@hap-server/ui-api/service-tile';
 
-accessoryui.registerServiceComponent(Service.LightSensor, {
-    template: `<service class="service-light-sensor" :name="service.name || service.accessory.name">
+uiplugin.registerServiceTileComponent(Service.LightSensor, {
+    template: `<service-tile class="service-tile-light-sensor" :name="service.name || service.accessory.name">
         <p>{{ light }} lux</p>
-    </service>`,
+    </service-tile>`,
     components: {
-        Service: ServiceComponent,
+        ServiceTile,
     },
     props: {
         service: Service,
@@ -565,24 +617,24 @@ accessoryui.registerServiceComponent(Service.LightSensor, {
 });
 ```
 
-#### `accessoryui.registerAccessoryDetailsComponent`
+#### `uiplugin.registerServiceDetailsComponent`
 
-Registers an accessory details component (the full screen view). This expects a service type and a
+Registers a service details component (the full screen view). This expects a service type and a
 [Vue component](https://vuejs.org/v2/guide/). The Vue component will receive one prop, `service`.
 
 ```js
-import accessoryui, {Service} from '@hap-server/accessory-ui-api';
-import AccessoryDetails from '@hap-server/accessory-ui-api/accessory-details';
+import uiplugin, {Service} from '@hap-server/ui-api';
+import ServiceDetails from '@hap-server/ui-api/service-details';
 
-accessoryui.registerAccessoryDetailsComponent(Service.LightSensor, {
-    template: `<accessory-details class="accessory-details-light-sensor" :name="service.name || service.accessory.name"
+uiplugin.registerServiceDetailsComponent(Service.LightSensor, {
+    template: `<service-details class="service-details-light-sensor" :name="service.name || service.accessory.name"
         @show-settings="$emit('show-settings')"
     >
         <p>Light Sensor</p>
         <p>{{ light }} lux</p>
-    </accessory-details>`,
+    </service-details>`,
     components: {
-        AccessoryDetails,
+        ServiceDetails,
     },
     props: {
         service: Service,
@@ -595,30 +647,30 @@ accessoryui.registerAccessoryDetailsComponent(Service.LightSensor, {
 });
 ```
 
-#### `accessoryui.registerCollapsedService`
+#### `uiplugin.registerCollapsedService`
 
 Registers a collapsed service. This allows multiple services to be displayed as a single service. All services of the
 registered types will be collapsed into a single service. The first argument doesn't have to be a real service UUID and
 collapsed services don't have to collapse multiple services.
 
 ```js
-import accessoryui, {Service} from '@hap-server/accessory-ui-api';
+import uiplugin, {Service} from '@hap-server/ui-api';
 
-accessoryui.registerCollapsedService(Service.Television, [
+uiplugin.registerCollapsedService(Service.Television, [
     Service.Television,
     Service.InputSource,
     Service.TelevisionSpeaker,
 ]);
 ```
 
-#### `accessoryui.registerAccessoryDiscoveryComponent`
+#### `uiplugin.registerAccessoryDiscoveryComponent`
 
 Registers an accessory discovery component. This expects the name of an accessory discovery handler and a
 [Vue component](https://vuejs.org/v2/guide/). The Vue component will receive one prop, `discovered-accessory`.
 
 ```js
-import pluginapi, {DiscoveredAccessory} from '@hap-server/accessory-ui-api';
-import AccessoryDiscovery from '@hap-server/accessory-ui-api/accessory-discovery';
+import pluginapi, {DiscoveredAccessory} from '@hap-server/ui-api';
+import AccessoryDiscovery from '@hap-server/ui-api/accessory-discovery';
 
 const AccessoryDiscoveryComponent = {
     template: `<accessory-discovery :name="discoveredAccessory.name" type="Example accessory" @click="$emit('click')">
@@ -635,7 +687,7 @@ const AccessoryDiscoveryComponent = {
 pluginapi.registerAccessoryDiscoveryComponent('AccessoryType', AccessoryDiscoveryComponent);
 ```
 
-#### `accessoryui.registerAccessorySetupComponent`
+#### `uiplugin.registerAccessorySetupComponent`
 
 Registers an accessory setup component. This expects the name of an accessory setup handler, a
 [Vue component](https://vuejs.org/v2/guide/) and an optional object with additional options. The Vue component will
@@ -665,7 +717,7 @@ this.$emit('accessory-platform', {
 ```
 
 ```js
-import pluginapi, {AccessorySetupConnection, DiscoveredAccessory} from '@hap-server/accessory-ui-api';
+import pluginapi, {AccessorySetupConnection, DiscoveredAccessory} from '@hap-server/ui-api';
 
 const AccessorySetupComponent = {
     template: `<div class="accessory-setup">
@@ -718,14 +770,14 @@ pluginapi.registerAccessorySetupComponent('AccessoryType', AccessorySetupCompone
 });
 ```
 
-#### `accessoryui.registerAuthenticationHandlerComponent`
+#### `uiplugin.registerAuthenticationHandlerComponent`
 
 Registers an authentication handler component.
 
 See [`hapserver.registerAuthenticationHandler`](#hapserver-registerauthenticationhandler).
 
 ```js
-import accessoryui, {AuthenticationHandlerConnection} from '@hap-server/accessory-ui-api';
+import uiplugin, {AuthenticationHandlerConnection} from '@hap-server/ui-api';
 
 const AuthenticationHandlerComponent = {
     template: `<div class="authentication-handler authentication-handler-storage">
@@ -778,17 +830,17 @@ const AuthenticationHandlerComponent = {
 };
 
 // First argument is the same ID passed to hapserver.registerAuthenticationHandler, second is a Vue component and the third is an optional display name for when multiple authentication handlers are available
-accessoryui.registerAuthenticationHandlerComponent('LocalStorage', AuthenticationHandlerComponent, 'Local Storage');
+uiplugin.registerAuthenticationHandlerComponent('LocalStorage', AuthenticationHandlerComponent, 'Local Storage');
 ```
 
-#### `accessoryui.registerUserManagementHandler`
+#### `uiplugin.registerUserManagementHandler`
 
 Registers a user management handler component.
 
 See [`hapserver.registerUserManagementHandler`](#hapserver-registerusermanagementhandler).
 
 ```js
-import
+import uiplugin, {UserManagementHandler, UserManagementUser} from '@hap-server/ui-api';
 
 const UserManagementComponent = {
     template: `<div>
@@ -800,7 +852,7 @@ const UserManagementComponent = {
         <slot name="permissions" />
     </div>`,
     props: {
-        userManagementHandler: BaseUserManagementHandler,
+        userManagementHandler: UserManagementHandler,
         user: UserManagementUser,
     },
     data() {
@@ -851,10 +903,10 @@ class LocalUsersManagementHandler extends UserManagementHandler {
 
 LocalUsersManagementHandler.component = UserManagementComponent;
 
-accessoryui.registerUserManagementHandler('LocalUsers', LocalUsersManagementHandler, 'Local users');
+uiplugin.registerUserManagementHandler('LocalUsers', LocalUsersManagementHandler, 'Local users');
 ```
 
-#### `accessoryui.registerLayoutSectionComponent`
+#### `uiplugin.registerLayoutSectionComponent`
 
 Registers a layout section component. This expects a layout section type, a
 [Vue component](https://vuejs.org/v2/guide/) and a name to display in the add section dropdown. The Vue component
@@ -868,13 +920,13 @@ this.$emit('update-data', {lights: ...});
 ```
 
 ```js
-import accessoryui from '@hap-server/accessory-ui-api';
-import LayoutSection from '@hap-server/accessory-ui-api/layout-section';
+import uiplugin from '@hap-server/ui-api';
+import LayoutSection from '@hap-server/ui-api/layout-section';
 
 // Must be globally unique
 const LightsLayoutSectionType = 'FDC60D42-4F6D-4F38-BB3F-E6AB38EC8B87';
 
-accessoryui.registerLayoutSectionComponent(LightsLayoutSectionType, {
+uiplugin.registerLayoutSectionComponent(LightsLayoutSectionType, {
     template: `<layout-section class="accessory-details-light-sensor" :section="section"
         :name="section.name" default-name="Lights" :editing="editing"
         @edit="$emit('edit', $event)" @update-name="$emit('update-name', $event)"
@@ -895,7 +947,7 @@ accessoryui.registerLayoutSectionComponent(LightsLayoutSectionType, {
 }, 'Lights');
 ```
 
-#### `accessoryui.registerAutomationTriggerComponent`
+#### `uiplugin.registerAutomationTriggerComponent`
 
 Registers an automation trigger editor component. This expects an automation trigger type, a
 [Vue component](https://vuejs.org/v2/guide/) and a name to display in the add trigger dropdown. The Vue component
@@ -905,16 +957,16 @@ To update the trigger's configuration update the `trigger` configuration object 
 configuration unless the user is allowed to edit the trigger (`editable` prop).
 
 ```js
-import accessoryui from '@hap-server/accessory-ui-api';
+import uiplugin from '@hap-server/ui-api';
 
-accessoryui.registerAutomationTriggerComponent('Location', {
+uiplugin.registerAutomationTriggerComponent('Location', {
     template: `<automation-trigger class="automation-trigger-locationservice" :id="id" :trigger="trigger"
         :editable="editable" :saving="saving" @delete="$emit('delete')"
     >
         Token: <input v-model="trigger.token" type="text" />
     </automation-trigger>`,
     components: {
-        AutomationTrigger: () => require.import('@hap-server/accessory-ui-api/automation-trigger'),
+        AutomationTrigger: () => require.import('@hap-server/ui-api/automation-trigger'),
     },
     props: {
         id: String,
@@ -926,13 +978,13 @@ accessoryui.registerAutomationTriggerComponent('Location', {
 ```
 
 You can also pass the name of the plugin that registered the automation trigger if it's not the same as the plugin
-that registered the accessory UI.
+that registered the web interface plugin.
 
 ```js
-accessoryui.registerAutomationTriggerComponent('Location', ..., 'Location service', 'location-service-plugin');
+uiplugin.registerAutomationTriggerComponent('Location', ..., 'Location service', 'location-service-plugin');
 ```
 
-#### `accessoryui.registerAutomationConditionComponent`
+#### `uiplugin.registerAutomationConditionComponent`
 
 Registers an automation condition editor component. This expects an automation condition type, a
 [Vue component](https://vuejs.org/v2/guide/) and a name to display in the add condition dropdown. The Vue component
@@ -942,9 +994,9 @@ To update the condition's configuration update the `condition` configuration obj
 condition's configuration unless the user is allowed to edit the condition (`editable` prop).
 
 ```js
-import accessoryui from '@hap-server/accessory-ui-api';
+import uiplugin from '@hap-server/ui-api';
 
-accessoryui.registerAutomationConditionComponent('Location', {
+uiplugin.registerAutomationConditionComponent('Location', {
     template: `<automation-condition class="automation-condition-locationservice" :id="id" :condition="condition"
         :editable="editable" :saving="saving" @delete="$emit('delete')"
     >
@@ -953,7 +1005,7 @@ accessoryui.registerAutomationConditionComponent('Location', {
         Area: <input v-model="condition.area" type="text" />
     </automation-condition>`,
     components: {
-        AutomationCondition: () => require.import('@hap-server/accessory-ui-api/automation-condition'),
+        AutomationCondition: () => require.import('@hap-server/ui-api/automation-condition'),
     },
     props: {
         id: String,
@@ -965,13 +1017,13 @@ accessoryui.registerAutomationConditionComponent('Location', {
 ```
 
 You can also pass the name of the plugin that registered the automation condition if it's not the same as the plugin
-that registered the accessory UI.
+that registered the web interface plugin.
 
 ```js
-accessoryui.registerAutomationConditionComponent('Location', ..., 'Location service', 'location-service-plugin');
+uiplugin.registerAutomationConditionComponent('Location', ..., 'Location service', 'location-service-plugin');
 ```
 
-#### `accessoryui.registerAutomationActionComponent`
+#### `uiplugin.registerAutomationActionComponent`
 
 Registers an automation action editor component. This expects an automation action type, a
 [Vue component](https://vuejs.org/v2/guide/) and a name to display in the add action dropdown. The Vue component will
@@ -981,16 +1033,16 @@ To update the action's configuration update the `action` configuration object di
 configuration unless the user is allowed to edit the action (`editable` prop).
 
 ```js
-import accessoryui from '@hap-server/accessory-ui-api';
+import uiplugin from '@hap-server/ui-api';
 
-accessoryui.registerAutomationActionComponent('Webhook', {
+uiplugin.registerAutomationActionComponent('Webhook', {
     template: `<automation-action class="automation-action-webhook" :id="id" :action="action"
         :editable="editable" :saving="saving" @delete="$emit('delete')"
     >
         URL: <input v-model="action.url" type="text" />
     </automation-action>`,
     components: {
-        AutomationAction: () => require.import('@hap-server/accessory-ui-api/automation-action'),
+        AutomationAction: () => require.import('@hap-server/ui-api/automation-action'),
     },
     props: {
         id: String,
@@ -1002,8 +1054,8 @@ accessoryui.registerAutomationActionComponent('Webhook', {
 ```
 
 You can also pass the name of the plugin that registered the automation action if it's not the same as the plugin
-that registered the accessory UI.
+that registered the web interface plugin.
 
 ```js
-accessoryui.registerAutomationActionComponent('Webhook', ..., 'Webhook', 'webhook-plugin');
+uiplugin.registerAutomationActionComponent('Webhook', ..., 'Webhook', 'webhook-plugin');
 ```
