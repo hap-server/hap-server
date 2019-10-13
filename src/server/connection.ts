@@ -104,6 +104,53 @@ import Server from './server';
 import Logger from '../common/logger';
 import WebSocket from 'ws';
 import http from 'http';
+import { Characteristic } from '../client';
+
+interface AccessoryHap {
+    aid: number;
+    services: ServiceHap[];
+}
+
+interface ServiceHap {
+    iid: number;
+    type: string;
+    characteristics: CharacteristicHap[];
+
+    primary?: boolean;
+    hidden?: boolean;
+    linked?: number[];
+
+    // Custom values recognised by the web interface client
+    subtype?: string;
+    linked_indexes?: number[];
+}
+
+interface CharacteristicHap {
+    iid: number;
+    type: string;
+    perms: 'pr' | 'pw' | 'ev' | 'aa' | 'tw' | 'hd' | 'wr';
+    format: 'bool' | 'int' | 'float' | 'string' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'data' | 'tlv8' |
+        'array' | 'dict';
+
+    value?: any;
+
+    description: string;
+
+    events?: boolean;
+    bonjour?: boolean;
+
+    'value-values'?: any[];
+    'valid-values-range'?: [number, number];
+
+    unit?: 'celsius' | 'percentage' | 'arcdegrees' | 'lux' | 'seconds';
+    maxValue?: number;
+    minValue?: number;
+    minStep?: number;
+    maxLen?: number;
+
+    // Custom values recognised by the web interface client
+    status?: number;
+}
 
 export default class Connection {
     readonly server: Server;
@@ -368,15 +415,23 @@ export default class Connection {
         if (!accessory) return null;
 
         // @ts-ignore
-        const hap = accessory.toHAP()[0];
+        const hap = accessory.toHAP()[0] as AccessoryHap;
 
-        // Add service subtypes
+        // Add service subtypes and linked services
         // eslint-disable-next-line guard-for-in
         for (const index in accessory.services) {
             const service = accessory.services[index];
             const service_hap = hap.services[index];
 
             service_hap.subtype = service.subtype;
+            service_hap.linked_indexes = [];
+
+            // @ts-ignore
+            for (const linked_service of service.linkedServices as HAPNodeJS.Service[]) {
+                if (!accessory.services.includes(linked_service)) continue;
+
+                service_hap.linked_indexes.push(accessory.services.indexOf(linked_service));
+            }
         }
 
         return hap;
@@ -448,7 +503,7 @@ export default class Connection {
         if (!characteristic) return;
 
         // @ts-ignore
-        const hap = characteristic.toHAP();
+        const hap = characteristic.toHAP() as CharacteristicHap;
 
         try {
             hap.value = await new Promise((resolve, reject) => {

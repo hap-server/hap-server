@@ -9,6 +9,7 @@ export default class Service extends EventEmitter {
     readonly accessory: Accessory;
     readonly uuid: string;
     readonly characteristics: {[key: string]: Characteristic};
+    readonly linked_services: Service[];
 
     private _details;
     private _data;
@@ -29,6 +30,7 @@ export default class Service extends EventEmitter {
         this.accessory = accessory;
         this.uuid = uuid;
         this.characteristics = {};
+        this.linked_services = [];
         this._setPermissions(permissions || []);
         this._setData(data || {});
         this._setDetails(details || {});
@@ -45,6 +47,26 @@ export default class Service extends EventEmitter {
 
         this.emit('details-updated');
         this.emit('updated');
+    }
+
+    _handleAddLinkedService(service: Service) {
+        if (this.linked_services.includes(service)) return;
+
+        this.linked_services.push(service);
+        this.emit('add-linked-service', service);
+    }
+
+    /**
+     * @param service The service that was unlinked
+     * @param removed true if the service was removed from the accessory
+     */
+    _handleRemoveLinkedService(service: Service, removed: boolean) {
+        if (!this.linked_services.includes(service)) return;
+
+        let index;
+        while ((index = this.linked_services.indexOf(service)) > -1) this.linked_services.splice(index, 1);
+
+        this.emit('remove-linked-service', service, removed);
     }
 
     _updateCharacteristicsFrom(details) {

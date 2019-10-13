@@ -64,6 +64,7 @@ export default class Accessory extends EventEmitter {
     private _updateServicesFrom(details) {
         const added_service_details = [];
         const removed_service_ids = [];
+        const services_by_details = new Map();
         const primary_services = [];
         const services_made_visible = [];
         const services_made_hidden = [];
@@ -79,6 +80,8 @@ export default class Accessory extends EventEmitter {
                 added_service_details.push(service_details);
                 continue;
             }
+
+            services_by_details.set(service_details, service);
 
             const was_hidden = service.hidden;
 
@@ -112,8 +115,73 @@ export default class Accessory extends EventEmitter {
         const added_services = added_service_details.map(service_details => {
             const uuid = service_details.type + (service_details.subtype ? '.' + service_details.subtype : '');
             const permissions = this._permissions.set_characteristics[uuid];
-            return new Service(this, uuid, service_details, this.data['Service.' + uuid], permissions);
+            const service = new Service(this, uuid, service_details, this.data['Service.' + uuid], permissions);
+            services_by_details.set(service_details, service);
+            return service;
         });
+
+        // Add linked services for new services
+        // eslint-disable-next-line guard-for-in
+        for (const index in added_service_details) {
+            const service_details = added_service_details[index];
+            const service = added_services[index];
+
+            for (const linked_service_index of service_details.linked_indexes || []) {
+                const linked_service_details = details.services[linked_service_index];
+                if (!linked_service_details) {
+                    console.warn('Service %O linked with a service that doesn\'t exist at index %n',
+                        service, linked_service_index);
+                    continue;
+                }
+
+                const linked_service = services_by_details.get(linked_service_details);
+
+                // If this service is in the linked services list twice for whatever reason
+                if (service.linked_services.includes(linked_service)) continue;
+
+                service.linked_services.push(linked_service);
+            }
+        }
+
+        // Update linked services for existing services
+        for (const service_details of details.services || []) {
+            const uuid = service_details.type + (service_details.subtype ? '.' + service_details.subtype : '');
+            const service = this.services[uuid];
+
+            // Service is new
+            if (!service) continue;
+
+            for (const linked_service_index of service_details.linked_indexes || []) {
+                const linked_service_details = details.services[linked_service_index];
+                if (!linked_service_details) {
+                    console.warn('Service %O linked with a service that doesn\'t exist at index %n',
+                        service, linked_service_index);
+                    continue;
+                }
+
+                const linked_service = services_by_details.get(linked_service_details);
+
+                // Already linked
+                if (service.linked_services.includes(linked_service)) continue;
+
+                service._handleAddLinkedService(service);
+            }
+
+            for (const linked_service of service.linked_services) {
+                if (removed_service_ids.includes(linked_service.uuid)) {
+                    // Linked service was removed
+                    service._handleRemoveLinkedService(linked_service, true);
+                } else if (!(service_details.linked_indexes || []).find(linked_service_index => {
+                    const linked_service_details = details.services[linked_service_index];
+                    if (!linked_service_details) return false;
+
+                    return !!services_by_details.get(linked_service_details);
+                })) {
+                    // Linked service was unlinked
+                    service._handleRemoveLinkedService(linked_service, false);
+                }
+            }
+        }
 
         for (const service of added_services) {
             // Use Vue.set so Vue updates properly
