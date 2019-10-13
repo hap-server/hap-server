@@ -25,8 +25,6 @@
         "node": ">=8.0.0 <13"
     },
     "dependencies": {
-        "@hap-server/api": "file:src/types/api",
-        "@hap-server/ui-api": "file:src/types/ui-api",
         "bonjour": "^3.5.0",
         "chalk": "^2.4.2",
         "cookie-parser": "^1.4.4",
