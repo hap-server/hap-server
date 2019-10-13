@@ -377,11 +377,10 @@ export const system_types = [
     '49FB9D4D-0FEA-4BF1-8FA6-E7B18AB86DCE',
 ];
 
-export const collapsed_services = {
+export const collapsed_services: {
+    [collapsed_service_type: string]: string[] | {(service: Service): boolean};
+} = {
     [type_uuids.StatelessProgrammableSwitch]: [type_uuids.StatelessProgrammableSwitch],
-    [type_uuids.Television]: service => service.type === type_uuids.Television ||
-        ([...Object.values(service.accessory.services)].find((s: Service) => s.type === type_uuids.Television) &&
-            (service.type === type_uuids.InputSource || service.type === type_uuids.TelevisionSpeaker)),
 };
 
 // @ts-ignore

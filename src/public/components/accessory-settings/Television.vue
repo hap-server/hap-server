@@ -28,7 +28,7 @@
 <script>
     import Service from '../../../client/service';
 
-    export const uuid = 'CollapsedService.' + Service.Television;
+    export const uuid = Service.Television;
 
     export default {
         props: {
@@ -36,7 +36,7 @@
         },
         computed: {
             inputs() {
-                return this.service.services.filter(service => service.type === Service.InputSource);
+                return this.service.linked_services.filter(service => service.type === Service.InputSource);
             },
         },
         methods: {
