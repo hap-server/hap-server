@@ -8,6 +8,8 @@ import Layout from './layout';
 import Automation from './automation';
 import Scene from './scene';
 
+import {BroadcastMessage} from '../common/types/broadcast-messages';
+
 export function $set<T>(object: object, key: string, value: T): T {
     try {
         // @ts-ignore
@@ -38,7 +40,7 @@ export default class Client extends EventEmitter {
     connection?: Connection;
     connected: boolean;
     connect_error?: Error;
-    WebSocket;
+    WebSocket: typeof import('ws') | null;
     is_ws: boolean;
 
     home_settings?: any = null;
@@ -66,7 +68,7 @@ export default class Client extends EventEmitter {
     private _disconnect?: Promise<void>;
     old_connection?: Connection;
 
-    constructor(url?: string, _WebSocket?) {
+    constructor(url?: string, _WebSocket?: typeof import('ws')) {
         super();
 
         // @ts-ignore
@@ -192,7 +194,7 @@ export default class Client extends EventEmitter {
         return disconnect;
     }
 
-    async handleBroadcastMessage(data) {
+    protected async handleBroadcastMessage(data: BroadcastMessage) {
         this.emit('received-broadcast', data);
 
         if (data.type === 'update-permissions') {
@@ -239,8 +241,8 @@ export default class Client extends EventEmitter {
         }
 
         if (this.home_settings && data.type === 'update-home-settings') {
-            this.home_settings.name = data.name;
-            this.home_settings.background_url = data.background_url;
+            this.home_settings.name = data.data.name;
+            this.home_settings.background_url = data.data.background_url;
 
             this.emit('update-home-settings', this.home_settings);
         }
@@ -482,7 +484,7 @@ export default class Client extends EventEmitter {
         }
     }
 
-    handleDisconnected(event) {
+    protected handleDisconnected(event: any) {
         console.log('Disconnected');
         this.connection.removeListener('received-broadcast', this._handleBroadcastMessage);
         this.connection.removeListener('disconnected', this._handleDisconnected);
@@ -500,7 +502,7 @@ export default class Client extends EventEmitter {
      * @param {Array} [accessory_uuids]
      * @return {Promise}
      */
-    async loadAccessories(dep?, accessory_uuids?: string[]) {
+    async loadAccessories(dep?: any, accessory_uuids?: string[]) {
         const required_accessory_uuids = this.getRequiredAccessoryUUIDs();
         const load_accessories = !this.accessories || (required_accessory_uuids && accessory_uuids &&
             accessory_uuids.find(uuid => !required_accessory_uuids.has(uuid))) ||
@@ -519,7 +521,7 @@ export default class Client extends EventEmitter {
      *
      * @param {*} [dep]
      */
-    unloadAccessories(dep?) {
+    unloadAccessories(dep?: any) {
         if (dep) {
             this.accessories_dependencies.delete(dep);
 
@@ -611,7 +613,7 @@ export default class Client extends EventEmitter {
         }
     }
 
-    loadLayouts(dep?, layout_uuids?: string[]) {
+    loadLayouts(dep?: any, layout_uuids?: string[]) {
         const required_layout_uuids = this.getRequiredLayoutUUIDs();
         const load_layouts = !this.layouts || (required_layout_uuids && layout_uuids &&
             layout_uuids.find(uuid => !required_layout_uuids.has(uuid))) || (required_layout_uuids && !layout_uuids);
@@ -624,7 +626,7 @@ export default class Client extends EventEmitter {
         if (load_layouts && this.connection) this.refreshLayouts();
     }
 
-    unloadLayouts(dep?) {
+    unloadLayouts(dep?: any) {
         if (dep) {
             this.layouts_dependencies.delete(dep);
 
@@ -738,7 +740,7 @@ export default class Client extends EventEmitter {
         }
     }
 
-    loadAutomations(dep?, automation_uuids?: string[]) {
+    loadAutomations(dep?: any, automation_uuids?: string[]) {
         const required_automation_uuids = this.getRequiredAutomationUUIDs();
         const load_automations = !this.automations || (required_automation_uuids && automation_uuids &&
             automation_uuids.find(uuid => !required_automation_uuids.has(uuid))) ||
@@ -752,7 +754,7 @@ export default class Client extends EventEmitter {
         if (load_automations && this.connection) this.refreshAutomations();
     }
 
-    unloadAutomations(dep?) {
+    unloadAutomations(dep?: any) {
         if (dep) {
             this.automations_dependencies.delete(dep);
 
@@ -835,7 +837,7 @@ export default class Client extends EventEmitter {
         }
     }
 
-    loadScenes(dep?, scene_uuids?: string[]) {
+    loadScenes(dep?: any, scene_uuids?: string[]) {
         const required_scene_uuids = this.getRequiredSceneUUIDs();
         const load_scenes = !this.scenes || (required_scene_uuids && scene_uuids &&
             scene_uuids.find(uuid => !required_scene_uuids.has(uuid))) || (required_scene_uuids && !scene_uuids);
@@ -848,7 +850,7 @@ export default class Client extends EventEmitter {
         if (load_scenes && this.connection) this.refreshScenes();
     }
 
-    unloadScenes(dep?) {
+    unloadScenes(dep?: any) {
         if (dep) {
             this.scenes_dependencies.delete(dep);
 

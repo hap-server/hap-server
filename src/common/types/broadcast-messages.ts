@@ -1,5 +1,7 @@
 import {AccessoryHap, CharacteristicHap} from './hap';
-import {GetHomePermissionsResponseMessage} from './messages';
+import {
+    AccessoryData, Home, Layout, LayoutSection, Automation, Pairing, Permissions,
+} from './storage';
 
 export interface AddAccessoriesMessage {
     type: 'add-accessories';
@@ -26,7 +28,7 @@ export interface UpdateCharacteristicMessage {
 export interface UpdateAccessoryDataMessage {
     type: 'update-accessory-data';
     uuid: string;
-    data: any;
+    data: AccessoryData;
 }
 
 export interface AddDiscoveredAccessoryMessage {
@@ -45,7 +47,7 @@ export interface RemoveDiscoveredAccessoryMessage {
 
 export interface UpdateHomeSettingsMessage {
     type: 'update-home-settings';
-    data: any;
+    data: Home;
 }
 
 export interface LayoutMessage {
@@ -60,7 +62,7 @@ export interface RemoveLayoutMessage extends LayoutMessage {
 }
 export interface UpdateLayoutMessage extends LayoutMessage {
     type: 'update-layout';
-    data: any;
+    data: Layout;
 }
 
 export interface LayoutSectionMessage {
@@ -76,7 +78,7 @@ export interface RemoveLayoutSectionMessage extends LayoutSectionMessage {
 }
 export interface UpdateLayoutSectionMessage extends LayoutSectionMessage {
     type: 'update-layout-section';
-    data: any;
+    data: LayoutSection;
 }
 
 export interface AutomationMessage {
@@ -91,7 +93,7 @@ export interface RemoveAutomationMessage extends AutomationMessage {
 }
 export interface UpdateAutomationMessage extends AutomationMessage {
     type: 'update-automation';
-    data: any;
+    data: Automation;
 }
 
 export interface AutomationRunnerMessage {
@@ -100,9 +102,12 @@ export interface AutomationRunnerMessage {
 }
 export interface AutomationRunningMessage extends AutomationRunnerMessage {
     type: 'automation-running';
+    automation_uuid: string;
 }
 export interface AutomationProgressMessage extends AutomationRunnerMessage {
     type: 'automation-progress';
+    /** A number between 0 and 1. */
+    progress: number;
 }
 export interface AutomationFinishedMessage extends AutomationRunnerMessage {
     type: 'automation-finished';
@@ -152,12 +157,12 @@ export interface UpdatePairingsMessage {
 export interface UpdatePairingDataMessage {
     type: 'update-pairing-data';
     id: string;
-    data: any;
+    data: Pairing;
 }
 
 export interface UpdatePermissionsMessage {
     type: 'update-permissions';
-    data: GetHomePermissionsResponseMessage;
+    data: Permissions;
 }
 
 export interface StdoutMessage {

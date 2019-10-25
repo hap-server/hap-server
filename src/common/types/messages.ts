@@ -1,4 +1,7 @@
 import {AccessoryHap, CharacteristicHap} from './hap';
+import {
+    AccessoryData, Home, Layout, LayoutSection, Automation, Scene, Bridge, Pairing, Permissions,
+} from './storage';
 
 export interface ErrorResponse {
     reject: true;
@@ -58,11 +61,11 @@ export interface GetAccessoriesDataRequestMessage {
     type: 'get-accessories-data';
     id: string[];
 }
-export type GetAccessoriesDataResponseMessage = any[];
+export type GetAccessoriesDataResponseMessage = AccessoryData[];
 
 export interface SetAccessoriesDataRequestMessage {
     type: 'set-accessories-data';
-    id_data: [string, any][];
+    id_data: [string, AccessoryData][];
 }
 export type SetAccessoriesDataResponseMessage = void[];
 
@@ -89,7 +92,7 @@ export type StopAccessoryDiscoveryResponseMessage = void;
 export interface GetHomeSettingsRequestMessage {
     type: 'get-home-settings';
 }
-export type GetHomeSettingsResponseMessage = any;
+export type GetHomeSettingsResponseMessage = Home;
 
 export interface GetHomePermissionsRequestMessage {
     type: 'get-home-permissions';
@@ -110,7 +113,7 @@ export type GetHomePermissionsResponseMessage = {
 
 export interface SetHomeSettingsRequestMessage {
     type: 'set-home-settings';
-    data: any;
+    data: Home;
 }
 export type SetHomeSettingsResponseMessage = void;
 
@@ -121,7 +124,7 @@ export type ListLayoutsResponseMessage = string[];
 
 export interface CreateLayoutsRequestMessage {
     type: 'create-layouts';
-    data: any[];
+    data: Layout[];
 }
 export type CreateLayoutsResponseMessage = string[];
 
@@ -129,7 +132,7 @@ export interface GetLayoutsRequestMessage {
     type: 'get-layouts';
     id: string[];
 }
-export type GetLayoutsResponseMessage = any[];
+export type GetLayoutsResponseMessage = Layout[];
 
 export interface GetLayoutsPermissionsRequestMessage {
     type: 'get-layouts-permissions';
@@ -143,7 +146,7 @@ export type GetLayoutsPermissionsResponseMessage = {
 
 export interface SetLayoutsRequestMessage {
     type: 'set-layouts';
-    id_data: [string, any][];
+    id_data: [string, Layout][];
 }
 export type SetLayoutsResponseMessage = void[];
 
@@ -161,7 +164,7 @@ export type ListLayoutSectionsResponseMessage = string[][];
 
 export interface CreateLayoutSectionsRequestMessage {
     type: 'create-layout-sections';
-    id_data: [string, any][];
+    id_data: [string, LayoutSection][];
 }
 export type CreateLayoutSectionsResponseMessage = string[];
 
@@ -169,11 +172,11 @@ export interface GetLayoutSectionsRequestMessage {
     type: 'get-layout-sections';
     ids: [string, string][];
 }
-export type GetLayoutSectionsResponseMessage = any[];
+export type GetLayoutSectionsResponseMessage = LayoutSection[];
 
 export interface SetLayoutSectionsRequestMessage {
     type: 'set-layout-sections';
-    ids_data: [string, string, any][];
+    ids_data: [string, string, LayoutSection][];
 }
 export type SetLayoutSectionsResponseMessage = void[];
 
@@ -190,7 +193,7 @@ export type ListAutomationsResponseMessage = string[];
 
 export interface CreateAutomationsRequestMessage {
     type: 'create-automations';
-    data: any[];
+    data: Automation[];
 }
 export type CreateAutomationsResponseMessage = string[];
 
@@ -198,7 +201,7 @@ export interface GetAutomationsRequestMessage {
     type: 'get-automations';
     id: string[];
 }
-export type GetAutomationsResponseMessage = any[];
+export type GetAutomationsResponseMessage = Automation[];
 
 export interface GetAutomationsPermissionsRequestMessage {
     type: 'get-automations-permissions';
@@ -212,7 +215,7 @@ export type GetAutomationsPermissionsResponseMessage = {
 
 export interface SetAutomationsRequestMessage {
     type: 'set-automations';
-    id_data: [string, any][];
+    id_data: [string, Automation][];
 }
 export type SetAutomationsResponseMessage = void[];
 
@@ -229,7 +232,7 @@ export type ListScenesResponseMessage = string[];
 
 export interface CreateScenesRequestMessage {
     type: 'create-scenes';
-    data: any[];
+    data: Scene[];
 }
 export type CreateScenesResponseMessage = string[];
 
@@ -237,7 +240,7 @@ export interface GetScenesRequestMessage {
     type: 'get-scenes';
     id: string[];
 }
-export type GetScenesResponseMessage = any[];
+export type GetScenesResponseMessage = Scene[];
 
 export interface GetScenesPermissionsRequestMessage {
     type: 'get-scenes-permissions';
@@ -252,7 +255,7 @@ export type GetScenesPermissionsResponseMessage = {
 
 export interface SetScenesRequestMessage {
     type: 'set-scenes';
-    id_data: [string, any][];
+    id_data: [string, Scene][];
 }
 export type SetScenesResponseMessage = void[];
 
@@ -303,7 +306,7 @@ export type ListBridgesResponseMessage = string[];
 
 export interface CreateBridgesRequestMessage {
     type: 'create-bridges';
-    data: any[];
+    data: Bridge[];
 }
 export type CreateBridgesResponseMessage = string[];
 
@@ -320,7 +323,7 @@ export interface GetBridgesConfigurationRequestMessage {
     type: 'get-bridges-configuration';
     uuid: string[];
 }
-export type GetBridgesConfigurationResponseMessage = any[];
+export type GetBridgesConfigurationResponseMessage = Bridge[];
 
 export interface GetBridgesPermissionsRequestMessage {
     type: 'get-bridges-permissions';
@@ -335,7 +338,7 @@ export type GetBridgesPermissionsResponseMessage = {
 
 export interface SetBridgesConfigurationRequestMessage {
     type: 'set-bridges-configuration';
-    uuid_data: [string, any][];
+    uuid_data: [string, Bridge][];
 }
 export type SetBridgesConfigurationResponseMessage = void[];
 
@@ -381,7 +384,7 @@ export interface GetPairingsDataRequestMessage {
     type: 'get-pairings-data';
     id: string[];
 }
-export type GetPairingsDataResponseMessage = any[];
+export type GetPairingsDataResponseMessage = Pairing[];
 
 export interface GetPairingsPermissionsRequestMessage {
     type: 'get-pairings-permissions';
@@ -394,7 +397,7 @@ export type GetPairingsPermissionsResponseMessage = {
 
 export interface SetPairingsDataRequestMessage {
     type: 'set-pairings-data';
-    id_data: [string, any][];
+    id_data: [string, Pairing][];
 }
 export type SetPairingsDataResponseMessage = void[];
 
@@ -454,11 +457,11 @@ export interface GetUsersPermissionsRequestMessage {
     type: 'get-users-permissions';
     id: string[];
 };
-export type GetUsersPermissionsResponseMessage = any[];
+export type GetUsersPermissionsResponseMessage = Permissions[];
 
 export interface SetUsersPermissionsRequestMessage {
     type: 'set-users-permissions';
-    id_data: [string, any][];
+    id_data: [string, Permissions][];
 };
 export type SetUsersPermissionsResponseMessage = void[];
 
