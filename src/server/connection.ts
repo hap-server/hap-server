@@ -475,27 +475,14 @@ export default class Connection {
     async getCharacteristic(accessory_uuid: string, service_uuid: string, characteristic_uuid: string) {
         await this.permissions.assertCanGetAccessory(accessory_uuid);
 
-        const accessory = this.server.getAccessory(accessory_uuid);
-
-        const service_type = service_uuid.indexOf('.') !== -1 ?
-            service_uuid.substr(0, service_uuid.indexOf('.')) : service_uuid;
-        const service_subtype = service_uuid.indexOf('.') !== -1 ?
-            service_uuid.substr(service_uuid.indexOf('.') + 1) : undefined;
-
-        const service = accessory.services.find(service => service.UUID === service_type &&
-            ((!service.subtype && !service_subtype) || service.subtype === service_subtype));
-        if (!service) return;
-
-        const characteristic: any = service.characteristics.find((c: any) => c.UUID === characteristic_uuid);
+        const characteristic = this.server.getCharacteristic(accessory_uuid, service_uuid, characteristic_uuid);
         if (!characteristic) return;
 
         // @ts-ignore
         const hap = characteristic.toHAP() as CharacteristicHap;
 
         try {
-            hap.value = await new Promise((resolve, reject) => {
-                characteristic.getValue((err, value) => err ? reject(err) : resolve(value));
-            });
+            hap.value = await this.server.getCharacteristicValue(characteristic);
         } catch (err) {
             hap.status = hapStatus(err);
         }
@@ -514,26 +501,14 @@ export default class Connection {
     async setCharacteristic(accessory_uuid: string, service_uuid: string, characteristic_uuid: string, value: any) {
         await this.permissions.assertCanSetCharacteristic(accessory_uuid, service_uuid, characteristic_uuid, value);
 
-        // this.log.info('Setting characteristic', accessory_uuid, service_uuid, characteristic_uuid, 'to', value);
+        const characteristic = this.server.getCharacteristic(accessory_uuid, service_uuid, characteristic_uuid);
+        if (!characteristic) {
+            this.log.warn('Unknown characteristic %s, %s, %s',
+                accessory_uuid, service_uuid, characteristic_uuid);
+            return;
+        }
 
-        const accessory = this.server.getAccessory(accessory_uuid);
-        if (!accessory) return this.log.warn('Unknown accessory %s', accessory_uuid);
-
-        const service_type = service_uuid.indexOf('.') !== -1 ?
-            service_uuid.substr(0, service_uuid.indexOf('.')) : service_uuid;
-        const service_subtype = service_uuid.indexOf('.') !== -1 ?
-            service_uuid.substr(service_uuid.indexOf('.') + 1) : undefined;
-
-        const service = accessory.services.find(service => service.UUID === service_type &&
-            ((!service.subtype && !service_subtype) || service.subtype === service_subtype));
-        if (!service) return this.log.warn('Unknown service %s', service_uuid);
-
-        const characteristic: any = service.characteristics.find((c: any) => c.UUID === characteristic_uuid);
-        if (!characteristic) return this.log.warn('Unknown characteristic %s', characteristic_uuid);
-
-        return new Promise((resolve, reject) => {
-            characteristic.setValue(value, (err, r) => err ? reject(err) : resolve(r));
-        });
+        await this.server.setCharacteristicValue(characteristic, value);
     }
 
     /**

@@ -1458,6 +1458,46 @@ export default class Server extends Events {
     }
 
     /**
+     * Gets a characteristic's value.
+     *
+     * @param {Characteristic|string} characteristic
+     * @param {any} [context]
+     * @param {string} [connection_id]
+     * @return {Promise<any>}
+     */
+    getCharacteristicValue(
+        characteristic: typeof Characteristic | string | string[], context?: any, connection_id?: string
+    ): Promise<any> {
+        if (!(characteristic instanceof Characteristic)) {
+            characteristic = this.getCharacteristic(characteristic as string | string[]);
+        }
+
+        return new Promise((resolve, reject) => {
+            characteristic.getValue(
+                (err: Error, value: any) => err ? reject(err) : resolve(value), context, connection_id);
+        });
+    }
+
+    /**
+     * Sets a characteristic's value.
+     *
+     * @param {Characteristic|string} characteristic
+     * @param {any} value
+     * @param {any} [context]
+     * @param {string} [connection_id]
+     * @return {Promise<any>}
+     */
+    setCharacteristicValue(
+        characteristic: typeof Characteristic | string | string[], value: any, context?: any, connection_id?: string
+    ): Promise<void> {
+        if (!(characteristic instanceof Characteristic)) characteristic = this.getCharacteristic(characteristic);
+
+        return new Promise((resolve, reject) => {
+            characteristic.setValue(value, (err: Error) => err ? reject(err) : resolve(), context, connection_id);
+        });
+    }
+
+    /**
      * Creates a HTTP server.
      *
      * @param {object} options

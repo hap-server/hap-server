@@ -193,9 +193,11 @@ export class ScriptAction extends AutomationAction {
 
     private sandbox: {
         server: Server;
-        getAccessory: (uuid: string) => typeof Accessory;
-        getService: (uuid: string, uuid2?: string) => typeof Service;
-        getCharacteristic: (uuid: string, uuid2?: string, uuid3?: string) => typeof Characteristic;
+        getAccessory: Server['getAccessory'];
+        getService: Server['getService'];
+        getCharacteristic: Server['getCharacteristic'];
+        getCharacteristicValue: Server['getCharacteristicValue'];
+        setCharacteristicValue: Server['setCharacteristicValue'];
 
         automations: Automations;
         automation_action: ScriptAction;
@@ -209,6 +211,8 @@ export class ScriptAction extends AutomationAction {
             getAccessory: this.automations.server.getAccessory.bind(this.automations.server),
             getService: this.automations.server.getService.bind(this.automations.server),
             getCharacteristic: this.automations.server.getCharacteristic.bind(this.automations.server),
+            getCharacteristicValue: this.automations.server.getCharacteristicValue.bind(this.automations.server),
+            setCharacteristicValue: this.automations.server.setCharacteristicValue.bind(this.automations.server),
 
             automations: this.automations,
             automation_action: this,
