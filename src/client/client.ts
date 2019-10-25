@@ -395,7 +395,7 @@ export default class Client extends EventEmitter {
             const automation = this.automations[data.uuid];
             if (!automation) return;
 
-            automation._setData(data);
+            automation._setData(data.data);
         }
 
         if (this.automations && data.type === 'automation-running') {
