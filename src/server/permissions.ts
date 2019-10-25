@@ -6,6 +6,8 @@ import Logger from '../common/logger';
 
 const DEVELOPMENT = true;
 
+import {BroadcastMessage} from '../common/types/broadcast-messages';
+
 export interface UserAccessoryPermissions {
     readonly get?: boolean;
     readonly set?: boolean;
@@ -100,7 +102,7 @@ export default class Permissions {
 
         const _default = permissions.accessories && permissions.accessories['*'] && permissions.accessories['*'].get;
 
-        const uuids = [];
+        const uuids: any[] | string[] | PromiseLike<string[]> = [];
 
         for (const [uuid, accessory_permissions] of Object.entries(permissions.accessories || {})) {
             if (uuid === '*') continue;
@@ -167,7 +169,7 @@ export default class Permissions {
             permissions.accessories[accessory_uuid].get : _default;
     }
 
-    async assertCanGetAccessory(accessory_uuid): Promise<void> {
+    async assertCanGetAccessory(accessory_uuid: string): Promise<void> {
         if (!await this.checkCanGetAccessory(accessory_uuid)) {
             throw new Error('You don\'t have permission to access this accessory');
         }
@@ -182,7 +184,7 @@ export default class Permissions {
      * @param {*} value
      * @return {Promise<boolean>}
      */
-    async checkCanSetCharacteristic(accessory_uuid: string, service_uuid: string, characteristic_uuid: string, value?):
+    async checkCanSetCharacteristic(accessory_uuid: string, service_uuid: string, characteristic_uuid: string, value?: undefined):
     Promise<boolean> {
         if (DEVELOPMENT && (this as any).__development_allow_local()) return true;
 
@@ -198,7 +200,7 @@ export default class Permissions {
             permissions.accessories[accessory_uuid].get && permissions.accessories[accessory_uuid].set : _default;
     }
 
-    async assertCanSetCharacteristic(accessory_uuid, service_uuid, characteristic_uuid, value?): Promise<void> {
+    async assertCanSetCharacteristic(accessory_uuid: string, service_uuid: string, characteristic_uuid: string, value?: any): Promise<void> {
         if (!await this.checkCanSetCharacteristic(accessory_uuid, service_uuid, characteristic_uuid, value)) {
             throw new Error('You don\'t have permission to control this accessory');
         }
@@ -225,7 +227,7 @@ export default class Permissions {
             permissions.accessories[accessory_uuid].get && permissions.accessories[accessory_uuid].manage : _default;
     }
 
-    async assertCanSetAccessoryData(accessory_uuid): Promise<void> {
+    async assertCanSetAccessoryData(accessory_uuid: string): Promise<void> {
         if (!await this.checkCanSetAccessoryData(accessory_uuid)) {
             throw new Error('You don\'t have permission to manage this accessory');
         }
@@ -274,7 +276,7 @@ export default class Permissions {
             permissions.accessories[accessory_uuid].get && permissions.accessories[accessory_uuid].config : _default;
     }
 
-    async assertCanGetAccessoryConfig(accessory_uuid): Promise<void> {
+    async assertCanGetAccessoryConfig(accessory_uuid: string): Promise<void> {
         if (!await this.checkCanGetAccessoryConfig(accessory_uuid)) {
             throw new Error('You don\'t have permission to manage this accessory');
         }
@@ -301,7 +303,7 @@ export default class Permissions {
             permissions.accessories[accessory_uuid].get && permissions.accessories[accessory_uuid].config : _default;
     }
 
-    async assertCanSetAccessoryConfig(accessory_uuid): Promise<void> {
+    async assertCanSetAccessoryConfig(accessory_uuid: string): Promise<void> {
         if (!await this.checkCanSetAccessoryConfig(accessory_uuid)) {
             throw new Error('You don\'t have permission to manage this accessory');
         }
@@ -328,7 +330,7 @@ export default class Permissions {
             permissions.accessories[accessory_uuid].get && permissions.accessories[accessory_uuid].delete : _default;
     }
 
-    async assertCanDeleteAccessory(accessory_uuid): Promise<void> {
+    async assertCanDeleteAccessory(accessory_uuid: string): Promise<void> {
         if (!await this.checkCanDeleteAccessory(accessory_uuid)) {
             throw new Error('You don\'t have permission to delete this accessory');
         }
@@ -441,7 +443,7 @@ export default class Permissions {
         return permissions.layouts && permissions.layouts[id] ? permissions.layouts[id].get : _default;
     }
 
-    async assertCanGetLayout(id): Promise<void> {
+    async assertCanGetLayout(id: string): Promise<void> {
         if (!await this.checkCanGetLayout(id)) {
             throw new Error('You don\'t have permission to access this layout');
         }
@@ -471,7 +473,7 @@ export default class Permissions {
             permissions.layouts[id].get && permissions.layouts[id].set : _default;
     }
 
-    async assertCanSetLayout(id): Promise<void> {
+    async assertCanSetLayout(id: string): Promise<void> {
         if (!await this.checkCanSetLayout(id)) {
             throw new Error('You don\'t have permission to update this layout');
         }
@@ -501,7 +503,7 @@ export default class Permissions {
             permissions.layouts[id].get && permissions.layouts[id].delete : _default;
     }
 
-    async assertCanDeleteLayout(id): Promise<void> {
+    async assertCanDeleteLayout(id: string): Promise<void> {
         if (!await this.checkCanDeleteLayout(id)) {
             throw new Error('You don\'t have permission to delete this layout');
         }
@@ -517,10 +519,10 @@ export default class Permissions {
             if (!this.user) return [];
         }
 
-        const uuids = await this.connection.server.storage.getItem('Automations') || [];
+        const uuids: string[] = await this.connection.server.storage.getItem('Automations') || [];
 
         const authorised_uuids = await Promise.all(uuids.map(u => this.checkCanGetAutomation(u)));
-        return uuids.filter((u, index) => authorised_uuids[index]);
+        return uuids.filter((u: any, index: number) => authorised_uuids[index]);
     }
 
     /**
@@ -564,7 +566,7 @@ export default class Permissions {
         return permissions.automations && permissions.automations[uuid] ? permissions.automations[uuid].get : _default;
     }
 
-    async assertCanGetAutomation(uuid): Promise<void> {
+    async assertCanGetAutomation(uuid: string): Promise<void> {
         if (!await this.checkCanGetAutomation(uuid)) {
             throw new Error('You don\'t have permission to access this automation');
         }
@@ -591,7 +593,7 @@ export default class Permissions {
             permissions.automations[uuid].get && permissions.automations[uuid].set : _default;
     }
 
-    async assertCanSetAutomation(uuid): Promise<void> {
+    async assertCanSetAutomation(uuid: string): Promise<void> {
         if (!await this.checkCanSetAutomation(uuid)) {
             throw new Error('You don\'t have permission to update this automation');
         }
@@ -618,7 +620,7 @@ export default class Permissions {
             permissions.automations[uuid].get && permissions.automations[uuid].delete : _default;
     }
 
-    async assertCanDeleteAutomation(uuid): Promise<void> {
+    async assertCanDeleteAutomation(uuid: string): Promise<void> {
         if (!await this.checkCanDeleteAutomation(uuid)) {
             throw new Error('You don\'t have permission to delete this automation');
         }
@@ -634,10 +636,10 @@ export default class Permissions {
             if (!this.user) return [];
         }
 
-        const uuids = await this.connection.server.storage.getItem('Scenes') || [];
+        const uuids: string[] = await this.connection.server.storage.getItem('Scenes') || [];
 
         const authorised_uuids = await Promise.all(uuids.map(u => this.checkCanGetScene(u)));
-        return uuids.filter((u, index) => authorised_uuids[index]);
+        return uuids.filter((u: any, index: number) => authorised_uuids[index]);
     }
 
     /**
@@ -681,7 +683,7 @@ export default class Permissions {
         return permissions.scenes && permissions.scenes[uuid] ? permissions.scenes[uuid].get : _default;
     }
 
-    async assertCanGetScene(uuid): Promise<void> {
+    async assertCanGetScene(uuid: string): Promise<void> {
         if (!await this.checkCanGetScene(uuid)) {
             throw new Error('You don\'t have permission to access this scene');
         }
@@ -708,7 +710,7 @@ export default class Permissions {
             permissions.scenes[uuid].get && permissions.scenes[uuid].activate : _default;
     }
 
-    async assertCanActivateScene(uuid): Promise<void> {
+    async assertCanActivateScene(uuid: string): Promise<void> {
         if (!await this.checkCanActivateScene(uuid)) {
             throw new Error('You don\'t have permission to activate/deactivate this scene');
         }
@@ -735,7 +737,7 @@ export default class Permissions {
             permissions.scenes[uuid].get && permissions.scenes[uuid].set : _default;
     }
 
-    async assertCanSetScene(uuid): Promise<void> {
+    async assertCanSetScene(uuid: string): Promise<void> {
         if (!await this.checkCanSetScene(uuid)) {
             throw new Error('You don\'t have permission to update this scene');
         }
@@ -762,7 +764,7 @@ export default class Permissions {
             permissions.scenes[uuid].get && permissions.scenes[uuid].delete : _default;
     }
 
-    async assertCanDeleteScene(uuid): Promise<void> {
+    async assertCanDeleteScene(uuid: string): Promise<void> {
         if (!await this.checkCanDeleteScene(uuid)) {
             throw new Error('You don\'t have permission to delete this scene');
         }
@@ -811,7 +813,7 @@ export default class Permissions {
             permissions.accessories[uuid].get && permissions.accessories[uuid].config : _default;
     }
 
-    async assertCanGetBridgeConfiguration(uuid): Promise<void> {
+    async assertCanGetBridgeConfiguration(uuid: string): Promise<void> {
         if (!await this.checkCanGetBridgeConfiguration(uuid)) {
             throw new Error('You don\'t have permission to access this bridge\'s configuration');
         }
@@ -838,7 +840,7 @@ export default class Permissions {
             permissions.accessories[uuid].get && permissions.accessories[uuid].config : _default;
     }
 
-    async assertCanSetBridgeConfiguration(uuid): Promise<void> {
+    async assertCanSetBridgeConfiguration(uuid: string): Promise<void> {
         if (!await this.checkCanSetBridgeConfiguration(uuid)) {
             throw new Error('You don\'t have permission to update this bridge\'s configuration');
         }
@@ -850,7 +852,7 @@ export default class Permissions {
      * @param {string} uuid
      * @return {Promise<boolean>}
      */
-    async checkCanDeleteBridge(uuid: string): Promise<boolean> {
+    async checkCanDeleteBridge(uuid: string) {
         if (DEVELOPMENT && (this as any).__development_allow_local()) return true;
 
         if (!this.user) return false;
@@ -865,7 +867,7 @@ export default class Permissions {
             permissions.accessories[uuid].get && permissions.accessories[uuid].delete : _default;
     }
 
-    async assertCanDeleteBridge(uuid): Promise<void> {
+    async assertCanDeleteBridge(uuid: string) {
         if (!await this.checkCanDeleteBridge(uuid)) {
             throw new Error('You don\'t have permission to delete this bridge');
         }
@@ -888,7 +890,7 @@ export default class Permissions {
         return permissions.manage_pairings;
     }
 
-    async assertCanGetPairing(username): Promise<void> {
+    async assertCanGetPairing(username: string): Promise<void> {
         if (!await this.checkCanGetPairing(username)) {
             throw new Error('You don\'t have permission to access this pairing');
         }
@@ -911,7 +913,7 @@ export default class Permissions {
         return permissions.manage_pairings;
     }
 
-    async assertCanSetPairing(username): Promise<void> {
+    async assertCanSetPairing(username: string): Promise<void> {
         if (!await this.checkCanSetPairing(username)) {
             throw new Error('You don\'t have permission to update this pairing');
         }
@@ -1012,7 +1014,7 @@ export default class Permissions {
      * @param {string} data.type
      * @return {Promise<boolean>}
      */
-    async checkShouldReceiveBroadcast(data): Promise<boolean> {
+    async checkShouldReceiveBroadcast(data: BroadcastMessage): Promise<boolean> {
         if (data.type === 'add-accessories') {
             return Promise.all(data.ids.map(uuid => this.checkCanGetAccessory(uuid))).then(g => !g.find(g => !g));
         }
@@ -1022,10 +1024,12 @@ export default class Permissions {
         if (data.type === 'update-characteristic') return this.checkCanGetAccessory(data.accessory_uuid);
         if (data.type === 'update-accessory-data') return this.checkCanGetAccessory(data.uuid);
         if (data.type === 'update-home-settings') return this.checkCanGetHomeSettings();
-        if (['new-layout', 'update-layout', 'remove-layout'].includes(data.type)) {
+        if (data.type === 'add-layout' || data.type === 'update-layout' || data.type === 'remove-layout') {
             return this.checkCanGetLayout(data.uuid);
         }
-        if (['new-layout-section', 'update-layout-section', 'remove-layout-section'].includes(data.type)) {
+        if (data.type === 'add-layout-section' || data.type === 'update-layout-section' ||
+            data.type === 'remove-layout-section'
+        ) {
             return this.checkCanGetLayout(data.layout_uuid);
         }
         if (data.type === 'update-pairings') {
@@ -1036,7 +1040,9 @@ export default class Permissions {
             return Promise.all([this.checkCanGetPairing(data.id), this.checkCanAccessServerRuntimeInfo()])
                 .then(r => r.reduce((c, a) => c && a));
         }
-        if (['automation-running', 'automation-progress', 'automation-finished'].includes(data.type)) {
+        if (data.type === 'automation-running' || data.type === 'automation-progress' ||
+            data.type === 'automation-finished'
+        ) {
             // Only automation-running events have an automation_uuid property
             const runner = this.connection.server.automations.runners[data.runner_id];
             return runner && runner.automation.uuid && this.checkCanGetAutomation(runner.automation.uuid);

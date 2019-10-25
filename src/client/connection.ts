@@ -1,9 +1,23 @@
 import EventEmitter from 'events';
 import Characteristic from './characteristic';
-import {Component} from 'vue';
 
 // Types
 import {UIPlugin} from '../public/plugins';
+import {MessageTypes, DefinedRequestMessages, DefinedResponseMessages} from '../common/types/messages';
+import {
+    BroadcastMessage,
+    AddAccessoriesMessage, RemoveAccessoriesMessage, UpdateAccessoryMessage, UpdateCharacteristicMessage,
+    UpdateAccessoryDataMessage, AddDiscoveredAccessoryMessage, RemoveDiscoveredAccessoryMessage,
+    UpdateHomeSettingsMessage,
+    AddLayoutMessage, RemoveLayoutMessage, UpdateLayoutMessage,
+    AddLayoutSectionMessage, RemoveLayoutSectionMessage, UpdateLayoutSectionMessage,
+    AddAutomationMessage, RemoveAutomationMessage, UpdateAutomationMessage,
+    AddSceneMessage, RemoveSceneMessage, UpdateSceneMessage,
+    SceneActivatedMessage, SceneDeactivatedMessage, SceneActivatingMessage, SceneDeactivatingMessage,
+    SceneProgressMessage,
+    UpdatePairingsMessage, UpdatePairingDataMessage,
+    UpdatePermissionsMessage, StdoutMessage, StderrMessage, ConsoleOutputMessage,
+} from '../common/types/broadcast-messages';
 
 const broadcast_message_methods = {
     'add-accessory': 'handleAddAccessoryMessage',
@@ -86,7 +100,7 @@ export default class Connection extends EventEmitter {
         return location.protocol.replace('http', 'ws') + '//' + location.host + '/websocket';
     }
 
-    handleData(data) {
+    protected handleData(data: string) {
         // console.log('Received', message);
 
         if (data === 'ping') {
@@ -143,7 +157,7 @@ export default class Connection extends EventEmitter {
         console.error('Invalid message');
     }
 
-    handleDisconnect(event) {
+    protected handleDisconnect(event: any) {
         this.emit('disconnected', event);
 
         for (const [, reject] of this.callbacks.values()) {
@@ -151,7 +165,11 @@ export default class Connection extends EventEmitter {
         }
     }
 
-    send(data, progress?: () => void): Promise<any> {
+    send<T extends MessageTypes>(
+        data: DefinedRequestMessages[T], progress?: () => void
+    ): Promise<DefinedResponseMessages[T]>
+    send(data: any, progress?: () => void): Promise<any>
+    send(data: any, progress?: () => void): Promise<any> {
         return new Promise((resolve, reject) => {
             const messageid = this.messageid++;
 
@@ -161,33 +179,35 @@ export default class Connection extends EventEmitter {
         });
     }
 
-    async authenticateWithCliToken(cli_token) {
-        const response = await this.send({
-            type: 'authenticate',
-            cli_token,
-        });
+    async authenticateWithCliToken(cli_token: string) {
+        try {
+            const response = await this.send({
+                type: 'authenticate',
+                cli_token,
+            });
 
-        if (response.reject) {
-            if (response.error) {
-                const error = new (global[response.constructor] || Error)(response.data.message);
-                error.code = response.data.code;
+            if (response.success) {
+                const authenticated_user = new AuthenticatedUser(response.authentication_handler_id, response.user_id);
+
+                Object.defineProperty(authenticated_user, 'token', {value: response.token});
+                Object.defineProperty(authenticated_user, 'asset_token', {value: response.asset_token});
+                Object.assign(authenticated_user, response.data);
+
+                return authenticated_user;
+            }
+
+            throw new Error('CLI authenticate did not return an AuthenticatedUser');
+        } catch (err) {
+            if (typeof err !== 'object' || !err.data) throw err;
+
+            if (err.error) {
+                const error = new (global[err.constructor] || Error)(err.data.message);
+                error.code = err.data.code;
                 throw error;
             }
 
-            throw response.data;
+            throw err.data;
         }
-
-        if (response.success) {
-            const authenticated_user = new AuthenticatedUser(response.authentication_handler_id, response.user_id);
-
-            Object.defineProperty(authenticated_user, 'token', {value: response.token});
-            Object.defineProperty(authenticated_user, 'asset_token', {value: response.asset_token});
-            Object.assign(authenticated_user, response.data);
-
-            return authenticated_user;
-        }
-
-        throw new Error('CLI authenticate did not return an AuthenticatedUser');
     }
 
     listAccessories(): Promise<string[]> {
@@ -210,7 +230,7 @@ export default class Connection extends EventEmitter {
         });
     }
 
-    getCharacteristics(...ids: {0: string; 1: string; 2: string}[]): Promise<any[]> {
+    getCharacteristics(...ids: [string, string, string][]): Promise<any[]> {
         return this.send({
             type: 'get-characteristics',
             ids,
@@ -221,18 +241,18 @@ export default class Connection extends EventEmitter {
         return this.getCharacteristics([accessory_uuid, service_id, characteristic_uuid]);
     }
 
-    setCharacteristics(...ids_data: {0: string; 1: string; 2: string; 3: any}[]): Promise<any[]> {
+    setCharacteristics(...ids_data: [string, string, string, any][]): Promise<any[]> {
         return this.send({
             type: 'set-characteristics',
             ids_data,
         });
     }
 
-    setCharacteristic(accessory_uuid: string, service_id: string, characteristic_id: string, value) {
+    setCharacteristic(accessory_uuid: string, service_id: string, characteristic_id: string, value: any) {
         return this.setCharacteristics([accessory_uuid, service_id, characteristic_id, value]);
     }
 
-    subscribeCharacteristics(...ids: {0: string; 1: string; 2: string}[]): Promise<any[]> {
+    subscribeCharacteristics(...ids: [string, string, string][]): Promise<any[]> {
         return this.send({
             type: 'subscribe-characteristics',
             ids,
@@ -243,7 +263,7 @@ export default class Connection extends EventEmitter {
         return this.subscribeCharacteristics([accessory_uuid, service_id, characteristic_id]);
     }
 
-    unsubscribeCharacteristics(...ids: {0: string; 1: string; 2: string}[]): Promise<any[]> {
+    unsubscribeCharacteristics(...ids: [string, string, string][]): Promise<any[]> {
         return this.send({
             type: 'unsubscribe-characteristics',
             ids,
@@ -261,14 +281,14 @@ export default class Connection extends EventEmitter {
         });
     }
 
-    setAccessoriesData(...id_data: {0: string; 1: any}[]): Promise<any[]> {
+    setAccessoriesData(...id_data: [string, any][]): Promise<any[]> {
         return this.send({
             type: 'set-accessories-data',
             id_data,
         });
     }
 
-    setAccessoryData(id: string, data) {
+    setAccessoryData(id: string, data: any) {
         return this.setAccessoriesData([id, data]);
     }
 
@@ -315,7 +335,7 @@ export default class Connection extends EventEmitter {
         });
     }
 
-    createLayouts(...data): Promise<string[]> {
+    createLayouts(...data: any[]): Promise<string[]> {
         return this.send({
             type: 'create-layouts',
             data,
@@ -336,14 +356,14 @@ export default class Connection extends EventEmitter {
         });
     }
 
-    setLayouts(...id_data: {0: string; 1: any}[]): Promise<any[]> {
+    setLayouts(...id_data: [string, any][]): Promise<any[]> {
         return this.send({
             type: 'set-layouts',
             id_data,
         });
     }
 
-    setLayout(id: string, data) {
+    setLayout(id: string, data: any) {
         return this.setLayouts([id, data]);
     }
 
@@ -361,27 +381,23 @@ export default class Connection extends EventEmitter {
         });
     }
 
-    createLayoutSections(...id_data: {
-        /** Layout UUID */
-        0: string;
-        1: any;
-    }[]): Promise<string[]> {
+    createLayoutSections(...id_data: [string, any][]): Promise<string[]> {
         return this.send({
             type: 'create-layout-sections',
             id_data,
         });
     }
 
-    createLayoutSection(layout_uuid: string, data) {
+    createLayoutSection(layout_uuid: string, data: any) {
         return this.createLayoutSections([layout_uuid, data]);
     }
 
-    getLayoutSections(...ids: {
+    getLayoutSections(...ids: [
         /** Layout UUID */
-        0: string;
+        string,
         /** Layout Section UUID */
-        1: string;
-    }[]): Promise<any[]> {
+        string,
+    ][]): Promise<any[]> {
         return this.send({
             type: 'get-layout-sections',
             ids,
@@ -392,25 +408,25 @@ export default class Connection extends EventEmitter {
         return this.getLayoutSections([layout_uuid, section_uuid]);
     }
 
-    setLayoutSections(...ids_data: {0: string; 1: string; 2: any}[]): Promise<any[]> {
+    setLayoutSections(...ids_data: [string, string, any][]): Promise<any[]> {
         return this.send({
             type: 'set-layout-sections',
             ids_data,
         });
     }
 
-    setLayoutSection(layout_uuid: string, section_uuid: string, data) {
+    setLayoutSection(layout_uuid: string, section_uuid: string, data: any) {
         return this.setLayoutSections([layout_uuid, section_uuid, data]);
     }
 
-    deleteLayoutSections(...ids: {0: string; 1: string}[]) {
+    deleteLayoutSections(...ids: [string, string][]) {
         return this.send({
             type: 'delete-layout-sections',
             ids,
         });
     }
 
-    deleteLayoutSection(layout_uuid, section_id) {
+    deleteLayoutSection(layout_uuid: string, section_id: string) {
         return this.deleteLayoutSections([layout_uuid, section_id]);
     }
 
@@ -420,7 +436,7 @@ export default class Connection extends EventEmitter {
         });
     }
 
-    createAutomations(...data): Promise<string[]> {
+    createAutomations(...data: any[]): Promise<string[]> {
         return this.send({
             type: 'create-automations',
             data,
@@ -441,14 +457,14 @@ export default class Connection extends EventEmitter {
         });
     }
 
-    setAutomations(...id_data: {0: string; 1: any}[]): Promise<any[]> {
+    setAutomations(...id_data: [string, any][]): Promise<any[]> {
         return this.send({
             type: 'set-automations',
             id_data,
         });
     }
 
-    setAutomation(uuid: string, data) {
+    setAutomation(uuid: string, data: any) {
         return this.setAutomations([uuid, data]);
     }
 
@@ -486,14 +502,14 @@ export default class Connection extends EventEmitter {
         });
     }
 
-    setScenes(...id_data: {0: string; 1: any}[]): Promise<any[]> {
+    setScenes(...id_data: [string, any][]): Promise<any[]> {
         return this.send({
             type: 'set-scenes',
             id_data,
         });
     }
 
-    setScene(uuid: string, data) {
+    setScene(uuid: string, data: any) {
         return this.setScenes([uuid, data]);
     }
 
@@ -504,25 +520,25 @@ export default class Connection extends EventEmitter {
         });
     }
 
-    activateScenes(...id_data: {0: string; 1: any}[]): Promise<any[]> {
+    activateScenes(...id_data: [string, any][]): Promise<any[]> {
         return this.send({
             type: 'activate-scenes',
             id_data,
         });
     }
 
-    activateScene(uuid: string, context?) {
+    activateScene(uuid: string, context?: any) {
         return this.activateScenes([uuid, context]);
     }
 
-    deactivateScenes(...id_data: {0: string; 1: any}[]): Promise<any[]> {
+    deactivateScenes(...id_data: [string, any][]): Promise<any[]> {
         return this.send({
             type: 'deactivate-scenes',
             id_data,
         });
     }
 
-    deactivateScene(uuid: string, context?) {
+    deactivateScene(uuid: string, context?: any) {
         return this.deactivateScenes([uuid, context]);
     }
 
@@ -558,7 +574,7 @@ export default class Connection extends EventEmitter {
         });
     }
 
-    createBridges(...data): Promise<string[]> {
+    createBridges(...data: any[]): Promise<string[]> {
         return this.send({
             type: 'create-bridges',
             data,
@@ -586,14 +602,14 @@ export default class Connection extends EventEmitter {
         });
     }
 
-    setBridgesConfiguration(...uuid_data: {0: string; 1: any}[]): Promise<any[]> {
+    setBridgesConfiguration(...uuid_data: [string, any][]): Promise<any[]> {
         return this.send({
             type: 'set-bridges-configuration',
             uuid_data,
         });
     }
 
-    setBridgeConfiguration(uuid: string, data) {
+    setBridgeConfiguration(uuid: string, data: any) {
         return this.setBridgesConfiguration([uuid, data]);
     }
 
@@ -625,7 +641,7 @@ export default class Connection extends EventEmitter {
         });
     }
 
-    getPairings(...ids: {0: string; 1: string}[]): Promise<any[]> {
+    getPairings(...ids: [string, string][]): Promise<any[]> {
         return this.send({
             type: 'get-pairings',
             ids,
@@ -650,14 +666,14 @@ export default class Connection extends EventEmitter {
         });
     }
 
-    setPairingsData(...id_data: {0: string; 1: any}[]): Promise<any[]> {
+    setPairingsData(...id_data: [string, any][]): Promise<any[]> {
         return this.send({
             type: 'set-pairings-data',
             id_data,
         });
     }
 
-    setPairingData(pairing_id: string, data) {
+    setPairingData(pairing_id: string, data: any) {
         return this.setPairingsData([pairing_id, data]);
     }
 
@@ -678,14 +694,14 @@ export default class Connection extends EventEmitter {
         });
     }
 
-    setUsersPermissions(...id_data: {0: string; 1: any}[]): Promise<any[]> {
+    setUsersPermissions(...id_data: [string, any][]): Promise<any[]> {
         return this.send({
             type: 'set-users-permissions',
             id_data,
         });
     }
 
-    setUserPermissions(id: string, data) {
+    setUserPermissions(id: string, data: any) {
         return this.setUsersPermissions([id, data]);
     }
 
@@ -702,7 +718,7 @@ export default class Connection extends EventEmitter {
         });
     }
 
-    sendConsoleInput(id: number, data) {
+    sendConsoleInput(id: number, data: string) {
         return this.send({
             type: 'console-input',
             id,
@@ -710,7 +726,7 @@ export default class Connection extends EventEmitter {
         });
     }
 
-    handleBroadcastMessage(data) {
+    protected handleBroadcastMessage(data: BroadcastMessage) {
         // console.log('Received broadcast message', data);
 
         if (data && data.type && broadcast_message_methods[data.type]) {
@@ -719,127 +735,127 @@ export default class Connection extends EventEmitter {
         }
     }
 
-    handleAddAccessoriesMessage(data) {
+    protected handleAddAccessoriesMessage(data: AddAccessoriesMessage) {
         this.emit('add-accessories', data.ids);
     }
 
-    handleRemoveAccessoriesMessage(data) {
+    protected handleRemoveAccessoriesMessage(data: RemoveAccessoriesMessage) {
         this.emit('remove-accessories', data.ids);
     }
 
-    handleUpdateAccessoryMessage(data) {
+    protected handleUpdateAccessoryMessage(data: UpdateAccessoryMessage) {
         this.emit('update-accessory', data.uuid, data.details);
     }
 
-    handleUpdateCharacteristicMessage(data) {
+    protected handleUpdateCharacteristicMessage(data: UpdateCharacteristicMessage) {
         this.emit('update-characteristic', data.accessory_uuid, data.service_id, data.characteristic_id, data.details);
     }
 
-    handleUpdateAccessoryDataMessage(data) {
+    protected handleUpdateAccessoryDataMessage(data: UpdateAccessoryDataMessage) {
         this.emit('update-accessory-data', data.uuid, data.data);
     }
 
-    handleAddDiscoveredAccessoryMessage(data) {
+    protected handleAddDiscoveredAccessoryMessage(data: AddDiscoveredAccessoryMessage) {
         this.emit('add-discovered-accessory', data.plugin, data.accessory_discovery, data.id, data.data);
     }
 
-    handleRemoveDiscoveredAccessoryMessage(data) {
+    protected handleRemoveDiscoveredAccessoryMessage(data: RemoveDiscoveredAccessoryMessage) {
         this.emit('remove-discovered-accessory', data.plugin, data.accessory_discovery, data.id);
     }
 
-    handleUpdateHomeSettingsMessage(data) {
+    protected handleUpdateHomeSettingsMessage(data: UpdateHomeSettingsMessage) {
         this.emit('update-home-settings', data.data);
     }
 
-    handleAddLayoutMessage(data) {
+    protected handleAddLayoutMessage(data: AddLayoutMessage) {
         this.emit('add-layout', data.uuid);
     }
 
-    handleRemoveLayoutMessage(data) {
+    protected handleRemoveLayoutMessage(data: RemoveLayoutMessage) {
         this.emit('remove-layout', data.uuid);
     }
 
-    handleUpdateLayoutMessage(data) {
+    protected handleUpdateLayoutMessage(data: UpdateLayoutMessage) {
         this.emit('update-layout', data.uuid, data.data);
     }
 
-    handleAddLayoutSectionMessage(data) {
+    protected handleAddLayoutSectionMessage(data: AddLayoutSectionMessage) {
         this.emit('add-layout-section', data.layout_uuid, data.uuid);
     }
 
-    handleRemoveLayoutSectionMessage(data) {
+    protected handleRemoveLayoutSectionMessage(data: RemoveLayoutSectionMessage) {
         this.emit('remove-layout-section', data.layout_uuid, data.uuid);
     }
 
-    handleUpdateLayoutSectionMessage(data) {
+    protected handleUpdateLayoutSectionMessage(data: UpdateLayoutSectionMessage) {
         this.emit('update-layout-section', data.layout_uuid, data.uuid, data.data);
     }
 
-    handleAddAutomationMessage(data) {
+    protected handleAddAutomationMessage(data: AddAutomationMessage) {
         this.emit('add-automation', data.uuid);
     }
 
-    handleRemoveAutomationMessage(data) {
+    protected handleRemoveAutomationMessage(data: RemoveAutomationMessage) {
         this.emit('remove-automation', data.uuid);
     }
 
-    handleUpdateAutomationMessage(data) {
+    protected handleUpdateAutomationMessage(data: UpdateAutomationMessage) {
         this.emit('update-automation', data.uuid, data.data);
     }
 
-    handleAddSceneMessage(data) {
+    protected handleAddSceneMessage(data: AddSceneMessage) {
         this.emit('add-scene', data.uuid);
     }
 
-    handleRemoveSceneMessage(data) {
+    protected handleRemoveSceneMessage(data: RemoveSceneMessage) {
         this.emit('remove-scene', data.uuid);
     }
 
-    handleUpdateSceneMessage(data) {
+    protected handleUpdateSceneMessage(data: UpdateSceneMessage) {
         this.emit('update-scene', data.uuid, data.data);
     }
 
-    handleSceneActivatingMessage(data) {
+    protected handleSceneActivatingMessage(data: SceneActivatingMessage) {
         this.emit('scene-activating', data.uuid, data.context);
     }
 
-    handleSceneDeactivatingMessage(data) {
+    protected handleSceneDeactivatingMessage(data: SceneDeactivatingMessage) {
         this.emit('scene-deactivating', data.uuid, data.context);
     }
 
-    handleSceneActivatedMessage(data) {
+    protected handleSceneActivatedMessage(data: SceneActivatedMessage) {
         this.emit('scene-activated', data.uuid, data.context);
     }
 
-    handleSceneDeactivatedMessage(data) {
+    protected handleSceneDeactivatedMessage(data: SceneDeactivatedMessage) {
         this.emit('scene-deactivated', data.uuid, data.context);
     }
 
-    handleSceneProgressMessage(data) {
-        this.emit('scene-progress', data.uuid, data.context);
+    protected handleSceneProgressMessage(data: SceneProgressMessage) {
+        this.emit('scene-progress', data.uuid, data.progress);
     }
 
-    handleUpdatePairingsMessage(data) {
+    protected handleUpdatePairingsMessage(data: UpdatePairingsMessage) {
         this.emit('update-pairings', data.bridge_uuid /* , data.pairings */);
     }
 
-    handleUpdatePairingDataMessage(data) {
+    protected handleUpdatePairingDataMessage(data: UpdatePairingDataMessage) {
         this.emit('update-pairing-data', data.id, data.data);
     }
 
-    handleUpdatePermissionsMessage(data) {
+    protected handleUpdatePermissionsMessage(data: UpdatePermissionsMessage) {
         this.emit('update-home-permissions', data.data);
     }
 
-    handleStdout(data) {
+    protected handleStdout(data: StdoutMessage) {
         this.emit('stdout', data.data);
     }
 
-    handleStderr(data) {
+    protected handleStderr(data: StderrMessage) {
         this.emit('stderr', data.data);
     }
 
-    handleConsoleOutput(data) {
+    protected handleConsoleOutput(data: ConsoleOutputMessage) {
         this.emit('console-output', data.id, data.stream, data.data);
     }
 }
@@ -869,14 +885,14 @@ export class Console extends EventEmitter {
         this.connection.open_consoles.add(this);
     }
 
-    handleData(id: number, stream: string, data) {
+    protected handleData(id: number, stream: ConsoleOutputMessage['stream'], data: string) {
         if (id !== this.id) return;
 
         if (stream === 'out') this.emit('out', data);
         if (stream === 'err') this.emit('err', data);
     }
 
-    handleDisconnected() {
+    protected handleDisconnected() {
         this.closing = null;
         this.closed = true;
         this.connection.removeListener('console-output', this._handleData);
@@ -963,7 +979,7 @@ export class UserManagementConnection {
     readonly connection: Connection;
     readonly user_management_handler_id: number;
 
-    static component?: Component;
+    static component?: any;
 
     constructor(connection: Connection, user_management_handler_id: number) {
         Object.defineProperty(this, 'connection', {value: connection});
@@ -973,7 +989,7 @@ export class UserManagementConnection {
     get component() {
         return (this.constructor as typeof UserManagementConnection).component;
     }
-    set component(component: Component) {
+    set component(component: any) {
         Object.defineProperty(this, 'component', {value: component, writable: true});
     }
 
@@ -1007,9 +1023,9 @@ export class UserManagementConnection {
 export class UserManagementUser {
     readonly user_management_handler: UserManagementConnection;
     readonly id: string;
-    readonly component: Component;
+    readonly component: any;
 
-    constructor(user_management_handler: UserManagementConnection, id: string, component: Component) {
+    constructor(user_management_handler: UserManagementConnection, id: string, component: any) {
         Object.defineProperty(this, 'user_management_handler', {value: user_management_handler});
         Object.defineProperty(this, 'id', {configurable: true, writable: true, value: id});
         Object.defineProperty(this, 'component', {value: component || user_management_handler.component ||

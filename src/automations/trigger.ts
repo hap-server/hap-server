@@ -1,4 +1,5 @@
 import cron from 'node-cron';
+import {Timezone} from 'tz-offset';
 
 import Events, {EventListener} from '../events';
 import {AutomationTriggerEvent as TriggerEvent, SceneActivatedEvent} from '../events/server';
@@ -135,7 +136,7 @@ export interface CronTriggerConfiguration extends AutomationTriggerConfiguration
     readonly trigger: CronTriggerType;
 
     readonly expression: string;
-    readonly timezone: string;
+    readonly timezone: Timezone;
 }
 
 /**

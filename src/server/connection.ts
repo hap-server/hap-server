@@ -29,10 +29,10 @@ const randomBytes = util.promisify(crypto.randomBytes);
 /**
  * Get/generate an Organisationally Unique Identifier for generating MAC addresses.
  *
- * @param {node-persist} storage
+ * @param {persist} storage
  * @return {Promise<Buffer>}
  */
-async function getoui(storage) {
+async function getoui(storage: typeof persist) {
     const oui = await storage.getItem('OUI');
     if (oui) return Buffer.from(oui, 'hex');
 
@@ -49,10 +49,10 @@ async function getoui(storage) {
 /**
  * Generate a MAC address.
  *
- * @param {node-persist} storage
+ * @param {persist} storage
  * @return {Promise<string>}
  */
-async function genusername(storage) {
+async function genusername(storage: typeof persist) {
     const oui = await getoui(storage);
     const bytes = await randomBytes(3);
 
@@ -66,13 +66,17 @@ async function genusername(storage) {
 
 let id = 0;
 
-const message_methods = {
+const message_methods: {
+    [key: string]: string;
+} = {
     'authenticate': 'handleAuthenticateMessage',
     'user-management': 'handleUserManagementMessage',
     'accessory-setup': 'handleAccessorySetupMessage',
 };
 
-const message_handlers = {
+const message_handlers: {
+    [key: string]: string | ((this: Connection, data: RequestMessage, connection: Connection) => ResponseMessage);
+} = {
     'get-accessory-uis': 'getWebInterfacePlugins', // deprecated
 };
 
@@ -80,13 +84,17 @@ const hide_authentication_keys = [
     'password', 'token',
 ];
 
-function messagehandler(type, handler?) {
+function messagehandler<T extends string>(type: T, handler?: (data: RequestMessages[T]) => void) {
     return messagehandler2.bind(null, type, handler);
 }
-function messagehandler2(type: string, handler: (messageid: number, data) => void, target: Connection, method: string) {
+function messagehandler2<T extends string, M extends string, A extends Array<any>>(
+    type: T, handler: (data: RequestMessages[T]) => A, target: Connection & {
+        // [M]: (...args: A) => Promise<ResponseMessages[T]> | ResponseMessages[T]
+    }, method: M
+) {
     if (handler) {
         const key = '_handleMessage-' + type + '-' + method;
-        target[key] = function(messageid, data) {
+        (target as any)[key] = function(messageid: number, data: RequestMessages[T]) {
             // eslint-disable-next-line prefer-spread
             return this.respond(messageid, this[method].apply(this, handler.call(this, data)));
         };
@@ -96,7 +104,7 @@ function messagehandler2(type: string, handler: (messageid: number, data) => voi
     }
 }
 
-const ws_map = new WeakMap();
+const ws_map = new WeakMap<WebSocket, Connection>();
 
 const DEVELOPMENT = true;
 
@@ -104,56 +112,15 @@ import Server from './server';
 import Logger from '../common/logger';
 import WebSocket from 'ws';
 import http from 'http';
+import persist from 'node-persist';
+import {Accessory} from 'hap-nodejs';
 
-interface AccessoryHap {
-    aid: number;
-    services: ServiceHap[];
-}
-
-interface ServiceHap {
-    iid: number;
-    type: string;
-    characteristics: CharacteristicHap[];
-
-    primary?: boolean;
-    hidden?: boolean;
-    linked?: number[];
-
-    // Custom values recognised by the web interface client
-    subtype?: string;
-    linked_indexes?: number[];
-}
-
-type CharacteristicPerms = 'pr' | 'pw' | 'ev' | 'aa' | 'tw' | 'hd' | 'wr';
-type CharacteristicFormat = 'bool' | 'int' | 'float' | 'string' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'data' |
-    'tlv8' | 'array' | 'dict'; // eslint-disable-line @typescript-eslint/indent
-type CharacteristicUnit = 'celsius' | 'percentage' | 'arcdegrees' | 'lux' | 'seconds';
-
-interface CharacteristicHap {
-    iid: number;
-    type: string;
-    perms: CharacteristicPerms;
-    format: CharacteristicFormat;
-
-    value?: any;
-
-    description: string;
-
-    events?: boolean;
-    bonjour?: boolean;
-
-    'value-values'?: any[];
-    'valid-values-range'?: [number, number];
-
-    unit?: CharacteristicUnit;
-    maxValue?: number;
-    minValue?: number;
-    minStep?: number;
-    maxLen?: number;
-
-    // Custom values recognised by the web interface client
-    status?: number;
-}
+import {
+    RequestMessages, RequestMessage, ProgressMessage, ResponseMessage,
+    AuthenticateRequestMessage, UserManagementRequestMessage,
+} from '../common/types/messages';
+import {BroadcastMessage} from '../common/types/broadcast-messages';
+import {AccessoryHap, CharacteristicHap} from '../common/types/hap';
 
 export default class Connection {
     readonly server: Server;
@@ -166,14 +133,19 @@ export default class Connection {
     last_message?: number;
     closed = false;
     readonly req: http.IncomingMessage;
-    readonly uploads;
+    readonly uploads: {
+        filename: string;
+        filepath: string;
+        filehash: string;
+        file: any;
+    }[];
     readonly open_consoles: Map<any, any>;
     console_id: number;
     readonly events: Set<any>;
 
     readonly permissions: Permissions;
 
-    terminateInterval;
+    terminateInterval: NodeJS.Timeout;
 
     asset_token: string;
 
@@ -216,6 +188,7 @@ export default class Connection {
                 return;
             }
 
+            // @ts-ignore
             const match = message.match(/^\*([0-9]+)\:(.*)$/);
 
             if (!match) {
@@ -277,18 +250,19 @@ export default class Connection {
         }, 15000);
     }
 
-    static getConnectionForWebSocket(ws) {
+    static getConnectionForWebSocket(ws: WebSocket) {
         return ws_map.get(ws);
     }
 
-    sendBroadcast(data) {
+    sendBroadcast(data: BroadcastMessage) {
         this.ws.send('**:' + JSON.stringify(data));
     }
 
-    async respond(messageid: number, data, error?) {
+    async respond(messageid: number, data: ResponseMessage, error?: boolean)
+    async respond(messageid: number, data: any, error: true)
+    async respond(messageid: number, data: any, error = false) {
         if (data instanceof Promise) {
             try {
-                error = false;
                 data = await data;
             } catch (err) {
                 this.log.error('Error in message handler', data.type, err);
@@ -301,11 +275,11 @@ export default class Connection {
         this.ws.send((error ? '!' : '*') + messageid + ':' + JSON.stringify(data));
     }
 
-    sendProgress(messageid, data) {
+    sendProgress(messageid: number, data: ProgressMessage) {
         this.ws.send('&' + messageid + ':' + JSON.stringify(data));
     }
 
-    serialiseError(err) {
+    serialiseError(err: any) {
         return {
             reject: true,
             error: err instanceof Error,
@@ -314,7 +288,7 @@ export default class Connection {
         };
     }
 
-    handleMessage(messageid, data) {
+    handleMessage(messageid: number, data: RequestMessage | 'ping') {
         // this.server.log.debug('Received message', data, 'from', this.id, 'with messageid', messageid);
 
         if (data === 'ping') {
@@ -324,11 +298,11 @@ export default class Connection {
 
         try {
             if (data && data.type && message_methods[data.type]) {
-                this[message_methods[data.type]].call(this, messageid, data);
+                (this as any)[message_methods[data.type]].call(this, messageid, data);
             } else if (data && data.type && typeof message_handlers[data.type] === 'string') {
-                this.respond(messageid, this[message_handlers[data.type]].call(this, data));
+                this.respond(messageid, (this as any)[(message_handlers[data.type] as string)].call(this, data));
             } else if (data && data.type && typeof message_handlers[data.type] === 'function') {
-                this.respond(messageid, message_handlers[data.type].call(this, data, this));
+                this.respond(messageid, (message_handlers[data.type] as Function).call(this, data, this));
             }
         } catch (err) {
             this.log.error('Error in message handler', data.type, err);
@@ -346,7 +320,14 @@ export default class Connection {
         return this.asset_token = token;
     }
 
-    static authoriseAssetRequest(server, req, res, next) {
+    static authoriseAssetRequest(
+        server: Server,
+        req: http.IncomingMessage & {
+            cookies: {[key: string]: string};
+            hap_server_connection?: Connection;
+        },
+        res: http.ServerResponse, next?: () => void
+    ) {
         const {search} = url.parse(req.url);
         const search_params = querystring.parse(search);
         const asset_token = search_params.token || req.cookies.asset_token;
@@ -358,7 +339,7 @@ export default class Connection {
             server.log('Unauthorised asset request', req.url);
 
             res.statusCode = 401;
-            res.send('Unauthorised');
+            res.end('Unauthorised');
 
             return;
         }
@@ -406,11 +387,11 @@ export default class Connection {
      * This is what the accessory exposes.
      */
     @messagehandler('get-accessories', data => data.id)
-    getAccessories(...id) {
+    getAccessories(...id: string[]) {
         return Promise.all(id.map(id => this.getAccessory(id)));
     }
 
-    async getAccessory(uuid) {
+    async getAccessory(uuid: string) {
         await this.permissions.assertCanGetAccessory(uuid);
 
         const accessory = this.server.getAccessory(uuid);
@@ -444,11 +425,11 @@ export default class Connection {
      * Gets the user's permissions for accessories.
      */
     @messagehandler('get-accessories-permissions', data => data.id)
-    getAccessoriesPermissions(...id) {
+    getAccessoriesPermissions(...id: string[]) {
         return Promise.all(id.map(id => this.getAccessoryPermissions(id)));
     }
 
-    async getAccessoryPermissions(uuid) {
+    async getAccessoryPermissions(uuid: string) {
         const accessory = this.server.getAccessory(uuid);
 
         if (!accessory) return;
@@ -463,13 +444,16 @@ export default class Connection {
         return {get, set, set_characteristics};
     }
 
-    async getCharacteristicsWithSetPermission(accessory) {
-        const services = {};
+    async getCharacteristicsWithSetPermission(accessory: typeof Accessory) {
+        const services: {
+            [service_id: string]: string[];
+        } = {};
 
         await Promise.all(accessory.services.map(async service => {
-            const characteristics = [];
+            const characteristics: string[] = [];
             await Promise.all(service.characteristics.map(async characteristic => {
                 if (await this.permissions.checkCanSetCharacteristic(accessory.UUID, service.UUID,
+                    // @ts-ignore
                     characteristic.UUID)) characteristics.push(characteristic.UUID);
             }));
             if (characteristics.length) services[service.UUID + (service.subtype ? '.' + service.subtype : '')] = characteristics;
@@ -484,11 +468,11 @@ export default class Connection {
      * Gets the value of a characteristic.
      */
     @messagehandler('get-characteristics', data => data.ids)
-    getCharacteristics(...ids) {
+    getCharacteristics(...ids: [string, string, string][]) {
         return Promise.all(ids.map(ids => this.getCharacteristic(ids[0], ids[1], ids[2])));
     }
 
-    async getCharacteristic(accessory_uuid, service_uuid, characteristic_uuid) {
+    async getCharacteristic(accessory_uuid: string, service_uuid: string, characteristic_uuid: string) {
         await this.permissions.assertCanGetAccessory(accessory_uuid);
 
         const accessory = this.server.getAccessory(accessory_uuid);
@@ -523,11 +507,11 @@ export default class Connection {
      * Sets the value of a characteristic.
      */
     @messagehandler('set-characteristics', data => data.ids_data)
-    setCharacteristics(...ids) {
+    setCharacteristics(...ids: [string, string, string, any][]) {
         return Promise.all(ids.map(ids => this.setCharacteristic(ids[0], ids[1], ids[2], ids[3])));
     }
 
-    async setCharacteristic(accessory_uuid, service_uuid, characteristic_uuid, value) {
+    async setCharacteristic(accessory_uuid: string, service_uuid: string, characteristic_uuid: string, value: any) {
         await this.permissions.assertCanSetCharacteristic(accessory_uuid, service_uuid, characteristic_uuid, value);
 
         // this.log.info('Setting characteristic', accessory_uuid, service_uuid, characteristic_uuid, 'to', value);
@@ -556,11 +540,11 @@ export default class Connection {
      * Subscribes to characteristic updates.
      */
     @messagehandler('subscribe-characteristics', data => data.ids)
-    subscribeCharacteristics(...ids) {
+    subscribeCharacteristics(...ids: [string, string, string][]) {
         return Promise.all(ids.map(ids => this.subscribeCharacteristic(ids[0], ids[1], ids[2])));
     }
 
-    async subscribeCharacteristic(accessory_uuid, service_uuid, characteristic_uuid) {
+    async subscribeCharacteristic(accessory_uuid: string, service_uuid: string, characteristic_uuid: string) {
         await this.permissions.assertCanGetAccessory(accessory_uuid);
 
         const accessory = this.server.getAccessory(accessory_uuid);
@@ -594,11 +578,11 @@ export default class Connection {
      * Unsubscribes from characteristic updates.
      */
     @messagehandler('unsubscribe-characteristics', data => data.ids)
-    unsubscribeCharacteristics(...ids) {
+    unsubscribeCharacteristics(...ids: [string, string, string][]) {
         return Promise.all(ids.map(ids => this.unsubscribeCharacteristic(ids[0], ids[1], ids[2])));
     }
 
-    async unsubscribeCharacteristic(accessory_uuid, service_uuid, characteristic_uuid) {
+    async unsubscribeCharacteristic(accessory_uuid: string, service_uuid: string, characteristic_uuid: string) {
         await this.permissions.assertCanGetAccessory(accessory_uuid);
 
         const accessory = this.server.getAccessory(accessory_uuid);
@@ -633,11 +617,11 @@ export default class Connection {
      * This is stored by the web UI.
      */
     @messagehandler('get-accessories-data', data => data.id)
-    getAccessoriesData(...id) {
+    getAccessoriesData(...id: string[]) {
         return Promise.all(id.map(id => this.getAccessoryData(id)));
     }
 
-    async getAccessoryData(id) {
+    async getAccessoryData(id: string) {
         await this.permissions.assertCanGetAccessory(id);
 
         //
@@ -651,11 +635,11 @@ export default class Connection {
      * This is stored by the web UI.
      */
     @messagehandler('set-accessories-data', data => data.id_data)
-    setAccessoriesData(...id_data) {
+    setAccessoriesData(...id_data: [string, any][]) {
         return Promise.all(id_data.map(([id, data]) => this.setAccessoryData(id, data)));
     }
 
-    async setAccessoryData(uuid, data) {
+    async setAccessoryData(uuid: string, data: any) {
         await this.permissions.assertCanSetAccessoryData(uuid);
 
         //
@@ -758,7 +742,7 @@ export default class Connection {
      * Sets global settings.
      */
     @messagehandler('set-home-settings', data => [data.data])
-    async setHomeSettings(data) {
+    async setHomeSettings(data: any) {
         await this.permissions.assertCanSetHomeSettings();
 
         if (data.background_url && data.background_url.indexOf(path.sep) > -1) {
@@ -813,11 +797,11 @@ export default class Connection {
      * Creates layouts.
      */
     @messagehandler('create-layouts', data => data.data)
-    createLayouts(...data) {
+    createLayouts(...data: any[]) {
         return Promise.all(data.map(data => this.createLayout(data)));
     }
 
-    async createLayout(data) {
+    async createLayout(data: any) {
         await this.permissions.assertCanCreateLayouts();
 
         if (data.background_url && data.background_url.indexOf(path.sep) > -1) {
@@ -842,7 +826,7 @@ export default class Connection {
         }
 
         this.server.sendBroadcast({
-            type: 'new-layout',
+            type: 'add-layout',
             uuid,
         }, this.ws);
 
@@ -869,11 +853,11 @@ export default class Connection {
      * Gets the user's permissions for layouts.
      */
     @messagehandler('get-layouts-permissions', data => data.id)
-    getLayoutsPermissions(...id) {
+    getLayoutsPermissions(...id: string[]) {
         return Promise.all(id.map(id => this.getLayoutPermissions(id)));
     }
 
-    async getLayoutPermissions(uuid) {
+    async getLayoutPermissions(uuid: string) {
         const [get, set, del] = await Promise.all([
             this.permissions.checkCanGetLayout(uuid),
             this.permissions.checkCanSetLayout(uuid),
@@ -887,11 +871,11 @@ export default class Connection {
      * Sets data of layouts.
      */
     @messagehandler('set-layouts', data => data.id_data)
-    setLayouts(...id_data) {
+    setLayouts(...id_data: [string, any][]) {
         return Promise.all(id_data.map(([id, data]) => this.setLayout(id, data)));
     }
 
-    async setLayout(uuid, data) {
+    async setLayout(uuid: string, data: any) {
         await this.permissions.assertCanSetLayout(uuid);
 
         if (data.background_url && data.background_url.indexOf(path.sep) > -1) {
@@ -944,7 +928,13 @@ export default class Connection {
      *
      * The user will have already authenticated with an asset token.
      */
-    static async handleUploadLayoutBackground(server, req, res) {
+    static async handleUploadLayoutBackground(server: Server, req: http.IncomingMessage & {
+        file: {
+            path: string;
+            originalname: string;
+        };
+        hap_server_connection: Connection;
+    }, res: http.ServerResponse) {
         const connection = req.hap_server_connection;
 
         try {
@@ -962,7 +952,12 @@ export default class Connection {
         }
     }
 
-    async handleUploadLayoutBackground(req, res) {
+    async handleUploadLayoutBackground(req: http.IncomingMessage & {
+        file: {
+            path: string;
+            originalname: string;
+        };
+    }, res: http.ServerResponse) {
         this.log(req.file);
 
         const stream = fs.createReadStream(req.file.path);
@@ -971,11 +966,11 @@ export default class Connection {
 
         stream.pipe(hash);
 
-        const filehash = await new Promise((resolve, reject) => {
+        const filehash: string = await new Promise((resolve, reject) => {
             stream.on('error', err => reject(err));
             stream.on('end', () => {
                 hash.end();
-                resolve(hash.read());
+                resolve(hash.read() as string);
             });
         });
 
@@ -1009,11 +1004,11 @@ export default class Connection {
      * Deletes layouts.
      */
     @messagehandler('delete-layouts', data => data.id)
-    deleteLayouts(...id) {
+    deleteLayouts(...id: string[]) {
         return Promise.all(id.map(id => this.deleteLayout(id)));
     }
 
-    async deleteLayout(uuid) {
+    async deleteLayout(uuid: string) {
         await this.permissions.assertCanDeleteLayout(uuid);
 
         this.log.debug('Deleting layout', uuid);
@@ -1061,11 +1056,11 @@ export default class Connection {
      * Gets the UUID of every layout section.
      */
     @messagehandler('list-layout-sections', data => data.id)
-    listAllLayoutSections(...id) {
+    listAllLayoutSections(...id: string[]) {
         return Promise.all(id.map(id => this.listLayoutSections(id)));
     }
 
-    async listLayoutSections(uuid) {
+    async listLayoutSections(uuid: string) {
         await this.permissions.assertCanGetLayout(uuid);
 
         return await this.server.storage.getItem('LayoutSections.' + uuid) || [];
@@ -1075,11 +1070,11 @@ export default class Connection {
      * Creates layout sections.
      */
     @messagehandler('create-layout-sections', data => data.id_data)
-    createLayoutSections(...id_data) {
+    createLayoutSections(...id_data: [string, any][]) {
         return Promise.all(id_data.map(([layout_uuid, data]) => this.createLayoutSection(layout_uuid, data)));
     }
 
-    async createLayoutSection(layout_uuid, data) {
+    async createLayoutSection(layout_uuid: string, data: any) {
         await this.permissions.assertCanSetLayout(layout_uuid);
 
         const uuid = genuuid();
@@ -1095,7 +1090,7 @@ export default class Connection {
         }
 
         this.server.sendBroadcast({
-            type: 'new-layout-section',
+            type: 'add-layout-section',
             layout_uuid,
             uuid,
         }, this.ws);
@@ -1107,11 +1102,11 @@ export default class Connection {
      * Gets data of layouts.
      */
     @messagehandler('get-layout-sections', data => data.ids)
-    getLayoutSections(...ids) {
+    getLayoutSections(...ids: [string, string][]) {
         return Promise.all(ids.map(([layout_uuid, id]) => this.getLayoutSection(layout_uuid, id)));
     }
 
-    async getLayoutSection(layout_uuid, uuid) {
+    async getLayoutSection(layout_uuid: string, uuid: string) {
         await this.permissions.assertCanGetLayout(layout_uuid);
 
         this.log.debug('Getting data for layout section', layout_uuid, uuid);
@@ -1123,11 +1118,11 @@ export default class Connection {
      * Sets data of layout sections.
      */
     @messagehandler('set-layout-sections', data => data.ids_data)
-    setLayoutSections(...ids_data) {
+    setLayoutSections(...ids_data: [string, string, any][]) {
         return Promise.all(ids_data.map(([layout_uuid, id, data]) => this.setLayoutSection(layout_uuid, id, data)));
     }
 
-    async setLayoutSection(layout_uuid, uuid, data) {
+    async setLayoutSection(layout_uuid: string, uuid: string, data: any) {
         await this.permissions.assertCanSetLayout(layout_uuid);
 
         this.log.debug('Setting data for layout section', layout_uuid, uuid, data);
@@ -1152,11 +1147,11 @@ export default class Connection {
      * Deletes layout sections.
      */
     @messagehandler('delete-layout-sections', data => data.ids)
-    deleteLayoutSections(...ids) {
+    deleteLayoutSections(...ids: [string, string][]) {
         return Promise.all(ids.map(([layout_uuid, id]) => this.deleteLayoutSection(layout_uuid, id)));
     }
 
-    async deleteLayoutSection(layout_uuid, uuid) {
+    async deleteLayoutSection(layout_uuid: string, uuid: string) {
         await this.permissions.assertCanSetLayout(layout_uuid);
 
         this.log.debug('Deleting layout section', layout_uuid, uuid);
@@ -1192,11 +1187,11 @@ export default class Connection {
      * Creates automations.
      */
     @messagehandler('create-automations', data => data.data)
-    createAutomations(...data) {
+    createAutomations(...data: any[]) {
         return Promise.all(data.map(data => this.createAutomation(data)));
     }
 
-    async createAutomation(data) {
+    async createAutomation(data: any) {
         await this.permissions.assertCanCreateAutomations();
 
         const uuid = genuuid();
@@ -1226,11 +1221,11 @@ export default class Connection {
      * Gets data of automations.
      */
     @messagehandler('get-automations', data => data.id)
-    getAutomations(...id) {
+    getAutomations(...id: any[]) {
         return Promise.all(id.map(id => this.getAutomation(id)));
     }
 
-    async getAutomation(uuid) {
+    async getAutomation(uuid: string) {
         await this.permissions.assertCanGetAutomation(uuid);
 
         this.log.debug('Getting data for automation', uuid);
@@ -1242,11 +1237,11 @@ export default class Connection {
      * Gets the user's permissions for automations.
      */
     @messagehandler('get-automations-permissions', data => data.id)
-    getAutomationsPermissions(...id) {
+    getAutomationsPermissions(...id: string[]) {
         return Promise.all(id.map(id => this.getAutomationPermissions(id)));
     }
 
-    async getAutomationPermissions(uuid) {
+    async getAutomationPermissions(uuid: string) {
         const [get, set, del] = await Promise.all([
             this.permissions.checkCanGetAutomation(uuid),
             this.permissions.checkCanSetAutomation(uuid),
@@ -1260,11 +1255,11 @@ export default class Connection {
      * Sets data of automations.
      */
     @messagehandler('set-automations', data => data.id_data)
-    setAutomations(...id_data) {
+    setAutomations(...id_data: [string, any][]) {
         return Promise.all(id_data.map(([id, data]) => this.setAutomation(id, data)));
     }
 
-    async setAutomation(uuid, data) {
+    async setAutomation(uuid: string, data: any) {
         await this.permissions.assertCanSetAutomation(uuid);
 
         this.log.debug('Setting data for automation', uuid, data);
@@ -1291,11 +1286,11 @@ export default class Connection {
      * Deletes automations.
      */
     @messagehandler('delete-automations', data => data.id)
-    deleteAutomations(...id) {
+    deleteAutomations(...id: string[]) {
         return Promise.all(id.map(id => this.deleteAutomation(id)));
     }
 
-    async deleteAutomation(uuid) {
+    async deleteAutomation(uuid: string) {
         await this.permissions.assertCanDeleteAutomation(uuid);
 
         this.log.debug('Stopping automation', uuid);
@@ -1335,11 +1330,11 @@ export default class Connection {
      * Creates scenes.
      */
     @messagehandler('create-scenes', data => data.data)
-    createScenes(...data) {
+    createScenes(...data: any[]) {
         return Promise.all(data.map(data => this.createScene(data)));
     }
 
-    async createScene(data) {
+    async createScene(data: any) {
         await this.permissions.assertCanCreateScenes();
 
         const uuid = genuuid();
@@ -1369,11 +1364,11 @@ export default class Connection {
      * Gets data of scenes.
      */
     @messagehandler('get-scenes', data => data.id)
-    getScenes(...id) {
+    getScenes(...id: string[]) {
         return Promise.all(id.map(id => this.getScene(id)));
     }
 
-    async getScene(uuid) {
+    async getScene(uuid: string) {
         await this.permissions.assertCanGetScene(uuid);
 
         this.log.debug('Getting data for scene', uuid);
@@ -1385,11 +1380,11 @@ export default class Connection {
      * Gets the user's permissions for scenes.
      */
     @messagehandler('get-scenes-permissions', data => data.id)
-    getScenesPermissions(...id) {
+    getScenesPermissions(...id: string[]) {
         return Promise.all(id.map(id => this.getScenePermissions(id)));
     }
 
-    async getScenePermissions(uuid) {
+    async getScenePermissions(uuid: string) {
         const [get, activate, set, del] = await Promise.all([
             this.permissions.checkCanGetScene(uuid),
             this.permissions.checkCanActivateScene(uuid),
@@ -1404,11 +1399,11 @@ export default class Connection {
      * Sets data of scenes.
      */
     @messagehandler('set-scenes', data => data.id_data)
-    setScenes(...id_data) {
+    setScenes(...id_data: [string, any][]) {
         return Promise.all(id_data.map(([id, data]) => this.setScene(id, data)));
     }
 
-    async setScene(uuid, data) {
+    async setScene(uuid: string, data: any) {
         await this.permissions.assertCanSetScene(uuid);
 
         this.log.debug('Setting data for scene', uuid, data);
@@ -1435,11 +1430,11 @@ export default class Connection {
      * Checks if scenes are active.
      */
     @messagehandler('check-scenes-active', data => data.id)
-    checkScenesActive(...id) {
+    checkScenesActive(...id: string[]) {
         return Promise.all(id.map(id => this.checkSceneActive(id)));
     }
 
-    async checkSceneActive(uuid) {
+    async checkSceneActive(uuid: string) {
         await this.permissions.assertCanGetScene(uuid);
 
         this.log.debug('Checking if scene is active', uuid);
@@ -1458,11 +1453,11 @@ export default class Connection {
      * Activates scenes.
      */
     @messagehandler('activate-scenes', data => data.id_data)
-    activateScenes(...id_data) {
+    activateScenes(...id_data: [string, any][]) {
         return Promise.all(id_data.map(([id, data]) => this.activateScene(id, data)));
     }
 
-    async activateScene(uuid, context) {
+    async activateScene(uuid: string, context: any) {
         await this.permissions.assertCanGetScene(uuid);
         await this.permissions.assertCanActivateScene(uuid);
 
@@ -1478,11 +1473,11 @@ export default class Connection {
      * Deactivates scenes.
      */
     @messagehandler('deactivate-scenes', data => data.id_data)
-    deactivateScenes(...id_data) {
+    deactivateScenes(...id_data: [string, any][]) {
         return Promise.all(id_data.map(([id, data]) => this.deactivateScene(id, data)));
     }
 
-    async deactivateScene(uuid, context) {
+    async deactivateScene(uuid: string, context: any) {
         await this.permissions.assertCanGetScene(uuid);
         await this.permissions.assertCanActivateScene(uuid);
 
@@ -1498,11 +1493,11 @@ export default class Connection {
      * Deletes scenes.
      */
     @messagehandler('delete-scenes', data => data.id)
-    deleteScenes(...id) {
+    deleteScenes(...id: string[]) {
         return Promise.all(id.map(id => this.deleteScene(id)));
     }
 
-    async deleteScene(uuid) {
+    async deleteScene(uuid: string) {
         await this.permissions.assertCanDeleteScene(uuid);
 
         this.log.debug('Removing scene', uuid);
@@ -1558,7 +1553,7 @@ export default class Connection {
      * Gets the UUID of every bridge.
      */
     @messagehandler('list-bridges', data => [data.include_homebridge])
-    async listBridges(include_homebridge) {
+    async listBridges(include_homebridge = false) {
         const uuids = [];
 
         for (const bridge of this.server.bridges) {
@@ -1572,11 +1567,11 @@ export default class Connection {
     }
 
     @messagehandler('create-bridges', data => data.data)
-    createBridges(...data) {
+    createBridges(...data: any[]) {
         return Promise.all(data.map(data => this.createBridge(data)));
     }
 
-    async createBridge(data) {
+    async createBridge(data: any) {
         await this.permissions.assertCanCreateBridges();
 
         const uuid = genuuid();
@@ -1609,11 +1604,11 @@ export default class Connection {
      * Gets the details of a bridge.
      */
     @messagehandler('get-bridges', data => data.uuid)
-    getBridges(...uuid) {
+    getBridges(...uuid: string[]) {
         return Promise.all(uuid.map(uuid => this.getBridge(uuid)));
     }
 
-    async getBridge(uuid) {
+    async getBridge(uuid: string) {
         await this.permissions.assertCanGetAccessory(uuid);
         const authorised_uuids = await this.permissions.getAuthorisedAccessoryUUIDs();
 
@@ -1638,11 +1633,11 @@ export default class Connection {
      * Gets the configuration of a bridge.
      */
     @messagehandler('get-bridges-configuration', data => data.uuid)
-    getBridgesConfiguration(...uuid) {
+    getBridgesConfiguration(...uuid: string[]) {
         return Promise.all(uuid.map(uuid => this.getBridgeConfiguration(uuid)));
     }
 
-    async getBridgeConfiguration(uuid) {
+    async getBridgeConfiguration(uuid: string) {
         await this.permissions.assertCanGetAccessory(uuid);
         await this.permissions.assertCanGetBridgeConfiguration(uuid);
 
@@ -1658,11 +1653,11 @@ export default class Connection {
      * Gets the user's permissions for a bridge.
      */
     @messagehandler('get-bridges-permissions', data => data.uuid)
-    getBridgesConfigurationPermissions(...uuid) {
+    getBridgesConfigurationPermissions(...uuid: string[]) {
         return Promise.all(uuid.map(uuid => this.getBridgeConfigurationPermissions(uuid)));
     }
 
-    async getBridgeConfigurationPermissions(uuid) {
+    async getBridgeConfigurationPermissions(uuid: string) {
         const is_from_config = this.server.config.bridges && this.server.config.bridges
             .find(c => c.uuid ? c.uuid === uuid : hap.uuid.generate('hap-server:bridge:' + c.username) === uuid);
 
@@ -1682,11 +1677,11 @@ export default class Connection {
      * Sets the configuration of a bridge.
      */
     @messagehandler('set-bridges-configuration', data => data.uuid_data)
-    setBridgesConfiguration(...uuid_data) {
+    setBridgesConfiguration(...uuid_data: [string, any][]) {
         return Promise.all(uuid_data.map(([uuid, data]) => this.setBridgeConfiguration(uuid, data)));
     }
 
-    async setBridgeConfiguration(uuid, data) {
+    async setBridgeConfiguration(uuid: string, data: any) {
         await this.permissions.assertCanSetBridgeConfiguration(uuid);
 
         const is_from_config = (this.server.config.bridges && this.server.config.bridges
@@ -1753,11 +1748,11 @@ export default class Connection {
      * Deletes a bridge.
      */
     @messagehandler('delete-bridges', data => data.uuid)
-    deleteBridges(...uuid) {
+    deleteBridges(...uuid: string[]) {
         return Promise.all(uuid.map(uuid => this.deleteBridge(uuid)));
     }
 
-    async deleteBridge(uuid) {
+    async deleteBridge(uuid: string) {
         await this.permissions.assertCanDeleteBridge(uuid);
 
         const is_from_config = (this.server.config.bridges && this.server.config.bridges
@@ -1788,11 +1783,11 @@ export default class Connection {
      * Get bridges pairing details.
      */
     @messagehandler('get-bridges-pairing-details', data => [data.bridge_uuid])
-    getBridgesPairingDetails(bridge_uuid) {
+    getBridgesPairingDetails(...bridge_uuid: string[]) {
         return Promise.all(bridge_uuid.map(bridge_uuid => this.getBridgePairingDetails(bridge_uuid)));
     }
 
-    async getBridgePairingDetails(bridge_uuid) {
+    async getBridgePairingDetails(bridge_uuid: string) {
         await this.permissions.assertCanGetAccessory(bridge_uuid);
         // await this.permissions.assertCanAccessServerRuntimeInfo();
 
@@ -1810,11 +1805,11 @@ export default class Connection {
      * Reset bridge pairings.
      */
     @messagehandler('reset-bridges-pairings', data => [data.bridge_uuid])
-    resetBridgesPairings(bridge_uuid) {
+    resetBridgesPairings(...bridge_uuid: string[]) {
         return Promise.all(bridge_uuid.map(bridge_uuid => this.resetBridgePairings(bridge_uuid)));
     }
 
-    async resetBridgePairings(bridge_uuid) {
+    async resetBridgePairings(bridge_uuid: string) {
         await this.permissions.assertCanGetAccessory(bridge_uuid);
         // await this.permissions.assertCanAccessServerRuntimeInfo();
 
@@ -1833,7 +1828,7 @@ export default class Connection {
      * Lists pairings.
      */
     @messagehandler('list-pairings', data => [data.bridge_uuid])
-    async listPairings(bridge_uuid) {
+    async listPairings(bridge_uuid: string) {
         await this.permissions.assertCanGetAccessory(bridge_uuid);
         // await this.permissions.assertCanAccessServerRuntimeInfo();
 
@@ -1853,11 +1848,11 @@ export default class Connection {
      * Gets the details of pairings.
      */
     @messagehandler('get-pairings', data => data.ids)
-    getPairings(...id) {
+    getPairings(...id: [string, string][]) {
         return Promise.all(id.map(([bridge_uuid, id]) => this.getPairing(bridge_uuid, id)));
     }
 
-    async getPairing(bridge_uuid, id) {
+    async getPairing(bridge_uuid: string, id: string) {
         await this.permissions.assertCanGetAccessory(bridge_uuid);
         // await this.permissions.assertCanAccessServerRuntimeInfo();
 
@@ -1878,11 +1873,11 @@ export default class Connection {
      * This is stored by the web interface.
      */
     @messagehandler('get-pairings-data', data => data.id)
-    getPairingsData(...id) {
+    getPairingsData(...id: string[]) {
         return Promise.all(id.map(id => this.getPairingData(id)));
     }
 
-    async getPairingData(id) {
+    async getPairingData(id: string) {
         // await this.permissions.assertCanAccessServerRuntimeInfo();
         await this.permissions.assertCanGetPairing(id);
 
@@ -1896,11 +1891,11 @@ export default class Connection {
      * This is stored by the web interface.
      */
     @messagehandler('get-pairings-permissions', data => data.id)
-    getPairingsPermissions(...id) {
+    getPairingsPermissions(...id: string[]) {
         return Promise.all(id.map(id => this.getPairingPermissions(id)));
     }
 
-    async getPairingPermissions(id) {
+    async getPairingPermissions(id: string) {
         // eslint-disable-next-line no-unused-vars, array-bracket-spacing
         const [get, set /* , info */] = await Promise.all([
             this.permissions.checkCanGetPairing(id),
@@ -1919,11 +1914,11 @@ export default class Connection {
      * This is stored by the web interface.
      */
     @messagehandler('set-pairings-data', data => data.id_data)
-    setPairingsData(...id_data) {
+    setPairingsData(...id_data: [string, any][]) {
         return Promise.all(id_data.map(([id, data]) => this.setPairingData(id, data)));
     }
 
-    async setPairingData(id, data) {
+    async setPairingData(id: string, data: any) {
         // await this.permissions.assertCanAccessServerRuntimeInfo();
         await this.permissions.assertCanSetPairing(id);
 
@@ -1980,9 +1975,9 @@ export default class Connection {
         });
     }
 
-    async handleAuthenticateMessage(messageid, data) {
+    async handleAuthenticateMessage(messageid: number, data: AuthenticateRequestMessage) {
         try {
-            if (typeof data.authentication_handler_id === 'number') {
+            if ('authentication_handler_id' in data && typeof data.authentication_handler_id === 'number') {
                 if (!await this.server.storage.getItem('HasCompletedSetup')) {
                     await this.server.storage.setItem('HasCompletedSetup', true);
                 }
@@ -2002,7 +1997,7 @@ export default class Connection {
                 const response = await authentication_handler.handleMessage(data.data, this);
 
                 await this.sendAuthenticateResponse(messageid, response);
-            } else if (data.token) {
+            } else if ('token' in data && typeof data.token === 'string') {
                 if (!await this.server.storage.getItem('HasCompletedSetup')) {
                     await this.server.storage.setItem('HasCompletedSetup', true);
                 }
@@ -2024,7 +2019,7 @@ export default class Connection {
                     session.authenticated_user, this);
 
                 await this.sendAuthenticateResponse(messageid, authenticated_user);
-            } else if (data.cli_token) {
+            } else if ('cli_token' in data && typeof data.cli_token === 'string') {
                 const token = data.cli_token;
 
                 this.log.info('Authenticating with CLI token');
@@ -2036,10 +2031,11 @@ export default class Connection {
                 this.authenticated_user = new AuthenticatedUser(null, 'cli-token', 'Admin');
 
                 return this.respond(messageid, {
+                    success: true,
                     data: this.authenticated_user,
                     user_id: this.authenticated_user.id,
                 });
-            } else if (data.setup_token) {
+            } else if ('setup_token' in data && typeof data.setup_token === 'string') {
                 const token = data.setup_token.toLowerCase().replace(/\s+/g, ' ').replace(/[^a-z ]/g, '');
 
                 this.log.info('Authenticating with setup token', token);
@@ -2062,6 +2058,7 @@ export default class Connection {
                 this.authenticated_user = new AuthenticatedUser(null, 'cli-token', 'Setup user');
 
                 return this.respond(messageid, {
+                    success: true,
                     data: this.authenticated_user,
                     user_id: this.authenticated_user.id,
                 });
@@ -2079,7 +2076,7 @@ export default class Connection {
         }
     }
 
-    async sendAuthenticateResponse(messageid, response) {
+    async sendAuthenticateResponse(messageid: number, response: any) {
         if (response instanceof AuthenticatedUser) {
             if (response.token) {
                 // Save the authenticated user to the session
@@ -2117,7 +2114,7 @@ export default class Connection {
         });
     }
 
-    async handleUserManagementMessage(messageid, data) {
+    async handleUserManagementMessage(messageid: number, data: UserManagementRequestMessage) {
         try {
             await this.permissions.assertCanManageUsers();
 
@@ -2148,11 +2145,11 @@ export default class Connection {
      * Gets user permissions.
      */
     @messagehandler('get-users-permissions', data => data.id)
-    async getUsersPermissions(...id) {
+    async getUsersPermissions(...id: string[]) {
         return Promise.all(id.map(id => this.getUserPermissions(id)));
     }
 
-    async getUserPermissions(user_id) {
+    async getUserPermissions(user_id: string) {
         await this.permissions.assertCanManageUsers();
         await this.permissions.assertCanManagePermissions();
 
@@ -2163,11 +2160,11 @@ export default class Connection {
      * Sets user permissions.
      */
     @messagehandler('set-users-permissions', data => data.id_data)
-    async setUsersPermissions(...id_data) {
+    async setUsersPermissions(...id_data: [string, any][]) {
         return Promise.all(id_data.map(([id, data]) => this.setUserPermissions(id, data)));
     }
 
-    async setUserPermissions(user_id, data) {
+    async setUserPermissions(user_id: string, data: any) {
         await this.permissions.assertCanManageUsers();
         await this.permissions.assertCanManagePermissions();
 
@@ -2181,16 +2178,17 @@ export default class Connection {
             ) continue;
 
             // Clear the cached permissions
+            // @ts-ignore
             delete connection.permissions.permissions;
 
             connection.sendBroadcast({
                 type: 'update-permissions',
-                data: await this.getHomePermissions(),
+                data: await connection.getHomePermissions(),
             });
         }
     }
 
-    async handleAccessorySetupMessage(messageid, data) {
+    async handleAccessorySetupMessage(messageid: number, data: any) {
         try {
             await this.permissions.assertCanCreateAccessories();
 

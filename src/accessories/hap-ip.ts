@@ -63,6 +63,9 @@ interface HAPCharacteristic {
 
 export default class HAPIP extends AccessoryPlatform {
     config: {
+        plugin: null;
+        platform: 'HomeKitIP';
+        name: string;
         uuid: string; // Set by hap-server if not set by the user
 
         id: string; // Same as hap-nodejs usernames

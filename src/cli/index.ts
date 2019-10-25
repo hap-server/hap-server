@@ -65,6 +65,7 @@ export function getConfig(argv): ConfigData {
 
                 if (['.yml', '.yaml'].includes(path.extname(config_path))) {
                     return config_cache[config_path] = yaml.parse(config_string, {
+                        // @ts-ignore
                         prettyErrors: true,
                     });
                 } else {

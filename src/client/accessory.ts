@@ -6,7 +6,6 @@ import CollapsedService from './collapsed-service';
 import Service, {type_uuids as service_types} from './service';
 
 // Types
-import {Component} from 'vue';
 import ComponentRegistry from '../public/component-registry';
 
 export default class Accessory extends EventEmitter {
@@ -40,7 +39,7 @@ export default class Accessory extends EventEmitter {
         this._setDetails(details || {});
     }
 
-    static get service_components(): ComponentRegistry<Component> | Map<string | number, Component> {
+    static get service_components(): ComponentRegistry<any> | Map<string | number, any> {
         try {
             return require('../public/component-registry').ServiceTileComponents;
         } catch (err) {

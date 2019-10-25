@@ -34,10 +34,10 @@ declare module '@hap-server/api' {
     export const log: Logger;
 
     export class AccessoryPlatform extends BaseAccessoryPlatform {
-        constructor(server: Server, config, cached_accessories: typeof Accessory[]);
+        constructor(server: Server, config: any, cached_accessories: typeof Accessory[]);
     }
     export abstract class ServerPlugin extends BaseServerPlugin {
-        constructor(server: Server, config);
+        constructor(server: Server, config: any);
     }
     export class WebInterfacePlugin extends BaseWebInterfacePlugin {
         constructor();
@@ -52,12 +52,12 @@ declare module '@hap-server/api' {
         constructor(data: object, accessory_discovery?: BaseAccessoryDiscovery);
     }
     export class AccessorySetup extends BaseAccessorySetup {
-        constructor(Plugin, name: string, handler: (data, connection: Connection) => any);
+        constructor(plugin: Plugin, name: string, handler: (data: any, connection: Connection) => any);
     }
     export class AuthenticationHandler extends BaseAuthenticationHandler {
         constructor(
             localid: string,
-            handler: (data, connection: Connection) =>
+            handler: (data: any, connection: Connection) =>
                 Promise<BaseAuthenticatedUser | any> | BaseAuthenticatedUser | any, // eslint-disable-line @typescript-eslint/indent
             disconnect_handler?: (authenticated_user: BaseAuthenticatedUser, disconnected: boolean,
                 connection: Connection) => any
@@ -67,7 +67,7 @@ declare module '@hap-server/api' {
         constructor(id: string, name: string, authentication_handler?: BaseAuthenticationHandler);
     }
     export class UserManagementHandler extends BaseUserManagementHandler {
-        constructor(localid: string, handler: (data, connection: Connection) => any);
+        constructor(localid: string, handler: (data: any, connection: Connection) => any);
     }
 
     // @ts-ignore

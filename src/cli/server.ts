@@ -234,6 +234,8 @@ export async function handler(argv) {
         config_path,
         config,
         cli_auth_token,
+
+        // @ts-ignore
         webpack_hot: DEVELOPMENT && argv.webpackHot,
     });
 

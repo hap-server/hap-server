@@ -1,5 +1,6 @@
 import http from 'http';
 import https from 'https';
+import net from 'net';
 import url from 'url';
 import path from 'path';
 import fs from 'fs';
@@ -26,7 +27,7 @@ import {
 } from '../events/server';
 
 import Connection from './connection';
-import PluginManager, {ServerPlugin} from './plugins';
+import PluginManager, {Plugin, ServerPlugin, DiscoveredAccessory} from './plugins';
 import Bridge from './bridge';
 import Homebridge from './homebridge';
 import Logger from '../common/logger';
@@ -41,7 +42,23 @@ import {events} from '..';
 
 // Types
 import {AccessoryPlatform, AccessoryDiscovery} from './plugins';
+// @ts-ignore
 import {PlatformAccessory} from 'homebridge/lib/platformAccessory';
+import AutomationTrigger from '../automations/trigger';
+import AutomationCondition from '../automations/condition';
+import AutomationAction from '../automations/action';
+import {BridgeConfiguration} from '../cli/configuration';
+
+interface ServerOptions {
+    data_path: string;
+    config_path: string;
+    config: any;
+    cli_auth_token?: string;
+    hostname?: string;
+
+    // For development builds there's also a webpack_hot property
+    // webpack_hot = false;
+}
 
 const DEVELOPMENT = true;
 
@@ -49,7 +66,7 @@ export default class Server extends Events {
     static instances = new Set<Server>();
 
     hostname?: string;
-    readonly config;
+    readonly config: any;
     readonly assets_path: string;
     readonly cli_auth_token?: string;
     setup_token?: string;
@@ -63,26 +80,27 @@ export default class Server extends Events {
     readonly homebridge: Homebridge;
     readonly plugins: Map<number, ServerPlugin>;
 
-    private readonly config_automation_triggers: any[];
-    private readonly config_automation_conditions: any[];
-    private readonly config_automation_actions: any[];
+    private readonly config_automation_triggers: {[key: string]: AutomationTrigger};
+    private readonly config_automation_conditions: {[key: string]: AutomationCondition};
+    private readonly config_automation_actions: {[key: string]: AutomationAction};
 
     private accessory_discovery_counter: number;
     private readonly accessory_discovery_handlers: Set<AccessoryDiscovery>;
     private readonly accessory_discovery_handlers_events: WeakMap<AccessoryDiscovery, {[key: string]: Function}>;
 
-    readonly app: express;
+    readonly app: express.Application;
     readonly wss: WebSocket.Server;
-    readonly multer: multer;
+    // @ts-ignore
+    readonly multer: typeof multer;
 
     private readonly characteristic_change_handlers: WeakMap<typeof Accessory, Function>;
-    readonly _handleCharacteristicUpdate;
+    readonly _handleCharacteristicUpdate: any;
     private readonly configuration_change_handlers: WeakMap<typeof Accessory, Function>;
-    private readonly _handleConfigurationChange;
+    private readonly _handleConfigurationChange: any;
 
-    private readonly _handleRegisterHomebridgePlatformAccessories;
-    private readonly _handleUnregisterHomebridgePlatformAccessories;
-    private readonly _handleRegisterExternalHomebridgeAccessories;
+    private readonly _handleRegisterHomebridgePlatformAccessories: any;
+    private readonly _handleUnregisterHomebridgePlatformAccessories: any;
+    private readonly _handleRegisterExternalHomebridgeAccessories: any;
 
     /**
      * Creates a Server.
@@ -93,19 +111,10 @@ export default class Server extends Events {
      * @param {object} options.config
      * @param {string} options.cli_auth_token
      * @param {string} [options.hostname]
-     * @param {node-persist} storage
+     * @param {persist} storage
      * @param {Logger} [log]
      */
-    constructor(options: {
-        data_path: string;
-        config_path: string;
-        config;
-        cli_auth_token?: string;
-        hostname?: string;
-
-        // For development builds there's also a webpack_hot property
-        // webpack_hot = false;
-    }, storage: typeof persist, log?: Logger) {
+    constructor(options: ServerOptions, storage: typeof persist, log?: Logger) {
         super();
 
         this.parent_emitter = events;
@@ -188,16 +197,16 @@ export default class Server extends Events {
         this.upgrade = this.upgrade.bind(this);
 
         Object.defineProperty(this, 'characteristic_change_handlers', {value: new WeakMap()});
-        Object.defineProperty(this, '_handleCharacteristicUpdate', {value: (default_accessory, event) => {
+        Object.defineProperty(this, '_handleCharacteristicUpdate', {value: (a: typeof Accessory, event: any) => {
             // this.log.info('Updating characteristic', event);
-            this.handleCharacteristicUpdate(event.accessory || default_accessory, event.service,
+            this.handleCharacteristicUpdate(event.accessory || a, event.service,
                 event.characteristic, event.newValue, event.oldValue, event.context);
         }});
 
         Object.defineProperty(this, 'configuration_change_handlers', {value: new WeakMap()});
-        Object.defineProperty(this, '_handleConfigurationChange', {value: (default_accessory, event) => {
+        Object.defineProperty(this, '_handleConfigurationChange', {value: (a: typeof Accessory, event: any) => {
             this.log.debug('Updating accessory configuration', event);
-            this.handleConfigurationChange(event.accessory || default_accessory, event.service, event.characteristic);
+            this.handleConfigurationChange(event.accessory || a, event.service, event.characteristic);
         }});
 
         Object.defineProperty(this, '_handleRegisterHomebridgePlatformAccessories', {value:
@@ -213,7 +222,7 @@ export default class Server extends Events {
             // Only send events for automations that the web interface knows about
             if (!event.runner.automation.uuid) return;
 
-            const onprogress = progress => this.sendBroadcast({
+            const onprogress = (progress: number) => this.sendBroadcast({
                 type: 'automation-progress',
                 runner_id: event.runner.id,
                 progress,
@@ -276,8 +285,8 @@ export default class Server extends Events {
      * @param {string} [options.hostname]
      * @return {Server}
      */
-    static async createServer(options) {
-        if (!options) options = {};
+    static async createServer(options: ServerOptions) {
+        // if (!options) options = {};
 
         const ui_storage_path = path.resolve(options.data_path, 'ui-storage');
 
@@ -297,21 +306,22 @@ export default class Server extends Events {
         const console_log = console.log;
         const console_error = console.error;
 
-        const wrapConsoleFn = (fn, type) => Logger.wrapConsoleFn(fn, (data, ...args) => {
-            for (const server of Server.instances) {
-                for (const ws of server.wss.clients) {
-                    const connection = Connection.getConnectionForWebSocket(ws);
-                    if (connection && connection.enable_proxy_stdout) {
-                        ws.send('**:' + JSON.stringify({
-                            type,
-                            data: util.formatWithOptions ? util.formatWithOptions({
-                                colors: true,
-                            }, data, ...args) + '\n' : util.format(data, ...args) + '\n',
-                        }));
+        const wrapConsoleFn = (fn: typeof console.log, type: 'stdout' | 'stderr') =>
+            Logger.wrapConsoleFn(fn, (data: any, ...args: any[]) => {
+                for (const server of Server.instances) {
+                    for (const ws of server.wss.clients) {
+                        const connection = Connection.getConnectionForWebSocket(ws);
+                        if (connection && connection.enable_proxy_stdout) {
+                            ws.send('**:' + JSON.stringify({
+                                type,
+                                data: util.formatWithOptions ? util.formatWithOptions({
+                                    colors: true,
+                                }, data, ...args) + '\n' : util.format(data, ...args) + '\n',
+                            }));
+                        }
                     }
                 }
-            }
-        });
+            });
 
         console.log = wrapConsoleFn(console_log, 'stdout');
         console.error = wrapConsoleFn(console_error, 'stderr');
@@ -340,7 +350,7 @@ export default class Server extends Events {
      * @param {object} [config]
      * @return {Promise}
      */
-    async loadPlugin(server_plugin: typeof ServerPlugin, config?) {
+    async loadPlugin(server_plugin: typeof ServerPlugin, config?: any) {
         if (typeof server_plugin !== 'function' || !(server_plugin.prototype instanceof ServerPlugin)) {
             throw new Error('server_plugin must be a class that extends ServerPlugin');
         }
@@ -372,11 +382,11 @@ export default class Server extends Events {
     loadBridgesFromConfig() {
         if (!this.config.bridges) return Promise.resolve();
 
-        return Promise.all(this.config.bridges.map(bridge_config => this.loadBridge(bridge_config)));
+        return Promise.all(this.config.bridges.map((bridge_config: any) => this.loadBridge(bridge_config)));
     }
 
     async loadBridgesFromStorage(dont_throw = false) {
-        const bridge_uuids = await this.storage.getItem('Bridges') || [];
+        const bridge_uuids: string[] = await this.storage.getItem('Bridges') || [];
 
         return Promise.all(bridge_uuids.map(async uuid => {
             try {
@@ -404,7 +414,7 @@ export default class Server extends Events {
      * @param {string} [uuid]
      * @return {Bridge}
      */
-    loadBridge(bridge_config, uuid?: string) {
+    loadBridge(bridge_config: BridgeConfiguration, uuid?: string) {
         // bridge_config.username is required - all other properties are optional
         const name = bridge_config.name || 'Bridge ' + bridge_config.username.match(/(.{2}\:.{2})$/)[1];
 
@@ -458,7 +468,7 @@ export default class Server extends Events {
      *
      * @param {(Bridge|string)} bridge
      */
-    async unloadBridge(bridge) {
+    async unloadBridge(bridge: Bridge | string) {
         if (!(bridge instanceof Bridge)) {
             bridge = this.bridges.find(b => b.uuid === bridge);
         }
@@ -470,7 +480,7 @@ export default class Server extends Events {
         await bridge.unpublish();
 
         let index;
-        while ((index = this.bridges.findIndex(b => b.uuid === bridge.uuid)) !== -1) {
+        while ((index = this.bridges.findIndex(b => b.uuid === (bridge as Bridge).uuid)) !== -1) {
             this.bridges.splice(index, 1);
         }
     }
@@ -498,7 +508,9 @@ export default class Server extends Events {
             this.addAccessory(plugin_accessory);
         }
 
-        for (const platform_accessory of Object.values(this.homebridge.homebridge._publishedAccessories) as any) {
+        for (const platform_accessory of
+            Object.values(this.homebridge.homebridge._publishedAccessories) as PlatformAccessory[]
+        ) {
             const plugin_accessory = new HomebridgeAccessory(this, platform_accessory._associatedHAPAccessory,
                 platform_accessory);
 
@@ -513,7 +525,7 @@ export default class Server extends Events {
             .on('publishExternalAccessories', this._handleRegisterExternalHomebridgeAccessories);
     }
 
-    handleRegisterHomebridgePlatformAccessories(accessories) {
+    handleRegisterHomebridgePlatformAccessories(accessories: PlatformAccessory[]) {
         for (const platform_accessory of accessories) {
             const accessory = platform_accessory._associatedHAPAccessory;
             if (!accessory) continue;
@@ -524,7 +536,7 @@ export default class Server extends Events {
         }
     }
 
-    handleUnregisterHomebridgePlatformAccessories(accessories) {
+    handleUnregisterHomebridgePlatformAccessories(accessories: PlatformAccessory[]) {
         for (const platform_accessory of accessories) {
             const accessory = platform_accessory._associatedHAPAccessory;
             if (!accessory) continue;
@@ -536,7 +548,7 @@ export default class Server extends Events {
         }
     }
 
-    handleRegisterExternalHomebridgeAccessories(accessories) {
+    handleRegisterExternalHomebridgeAccessories(accessories: PlatformAccessory[]) {
         for (const platform_accessory of accessories) {
             const accessory = platform_accessory._associatedHAPAccessory;
             if (!accessory) continue;
@@ -548,7 +560,7 @@ export default class Server extends Events {
     }
 
     async loadCachedAccessories(dont_throw = false) {
-        const cached_accessories = await this.storage.getItem('CachedAccessories') || [];
+        const cached_accessories: any[] = await this.storage.getItem('CachedAccessories') || [];
 
         await Promise.all(cached_accessories.map(cache => this.loadCachedAccessory(cache).catch(err => {
             if (!dont_throw && typeof dont_throw !== 'undefined') throw err;
@@ -557,7 +569,7 @@ export default class Server extends Events {
         })));
     }
 
-    async loadCachedAccessory(cache) {
+    async loadCachedAccessory(cache: any) {
         const plugin_accessory = PluginAccessory.restore(this, cache);
 
         this.cached_accessories.push(plugin_accessory);
@@ -583,10 +595,11 @@ export default class Server extends Events {
      * @return {PluginStandaloneAccessory}
      */
     getCachedAccessory(uuid: string, plugin?: Plugin, accessory_type?: string) {
-        return this.cached_accessories.find(accessory => accessory.uuid === uuid &&
+        return this.cached_accessories.find(accessory => accessory instanceof PluginStandaloneAccessory &&
+            accessory.uuid === uuid &&
             (!plugin || accessory.plugin === plugin) &&
-            accessory instanceof PluginStandaloneAccessory &&
-            ((!plugin && !accessory_type) || accessory.accessory_type === accessory_type));
+            ((!plugin && !accessory_type) || accessory.accessory_type === accessory_type)
+        ) as PluginStandaloneAccessory;
     }
 
     /**
@@ -597,11 +610,11 @@ export default class Server extends Events {
      * @param {string} accessory_platform_name
      * @return {PluginAccessoryPlatformAccessory[]}
      */
-    getCachedAccessoryPlatformAccessories(base_uuid, plugin, accessory_platform_name) {
+    getCachedAccessoryPlatformAccessories(base_uuid: string, plugin: Plugin, accessory_platform_name: string) {
         return this.cached_accessories.filter(accessory => accessory instanceof PluginAccessoryPlatformAccessory &&
             accessory.base_uuid === base_uuid &&
             accessory.plugin === plugin &&
-            accessory.accessory_platform_name === accessory_platform_name);
+            accessory.accessory_platform_name === accessory_platform_name) as PluginAccessoryPlatformAccessory[];
     }
 
     /**
@@ -609,7 +622,7 @@ export default class Server extends Events {
      *
      * @param {string} uuid
      */
-    removeCachedAccessory(uuid) {
+    removeCachedAccessory(uuid: string) {
         let index;
         while ((index = this.cached_accessories.findIndex(accessory => accessory.uuid === uuid)) !== -1) {
             this.cached_accessories.splice(index, 1);
@@ -633,12 +646,12 @@ export default class Server extends Events {
      *
      * @param {PluginAccessory} plugin_accessory
      */
-    addAccessory(plugin_accessory) {
+    addAccessory(plugin_accessory: PluginAccessory) {
         // eslint-disable-next-line curly
         if (this.accessories.find(a => a.uuid === plugin_accessory.uuid)) throw new Error('Already have an' +
             ' accessory with the UUID "' + plugin_accessory.uuid + '"');
 
-        plugin_accessory.accessory.bridges = true;
+        plugin_accessory.accessory.bridged = true;
 
         const prev_characteristic_change_handler = this.characteristic_change_handlers.get(plugin_accessory.accessory);
         if (prev_characteristic_change_handler) {
@@ -682,7 +695,7 @@ export default class Server extends Events {
      *
      * @param {PluginAccessory} plugin_accessory
      */
-    removeAccessory(plugin_accessory) {
+    removeAccessory(plugin_accessory: PluginAccessory) {
         const characteristic_change_handler = this.characteristic_change_handlers.get(plugin_accessory.accessory);
         if (characteristic_change_handler) {
             plugin_accessory.accessory.removeListener('service-characteristic-change',
@@ -699,7 +712,9 @@ export default class Server extends Events {
         }
 
         for (const bridge of this.bridges) {
-            if (!bridge.bridge.bridgedAccessories.find(a => a.UUID === plugin_accessory.uuid)) continue;
+            if (!bridge.bridge.bridgedAccessories.find((a: typeof Accessory) => a.UUID === plugin_accessory.uuid)) {
+                continue;
+            }
 
             bridge.removeAccessory(plugin_accessory.accessory);
         }
@@ -711,7 +726,7 @@ export default class Server extends Events {
         await this.loadAccessories(this.config.accessories2 || [], true);
     }
 
-    async loadAccessories(accessories, dont_throw = false) {
+    async loadAccessories(accessories: any[], dont_throw = false) {
         await Promise.all(accessories.map(accessory_config => this.loadAccessory(accessory_config).catch(err => {
             if (!dont_throw) throw err;
 
@@ -720,7 +735,7 @@ export default class Server extends Events {
         })));
     }
 
-    async loadAccessory(accessory_config) {
+    async loadAccessory(accessory_config: any) {
         const {plugin: plugin_name, accessory: accessory_type, name} = accessory_config;
 
         // eslint-disable-next-line curly
@@ -755,7 +770,7 @@ export default class Server extends Events {
         await this.loadAccessoryPlatforms(this.config.platforms2 || [], true);
     }
 
-    async loadAccessoryPlatforms(accessories, dont_throw = false) {
+    async loadAccessoryPlatforms(accessories: any[], dont_throw = false) {
         await Promise.all(accessories.map(accessory_platform_config =>
             this.loadAccessoryPlatform(accessory_platform_config).catch(err => {
                 if (!dont_throw) throw err;
@@ -771,7 +786,7 @@ export default class Server extends Events {
      * @param {object} config
      * @return {Promise}
      */
-    async loadAccessoryPlatform(config) {
+    async loadAccessoryPlatform(config: any) {
         const {plugin: plugin_name, platform: accessory_platform_name, name} = config;
 
         // eslint-disable-next-line curly
@@ -805,48 +820,51 @@ export default class Server extends Events {
         return accessory_platform;
     }
 
-    get automations() {
+    get automations(): Automations {
         return Object.defineProperty(this, 'automations', {value: new Automations(this)}).automations;
     }
 
     async loadAutomationTriggersFromConfig(dont_throw = false) {
         if (this.config_automation_triggers) return this.config_automation_triggers;
-        const triggers = {};
+        const triggers: {[key: string]: AutomationTrigger} = {};
 
-        await Promise.all((Object.entries(this.config['automation-triggers'] || {}) as any).map(([key, config]) =>
-            this.automations.loadAutomationTrigger(config).then(t => triggers[key] = t).catch(err => {
-                if (!dont_throw) throw err;
+        await Promise.all((Object.entries(this.config['automation-triggers'] || {}) as any)
+            .map(([key, config]: [string, any]) =>
+                this.automations.loadAutomationTrigger(config).then(t => triggers[key] = t).catch(err => {
+                    if (!dont_throw) throw err;
 
-                this.log.warn('Error loading automation trigger', config.plugin, config.trigger, err);
-            })));
+                    this.log.warn('Error loading automation trigger', config.plugin, config.trigger, err);
+                })));
 
         return (this as any).config_automation_triggers = triggers;
     }
 
     async loadAutomationConditionsFromConfig(dont_throw = false) {
         if (this.config_automation_conditions) return this.config_automation_conditions;
-        const conditions = {};
+        const conditions: {[key: string]: AutomationCondition} = {};
 
-        await Promise.all((Object.entries(this.config['automation-conditions'] || {}) as any).map(([key, config]) =>
-            this.automations.loadAutomationCondition(config).then(t => conditions[key] = t).catch(err => {
-                if (!dont_throw) throw err;
+        await Promise.all((Object.entries(this.config['automation-conditions'] || {}) as any)
+            .map(([key, config]: [string, any]) => this.automations.loadAutomationCondition(config)
+                .then(t => conditions[key] = t).catch(err => {
+                    if (!dont_throw) throw err;
 
-                this.log.warn('Error loading automation condition', config.plugin, config.condition, err);
-            })));
+                    this.log.warn('Error loading automation condition', config.plugin, config.condition, err);
+                })));
 
         return (this as any).config_automation_conditions = conditions;
     }
 
     async loadAutomationActionsFromConfig(dont_throw = false) {
         if (this.config_automation_actions) return this.config_automation_actions;
-        const actions = {};
+        const actions: {[key: string]: AutomationAction} = {};
 
-        await Promise.all((Object.entries(this.config['automation-actions'] || {}) as any).map(([key, config]) =>
-            this.automations.loadAutomationAction(config).then(t => actions[key] = t).catch(err => {
-                if (!dont_throw) throw err;
+        await Promise.all((Object.entries(this.config['automation-actions'] || {}) as any)
+            .map(([key, config]: [string, any]) =>
+                this.automations.loadAutomationAction(config).then(t => actions[key] = t).catch(err => {
+                    if (!dont_throw) throw err;
 
-                this.log.warn('Error loading automation action', config.plugin, config.action, err);
-            })));
+                    this.log.warn('Error loading automation action', config.plugin, config.action, err);
+                })));
 
         return (this as any).config_automation_actions = actions;
     }
@@ -858,11 +876,11 @@ export default class Server extends Events {
             this.loadAutomationActionsFromConfig(dont_throw),
         ]);
 
-        const automations = await Promise.all((this.config.automations || []).map(config =>
+        const automations = await Promise.all((this.config.automations || []).map((config: any) =>
             this.automations.loadAutomation(config).then(automation => {
-                automation.addTrigger(...(automation.config.triggers || []).map(key => triggers[key]));
-                automation.addCondition(...(automation.config.conditions || []).map(key => conditions[key]));
-                automation.addAction(...(automation.config.actions || []).map(key => actions[key]));
+                automation.addTrigger(...(automation.config.triggers || []).map((key: string) => triggers[key]));
+                automation.addCondition(...(automation.config.conditions || []).map((key: string) => conditions[key]));
+                automation.addAction(...(automation.config.actions || []).map((key: string) => actions[key]));
 
                 return automation;
             }).catch(err => {
@@ -877,7 +895,7 @@ export default class Server extends Events {
     }
 
     async loadAutomationsFromStorage() {
-        const automation_uuids = await this.storage.getItem('Automations') || [];
+        const automation_uuids: string[] = await this.storage.getItem('Automations') || [];
 
         return Promise.all(automation_uuids.map(async uuid => {
             const data = await this.storage.getItem('Automation.' + uuid) || {};
@@ -892,7 +910,7 @@ export default class Server extends Events {
      * @param {object} data
      * @return {Promise<(Automation|object)>}
      */
-    loadOrUpdateAutomation(uuid, data) {
+    loadOrUpdateAutomation(uuid: string, data: any) {
         if (this.automations.automations.find(automation => automation.uuid === uuid)) {
             return this.updateAutomation(uuid, data);
         }
@@ -907,7 +925,7 @@ export default class Server extends Events {
      * @param {object} data
      * @return {Promise<Automation>}
      */
-    async loadAutomation(uuid, data) {
+    async loadAutomation(uuid: string, data: any) {
         const automation = await this.automations.loadAutomation(data, uuid);
 
         for (const [trigger_id, trigger_config] of Object.entries(data.triggers || {})) {
@@ -935,11 +953,11 @@ export default class Server extends Events {
      * @param {object} data
      * @return {Promise<(Automation|object)>}
      */
-    async updateAutomation(uuid, data) {
+    async updateAutomation(uuid: string, data: any) {
         const automation = this.automations.automations.find(automation => automation.uuid === uuid);
         if (!automation) throw new Error('Unknown automation "' + uuid + '"');
 
-        const nullchildren = {triggers: undefined, conditions: undefined, actions: undefined};
+        const nullchildren: any = {triggers: undefined, conditions: undefined, actions: undefined};
 
         if (!isEqual(
             Object.assign({}, nullchildren, data, nullchildren),
@@ -1039,14 +1057,14 @@ export default class Server extends Events {
      * @param {number} id
      * @return {Automation}
      */
-    getAutomation(id) {
+    getAutomation(id: number) {
         if (!this.hasOwnProperty('automations')) return null;
 
         return this.automations.getAutomation(id);
     }
 
     async loadScenesFromStorage() {
-        const scene_uuids = await this.storage.getItem('Scenes') || [];
+        const scene_uuids: string[] = await this.storage.getItem('Scenes') || [];
 
         return Promise.all(scene_uuids.map(async uuid => {
             const data = await this.storage.getItem('Scene.' + uuid) || {};
@@ -1061,7 +1079,7 @@ export default class Server extends Events {
      * @param {object} data
      * @return {Promise<(Scene|object)>}
      */
-    loadOrUpdateScene(uuid, data) {
+    loadOrUpdateScene(uuid: string, data: any) {
         if (this.automations.scenes.find(scene => scene.uuid === uuid)) {
             return this.updateScene(uuid, data);
         }
@@ -1076,7 +1094,7 @@ export default class Server extends Events {
      * @param {object} data
      * @return {Promise<Scene>}
      */
-    async loadScene(uuid, data) {
+    async loadScene(uuid: string, data: any) {
         const scene = await this.automations.loadScene(data, uuid);
 
         for (const [condition_id, condition_config] of Object.entries(data.conditions || {})) {
@@ -1104,11 +1122,11 @@ export default class Server extends Events {
      * @param {object} data
      * @return {Promise<(Scene|object)>}
      */
-    async updateScene(uuid, data) {
+    async updateScene(uuid: string, data: any) {
         const scene = this.automations.scenes.find(scene => scene.uuid === uuid);
         if (!scene) throw new Error('Unknown scene "' + uuid + '"');
 
-        const nullchildren = {conditions: undefined, enable_actions: undefined, disable_actions: undefined};
+        const nullchildren: any = {conditions: undefined, enable_actions: undefined, disable_actions: undefined};
 
         if (!isEqual(
             Object.assign({}, nullchildren, data, nullchildren),
@@ -1188,7 +1206,7 @@ export default class Server extends Events {
 
             const new_action = await this.automations.loadAutomationAction(action_config, action_id);
             await scene.addDisableAction(new_action);
-            added_enable_actions.push(new_action);
+            added_disable_actions.push(new_action);
         }
 
         for (const action of scene.disable_actions) {
@@ -1222,10 +1240,10 @@ export default class Server extends Events {
             let events = this.accessory_discovery_handlers_events.get(accessory_discovery);
             if (!events) this.accessory_discovery_handlers_events.set(accessory_discovery, events = {});
 
-            if (!events.add_accessory) events.add_accessory = data => // eslint-disable-line curly
+            if (!events.add_accessory) events.add_accessory = (data: any) => // eslint-disable-line curly
                 this.handleAddDiscoveredAccessory(accessory_discovery, data);
             accessory_discovery.on('add-accessory', events.add_accessory);
-            if (!events.remove_accessory) events.remove_accessory = data => // eslint-disable-line curly
+            if (!events.remove_accessory) events.remove_accessory = (data: any) => // eslint-disable-line curly
                 this.handleRemoveDiscoveredAccessory(accessory_discovery, data);
             accessory_discovery.on('remove-accessory', events.remove_accessory);
 
@@ -1300,7 +1318,9 @@ export default class Server extends Events {
      * @param {AccessoryDiscovery} accessory_discovery
      * @param {DiscoveredAccessory} discovered_accessory
      */
-    handleAddDiscoveredAccessory(accessory_discovery, discovered_accessory) {
+    handleAddDiscoveredAccessory(
+        accessory_discovery: AccessoryDiscovery, discovered_accessory: DiscoveredAccessory
+    ) {
         for (const ws of this.wss.clients) {
             const connection = Connection.getConnectionForWebSocket(ws);
             if (connection && connection.enable_accessory_discovery) {
@@ -1321,7 +1341,9 @@ export default class Server extends Events {
      * @param {AccessoryDiscovery} accessory_discovery
      * @param {DiscoveredAccessory} discovered_accessory
      */
-    handleRemoveDiscoveredAccessory(accessory_discovery, discovered_accessory) {
+    handleRemoveDiscoveredAccessory(
+        accessory_discovery: AccessoryDiscovery, discovered_accessory: DiscoveredAccessory
+    ) {
         for (const ws of this.wss.clients) {
             const connection = Connection.getConnectionForWebSocket(ws);
             if (connection && connection.enable_accessory_discovery) {
@@ -1432,7 +1454,7 @@ export default class Server extends Events {
         const service = this.getService(accessory_uuid, service_uuid);
         if (!service) return;
 
-        return service.characteristics.find(c => c.UUID === characteristic_uuid);
+        return service.characteristics.find((c: typeof Characteristic) => c.UUID === characteristic_uuid);
     }
 
     /**
@@ -1442,7 +1464,10 @@ export default class Server extends Events {
      * @param {function} middleware
      * @return {http.Server}
      */
-    createServer(options, middleware) {
+    createServer(
+        options: http.ServerOptions,
+        middleware?: (req: http.IncomingMessage, res: http.ServerResponse, next: () => void) => void
+    ) {
         const server = http.createServer(options);
 
         server.on('request', middleware ? (req, res) => {
@@ -1460,7 +1485,10 @@ export default class Server extends Events {
      * @param {function} middleware
      * @return {https.Server}
      */
-    createSecureServer(options, middleware) {
+    createSecureServer(
+        options: http.ServerOptions,
+        middleware?: (req: http.IncomingMessage, res: http.ServerResponse, next: () => void) => void
+    ) {
         const server = https.createServer(options);
 
         server.on('request', middleware ? (req, res) => {
@@ -1478,7 +1506,7 @@ export default class Server extends Events {
      * @param {http.ServerResponse} res
      * @param {function} next
      */
-    handle(req: http.IncomingMessage, res: http.ServerResponse, next?) {
+    handle(req: http.IncomingMessage, res: http.ServerResponse, next?: () => void) {
         res.setHeader('X-Content-Type-Options', 'nosniff');
         res.setHeader('X-Frame-Options', 'deny');
         res.setHeader('X-XSS-Protection', '1');
@@ -1489,7 +1517,7 @@ export default class Server extends Events {
         const ui_plugin_match = pathname.match(/^\/(ui-plugin|accessory-ui)\/([0-9]+)(\/.*)?$/);
 
         if (ui_plugin_match) {
-            const ui_plugin_id = ui_plugin_match[2];
+            const ui_plugin_id = parseInt(ui_plugin_match[2]);
             const ui_plugin_pathname = ui_plugin_match[3] || '/';
 
             req.url = ui_plugin_pathname;
@@ -1514,6 +1542,7 @@ export default class Server extends Events {
             res.end(body);
         } else {
             // Send all other requests to Express
+            // @ts-ignore
             this.app.handle(req, res, next);
         }
     }
@@ -1525,7 +1554,7 @@ export default class Server extends Events {
      * @param {net.Socket} socket
      * @param {*} head
      */
-    upgrade(request: http.IncomingMessage, socket, head) {
+    upgrade(request: http.IncomingMessage, socket: net.Socket, head: Buffer) {
         if (url.parse(request.url).pathname !== '/websocket') {
             socket.destroy();
         }
@@ -1535,7 +1564,7 @@ export default class Server extends Events {
         });
     }
 
-    handleWebsocketConnection(ws, req) {
+    handleWebsocketConnection(ws: WebSocket, req: http.IncomingMessage) {
         new Connection(this, ws, req);
     }
 
@@ -1545,7 +1574,7 @@ export default class Server extends Events {
      * @param {*} data
      * @param {Array} except An array of WebSocket clients to not send the message to
      */
-    sendBroadcast(data, except?: WebSocket | Connection | (WebSocket | Connection)[]) {
+    sendBroadcast(data: any, except?: WebSocket | Connection | (WebSocket | Connection)[]) {
         const message = '**:' + JSON.stringify(data);
 
         for (const ws of this.wss.clients) {
@@ -1572,7 +1601,10 @@ export default class Server extends Events {
      * @param {object} context
      * @return {Promise}
      */
-    async handleCharacteristicUpdate(accessory, service, characteristic, value, old_value, context) {
+    async handleCharacteristicUpdate(
+        accessory: typeof Accessory, service: typeof Service, characteristic: typeof Characteristic,
+        value: any, old_value: any, context: any
+    ) {
         this.emit(CharacteristicUpdateEvent, this, accessory, service, characteristic, value, old_value, context);
 
         if (this.hasOwnProperty('automations')) {
@@ -1611,7 +1643,9 @@ export default class Server extends Events {
      * @param {Service} service
      * @param {Characteristic} characteristic
      */
-    handleConfigurationChange(accessory, service, characteristic) {
+    handleConfigurationChange(
+        accessory: typeof Accessory, service: typeof Service, characteristic: typeof Characteristic
+    ) {
         this.emit(UpdateAccessoryConfigurationEvent, this, accessory, service, characteristic);
 
         // ...
@@ -1622,7 +1656,7 @@ export default class Server extends Events {
      *
      * @param {Bridge} bridge
      */
-    handlePairingsUpdate(bridge) {
+    handlePairingsUpdate(bridge: Bridge) {
         this.sendBroadcast({
             type: 'update-pairings',
             bridge_uuid: bridge.uuid,
@@ -1639,7 +1673,7 @@ export default class Server extends Events {
         const home_settings = await this.storage.getItem('Home');
 
         const layouts: any[] = await Promise.all((await this.storage.getItem('Layouts') || [])
-            .map(uuid => this.storage.getItem('Layout.' + uuid)));
+            .map((uuid: string) => this.storage.getItem('Layout.' + uuid)));
         const background_urls = [...new Set(layouts.map(l => l && l.background_url).filter(b => b))];
 
         const assets = await new Promise<string[]>((rs, rj) =>
@@ -1664,10 +1698,10 @@ export class PluginAccessory {
     readonly server: Server;
     readonly accessory: typeof Accessory;
     readonly plugin: Plugin;
-    readonly data;
-    readonly cached_data;
+    readonly data: any;
+    readonly cached_data: any;
 
-    constructor(server: Server, accessory: typeof Accessory, plugin: Plugin, data?) {
+    constructor(server: Server, accessory: typeof Accessory, plugin: Plugin, data?: any) {
         Object.defineProperty(this, 'server', {value: server});
         Object.defineProperty(this, 'accessory', {value: accessory});
         Object.defineProperty(this, 'plugin', {value: plugin});
@@ -1743,13 +1777,13 @@ export class PluginAccessory {
      * @param {object} cache The cached data returned from pluginaccessory.cache
      * @return {PluginAccessory}
      */
-    static restore(server, cache) {
+    static restore(server: Server, cache: any) {
         const accessory = new Accessory(cache.accessory.displayName, cache.accessory.UUID);
 
-        accessory.services = cache.accessory.services.map(service_cache => {
+        accessory.services = cache.accessory.services.map((service_cache: any) => {
             const service = new Service(service_cache.displayName, service_cache.UUID, service_cache.subtype);
 
-            service.characteristics = service_cache.characteristics.map(characteristic_cache => {
+            service.characteristics = service_cache.characteristics.map((characteristic_cache: any) => {
                 const characteristic = new Characteristic(characteristic_cache.displayName, characteristic_cache.UUID,
                     characteristic_cache.props);
 
@@ -1803,11 +1837,14 @@ export class PluginAccessory {
 }
 
 export class PluginStandaloneAccessory extends PluginAccessory {
-    readonly config;
+    readonly config: any;
     readonly uuid: string;
     readonly accessory_type: string;
 
-    constructor(server, accessory, plugin, accessory_type, config, uuid) {
+    constructor(
+        server: Server, accessory: typeof Accessory, plugin: Plugin, accessory_type: string,
+        config: any, uuid: string
+    ) {
         super(server, accessory, plugin);
 
         Object.defineProperty(this, 'config', {value: config});
@@ -1820,7 +1857,9 @@ export class PluginAccessoryPlatformAccessory extends PluginAccessory {
     readonly base_uuid: string;
     readonly accessory_platform_name: string;
 
-    constructor(server, accessory, plugin, accessory_platform_name, base_uuid) {
+    constructor(
+        server: Server, accessory: typeof Accessory, plugin: Plugin, accessory_platform_name: string, base_uuid: string
+    ) {
         super(server, accessory, plugin);
 
         Object.defineProperty(this, 'base_uuid', {value: base_uuid});
@@ -1831,7 +1870,7 @@ export class PluginAccessoryPlatformAccessory extends PluginAccessory {
 export class HomebridgeAccessory extends PluginAccessory {
     readonly platform_accessory: PlatformAccessory;
 
-    constructor(server, accessory, platform_accessory?) {
+    constructor(server: Server, accessory: typeof Accessory, platform_accessory?: PlatformAccessory) {
         super(server, accessory, null);
 
         Object.defineProperty(this, 'platform_accessory', {value: platform_accessory});

@@ -223,14 +223,13 @@ export default class Service extends EventEmitter {
 
     setCharacteristics(values) {
         return this.accessory.connection.setCharacteristics(...Object.keys(values)
-            .map(uuid => [this.accessory.uuid, this.uuid, uuid, values[uuid]]) as unknown as
-                {0: string; 1: string; 2: string; 3: any}[]);
+            .map(uuid => [this.accessory.uuid, this.uuid, uuid, values[uuid]] as [string, string, string, any]));
     }
 
     setCharacteristicsByNames(values) {
         return this.accessory.connection.setCharacteristics(...Object.keys(values)
-            .map(name => [this.accessory.uuid, this.uuid, characteristic_type_uuids[name], values[name]]) as unknown as
-                {0: string; 1: string; 2: string; 3: any}[]);
+            .map(name => [this.accessory.uuid, this.uuid, characteristic_type_uuids[name], values[name]]) as
+                [string, string, string, any][]);
     }
 
     get is_system_service() {
