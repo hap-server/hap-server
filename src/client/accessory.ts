@@ -6,7 +6,7 @@ import CollapsedService from './collapsed-service';
 import Service, {type_uuids as service_types} from './service';
 
 // Types
-import ComponentRegistry from '../public/component-registry';
+import ComponentRegistry from '../common/component-registry';
 
 export default class Accessory extends EventEmitter {
     connection: Connection;
@@ -39,7 +39,7 @@ export default class Accessory extends EventEmitter {
         this._setDetails(details || {});
     }
 
-    static get service_components(): ComponentRegistry<any> | Map<string | number, any> {
+    static get service_components(): ComponentRegistry<unknown, any> | Map<string | number, any> {
         try {
             return require('../public/component-registry').ServiceTileComponents;
         } catch (err) {

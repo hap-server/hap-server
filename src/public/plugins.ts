@@ -3,8 +3,7 @@ import path from 'path';
 import url from 'url';
 import axios from 'axios';
 
-import * as vue_module from 'vue';
-import * as axios_module from 'axios';
+import Vue, {Component} from 'vue';
 
 import Accessory from '../client/accessory';
 import Service, {
@@ -20,15 +19,7 @@ import Connection, {
     AccessorySetupConnection,
 } from '../client/connection';
 
-import Vue, {Component} from 'vue';
-
-// @ts-ignore
-import * as sortable_component_module from './components/sortable.vue';
-// @ts-ignore
-import * as panel_tabs_component_module from './components/panel-tabs.vue';
-// @ts-ignore
-import * as dropdown_component_module from './components/dropdown.vue';
-import * as vue_mixins from './mixins';
+import {UIPlugin} from '../common/types/messages';
 
 // @ts-ignore
 import {instances as main_component_instances} from './components/main-component.vue';
@@ -57,6 +48,14 @@ import * as layout_section_component_module from './components/layout-section.vu
 import * as accessory_discovery_component_module from './components/accessory-discovery/accessory-discovery.vue';
 
 // @ts-ignore
+import * as sortable_component_module from './components/sortable.vue';
+// @ts-ignore
+import * as panel_tabs_component_module from './components/panel-tabs.vue';
+// @ts-ignore
+import * as dropdown_component_module from './components/dropdown.vue';
+import * as vue_mixins from './mixins';
+
+// @ts-ignore
 import * as vue_color_chrome_module from 'vue-color/src/components/Chrome.vue';
 // @ts-ignore
 import * as vue_color_swatches_module from 'vue-color/src/components/Swatches.vue';
@@ -64,6 +63,9 @@ import * as vue_color_swatches_module from 'vue-color/src/components/Swatches.vu
 import * as vue_color_sketch_module from 'vue-color/src/components/Sketch.vue';
 // @ts-ignore
 import {DiscoveredAccessory} from './components/add-accessory.vue';
+
+import * as vue_module from 'vue';
+import * as axios_module from 'axios';
 
 let icon_component_modules_object;
 let automation_trigger_component_module;
@@ -74,18 +76,6 @@ let codemirror_module;
 let vue_codemirror_module;
 
 let instance;
-
-export interface UIPlugin {
-    id: number;
-    /** The plugin that registered the UI plugin */
-    plugin: string;
-    scripts: string[];
-    plugin_accessory_discovery_handlers: {[key: string]: number}; // Maps names to IDs
-    plugin_accessory_discovery_handler_setup_handlers: {[key: string]: number};
-    plugin_accessory_setup_handlers: {[key: string]: number};
-    plugin_authentication_handlers: {[key: string]: number};
-    plugin_user_management_handlers: {[key: string]: number};
-}
 
 interface Module {
     readonly url: string;

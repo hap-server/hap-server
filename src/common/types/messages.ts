@@ -398,19 +398,24 @@ export interface SetPairingsDataRequestMessage {
 }
 export type SetPairingsDataResponseMessage = void[];
 
-export interface GetWebInterfacePluginsRequestMessage {
-    type: 'get-web-interface-plugins';
-}
-export type GetWebInterfacePluginsResponseMessage = {
+export interface UIPlugin {
     id: number;
-    scripts: string[];
+    /** The plugin that registered the UI plugin */
     plugin: string;
+    scripts: string[];
+
+    // Maps names to IDs
     plugin_authentication_handlers: {[localid: string]: number};
     plugin_user_management_handlers: {[localid: string]: number};
     plugin_accessory_discovery_handlers: {[localid: string]: number};
-    plugin_accessory_discovery_setup_handlers: {[localid: string]: number};
+    plugin_accessory_discovery_handler_setup_handlers: {[localid: string]: number};
     plugin_accessory_setup_handlers: {[localid: string]: number};
-}[];
+}
+
+export interface GetWebInterfacePluginsRequestMessage {
+    type: 'get-web-interface-plugins';
+}
+export type GetWebInterfacePluginsResponseMessage = UIPlugin[];
 
 export type AuthenticateRequestMessage = {
     type: 'authenticate';

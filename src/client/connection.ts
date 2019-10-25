@@ -2,8 +2,7 @@ import EventEmitter from 'events';
 import Characteristic from './characteristic';
 
 // Types
-import {UIPlugin} from '../public/plugins';
-import {MessageTypes, DefinedRequestMessages, DefinedResponseMessages} from '../common/types/messages';
+import {MessageTypes, DefinedRequestMessages, DefinedResponseMessages, UIPlugin} from '../common/types/messages';
 import {
     BroadcastMessage,
     AddAccessoriesMessage, RemoveAccessoriesMessage, UpdateAccessoryMessage, UpdateCharacteristicMessage,
