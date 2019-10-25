@@ -1,7 +1,13 @@
 import EventEmitter from 'events';
 import Connection from './connection';
 
-export default class Scene extends EventEmitter {
+import {Scene as SceneData} from '../common/types/storage';
+import {CheckScenesActiveResponseMessage, GetScenesPermissionsResponseMessage} from '../common/types/messages';
+import {
+    SceneActivatingMessage, SceneActivatedMessage, SceneDeactivatingMessage, SceneDeactivatedMessage, SceneProgressMessage,
+} from '../common/types/broadcast-messages';
+
+class Scene extends EventEmitter {
     connection: Connection;
     readonly uuid: string;
 
@@ -10,14 +16,9 @@ export default class Scene extends EventEmitter {
     deactivating = false;
     deactivating_progress = 0;
 
-    data;
-    _permissions;
-    _active: boolean | {
-        reject: boolean;
-        error: boolean;
-        constructor: any;
-        data: any;
-    };
+    data: SceneData;
+    _permissions: GetScenesPermissionsResponseMessage[0];
+    _active: CheckScenesActiveResponseMessage[0];
 
     /**
      * Creates a Scene.
@@ -28,29 +29,32 @@ export default class Scene extends EventEmitter {
      * @param {boolean} active
      * @param {object} permissions
      */
-    constructor(connection: Connection, uuid: string, data, active, permissions) {
+    constructor(
+        connection: Connection, uuid: string, data: SceneData, active: CheckScenesActiveResponseMessage[0],
+        permissions: GetScenesPermissionsResponseMessage[0]
+    ) {
         super();
 
         this.connection = connection;
         this.uuid = uuid;
         this._setData(data || {});
-        this._setPermissions(permissions || {});
+        this._setPermissions(permissions || {get: false, activate: false, set: false, delete: false});
 
         this._active = active;
     }
 
-    _setData(data) {
+    _setData(data: SceneData) {
         this.data = Object.freeze(data);
 
         this.emit('updated-data', data);
     }
 
-    async updateData(data) {
+    async updateData(data: SceneData) {
         await this.connection.setScene(this.uuid, data);
         this._setData(data);
     }
 
-    _setPermissions(permissions) {
+    _setPermissions(permissions: GetScenesPermissionsResponseMessage[0]) {
         permissions.get = !!permissions.get;
         permissions.activate = !!permissions.activate;
         permissions.set = !!permissions.set;
@@ -99,14 +103,14 @@ export default class Scene extends EventEmitter {
         }
     }
 
-    _handleActivating(data) {
+    _handleActivating(data: SceneActivatingMessage) {
         this._active = false;
         this.activating = true;
         this.activating_progress = 0;
         this.emit('activating');
     }
 
-    _handleActivated(data) {
+    _handleActivated(data: SceneActivatedMessage) {
         if (this.active) return;
 
         this._active = true;
@@ -129,14 +133,14 @@ export default class Scene extends EventEmitter {
         }
     }
 
-    _handleDeactivating(data) {
+    _handleDeactivating(data: SceneDeactivatingMessage) {
         this._active = true;
         this.deactivating = true;
         this.deactivating_progress = 0;
         this.emit('deactivating');
     }
 
-    _handleDeactivated(data) {
+    _handleDeactivated(data: SceneDeactivatedMessage) {
         if (!this.active) return;
 
         this._active = false;
@@ -145,7 +149,7 @@ export default class Scene extends EventEmitter {
         this.emit('deactivated');
     }
 
-    _handleProgress(data) {
+    _handleProgress(data: SceneProgressMessage) {
         if (this.activating) {
             this.activating_progress = data.progress;
             this.emit('activating-progress', data.progress);
@@ -157,3 +161,34 @@ export default class Scene extends EventEmitter {
         }
     }
 }
+
+type SceneEvents = {
+    'updated-data': (this: Scene, data: SceneData) => void;
+    'updated-permissions': (this: Scene, permissions: GetScenesPermissionsResponseMessage[0]) => void;
+
+    'activating': (this: Scene) => void;
+    'activated': (this: Scene) => void;
+    'deactivating': (this: Scene) => void;
+    'deactivated': (this: Scene) => void;
+    'activating-progress': (this: Scene, progress: number) => void;
+    'deactivating-progress': (this: Scene, progress: number) => void;
+};
+
+interface Scene {
+    addListener<E extends keyof SceneEvents>(event: E, listener: SceneEvents[E]): this;
+    on<E extends keyof SceneEvents>(event: E, listener: SceneEvents[E]): this;
+    once<E extends keyof SceneEvents>(event: E, listener: SceneEvents[E]): this;
+    prependListener<E extends keyof SceneEvents>(event: E, listener: SceneEvents[E]): this;
+    prependOnceListener<E extends keyof SceneEvents>(event: E, listener: SceneEvents[E]): this;
+    removeListener<E extends keyof SceneEvents>(event: E, listener: SceneEvents[E]): this;
+    off<E extends keyof SceneEvents>(event: E, listener: SceneEvents[E]): this;
+    removeAllListeners<E extends keyof SceneEvents>(event: E): this;
+    listeners<E extends keyof SceneEvents>(event: E): SceneEvents[E][];
+    rawListeners<E extends keyof SceneEvents>(event: E): SceneEvents[E][];
+
+    emit<E extends keyof SceneEvents>(event: E, ...data: any[]): boolean;
+
+    listenerCount<E extends keyof SceneEvents>(type: E): number;
+}
+
+export default Scene;

@@ -8,9 +8,11 @@ import Layout from './layout';
 import Automation from './automation';
 import Scene from './scene';
 
+import {GetHomePermissionsResponseMessage} from '../common/types/messages';
 import {BroadcastMessage} from '../common/types/broadcast-messages';
+import {Home} from '../common/types/storage';
 
-export function $set<T>(object: object, key: string, value: T): T {
+export function $set<T>(object: any, key: string, value: T): T {
     try {
         // @ts-ignore
         if (require.cache[require.resolveWeak('vue')]) {
@@ -23,7 +25,7 @@ export function $set<T>(object: object, key: string, value: T): T {
     return object[key] = value;
 }
 
-export function $delete(object: object, key: string) {
+export function $delete(object: any, key: string) {
     try {
         if (require.cache[require.resolve('vue')]) {
             const {default: Vue} = require('vue');
@@ -35,7 +37,7 @@ export function $delete(object: object, key: string) {
     delete object[key];
 }
 
-export default class Client extends EventEmitter {
+class Client extends EventEmitter {
     readonly url: string;
     connection?: Connection;
     connected: boolean;
@@ -43,7 +45,7 @@ export default class Client extends EventEmitter {
     WebSocket: typeof import('ws') | null;
     is_ws: boolean;
 
-    home_settings?: any = null;
+    home_settings?: Home = null;
     accessories?: {[key: string]: Accessory} = null;
     layouts?: {[key: string]: Layout} = null;
     automations?: {[key: string]: Automation} = null;
@@ -61,8 +63,8 @@ export default class Client extends EventEmitter {
     private automations_dependencies: Map<any, string[] | boolean> = new Map();
     private scenes_dependencies: Map<any, string[] | boolean> = new Map();
 
-    private _handleBroadcastMessage;
-    private _handleDisconnected;
+    private _handleBroadcastMessage: any;
+    private _handleDisconnected: any;
 
     private _connect?: Promise<Connection>;
     private _disconnect?: Promise<void>;
@@ -258,7 +260,7 @@ export default class Client extends EventEmitter {
             ]);
 
             const accessories = accessory_uuids.map((uuid, index) => new Accessory(this.connection, uuid,
-                accessory_details[index], accessory_data[index], accessory_permissions[index]));
+                accessory_details[index], accessory_data[index], accessory_permissions[index])) as Accessory[];
 
             for (const accessory of accessories) {
                 $set(this.accessories, accessory.uuid, accessory);
@@ -445,7 +447,7 @@ export default class Client extends EventEmitter {
             const scene = this.scenes[data.uuid];
             if (!scene) return;
 
-            scene._setData(scene);
+            scene._setData(data.data);
         }
 
         if (this.scenes && data.type === 'scene-activating') {
@@ -484,6 +486,8 @@ export default class Client extends EventEmitter {
         }
     }
 
+    protected handleDisconnected(event: CloseEvent): void
+    protected handleDisconnected(code: number, reason: string): void
     protected handleDisconnected(event: any) {
         console.log('Disconnected');
         this.connection.removeListener('received-broadcast', this._handleBroadcastMessage);
@@ -661,7 +665,7 @@ export default class Client extends EventEmitter {
                 .filter(uuid => !required_layout_uuids || required_layout_uuids.has(uuid));
 
             if (!this.layouts) this.layouts = {};
-            const new_layout_uuids = [];
+            const new_layout_uuids: string[] = [];
             const removed_layout_uuids = [];
 
             for (const uuid of layout_uuids) {
@@ -693,8 +697,8 @@ export default class Client extends EventEmitter {
 
                     return this.connection.getLayoutSections(...flat_section_uuids.map(([
                         layout_uuid, section_uuid, index,
-                    ]) => [layout_uuid, section_uuid])).then(section_data => {
-                        const all_layout_sections = {};
+                    ]: [string, string, number]) => [layout_uuid, section_uuid])).then(section_data => {
+                        const all_layout_sections: {[uuid: string]: any} = {};
 
                         // eslint-disable-next-line guard-for-in
                         for (const index in section_data) {
@@ -941,6 +945,8 @@ export default class Client extends EventEmitter {
 
     /**
      * Subscribes to characteristic updates.
+     * Use of this isn't recommended, you should use the subscribe method on the characteristic which handles multiple
+     * subscriptions.
      *
      * @param {Characteristic[]} characteristics
      * @return {Promise}
@@ -973,10 +979,14 @@ export default class Client extends EventEmitter {
 
             let index;
             if ((index = queue.findIndex(q => q[0] === characteristic)) > -1) {
+                // @ts-ignore
                 if (queue[index][1] instanceof Array) queue[index][1].push(resolve);
+                // @ts-ignore
                 else queue[index][1] = [queue[index][1], resolve];
 
+                // @ts-ignore
                 if (queue[index][2] instanceof Array) queue[index][2].push(reject);
+                // @ts-ignore
                 else queue[index][2] = [queue[index][2], reject];
             } else queue.push([characteristic, resolve, reject]);
 
@@ -991,6 +1001,7 @@ export default class Client extends EventEmitter {
                 let index;
                 while ((index = connection.unsubscribe_queue.findIndex(q => q[0] === characteristic)) > -1) {
                     if (connection.unsubscribe_queue[index][2] instanceof Array) connection.unsubscribe_queue[index][2] // eslint-disable-line curly
+                        // @ts-ignore
                         .map(rj => rj.call(null, new Error('Canceled by call to subscribe')));
                     else connection.unsubscribe_queue[index][2].call(null, new Error('Canceled by call to subscribe'));
                     connection.unsubscribe_queue.splice(index, 1);
@@ -1027,6 +1038,7 @@ export default class Client extends EventEmitter {
                 // Force Vue to update the subscribed property, as Vue doesn't support Sets
                 queue[index][0]._subscribed = !queue[index][0]._subscribed;
 
+                // @ts-ignore
                 if (queue[index][1] instanceof Array) queue[index][1].map(rs => rs.call(null, queue[index]));
                 else queue[index][1].call(null, queue[index]);
             }
@@ -1039,7 +1051,9 @@ export default class Client extends EventEmitter {
     }
 
     /**
-     * Subscribes to characteristic updates.
+     * Unsubscribes from characteristic updates.
+     * Use of this isn't recommended, you should use the unsubscribe method on the characteristic which handles
+     * multiple subscriptions.
      *
      * @param {Characteristic[]} characteristics
      * @return {Promise}
@@ -1072,9 +1086,14 @@ export default class Client extends EventEmitter {
 
             let index;
             if ((index = queue.findIndex(q => q[0] === characteristic)) > -1) {
+                // @ts-ignore
                 if (queue[index][1] instanceof Array) queue[index][1].push(resolve);
+                // @ts-ignore
                 else queue[index][1] = [queue[index][1], resolve];
+
+                // @ts-ignore
                 if (queue[index][2] instanceof Array) queue[index][2].push(reject);
+                // @ts-ignore
                 else queue[index][2] = [queue[index][2], reject];
             } else queue.push([characteristic, resolve, reject]);
 
@@ -1089,6 +1108,7 @@ export default class Client extends EventEmitter {
                 let index;
                 while ((index = connection.subscribe_queue.findIndex(q => q[0] === characteristic)) > -1) {
                     if (connection.subscribe_queue[index][2] instanceof Array) connection.subscribe_queue[index][2] // eslint-disable-line curly
+                        // @ts-ignore
                         .map(rj => rj.call(null, new Error('Canceled by call to unsubscribe')));
                     else connection.subscribe_queue[index][2].call(null, new Error('Canceled by call to unsubscribe'));
                     connection.subscribe_queue.splice(index, 1);
@@ -1123,6 +1143,7 @@ export default class Client extends EventEmitter {
                 // Force Vue to update the subscribed property, as Vue doesn't support Sets
                 queue[index][0]._subscribed = !queue[index][0]._subscribed;
 
+                // @ts-ignore
                 if (queue[index][1] instanceof Array) queue[index][1].map(rs => rs.call(null, queue[index]));
                 else queue[index][1].call(null, queue[index]);
             }
@@ -1140,3 +1161,59 @@ export default class Client extends EventEmitter {
         return new Console(this.connection, id);
     }
 }
+
+type ClientEvents = {
+    'connected': (this: Client, connection: Connection) => void;
+    'disconnected': (this: Client) => void;
+    'received-broadcast': (this: Client, data: BroadcastMessage) => void;
+    'update-home-permissions': (this: Client, data: GetHomePermissionsResponseMessage) => void;
+    'update-home-settings': (this: Client, data: Home) => void;
+
+    'new-accessory': (this: Client, accessory: Accessory) => void;
+    'new-accessories': (this: Client, accessories: Accessory[]) => void;
+    'removed-accessory': (this: Client, accessory: Accessory) => void;
+    'removed-accessories': (this: Client, accessories: Accessory[]) => void;
+    'updated-accessories': (this: Client, added: Accessory[], removed: Accessory[]) => void;
+
+    'new-layout': (this: Client, layout: Layout) => void;
+    'new-layouts': (this: Client, layouts: Layout[]) => void;
+    'removed-layout': (this: Client, layout: Layout) => void;
+    'removed-layouts': (this: Client, layouts: Layout[]) => void;
+    'updated-layouts': (this: Client, added: Layout[], removed: Layout[]) => void;
+
+    'new-automation': (this: Client, automation: Automation) => void;
+    'new-automations': (this: Client, automations: Automation[]) => void;
+    'removed-automation': (this: Client, automation: Automation) => void;
+    'removed-automations': (this: Client, automations: Automation[]) => void;
+    'updated-automations': (this: Client, added: Automation[], removed: Automation[]) => void;
+
+    'automation-running': (this: Client, runner_id: number, automation: Automation) => void;
+    'automation-progress': (this: Client, runner_id: number, progress: number) => void;
+    'automation-finished': (this: Client, runner_id: number) => void;
+
+    'new-scene': (this: Client, scene: Scene) => void;
+    'new-scenes': (this: Client, scenes: Scene[]) => void;
+    'removed-scene': (this: Client, scene: Scene) => void;
+    'removed-scenes': (this: Client, scenes: Scene[]) => void;
+    'updated-scenes': (this: Client, added: Scene[], removed: Scene[]) => void;
+};
+
+interface Client {
+    addListener<E extends keyof ClientEvents>(event: E, listener: ClientEvents[E]): this;
+    on<E extends keyof ClientEvents>(event: E, listener: ClientEvents[E]): this;
+    once<E extends keyof ClientEvents>(event: E, listener: ClientEvents[E]): this;
+    prependListener<E extends keyof ClientEvents>(event: E, listener: ClientEvents[E]): this;
+    prependOnceListener<E extends keyof ClientEvents>(event: E, listener: ClientEvents[E]): this;
+    removeListener<E extends keyof ClientEvents>(event: E, listener: ClientEvents[E]): this;
+    off<E extends keyof ClientEvents>(event: E, listener: ClientEvents[E]): this;
+    removeAllListeners<E extends keyof ClientEvents>(event: E): this;
+    listeners<E extends keyof ClientEvents>(event: E): ClientEvents[E][];
+    rawListeners<E extends keyof ClientEvents>(event: E): ClientEvents[E][];
+
+    emit<E extends keyof ClientEvents>(event: E, ...data: any[]): boolean;
+
+    eventNames(): (keyof ClientEvents)[];
+    listenerCount<E extends keyof ClientEvents>(type: E): number;
+}
+
+export default Client;

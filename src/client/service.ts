@@ -5,15 +5,19 @@ import Connection from './connection';
 import Accessory from './accessory';
 import Characteristic, {type_uuids as characteristic_type_uuids} from './characteristic';
 
-export default class Service extends EventEmitter {
+import {ServiceHap} from '../common/types/hap';
+import {ServiceData} from '../common/types/storage';
+import {GetAccessoriesPermissionsResponseMessage} from '../common/types/messages';
+
+class Service extends EventEmitter {
     readonly accessory: Accessory;
     readonly uuid: string;
     readonly characteristics: {[key: string]: Characteristic};
     readonly linked_services: Service[];
 
-    private _details;
-    private _data;
-    private _permissions;
+    private _details: ServiceHap;
+    private _data: ServiceData;
+    private _permissions: Readonly<GetAccessoriesPermissionsResponseMessage[0]['set_characteristics'][0]>;
 
     /**
      * Creates a Service.
@@ -24,7 +28,10 @@ export default class Service extends EventEmitter {
      * @param {object} data Configuration data stored by the web UI (read/write)
      * @param {Array} permissions An array of characteristic UUIDs the user has permission to update
      */
-    constructor(accessory: Accessory, uuid: string, details?, data?, permissions?) {
+    constructor(
+        accessory: Accessory, uuid: string, details?: ServiceHap, data?: ServiceData,
+        permissions?: GetAccessoriesPermissionsResponseMessage[0]['set_characteristics'][0]
+    ) {
         super();
 
         this.accessory = accessory;
@@ -33,14 +40,14 @@ export default class Service extends EventEmitter {
         this.linked_services = [];
         this._setPermissions(permissions || []);
         this._setData(data || {});
-        this._setDetails(details || {});
+        this._setDetails(details || {iid: 0, type: null, characteristics: []});
     }
 
-    get details() {
+    get details(): ServiceHap {
         return this._details;
     }
 
-    _setDetails(details) {
+    _setDetails(details: ServiceHap) {
         this._updateCharacteristicsFrom(details);
 
         this._details = Object.freeze(details);
@@ -69,7 +76,7 @@ export default class Service extends EventEmitter {
         this.emit('remove-linked-service', service, removed);
     }
 
-    _updateCharacteristicsFrom(details) {
+    protected _updateCharacteristicsFrom(details: ServiceHap) {
         const added_characteristic_details = [];
         const removed_characteristic_uuids = [];
 
@@ -87,7 +94,7 @@ export default class Service extends EventEmitter {
 
         for (const characteristic_uuid of Object.keys(this.characteristics)) {
             // Characteristic still exists
-            if (details.characteristic.find(c => c.type === characteristic_uuid)) continue;
+            if (details.characteristics.find(c => c.type === characteristic_uuid)) continue;
 
             removed_characteristic_uuids.push(characteristic_uuid);
         }
@@ -119,18 +126,18 @@ export default class Service extends EventEmitter {
         }
     }
 
-    get data() {
+    get data(): ServiceData {
         return this._data;
     }
 
-    _setData(data, here?) {
+    _setData(data: ServiceData, here = false) {
         this._data = Object.freeze(data);
 
         this.emit('data-updated', here);
         this.emit('updated', here);
     }
 
-    async updateData(data) {
+    async updateData(data: ServiceData) {
         const accessory_data = Object.assign({}, this.accessory.data);
         accessory_data['Service.' + this.uuid] = data;
         await this.accessory.connection.setAccessoryData(this.accessory.uuid, accessory_data);
@@ -161,7 +168,7 @@ export default class Service extends EventEmitter {
         return !!this.details.hidden;
     }
 
-    _setPermissions(permissions) {
+    _setPermissions(permissions: GetAccessoriesPermissionsResponseMessage[0]['set_characteristics'][0]) {
         this._permissions = Object.freeze(permissions);
 
         for (const characteristic of Object.values(this.characteristics)) {
@@ -211,22 +218,22 @@ export default class Service extends EventEmitter {
         return this.getCharacteristicValue(characteristic_type_uuids[name], use_target_value);
     }
 
-    setCharacteristic(type: string, value) {
+    setCharacteristic(type: string, value: any) {
         const characteristic = this.getCharacteristic(type);
 
         return characteristic.setValue(value);
     }
 
-    setCharacteristicByName(name: string, value) {
+    setCharacteristicByName(name: string, value: any) {
         return this.setCharacteristic(characteristic_type_uuids[name], value);
     }
 
-    setCharacteristics(values) {
+    setCharacteristics(values: {[uuid: string]: any}) {
         return this.accessory.connection.setCharacteristics(...Object.keys(values)
             .map(uuid => [this.accessory.uuid, this.uuid, uuid, values[uuid]] as [string, string, string, any]));
     }
 
-    setCharacteristicsByNames(values) {
+    setCharacteristicsByNames(values: {[name: string]: any}) {
         return this.accessory.connection.setCharacteristics(...Object.keys(values)
             .map(name => [this.accessory.uuid, this.uuid, characteristic_type_uuids[name], values[name]]) as
                 [string, string, string, any][]);
@@ -256,6 +263,47 @@ export default class Service extends EventEmitter {
         }
     }
 }
+
+export type ServiceEvents = {
+    'details-updated': (this: Service) => void;
+    'updated': (this: Service, here?: boolean) => void;
+
+    'add-linked-service': (this: Service, service: Service) => void;
+    /**
+     * @param {Service} service The service that was unlinked
+     * @param {boolean} removed true if the service was removed from the accessory
+     */
+    'remove-linked-service': (this: Service, service: Service) => void;
+
+    'new-characteristic': (this: Service, characteristic: Characteristic) => void;
+    'new-characteristics': (this: Service, characteristics: Characteristic[]) => void;
+    'removed-characteristic': (this: Service, characteristic: Characteristic) => void;
+    'removed-characteristics': (this: Service, characteristics: Characteristic[]) => void;
+    'updated-characteristics': (this: Service, added: Characteristic[], removed: Characteristic[]) => void;
+
+    'data-updated': (this: Service, here: boolean) => void;
+    'permissions-updated':
+        (this: Service, permissions: GetAccessoriesPermissionsResponseMessage[0]['set_characteristics'][0]) => void;
+};
+
+interface Service {
+    addListener<E extends keyof ServiceEvents>(event: E, listener: ServiceEvents[E]): this;
+    on<E extends keyof ServiceEvents>(event: E, listener: ServiceEvents[E]): this;
+    once<E extends keyof ServiceEvents>(event: E, listener: ServiceEvents[E]): this;
+    prependListener<E extends keyof ServiceEvents>(event: E, listener: ServiceEvents[E]): this;
+    prependOnceListener<E extends keyof ServiceEvents>(event: E, listener: ServiceEvents[E]): this;
+    removeListener<E extends keyof ServiceEvents>(event: E, listener: ServiceEvents[E]): this;
+    off<E extends keyof ServiceEvents>(event: E, listener: ServiceEvents[E]): this;
+    removeAllListeners<E extends keyof ServiceEvents>(event: E): this;
+    listeners<E extends keyof ServiceEvents>(event: E): ServiceEvents[E][];
+    rawListeners<E extends keyof ServiceEvents>(event: E): ServiceEvents[E][];
+
+    emit<E extends keyof ServiceEvents>(event: E, ...data: any[]): boolean;
+
+    listenerCount<E extends keyof ServiceEvents>(type: E): number;
+}
+
+export default Service;
 
 export class BridgeService extends Service {
     private static services = new WeakMap<Accessory, BridgeService>();
@@ -317,7 +365,7 @@ export class UnavailableService extends Service {
      * @param {string} uuid
      */
     constructor(accessory: Accessory, uuid: string) {
-        super(accessory, uuid, null, accessory.data['Service.' + uuid]);
+        super(accessory, uuid, null, accessory.data['Service.' + uuid] as ServiceData);
     }
 
     static for(connection: Connection, accessories: {[key: string]: Accessory}, uuid: string, service_uuid: string) {
@@ -351,6 +399,7 @@ export const types: {[key: string]: string} = {};
 export const type_uuids: {[key: string]: string} = {};
 export const type_names: {[key: string]: string} = {};
 
+// @ts-ignore
 import {Service as HAPService} from 'hap-nodejs/lib/Service';
 import 'hap-nodejs/lib/gen/HomeKitTypes';
 
@@ -363,6 +412,7 @@ for (const key of Object.keys(HAPService)) {
 }
 
 for (const key of Object.keys(type_uuids)) {
+    // @ts-ignore
     Service[key] = type_uuids[key];
 }
 

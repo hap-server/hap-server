@@ -31,7 +31,7 @@ export type GetAccessoriesPermissionsResponseMessage = {
     set_characteristics: {
         [service_id: string]: string[];
     };
-};
+}[];
 
 export interface GetCharacteristicsRequestMessage {
     type: 'get-characteristics';
@@ -82,7 +82,7 @@ export type GetDiscoveredAccessoriesResponseMessage = {
     accessory_discovery: number;
     id: number;
     data: any;
-};
+}[];
 
 export interface StopAccessoryDiscoveryRequestMessage {
     type: 'stop-accessory-discovery';
@@ -142,7 +142,7 @@ export type GetLayoutsPermissionsResponseMessage = {
     get: boolean;
     set: boolean;
     delete: boolean;
-};
+}[];
 
 export interface SetLayoutsRequestMessage {
     type: 'set-layouts';
@@ -211,7 +211,7 @@ export type GetAutomationsPermissionsResponseMessage = {
     get: boolean;
     set: boolean;
     delete: boolean;
-};
+}[];
 
 export interface SetAutomationsRequestMessage {
     type: 'set-automations';
@@ -263,7 +263,7 @@ export interface CheckScenesActiveRequestMessage {
     type: 'check-scenes-active';
     id: string[];
 }
-export type CheckScenesActiveResponseMessage = boolean | ErrorResponse;
+export type CheckScenesActiveResponseMessage = (boolean | ErrorResponse)[];
 
 export interface ActivateScenesRequestMessage {
     type: 'activate-scenes';
@@ -378,7 +378,7 @@ export type GetPairingsResponseMessage = {
     bridge_uuid: string;
     id: string;
     public_key: string;
-};
+}[];
 
 export interface GetPairingsDataRequestMessage {
     type: 'get-pairings-data';
@@ -393,7 +393,7 @@ export interface GetPairingsPermissionsRequestMessage {
 export type GetPairingsPermissionsResponseMessage = {
     get: boolean;
     set: boolean;
-};
+}[];
 
 export interface SetPairingsDataRequestMessage {
     type: 'set-pairings-data';

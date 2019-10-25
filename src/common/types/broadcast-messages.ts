@@ -1,7 +1,8 @@
 import {AccessoryHap, CharacteristicHap} from './hap';
 import {
-    AccessoryData, Home, Layout, LayoutSection, Automation, Pairing, Permissions,
+    AccessoryData, Home, Layout, LayoutSection, Automation, Pairing, Permissions, Scene,
 } from './storage';
+import {GetHomePermissionsResponseMessage} from './messages';
 
 export interface AddAccessoriesMessage {
     type: 'add-accessories';
@@ -126,7 +127,7 @@ export interface RemoveSceneMessage extends SceneMessage {
 }
 export interface UpdateSceneMessage extends SceneMessage {
     type: 'update-scene';
-    data: any;
+    data: Scene;
 }
 export interface SceneActivatingMessage extends SceneMessage {
     type: 'scene-activating';
@@ -162,7 +163,7 @@ export interface UpdatePairingDataMessage {
 
 export interface UpdatePermissionsMessage {
     type: 'update-permissions';
-    data: Permissions;
+    data: GetHomePermissionsResponseMessage;
 }
 
 export interface StdoutMessage {

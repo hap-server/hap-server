@@ -17,6 +17,7 @@ import {
     UpdatePairingsMessage, UpdatePairingDataMessage,
     UpdatePermissionsMessage, StdoutMessage, StderrMessage, ConsoleOutputMessage,
 } from '../common/types/broadcast-messages';
+import {Home, Scene} from '../common/types/storage';
 
 const broadcast_message_methods = {
     'add-accessory': 'handleAddAccessoryMessage',
@@ -52,20 +53,26 @@ const broadcast_message_methods = {
     'console-output': 'handleConsoleOutput',
 };
 
-export default class Connection extends EventEmitter {
-    ws: WebSocket | any;
+class Connection extends EventEmitter {
+    ws: WebSocket | import('ws');
     private messageid = 0;
     private callbacks: Map<number, (() => void)[]> = new Map();
     private authenticated_user: AuthenticatedUser = null;
     open_consoles = new Set<Console>();
 
     subscribed_characteristics = new Set<Characteristic>();
-    subscribe_queue?: any[] = null;
+    subscribe_queue?: [
+        Characteristic, (value: any) => void | ((value: any) => void)[],
+        (reason: any) => void | ((reason: any) => void)[],
+    ][] = null;
     subscribe_queue_timeout?: NodeJS.Timeout = null;
-    unsubscribe_queue?: any[] = null;
+    unsubscribe_queue?: [
+        Characteristic, (value: any) => void | ((value: any) => void)[],
+        (reason: any) => void | ((reason: any) => void)[],
+    ][] = null;
     unsubscribe_queue_timeout?: NodeJS.Timeout = null;
 
-    constructor(ws: WebSocket, is_ws: boolean) {
+    constructor(ws: WebSocket | import('ws'), is_ws: boolean) {
         super();
 
         this.ws = ws;
@@ -73,22 +80,24 @@ export default class Connection extends EventEmitter {
         // this.ws.send('something');
 
         if (is_ws) {
-            this.ws.on('message', this.handleData.bind(this));
-            this.ws.on('close', this.handleDisconnect.bind(this));
+            (this.ws as import('ws')).on('message', this.handleData.bind(this));
+            (this.ws as import('ws')).on('close', this.handleDisconnect.bind(this));
         } else {
-            this.ws.onmessage = message => this.handleData(message.data);
-            this.ws.onclose = this.handleDisconnect.bind(this);
+            (this.ws as WebSocket).onmessage = message => this.handleData(message.data);
+            (this.ws as WebSocket).onclose = this.handleDisconnect.bind(this);
         }
     }
 
-    static connect(url: string, _WebSocket): Promise<Connection> {
+    static connect(url: string, _WebSocket?: typeof import('ws')): Promise<Connection> {
         return new Promise((resolve, reject) => {
-            const ws = new (_WebSocket || WebSocket)(url || this.getDefaultURL());
-
             if (_WebSocket) {
+                const ws = new _WebSocket(url || this.getDefaultURL());
+
                 ws.on('open', () => resolve(new Connection(ws, true)));
                 ws.on('error', event => reject(event));
             } else {
+                const ws = new WebSocket(url || this.getDefaultURL());
+
                 ws.onopen = () => resolve(new Connection(ws, false));
                 ws.onerror = event => reject(event);
             }
@@ -156,6 +165,8 @@ export default class Connection extends EventEmitter {
         console.error('Invalid message');
     }
 
+    protected handleDisconnect(event: CloseEvent): void
+    protected handleDisconnect(code: number, reason: string): void
     protected handleDisconnect(event: any) {
         this.emit('disconnected', event);
 
@@ -200,6 +211,7 @@ export default class Connection extends EventEmitter {
             if (typeof err !== 'object' || !err.data) throw err;
 
             if (err.error) {
+                // @ts-ignore
                 const error = new (global[err.constructor] || Error)(err.data.message);
                 error.code = err.data.code;
                 throw error;
@@ -321,7 +333,7 @@ export default class Connection extends EventEmitter {
         });
     }
 
-    setHomeSettings(data) {
+    setHomeSettings(data: Home) {
         return this.send({
             type: 'set-home-settings',
             data,
@@ -480,7 +492,7 @@ export default class Connection extends EventEmitter {
         });
     }
 
-    createScenes(...data): Promise<string[]> {
+    createScenes(...data: Scene[]): Promise<string[]> {
         return this.send({
             type: 'create-scenes',
             data,
@@ -728,7 +740,8 @@ export default class Connection extends EventEmitter {
     protected handleBroadcastMessage(data: BroadcastMessage) {
         // console.log('Received broadcast message', data);
 
-        if (data && data.type && broadcast_message_methods[data.type]) {
+        if (data && data.type && data.type in broadcast_message_methods) {
+            // @ts-ignore
             this[broadcast_message_methods[data.type]].call(this, data);
             return;
         }
@@ -859,15 +872,88 @@ export default class Connection extends EventEmitter {
     }
 }
 
-export class Console extends EventEmitter {
+type ConnectionEvents = {
+    'received-broadcast': (this: Connection, data: BroadcastMessage) => void;
+    'disconnected': {
+        (this: Connection, event: CloseEvent): void;
+        (this: Connection, code: number, reason: string): void;
+    };
+
+    'add-accessories': (this: Connection, ids: AddAccessoriesMessage['ids']) => void;
+    'remove-accessories': (this: Connection, ids: RemoveAccessoriesMessage['ids']) => void;
+    'update-accessory': (this: Connection, uuid: string, details: UpdateAccessoryMessage['details']) => void;
+    'update-characteristic':
+        (this: Connection, accessory_uuid: string, service_id: string, characteristic_id: string,
+            details: UpdateCharacteristicMessage['details']) => void;
+    'update-accessory-data': (this: Connection, uuid: string, data: UpdateAccessoryDataMessage['data']) => void;
+
+    'add-discovered-accessory':
+        (this: Connection, plugin: string, accessory_discovery: number, id: number,
+            data: AddDiscoveredAccessoryMessage['data']) => void;
+    'remove-discovered-accessory':
+        (this: Connection, plugin: string, accessory_discovery: number, id: number) => void;
+    'update-home-settings': (this: Connection, data: UpdateHomeSettingsMessage['data']) => void;
+
+    'add-layout': (this: Connection, uuid: string) => void;
+    'remove-layout': (this: Connection, uuid: string) => void;
+    'update-layout': (this: Connection, uuid: string, data: UpdateLayoutMessage['data']) => void;
+    'add-layout-section': (this: Connection, layout_uuid: string, uuid: string) => void;
+    'remove-layout-section': (this: Connection, layout_uuid: string, uuid: string) => void;
+    'update-layout-section':
+        (this: Connection, layout_uuid: string, uuid: string, data: UpdateLayoutSectionMessage['data']) => void;
+
+    'add-automation': (this: Connection, uuid: string) => void;
+    'remove-automation': (this: Connection, uuid: string) => void;
+    'update-automation': (this: Connection, uuid: string, data: UpdateAutomationMessage['data']) => void;
+    'add-scene': (this: Connection, uuid: string) => void;
+    'remove-scene': (this: Connection, uuid: string) => void;
+    'update-scene': (this: Connection, uuid: string, data: UpdateSceneMessage['data']) => void;
+    'scene-activating': (this: Connection, uuid: string, context: SceneActivatingMessage['context']) => void;
+    'scene-deactivating': (this: Connection, uuid: string, context: SceneDeactivatingMessage['context']) => void;
+    'scene-activated': (this: Connection, uuid: string, context: SceneActivatedMessage['context']) => void;
+    'scene-deactivated': (this: Connection, uuid: string, context: SceneDeactivatedMessage['context']) => void;
+    'scene-progress': (this: Connection, uuid: string, progress: SceneProgressMessage['progress']) => void;
+
+    'update-pairings': (this: Connection, bridge_uuid: string) => void;
+    'update-pairing-data': (this: Connection, id: string, data: UpdatePairingDataMessage['data']) => void;
+
+    'update-home-permissions': (this: Connection, data: UpdatePermissionsMessage['data']) => void;
+
+    'stdout': (this: Connection, data: string) => void;
+    'stderr': (this: Connection, data: string) => void;
+
+    'console-output': (this: Connection, id: number, stream: ConsoleOutputMessage['stream'], data: string) => void;
+};
+
+interface Connection {
+    addListener<E extends keyof ConnectionEvents>(event: E, listener: ConnectionEvents[E]): this;
+    on<E extends keyof ConnectionEvents>(event: E, listener: ConnectionEvents[E]): this;
+    once<E extends keyof ConnectionEvents>(event: E, listener: ConnectionEvents[E]): this;
+    prependListener<E extends keyof ConnectionEvents>(event: E, listener: ConnectionEvents[E]): this;
+    prependOnceListener<E extends keyof ConnectionEvents>(event: E, listener: ConnectionEvents[E]): this;
+    removeListener<E extends keyof ConnectionEvents>(event: E, listener: ConnectionEvents[E]): this;
+    off<E extends keyof ConnectionEvents>(event: E, listener: ConnectionEvents[E]): this;
+    removeAllListeners<E extends keyof ConnectionEvents>(event: E): this;
+    listeners<E extends keyof ConnectionEvents>(event: E): ConnectionEvents[E][];
+    rawListeners<E extends keyof ConnectionEvents>(event: E): ConnectionEvents[E][];
+
+    emit<E extends keyof ConnectionEvents>(event: E, ...data: any[]): boolean;
+
+    eventNames(): (keyof ConnectionEvents)[];
+    listenerCount<E extends keyof ConnectionEvents>(type: E): number;
+}
+
+export default Connection;
+
+class Console extends EventEmitter {
     readonly connection: Connection;
     readonly id: number;
 
     private closing: Promise<void> = null;
     closed = false;
 
-    _handleData;
-    _handleDisconnected;
+    _handleData: any;
+    _handleDisconnected: any;
 
     constructor(connection: Connection, id: number) {
         super();
@@ -900,7 +986,7 @@ export class Console extends EventEmitter {
         this.connection.open_consoles.delete(this);
     }
 
-    write(data) {
+    write(data: string) {
         return this.connection.sendConsoleInput(this.id, data);
     }
 
@@ -913,6 +999,20 @@ export class Console extends EventEmitter {
         });
     }
 }
+
+interface Console {
+    addListener(event: 'out' | 'err', listener: (this: Console, data: string) => void): this;
+    on(event: 'out' | 'err', listener: (this: Console, data: string) => void): this;
+    once(event: 'out' | 'err', listener: (this: Console, data: string) => void): this;
+    prependListener(event: 'out' | 'err', listener: (this: Console, data: string) => void): this;
+    prependOnceListener(event: 'out' | 'err', listener: (this: Console, data: string) => void): this;
+    removeListener(event: 'out' | 'err', listener: (this: Console, data: string) => void): this;
+    off(event: 'out' | 'err', listener: (this: Console, data: string) => void): this;
+    removeAllListeners(event: 'out' | 'err'): this;
+    emit(event: 'out' | 'err', data: string): boolean;
+}
+
+export {Console};
 
 export class AuthenticationHandlerConnection {
     readonly connection: Connection;
@@ -929,7 +1029,7 @@ export class AuthenticationHandlerConnection {
      * @param {*} data
      * @return {Promise<*>}
      */
-    async send(data) {
+    async send(data: any) {
         try {
             const response = await this.connection.send({
                 type: 'authenticate',
@@ -952,6 +1052,7 @@ export class AuthenticationHandlerConnection {
             if (typeof err !== 'object' || !err.data) throw err;
 
             if (err.error) {
+                // @ts-ignore
                 const error = new (global[err.constructor] || Error)(err.data.message);
                 error.code = err.data.code;
                 throw error;
@@ -998,7 +1099,7 @@ export class UserManagementConnection {
      * @param {*} data
      * @return {Promise<*>}
      */
-    async send(data) {
+    async send(data: any) {
         try {
             return await this.connection.send({
                 type: 'user-management',
@@ -1009,6 +1110,7 @@ export class UserManagementConnection {
             if (typeof err !== 'object' || !err.data) throw err;
 
             if (err.error) {
+                // @ts-ignore
                 const error = new (global[err.constructor] || Error)(err.data.message);
                 error.code = err.data.code;
                 throw error;
@@ -1047,7 +1149,7 @@ export class AccessorySetupConnection {
      * @param {*} data
      * @return {Promise<*>}
      */
-    async send(data) {
+    async send(data: any) {
         try {
             return await this.connection.send({
                 type: 'accessory-setup',
@@ -1058,6 +1160,7 @@ export class AccessorySetupConnection {
             if (typeof err !== 'object' || !err.data) throw err;
 
             if (err.error) {
+                // @ts-ignore
                 const error = new (global[err.constructor] || Error)(err.data.message);
                 error.code = err.data.code;
                 throw error;

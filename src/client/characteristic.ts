@@ -1,11 +1,14 @@
 import EventEmitter from 'events';
 import Client from './client';
 
+// @ts-ignore
 import {Characteristic as HAPCharacteristic} from 'hap-nodejs/lib/Characteristic';
 import 'hap-nodejs/lib/gen/HomeKitTypes';
 import Service from './service';
 
-export default class Characteristic extends EventEmitter {
+import {CharacteristicHap, CharacteristicPerms, CharacteristicFormat} from '../common/types/hap';
+
+class Characteristic extends EventEmitter {
     static Formats: {[key: string]: string};
     static Units: {[key: string]: string};
     static Perms: {[key: string]: string};
@@ -13,15 +16,15 @@ export default class Characteristic extends EventEmitter {
     readonly service: Service;
     readonly uuid: string;
 
-    private _details;
-    private _permissions;
+    private _details: CharacteristicHap;
+    private _permissions: boolean;
 
     _subscribed = false;
     subscription_dependencies = new Set<any>();
     _getting?: Promise<void>;
-    _target_value = null;
+    _target_value: any = null;
     _setting: any[] = [];
-    error;
+    error: any;
 
     /**
      * Creates a Characteristic.
@@ -31,12 +34,14 @@ export default class Characteristic extends EventEmitter {
      * @param {object} details The HAP characteristic data (read only)
      * @param {boolean} permissions Whether the user can set this characteristic
      */
-    constructor(service: Service, uuid: string, details, permissions) {
+    constructor(service: Service, uuid: string, details: CharacteristicHap, permissions: boolean) {
         super();
 
         this.service = service;
         this.uuid = uuid;
-        this._setDetails(details || {});
+        this._setDetails(details || {
+            iid: 0, type: null, perms: [], format: CharacteristicFormat.DATA, description: '',
+        });
         this._setPermissions(permissions);
         this._subscribed = false;
         this.subscription_dependencies = new Set();
@@ -46,11 +51,11 @@ export default class Characteristic extends EventEmitter {
         this.error = null;
     }
 
-    get details() {
+    get details(): CharacteristicHap {
         return this._details;
     }
 
-    _setDetails(details) {
+    _setDetails(details: CharacteristicHap) {
         const old_value = this.details ? this.details.value : undefined;
 
         this._details = Object.freeze(details);
@@ -74,7 +79,7 @@ export default class Characteristic extends EventEmitter {
         return type_names[this.type];
     }
 
-    get perms(): string[] {
+    get perms(): CharacteristicPerms[] {
         return this.details.perms;
     }
 
@@ -95,11 +100,11 @@ export default class Characteristic extends EventEmitter {
         return this.value !== this.target_value;
     }
 
-    get valid_values(): string[] {
+    get valid_values(): any[] {
         return this.details['valid-values'];
     }
 
-    get valid_values_range(): string[] {
+    get valid_values_range(): [number, number] {
         return this.details['valid-values-range'];
     }
 
@@ -143,7 +148,7 @@ export default class Characteristic extends EventEmitter {
             const details = await this.service.accessory.connection.getCharacteristic(
                 this.service.accessory.uuid, this.service.uuid, this.uuid);
 
-            this._setDetails(details);
+            this._setDetails(details[0]);
             this.error = null;
         } catch (err) {
             this.error = err;
@@ -151,7 +156,7 @@ export default class Characteristic extends EventEmitter {
         }
     }
 
-    async setValue(value) {
+    async setValue(value: any) {
         if (this.service.characteristics[this.uuid] !== this) {
             throw new Error('This characteristic no longer exists');
         }
@@ -186,7 +191,7 @@ export default class Characteristic extends EventEmitter {
         return promise;
     }
 
-    validateValue(value) {
+    validateValue(value: any) {
         // hap-nodejs' validateValue tries to coerce the value to a valid value
         return value === HAPCharacteristic.prototype.validateValue.call({
             props: {
@@ -220,7 +225,7 @@ export default class Characteristic extends EventEmitter {
             !!this.service.accessory.connection.unsubscribe_queue.find(q => q[0] === this);
     }
 
-    subscribe(dep?) {
+    subscribe(dep?: any) {
         if (this.service.characteristics[this.uuid] !== this ||
             this.service.accessory.services[this.service.uuid] !== this.service
         ) {
@@ -240,7 +245,7 @@ export default class Characteristic extends EventEmitter {
         return Client.queueSubscribeCharacteristic(this);
     }
 
-    unsubscribe(dep?) {
+    unsubscribe(dep?: any) {
         if (dep) {
             this.subscription_dependencies.delete(dep);
 
@@ -257,7 +262,7 @@ export default class Characteristic extends EventEmitter {
         return Client.queueUnsubscribeCharacteristic(this);
     }
 
-    static async unsubscribeAll(dep) {
+    static async unsubscribeAll(dep: any) {
         const subscribed = subscribed_characteristics.get(dep);
         if (!subscribed) return;
 
@@ -279,22 +284,22 @@ export default class Characteristic extends EventEmitter {
         }
     }
 
-    _setPermissions(permissions) {
+    _setPermissions(permissions: boolean) {
         this._permissions = !!permissions;
 
         this.emit('permissions-updated', !!permissions);
     }
 
     get can_get() {
-        return this.perms.includes('pr'); // PAIRED_READ
+        return this.perms.includes(CharacteristicPerms.PAIRED_READ);
     }
 
     get can_set() {
-        return this._permissions && this.perms.includes('pw'); // PAIRED_WRITE
+        return this._permissions && this.perms.includes(CharacteristicPerms.PAIRED_WRITE);
     }
 
     get can_subscribe() {
-        return this.perms.includes('ev'); // EVENTS
+        return this.perms.includes(CharacteristicPerms.EVENTS);
     }
 
     static get types() {
@@ -302,11 +307,38 @@ export default class Characteristic extends EventEmitter {
     }
 }
 
+type CharacteristicEvents = {
+    'value-updated': (this: Characteristic, value: any, old_value: any) => void;
+    'details-updated': (this: Characteristic) => void;
+    'updated': (this: Characteristic) => void;
+    'permissions-updated': (this: Characteristic, permissions: boolean) => void;
+};
+
+interface Characteristic {
+    addListener<E extends keyof CharacteristicEvents>(event: E, listener: CharacteristicEvents[E]): this;
+    on<E extends keyof CharacteristicEvents>(event: E, listener: CharacteristicEvents[E]): this;
+    once<E extends keyof CharacteristicEvents>(event: E, listener: CharacteristicEvents[E]): this;
+    prependListener<E extends keyof CharacteristicEvents>(event: E, listener: CharacteristicEvents[E]): this;
+    prependOnceListener<E extends keyof CharacteristicEvents>(event: E, listener: CharacteristicEvents[E]): this;
+    removeListener<E extends keyof CharacteristicEvents>(event: E, listener: CharacteristicEvents[E]): this;
+    off<E extends keyof CharacteristicEvents>(event: E, listener: CharacteristicEvents[E]): this;
+    removeAllListeners<E extends keyof CharacteristicEvents>(event: E): this;
+    listeners<E extends keyof CharacteristicEvents>(event: E): CharacteristicEvents[E][];
+    rawListeners<E extends keyof CharacteristicEvents>(event: E): CharacteristicEvents[E][];
+
+    emit<E extends keyof CharacteristicEvents>(event: E, ...data: any[]): boolean;
+
+    eventNames(): (keyof CharacteristicEvents)[];
+    listenerCount<E extends keyof CharacteristicEvents>(type: E): number;
+}
+
+export default Characteristic;
+
 const subscribed_characteristics = new Map();
 
-export const types = {};
-export const type_uuids = {};
-export const type_names = {};
+export const types: {[name: string]: typeof HAPCharacteristic} = {};
+export const type_uuids: {[name: string]: /** UUID */ string} = {};
+export const type_names: {[uuid: string]: /** Name */ string} = {};
 
 Characteristic.Formats = HAPCharacteristic.Formats;
 Characteristic.Units = HAPCharacteristic.Units;
@@ -321,5 +353,6 @@ for (const key of Object.keys(HAPCharacteristic)) {
 }
 
 for (const key of Object.keys(type_uuids)) {
+    // @ts-ignore
     Characteristic[key] = type_uuids[key];
 }

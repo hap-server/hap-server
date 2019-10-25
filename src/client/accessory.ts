@@ -7,16 +7,19 @@ import Service, {type_uuids as service_types} from './service';
 
 // Types
 import ComponentRegistry from '../common/component-registry';
+import {AccessoryHap} from '../common/types/hap';
+import {AccessoryData, ServiceData} from '../common/types/storage';
+import {GetAccessoriesPermissionsResponseMessage} from '../common/types/messages';
 
-export default class Accessory extends EventEmitter {
+class Accessory extends EventEmitter {
     connection: Connection;
     readonly uuid: string;
     readonly services: {[key: string]: Service};
     readonly display_services: Service[];
 
-    private _details;
-    private _data;
-    private _permissions;
+    private _details: AccessoryHap;
+    private _data: AccessoryData;
+    private _permissions: GetAccessoriesPermissionsResponseMessage[0];
 
     /**
      * Creates an Accessory.
@@ -27,16 +30,19 @@ export default class Accessory extends EventEmitter {
      * @param {object} data Configuration data stored by the web UI (read/write)
      * @param {object} permissions
      */
-    constructor(connection: Connection, uuid: string, details, data, permissions) {
+    constructor(
+        connection: Connection, uuid: string, details: AccessoryHap, data: AccessoryData,
+        permissions: GetAccessoriesPermissionsResponseMessage[0]
+    ) {
         super();
 
         this.connection = connection;
         this.uuid = uuid;
         this.services = {};
         this.display_services = [];
-        this._setPermissions(permissions || {});
+        this._setPermissions(permissions || {} as GetAccessoriesPermissionsResponseMessage[0]);
         this._setData(data || {});
-        this._setDetails(details || {});
+        this._setDetails(details || {aid: 0, services: []});
     }
 
     static get service_components(): ComponentRegistry<unknown, any> | Map<string | number, any> {
@@ -47,11 +53,11 @@ export default class Accessory extends EventEmitter {
         }
     }
 
-    get details() {
+    get details(): AccessoryHap {
         return this._details;
     }
 
-    _setDetails(details, dont_update_services = false) {
+    _setDetails(details: AccessoryHap, dont_update_services = false) {
         if (!dont_update_services) this._updateServicesFrom(details);
 
         this._details = Object.freeze(details);
@@ -60,7 +66,7 @@ export default class Accessory extends EventEmitter {
         this.emit('updated');
     }
 
-    private _updateServicesFrom(details) {
+    private _updateServicesFrom(details: AccessoryHap) {
         const added_service_details = [];
         const removed_service_ids = [];
         const services_by_details = new Map();
@@ -113,8 +119,9 @@ export default class Accessory extends EventEmitter {
 
         const added_services = added_service_details.map(service_details => {
             const uuid = service_details.type + (service_details.subtype ? '.' + service_details.subtype : '');
+            const data = this.data['Service.' + uuid] as ServiceData;
             const permissions = this._permissions.set_characteristics[uuid];
-            const service = new Service(this, uuid, service_details, this.data['Service.' + uuid], permissions);
+            const service = new Service(this, uuid, service_details, data, permissions);
             services_by_details.set(service_details, service);
             return service;
         });
@@ -211,9 +218,9 @@ export default class Accessory extends EventEmitter {
     }
 
     private _updateDisplayServices(added_services: Service[], removed_services: Service[]) {
-        const added_display_services = [];
-        const removed_display_services = [];
-        const removed_collapsed_service_types = {};
+        const added_display_services: Service[] = [];
+        const removed_display_services: Service[] = [];
+        const removed_collapsed_service_types: any = {}; // TODO: what was this for?
 
         for (const service of added_services) {
             if ((this.constructor as typeof Accessory).service_components.has(service.type)) {
@@ -225,12 +232,12 @@ export default class Accessory extends EventEmitter {
 
             if (collapsed_service_type) {
                 let collapsed_service = added_display_services.find(service => service instanceof CollapsedService &&
-                    service.collapsed_service_type === collapsed_service_type) ||
+                    service.collapsed_service_type === collapsed_service_type) as CollapsedService ||
                     this.display_services.find(service => service instanceof CollapsedService &&
-                        service.collapsed_service_type === collapsed_service_type);
+                        service.collapsed_service_type === collapsed_service_type) as CollapsedService;
                 if (!collapsed_service) {
                     collapsed_service = new CollapsedService(this, collapsed_service_type, collapsed_service_type,
-                        this.data['CollapsedService.' + collapsed_service_type]);
+                        this.data['CollapsedService.' + collapsed_service_type] as ServiceData);
                     added_display_services.push(collapsed_service);
                 }
 
@@ -324,11 +331,11 @@ export default class Accessory extends EventEmitter {
         return null;
     }
 
-    get data() {
+    get data(): AccessoryData {
         return this._data;
     }
 
-    _setData(data, here?) {
+    _setData(data: AccessoryData, here = false) {
         this._data = Object.freeze(data);
 
         for (const key of Object.keys(data).filter(key => key.startsWith('Service.'))) {
@@ -337,7 +344,7 @@ export default class Accessory extends EventEmitter {
 
             if (!service) continue;
 
-            service._setData(data[key], here);
+            service._setData(data[key] as ServiceData, here);
         }
 
         for (const key of Object.keys(data).filter(key => key.startsWith('CollapsedService.'))) {
@@ -347,14 +354,14 @@ export default class Accessory extends EventEmitter {
 
             if (!service) continue;
 
-            service._setData(data[key], here);
+            service._setData(data[key] as ServiceData, here);
         }
 
         this.emit('data-updated', here);
         this.emit('updated', here);
     }
 
-    async updateData(data) {
+    async updateData(data: AccessoryData) {
         await this.connection.setAccessoryData(this.uuid, data);
         this._setData(data, true);
     }
@@ -372,7 +379,7 @@ export default class Accessory extends EventEmitter {
             '0000003E-0000-1000-8000-0026BB765291', '00000023-0000-1000-8000-0026BB765291');
     }
 
-    _setPermissions(permissions) {
+    _setPermissions(permissions: GetAccessoriesPermissionsResponseMessage[0]) {
         permissions.get = !!permissions.get;
         permissions.set = !!permissions.set;
         permissions.set_characteristics = permissions.set_characteristics || {};
@@ -458,3 +465,43 @@ export default class Accessory extends EventEmitter {
         return characteristic.value;
     }
 }
+
+type AccessoryEvents = {
+    'details-updated': (this: Accessory) => void;
+    'updated': (this: Accessory, here?: boolean) => void;
+    'new-service': (this: Accessory, service: Service) => void;
+    'new-services': (this: Accessory, services: Service[]) => void;
+    'removed-service': (this: Accessory, service: Service) => void;
+    'removed-services': (this: Accessory, services: Service[]) => void;
+    'updated-services': (this: Accessory, added: Service[], removed: Service[]) => void;
+    'new-display-service': (this: Accessory, service: Service) => void;
+    'new-display-services': (this: Accessory, services: Service[]) => void;
+    'removed-display-service': (this: Accessory, service: Service) => void;
+    'removed-display-services': (this: Accessory, services: Service[]) => void;
+    'updated-display-services': (this: Accessory, added: Service[], removed: Service[]) => void;
+    /**
+     * @param {boolean} here true if the accessory's data was updated from this client
+     */
+    'data-updated': (this: Accessory, here: boolean) => void;
+    'permissions-updated': (this: Accessory, permissions: GetAccessoriesPermissionsResponseMessage[0]) => void;
+};
+
+interface Accessory {
+    addListener<E extends keyof AccessoryEvents>(event: E, listener: AccessoryEvents[E]): this;
+    on<E extends keyof AccessoryEvents>(event: E, listener: AccessoryEvents[E]): this;
+    once<E extends keyof AccessoryEvents>(event: E, listener: AccessoryEvents[E]): this;
+    prependListener<E extends keyof AccessoryEvents>(event: E, listener: AccessoryEvents[E]): this;
+    prependOnceListener<E extends keyof AccessoryEvents>(event: E, listener: AccessoryEvents[E]): this;
+    removeListener<E extends keyof AccessoryEvents>(event: E, listener: AccessoryEvents[E]): this;
+    off<E extends keyof AccessoryEvents>(event: E, listener: AccessoryEvents[E]): this;
+    removeAllListeners<E extends keyof AccessoryEvents>(event: E): this;
+    listeners<E extends keyof AccessoryEvents>(event: E): AccessoryEvents[E][];
+    rawListeners<E extends keyof AccessoryEvents>(event: E): AccessoryEvents[E][];
+
+    emit<E extends keyof AccessoryEvents>(event: E, ...data: any[]): boolean;
+
+    eventNames(): (keyof AccessoryEvents)[];
+    listenerCount<E extends keyof AccessoryEvents>(type: E): number;
+}
+
+export default Accessory;

@@ -54,7 +54,7 @@ export enum CharacteristicPerms {
 export interface CharacteristicHap {
     iid: number;
     type: string;
-    perms: CharacteristicPerms;
+    perms: CharacteristicPerms[];
     format: CharacteristicFormat;
 
     value?: any;
@@ -64,7 +64,7 @@ export interface CharacteristicHap {
     events?: boolean;
     bonjour?: boolean;
 
-    'value-values'?: any[];
+    'valid-values'?: any[];
     'valid-values-range'?: [number, number];
 
     unit?: CharacteristicUnit;

@@ -2,15 +2,18 @@ import EventEmitter from 'events';
 import isEqual from 'lodash.isequal';
 import Connection from './connection';
 
+import {Automation as AutomationData} from '../common/types/storage';
+import {GetAutomationsPermissionsResponseMessage} from '../common/types/messages';
+
 let id = 0;
 
-export default class Automation extends EventEmitter {
+class Automation extends EventEmitter {
     readonly id: number;
     connection: Connection;
     readonly uuid: string;
 
-    _data;
-    _permissions;
+    _data: AutomationData;
+    _permissions: GetAutomationsPermissionsResponseMessage[0];
 
     /**
      * Creates an Automation.
@@ -20,14 +23,17 @@ export default class Automation extends EventEmitter {
      * @param {object} data
      * @param {object} permissions
      */
-    constructor(connection: Connection, uuid: string, data?, permissions?) {
+    constructor(
+        connection: Connection, uuid: string, data?: AutomationData,
+        permissions?: GetAutomationsPermissionsResponseMessage[0]
+    ) {
         super();
 
         this.id = id++;
 
         this.connection = connection;
         this.uuid = uuid;
-        this._setPermissions(permissions || {});
+        this._setPermissions(permissions || {get: false, set: false, delete: false});
         this._setData(data || {});
     }
 
@@ -43,7 +49,7 @@ export default class Automation extends EventEmitter {
         return !isEqual(this.live.data, this.staged.data);
     }
 
-    get data() {
+    get data(): AutomationData {
         return this._data;
     }
 
@@ -55,7 +61,7 @@ export default class Automation extends EventEmitter {
         return this.staged.data;
     }
 
-    _setData(data) {
+    _setData(data: AutomationData) {
         if (!this.staged.data || !this.changed) this.staged._setData(JSON.parse(JSON.stringify(data)));
 
         this._data = Object.freeze(data);
@@ -63,7 +69,7 @@ export default class Automation extends EventEmitter {
         this.emit('data-updated');
     }
 
-    async updateData(data) {
+    async updateData(data: AutomationData) {
         await this.connection.setAutomation(this.uuid, data);
         this._setData(data);
     }
@@ -72,7 +78,7 @@ export default class Automation extends EventEmitter {
         this.staged._setData(JSON.parse(JSON.stringify(this.live.data)));
     }
 
-    _setPermissions(permissions) {
+    _setPermissions(permissions: GetAutomationsPermissionsResponseMessage[0]) {
         permissions.get = !!permissions.get;
         permissions.set = !!permissions.set;
         permissions.delete = !!permissions.delete;
@@ -95,6 +101,31 @@ export default class Automation extends EventEmitter {
     }
 }
 
+type AutomationEvents = {
+    'data-updated': (this: Automation, here: boolean) => void;
+    'permissions-updated': (this: Automation, permissions: GetAutomationsPermissionsResponseMessage[0]) => void;
+};
+
+interface Automation {
+    addListener<E extends keyof AutomationEvents>(event: E, listener: AutomationEvents[E]): this;
+    on<E extends keyof AutomationEvents>(event: E, listener: AutomationEvents[E]): this;
+    once<E extends keyof AutomationEvents>(event: E, listener: AutomationEvents[E]): this;
+    prependListener<E extends keyof AutomationEvents>(event: E, listener: AutomationEvents[E]): this;
+    prependOnceListener<E extends keyof AutomationEvents>(event: E, listener: AutomationEvents[E]): this;
+    removeListener<E extends keyof AutomationEvents>(event: E, listener: AutomationEvents[E]): this;
+    off<E extends keyof AutomationEvents>(event: E, listener: AutomationEvents[E]): this;
+    removeAllListeners<E extends keyof AutomationEvents>(event: E): this;
+    listeners<E extends keyof AutomationEvents>(event: E): AutomationEvents[E][];
+    rawListeners<E extends keyof AutomationEvents>(event: E): AutomationEvents[E][];
+
+    emit<E extends keyof AutomationEvents>(event: E, ...data: any[]): boolean;
+
+    eventNames(): (keyof AutomationEvents)[];
+    listenerCount<E extends keyof AutomationEvents>(type: E): number;
+}
+
+export default Automation;
+
 export class StagedAutomation extends Automation {
     readonly automation: Automation;
 
@@ -103,7 +134,7 @@ export class StagedAutomation extends Automation {
      *
      * @param {Automation} automation
      */
-    constructor(automation) {
+    constructor(automation: Automation) {
         if (automation instanceof StagedAutomation) return automation = automation.staged;
         super(automation.connection, automation.uuid);
 
@@ -139,11 +170,11 @@ export class StagedAutomation extends Automation {
     }
     set _permissions(_permissions) {}
 
-    _setData(data) {
+    _setData(data: AutomationData) {
         this._data = data;
     }
 
-    async updateData(data) {
+    async updateData(data: AutomationData) {
         this._setData(data);
     }
 
