@@ -7,53 +7,7 @@ import Logger from '../common/logger';
 const DEVELOPMENT = true;
 
 import {BroadcastMessage} from '../common/types/broadcast-messages';
-
-export interface UserAccessoryPermissions {
-    readonly get?: boolean;
-    readonly set?: boolean;
-    readonly config?: boolean;
-    readonly manage?: boolean;
-    readonly delete?: boolean;
-}
-
-export interface UserLayoutPermissions {
-    readonly get?: boolean;
-    readonly set?: boolean;
-    readonly delete?: boolean;
-}
-
-export interface UserAutomationPermissions {
-    readonly get?: boolean;
-    readonly set?: boolean;
-    readonly delete?: boolean;
-}
-
-export interface UserScenePermissions {
-    readonly get?: boolean;
-    readonly set?: boolean;
-    readonly activate?: boolean;
-    readonly delete?: boolean;
-}
-
-export interface UserPermissions {
-    readonly '*'?: boolean;
-    readonly get_home_settings?: boolean;
-    readonly set_home_settings?: boolean;
-    readonly create_accessories?: boolean;
-    readonly create_layouts?: boolean;
-    readonly create_automations?: boolean;
-    readonly create_scenes?: boolean;
-    readonly create_bridges?: boolean;
-    readonly manage_pairings?: boolean;
-    readonly server_runtime_info?: boolean;
-    readonly manage_users?: boolean;
-    readonly manage_permissions?: boolean;
-    readonly web_console?: boolean;
-    readonly accessories?: {readonly [key: string]: UserAccessoryPermissions};
-    readonly layouts?: {readonly [key: string]: UserLayoutPermissions};
-    readonly automations?: {readonly [key: string]: UserAutomationPermissions};
-    readonly scenes?: {readonly [key: string]: UserScenePermissions};
-}
+import {Permissions as UserPermissions} from '../common/types/storage';
 
 export default class Permissions {
     readonly connection: Connection;
