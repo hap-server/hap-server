@@ -4,9 +4,9 @@ import VueI18n from 'vue-i18n';
 
 export default class Modals {
     protected stack: Modal[] = [];
-    component?: Component;
+    component?: Component = undefined;
 
-    i18n: VueI18n;
+    i18n?: VueI18n = undefined;
 
     add(data: Modal | (object & {type: string})) {
         if (data instanceof Modal) {
@@ -76,7 +76,7 @@ export class Modal {
 
 export class AuthenticateModal extends Modal {
     get title() {
-        return this.modals.i18n.t('modals.login');
+        return this.modals.i18n!.t('modals.login');
     }
 }
 
@@ -84,7 +84,7 @@ Modal.types.authenticate = AuthenticateModal;
 
 export class SettingsModal extends Modal {
     get title() {
-        return this.modals.i18n.t('modals.settings');
+        return this.modals.i18n!.t('modals.settings');
     }
 }
 
@@ -92,7 +92,7 @@ Modal.types.settings = SettingsModal;
 
 export class AddAccessoryModal extends Modal {
     get title() {
-        return this.modals.i18n.t('modals.add_accessory');
+        return this.modals.i18n!.t('modals.add_accessory');
     }
 }
 
@@ -100,7 +100,7 @@ Modal.types['add-accessory'] = AddAccessoryModal;
 
 export class LayoutSettingsModal extends Modal {
     get title() {
-        return this.modals.i18n.t('modals.layout_settings', {name: this.layout.name});
+        return this.modals.i18n!.t('modals.layout_settings', {name: this.layout.name});
     }
 }
 
@@ -108,7 +108,7 @@ Modal.types['layout-settings'] = LayoutSettingsModal;
 
 export class NewLayoutModal extends Modal {
     get title() {
-        return this.modals.i18n.t('modals.new_layout');
+        return this.modals.i18n!.t('modals.new_layout');
     }
 }
 
@@ -116,7 +116,7 @@ Modal.types['new-layout'] = NewLayoutModal;
 
 export class DeleteLayoutModal extends LayoutSettingsModal {
     get title() {
-        return this.modals.i18n.t('modals.delete_layout', {name: this.layout.name});
+        return this.modals.i18n!.t('modals.delete_layout', {name: this.layout.name});
     }
 }
 
@@ -124,7 +124,7 @@ Modal.types['delete-layout'] = DeleteLayoutModal;
 
 export class AccessorySettingsModal extends Modal {
     get title() {
-        return this.modals.i18n.t('modals.accessory_settings', {name: this.accessory.name});
+        return this.modals.i18n!.t('modals.accessory_settings', {name: this.accessory.name});
     }
 }
 
@@ -132,7 +132,7 @@ Modal.types['accessory-settings'] = AccessorySettingsModal;
 
 export class NewBridgeModal extends Modal {
     get title() {
-        return this.modals.i18n.t('modals.new_bridge');
+        return this.modals.i18n!.t('modals.new_bridge');
     }
 }
 
@@ -140,7 +140,7 @@ Modal.types['new-bridge'] = NewBridgeModal;
 
 export class DeleteBridgeModal extends AccessorySettingsModal {
     get title() {
-        return this.modals.i18n.t('modals.delete_bridge', {name: this.accessory.name});
+        return this.modals.i18n!.t('modals.delete_bridge', {name: this.accessory.name});
     }
 }
 
@@ -148,7 +148,7 @@ Modal.types['delete-bridge'] = DeleteBridgeModal;
 
 export class PairingSettingsModal extends Modal {
     get title() {
-        return this.modals.i18n.t('modals.pairing_settings', {
+        return this.modals.i18n!.t('modals.pairing_settings', {
             name: (this.data && this.data.name) || this.pairing.id,
         });
     }
@@ -158,7 +158,7 @@ Modal.types['pairing-settings'] = PairingSettingsModal;
 
 export class ServiceSettingsModal extends Modal {
     get title() {
-        return this.modals.i18n.t('modals.service_settings', {
+        return this.modals.i18n!.t('modals.service_settings', {
             name: this.service.name || this.service.accessory.name,
         });
     }
@@ -176,7 +176,7 @@ Modal.types['accessory-details'] = AccessoryDetailsModal;
 
 export class SceneSettingsModal extends Modal {
     get title() {
-        return this.modals.i18n.t('modals.scene_settings', {
+        return this.modals.i18n!.t('modals.scene_settings', {
             name: this.scene.data.name || this.scene.uuid,
         });
     }
@@ -186,7 +186,7 @@ Modal.types['scene-settings'] = SceneSettingsModal;
 
 export class NewSceneModal extends Modal {
     get title() {
-        return this.modals.i18n.t('modals.new_scene');
+        return this.modals.i18n!.t('modals.new_scene');
     }
 }
 
@@ -194,7 +194,7 @@ Modal.types['new-scene'] = NewSceneModal;
 
 export class SetupModal extends Modal {
     get title() {
-        return this.modals.i18n.t('modals.setup');
+        return this.modals.i18n!.t('modals.setup');
     }
 }
 
