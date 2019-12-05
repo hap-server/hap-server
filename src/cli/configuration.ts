@@ -39,7 +39,7 @@ export interface BridgeConfiguration {
 }
 
 export interface AccessoryConfiguration {
-    plugin: string;
+    plugin?: string;
     accessory: string;
     name: string;
     uuid?: string;
@@ -48,7 +48,7 @@ export interface AccessoryConfiguration {
 }
 
 export interface AccessoryPlatformConfiguration {
-    plugin: string;
+    plugin?: string;
     platform: string;
     name: string;
     uuid?: string;
@@ -57,21 +57,21 @@ export interface AccessoryPlatformConfiguration {
 }
 
 export interface AutomationTriggerConfiguration {
-    plugin: string;
+    plugin?: string;
     trigger: string;
 
     [key: string]: any;
 }
 
 export interface AutomationConditionConfiguration {
-    plugin: string;
+    plugin?: string;
     condition: string;
 
     [key: string]: any;
 }
 
 export interface AutomationActionConfiguration {
-    plugin: string;
+    plugin?: string;
     action: string;
 
     [key: string]: any;
@@ -171,7 +171,7 @@ export class Warning extends Error {
  * @param {string} [base_path] Path to resolve paths in the configuration data
  * @return {Promise<Error[]>}
  */
-export async function validate(configuration: ConfigurationFile, base_path?: string): Promise<Error[]> {
+export async function validate(configuration: ConfigurationFile, base_path: string): Promise<Error[]> {
     const errors: (Error | Warning)[] = [];
 
     for (const key of Object.keys(configuration)) {

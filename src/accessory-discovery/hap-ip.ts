@@ -42,7 +42,7 @@ export const HAPIPDiscovery = AccessoryDiscovery.withHandler(accessory_discovery
         log.debug('Removed service', service);
 
         accessory_discovery.removeAccessory(accessories[service.id]);
-        accessories[service.id] = null;
+        delete accessories[service.id];
     });
 
     discovery.start();

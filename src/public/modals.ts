@@ -1,13 +1,14 @@
 
+import {Component} from 'vue';
 import VueI18n from 'vue-i18n';
 
 export default class Modals {
     protected stack: Modal[] = [];
-    component?;
+    component?: Component;
 
     i18n: VueI18n;
 
-    add(data) {
+    add(data: Modal | (object & {type: string})) {
         if (data instanceof Modal) {
             if (data.modals !== this) {
                 throw new Error('Invalid modal');
@@ -26,11 +27,11 @@ export default class Modals {
         }
     }
 
-    _add(modal) {
+    _add(modal: Modal) {
         //
     }
 
-    remove(modal) {
+    remove(modal: Modal) {
         let index;
         while ((index = this.stack.indexOf(modal)) > -1) {
             this.stack.splice(index, 1);
@@ -39,7 +40,7 @@ export default class Modals {
         this._remove(modal);
     }
 
-    _remove(modal) {
+    _remove(modal: Modal) {
         //
     }
 
@@ -57,16 +58,16 @@ export class Modal {
 
     [key: string]: any;
 
-    constructor(readonly modals: Modals, data) {
+    constructor(readonly modals: Modals, data: object) {
         Object.assign(this, data);
     }
 
-    static create(modals, type, data) {
+    static create(modals: Modals, type: keyof typeof Modal.types, data: object & {type?: string}) {
         if (typeof type === 'string' && !data) data = {type};
         if (typeof type === 'object') data = type;
         if (!data) data = {};
         if (typeof type === 'string') data.type = type;
-        return new (this.types[data.type] || this)(modals, data);
+        return new (this.types[data.type!] || this)(modals, data);
     }
 
     onopen() {}

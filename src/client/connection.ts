@@ -57,20 +57,20 @@ class Connection extends EventEmitter {
     ws: WebSocket | import('ws');
     private messageid = 0;
     private callbacks: Map<number, (() => void)[]> = new Map();
-    private authenticated_user: AuthenticatedUser = null;
+    private authenticated_user: AuthenticatedUser | null = null;
     open_consoles = new Set<Console>();
 
     subscribed_characteristics = new Set<Characteristic>();
-    subscribe_queue?: [
+    subscribe_queue: [
         Characteristic, (value: any) => void | ((value: any) => void)[],
         (reason: any) => void | ((reason: any) => void)[],
-    ][] = null;
-    subscribe_queue_timeout?: NodeJS.Timeout = null;
-    unsubscribe_queue?: [
+    ][] | null = null;
+    subscribe_queue_timeout: NodeJS.Timeout | null = null;
+    unsubscribe_queue: [
         Characteristic, (value: any) => void | ((value: any) => void)[],
         (reason: any) => void | ((reason: any) => void)[],
-    ][] = null;
-    unsubscribe_queue_timeout?: NodeJS.Timeout = null;
+    ][] | null = null;
+    unsubscribe_queue_timeout: NodeJS.Timeout | null = null;
 
     constructor(ws: WebSocket | import('ws'), is_ws: boolean) {
         super();
@@ -130,7 +130,7 @@ class Connection extends EventEmitter {
                 return;
             }
 
-            const [resolve, reject, progress] = this.callbacks.get(messageid);
+            const [resolve, reject, progress] = this.callbacks.get(messageid)!;
 
             if (type === 'progress') {
                 if (!progress) {
@@ -185,7 +185,7 @@ class Connection extends EventEmitter {
 
             this.ws.send('*' + messageid + ':' + JSON.stringify(data));
 
-            this.callbacks.set(messageid, [resolve, reject, progress]);
+            this.callbacks.set(messageid, progress ? [resolve, reject, progress] : [resolve, reject]);
         });
     }
 
@@ -949,7 +949,7 @@ class Console extends EventEmitter {
     readonly connection: Connection;
     readonly id: number;
 
-    private closing: Promise<void> = null;
+    private closing: Promise<void> | null = null;
     closed = false;
 
     _handleData: any;

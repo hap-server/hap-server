@@ -69,7 +69,9 @@ export interface AccessoryData {
     // Service.* and CollapsedService.*
     [key: string]: ServiceData | string;
 
+    // @ts-ignore
     name?: string;
+    // @ts-ignore
     room_name?: string;
 }
 
@@ -105,7 +107,7 @@ export interface BaseCachedAccessory {
         external_groups?: string[];
     };
 
-    plugin?: string;
+    plugin: string | null;
     uuid: string;
     is_homebridge: boolean;
     data: any;

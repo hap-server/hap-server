@@ -374,10 +374,10 @@ export default class Server extends Events {
      * @param {(function|number)} id A class that extends ServerPlugin or an ID
      * @return {ServerPlugin}
      */
-    getPlugin(id: ServerPlugin | typeof ServerPlugin | number): ServerPlugin {
+    getPlugin(id: ServerPlugin | typeof ServerPlugin | number): ServerPlugin | null {
         if (typeof id === 'function' || typeof id === 'object') id = id.id;
 
-        return this.plugins.get(id as number);
+        return this.plugins.get(id as number) || null;
     }
 
     loadBridgesFromConfig() {
@@ -417,7 +417,7 @@ export default class Server extends Events {
      */
     loadBridge(bridge_config: BridgeConfiguration, uuid?: string) {
         // bridge_config.username is required - all other properties are optional
-        const name = bridge_config.name || 'Bridge ' + bridge_config.username.match(/(.{2}\:.{2})$/)[1];
+        const name = bridge_config.name || 'Bridge ' + bridge_config.username.match(/(.{2}\:.{2})$/)![1];
 
         const bridge = new Bridge(this, this.log.withPrefix(name), {
             uuid: uuid || bridge_config.uuid || hap.uuid.generate('hap-server:bridge:' + bridge_config.username),
@@ -471,7 +471,8 @@ export default class Server extends Events {
      */
     async unloadBridge(bridge: Bridge | string) {
         if (!(bridge instanceof Bridge)) {
-            bridge = this.bridges.find(b => b.uuid === bridge);
+            bridge = this.bridges.find(b => b.uuid === bridge)!;
+            if (!bridge) throw new Error('Unknown bridge');
         }
 
         if (bridge instanceof Homebridge) {
@@ -544,6 +545,7 @@ export default class Server extends Events {
 
             const plugin_accessory = this.accessories.find(a => a instanceof HomebridgeAccessory &&
                 (a.platform_accessory === platform_accessory || a.uuid === accessory.UUID));
+            if (!plugin_accessory) continue;
 
             this.removeAccessory(plugin_accessory);
         }
@@ -611,7 +613,7 @@ export default class Server extends Events {
      * @param {string} accessory_platform_name
      * @return {PluginAccessoryPlatformAccessory[]}
      */
-    getCachedAccessoryPlatformAccessories(base_uuid: string, plugin: Plugin, accessory_platform_name: string) {
+    getCachedAccessoryPlatformAccessories(base_uuid: string, plugin: Plugin | null, accessory_platform_name: string) {
         return this.cached_accessories.filter(accessory => accessory instanceof PluginAccessoryPlatformAccessory &&
             accessory.base_uuid === base_uuid &&
             accessory.plugin === plugin &&
@@ -749,7 +751,7 @@ export default class Server extends Events {
         if (!plugin && !is_builtin) throw new Error('No plugin with the name "' + plugin_name + '"');
 
         const accessory_handler = is_builtin ? builtin_accessory_types[accessory_type] :
-            plugin.getAccessoryHandler(accessory_type);
+            plugin!.getAccessoryHandler(accessory_type);
         if (!accessory_handler) throw new Error('No accessory handler with the name "' + accessory_type + '"');
 
         // eslint-disable-next-line curly
@@ -800,7 +802,7 @@ export default class Server extends Events {
         if (!plugin && !is_builtin) throw new Error('No plugin with the name "' + plugin_name + '"');
 
         const AccessoryPlatformHandler = is_builtin ? builtin_accessory_platforms[accessory_platform_name] :
-            plugin.getAccessoryPlatformHandler(accessory_platform_name);
+            plugin!.getAccessoryPlatformHandler(accessory_platform_name);
         if (!AccessoryPlatformHandler) throw new Error('No accessory platform handler with the name "' + // eslint-disable-line curly
             accessory_platform_name + '"');
 
@@ -813,7 +815,7 @@ export default class Server extends Events {
         const cached_accessories = this.getCachedAccessoryPlatformAccessories(config.uuid, plugin,
             accessory_platform_name).map(plugin_accessory => plugin_accessory.accessory);
 
-        const accessory_platform = new AccessoryPlatformHandler(plugin, this, config, cached_accessories);
+        const accessory_platform = new AccessoryPlatformHandler(plugin!, this, config, cached_accessories);
         await accessory_platform.init(cached_accessories);
 
         this.accessory_platforms.push(accessory_platform);
@@ -967,7 +969,7 @@ export default class Server extends Events {
             // Top level configuration has changed
             // This isn't actually used for anything yet
             const automation = this.automations.automations.find(automation => automation.uuid === uuid);
-            await this.automations.removeAutomation(automation);
+            if (automation) await this.automations.removeAutomation(automation);
             return this.loadAutomation(uuid, data);
         }
 
@@ -990,7 +992,7 @@ export default class Server extends Events {
         }
 
         for (const trigger of automation.triggers) {
-            if ((data.triggers || {})[trigger.uuid]) continue;
+            if (trigger.uuid && (data.triggers || {})[trigger.uuid]) continue;
 
             // Trigger has been removed
             await automation.removeTrigger(trigger);
@@ -1016,7 +1018,7 @@ export default class Server extends Events {
         }
 
         for (const condition of automation.conditions) {
-            if ((data.conditions || {})[condition.uuid]) continue;
+            if (condition.uuid && (data.conditions || {})[condition.uuid]) continue;
 
             // Condition has been removed
             await automation.removeCondition(condition);
@@ -1042,7 +1044,7 @@ export default class Server extends Events {
         }
 
         for (const action of automation.actions) {
-            if ((data.actions || {})[action.uuid]) continue;
+            if (action.uuid && (data.actions || {})[action.uuid]) continue;
 
             // Action has been removed
             await automation.removeAction(action);
@@ -1136,7 +1138,7 @@ export default class Server extends Events {
             // Top level configuration has changed
             // This isn't actually used for anything yet
             const scene = this.automations.scenes.find(scene => scene.uuid === uuid);
-            await this.automations.removeScene(scene);
+            if (scene) await this.automations.removeScene(scene);
             return this.loadScene(uuid, data);
         }
 
@@ -1159,7 +1161,7 @@ export default class Server extends Events {
         }
 
         for (const condition of scene.conditions) {
-            if ((data.conditions || {})[condition.uuid]) continue;
+            if (condition.uuid && (data.conditions || {})[condition.uuid]) continue;
 
             // Condition has been removed
             await scene.removeActiveCondition(condition);
@@ -1185,7 +1187,7 @@ export default class Server extends Events {
         }
 
         for (const action of scene.enable_actions) {
-            if ((data.enable_actions || {})[action.uuid]) continue;
+            if (action.uuid && (data.enable_actions || {})[action.uuid]) continue;
 
             // Action has been removed
             await scene.removeEnableAction(action);
@@ -1211,7 +1213,7 @@ export default class Server extends Events {
         }
 
         for (const action of scene.disable_actions) {
-            if ((data.disable_actions || {})[action.uuid]) continue;
+            if (action.uuid && (data.disable_actions || {})[action.uuid]) continue;
 
             // Action has been removed
             await scene.removeDisableAction(action);
@@ -1382,7 +1384,7 @@ export default class Server extends Events {
      * @param {string} uuid
      * @return {Accessory}
      */
-    getAccessory(uuid: string): typeof Accessory {
+    getAccessory(uuid: string): typeof Accessory | null {
         const plugin_accessory = this.getPluginAccessory(uuid);
 
         if (plugin_accessory) return plugin_accessory.accessory;
@@ -1399,6 +1401,8 @@ export default class Server extends Events {
                 if (accessory.UUID === uuid) return accessory;
             }
         }
+
+        return null;
     }
 
     /**
@@ -1407,8 +1411,8 @@ export default class Server extends Events {
      * @param {string} uuid
      * @return {PluginAccessory}
      */
-    getPluginAccessory(uuid: string): PluginAccessory {
-        return this.accessories.find(accessory => accessory.uuid === uuid);
+    getPluginAccessory(uuid: string): PluginAccessory | null {
+        return this.accessories.find(accessory => accessory.uuid === uuid) || null;
     }
 
     /**
@@ -1553,9 +1557,9 @@ export default class Server extends Events {
         res.setHeader('X-XSS-Protection', '1');
         res.setHeader('Feature-Policy', '');
 
-        const {pathname} = url.parse(req.url);
+        const {pathname} = url.parse(req.url!);
 
-        const ui_plugin_match = pathname.match(/^\/(ui-plugin|accessory-ui)\/([0-9]+)(\/.*)?$/);
+        const ui_plugin_match = pathname && pathname.match(/^\/(ui-plugin|accessory-ui)\/([0-9]+)(\/.*)?$/);
 
         if (ui_plugin_match) {
             const ui_plugin_id = parseInt(ui_plugin_match[2]);
@@ -1573,7 +1577,7 @@ export default class Server extends Events {
             ui_plugin.handle(req, res, next);
         } else if (pathname === '/websocket') {
             // If path is /websocket tell the client to upgrade the request
-            const body = http.STATUS_CODES[426];
+            const body = http.STATUS_CODES[426]!;
 
             res.writeHead(426, {
                 'Content-Length': body.length,
@@ -1596,7 +1600,7 @@ export default class Server extends Events {
      * @param {*} head
      */
     upgrade(request: http.IncomingMessage, socket: net.Socket, head: Buffer) {
-        if (url.parse(request.url).pathname !== '/websocket') {
+        if (url.parse(request.url!).pathname !== '/websocket') {
             socket.destroy();
         }
 
@@ -1623,6 +1627,7 @@ export default class Server extends Events {
             if (except && except === ws || except instanceof Array && except.includes(ws)) continue;
 
             const connection = Connection.getConnectionForWebSocket(ws);
+            if (!connection) continue;
             if (except && except === connection || except instanceof Array && except.includes(connection)) continue;
 
             if (!connection.permissions.checkShouldReceiveBroadcast(data)) continue;
@@ -1738,11 +1743,11 @@ Server.patchStdout();
 export class PluginAccessory {
     readonly server: Server;
     readonly accessory: typeof Accessory;
-    readonly plugin: Plugin;
+    readonly plugin: Plugin | null;
     readonly data: any;
     readonly cached_data: any;
 
-    constructor(server: Server, accessory: typeof Accessory, plugin: Plugin, data?: any) {
+    constructor(server: Server, accessory: typeof Accessory, plugin: Plugin | null, data?: any) {
         Object.defineProperty(this, 'server', {value: server});
         Object.defineProperty(this, 'accessory', {value: accessory});
         Object.defineProperty(this, 'plugin', {value: plugin});
@@ -1854,13 +1859,13 @@ export class PluginAccessory {
         if (!plugin && !is_builtin) throw new Error('Unknown plugin "' + cache.plugin + '"');
 
         const accessory_handler = cache.accessory_type ? is_builtin ? builtin_accessory_types[cache.accessory_type] :
-            plugin.getAccessoryHandler(cache.accessory_type) : undefined;
+            plugin!.getAccessoryHandler(cache.accessory_type) : undefined;
         if (cache.accessory_type && !accessory_handler) throw new Error('Unknown accessory "' + // eslint-disable-line curly
             cache.accessory_type + '"');
 
         const accessory_platform_handler = cache.accessory_platform ? is_builtin ?
             builtin_accessory_platforms[cache.accessory_platform] :
-            plugin.getAccessoryPlatformHandler(cache.accessory_platform) : undefined;
+            plugin!.getAccessoryPlatformHandler(cache.accessory_platform) : undefined;
         if (cache.accessory_platform && !accessory_platform_handler) throw new Error('Unknown accessory platform "' + // eslint-disable-line curly
             cache.accessory_platform + '"');
 
@@ -1883,7 +1888,7 @@ export class PluginStandaloneAccessory extends PluginAccessory {
     readonly accessory_type: string;
 
     constructor(
-        server: Server, accessory: typeof Accessory, plugin: Plugin, accessory_type: string,
+        server: Server, accessory: typeof Accessory, plugin: Plugin | null, accessory_type: string,
         config: any, uuid: string
     ) {
         super(server, accessory, plugin);
@@ -1899,7 +1904,7 @@ export class PluginAccessoryPlatformAccessory extends PluginAccessory {
     readonly accessory_platform_name: string;
 
     constructor(
-        server: Server, accessory: typeof Accessory, plugin: Plugin, accessory_platform_name: string, base_uuid: string
+        server: Server, accessory: typeof Accessory, plugin: Plugin | null, accessory_platform_name: string, base_uuid: string
     ) {
         super(server, accessory, plugin);
 

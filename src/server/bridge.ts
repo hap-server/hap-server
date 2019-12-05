@@ -412,7 +412,7 @@ export default class Bridge {
         }
 
         if (this.external_accessory_servers.has(accessory)) {
-            return this.external_accessory_servers.get(accessory);
+            return this.external_accessory_servers.get(accessory)!;
         }
 
         // Create our HAP server which handles all communication between iOS devices and us
@@ -442,8 +442,8 @@ export default class Bridge {
         if (!this.external_accessory_identifier_caches.has(accessory) ||
             !this.external_accessory_servers.has(accessory)) return;
 
-        const identifier_cache = this.external_accessory_identifier_caches.get(accessory);
-        const hap_server = this.external_accessory_servers.get(accessory);
+        const identifier_cache = this.external_accessory_identifier_caches.get(accessory)!;
+        const hap_server = this.external_accessory_servers.get(accessory)!;
 
         identifier_cache.startTrackingUsage();
 

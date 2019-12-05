@@ -22,16 +22,16 @@ export default class Scene extends Events {
     readonly enable_actions: AutomationAction[];
     readonly disable_actions: AutomationAction[];
 
-    private _active: Promise<boolean>;
-    private check_active_progress: number;
-    private last_active: boolean;
-    private last_active_time: number;
+    private _active: Promise<boolean> | null = null;
+    private check_active_progress: number | null = null;
+    private last_active = false;
+    private last_active_time: number | null = null;
 
-    private _enabling: Promise<void>;
-    private enable_progress: number;
+    private _enabling: Promise<void> | null = null;
+    private enable_progress: number | null = null;
 
-    private _disabling: Promise<void>;
-    private disable_progress: number;
+    private _disabling: Promise<void> | null = null;
+    private disable_progress: number | null = null;
 
     /**
      * Creates a Scene.

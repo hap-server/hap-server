@@ -198,7 +198,7 @@ class LayoutSection extends EventEmitter {
         if (!data.accessories) data.accessories = [];
 
         this.data = Object.freeze(data);
-        this.staged_data = null;
+        this.staged_data = undefined;
 
         this.emit('updated-data', data);
     }

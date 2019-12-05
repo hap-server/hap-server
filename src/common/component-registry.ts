@@ -5,7 +5,7 @@ export default class ComponentRegistry<P, C> {
     // Force Vue to rerender when this property is updated
     private _vue = false;
 
-    get(key: string | number): C {
+    get(key: string | number): C | undefined {
         // Force Vue to watch this property
         this._vue;
 

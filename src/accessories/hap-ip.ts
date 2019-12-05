@@ -54,7 +54,7 @@ interface Characteristic extends HAPNodeJS.Characteristic {
 
 export default class HAPIP extends AccessoryPlatform {
     config: {
-        plugin: null;
+        plugin: undefined;
         platform: 'HomeKitIP';
         name: string;
         uuid: string; // Set by hap-server if not set by the user
@@ -69,14 +69,17 @@ export default class HAPIP extends AccessoryPlatform {
     events_connection: any;
     subscribed_characteristics: string[] = [];
 
-    private get_queue?: [/** aid, iid pair */ string, /** resolve */ () => void, /** reject */ () => void][];
-    private get_queue_timeout?: NodeJS.Timeout;
-    private set_queue?:
-        [/** aid, iid pair */ string, /** value */ any, /** resolve */ () => void, /** reject */ () => void][];
-    private set_queue_timeout?: NodeJS.Timeout;
-    private subscribe_queue?:
-        [/** aid, iid pair */ string, /** value */ boolean, /** resolve */ () => void, /** reject */ () => void][];
-    private subscribe_queue_timeout?: NodeJS.Timeout;
+    private get_queue:
+        [/** aid, iid pair */ string, /** resolve */ () => void, /** reject */ () => void][] | null = null;
+    private get_queue_timeout?: NodeJS.Timeout = undefined;
+    private set_queue:
+        [/** aid, iid pair */ string, /** value */ any, /** resolve */ () => void, /** reject */ () => void][] |
+        null = null;
+    private set_queue_timeout?: NodeJS.Timeout = undefined;
+    private subscribe_queue:
+        [/** aid, iid pair */ string, /** value */ boolean, /** resolve */ () => void, /** reject */ () => void][] |
+        null = null;
+    private subscribe_queue_timeout?: NodeJS.Timeout = undefined;
 
     async init(cached_accessories: Accessory[]) {
         if (!HttpClient) {
@@ -92,8 +95,8 @@ export default class HAPIP extends AccessoryPlatform {
                 try {
                     const accessory_uuid = uuid.generate(this.config.uuid + ':' + hap_characteristic.aid);
                     const accessory: Accessory = this.accessories.find(plugin_accessory =>
-                        plugin_accessory.uuid === accessory_uuid).accessory;
-                    const characteristic = accessory[CharacteristicMap].get(hap_characteristic.iid);
+                        plugin_accessory.uuid === accessory_uuid)!.accessory;
+                    const characteristic = (accessory as any)[CharacteristicMap].get(hap_characteristic.iid);
 
                     characteristic.updateValue(hap_characteristic.value);
                 } catch (err) {
@@ -156,7 +159,7 @@ export default class HAPIP extends AccessoryPlatform {
                 .find(s => s.UUID === hap_service.type && s.subtype === '' + hap_service.iid);
 
             for (const linked_service_iid of hap_service.linked) {
-                const linked_service = accessory[ServiceMap].get(linked_service_iid);
+                const linked_service = (accessory as any)[ServiceMap].get(linked_service_iid);
                 if (!linked_service) continue;
 
                 (service as any).addLinkedService(linked_service);
@@ -177,7 +180,7 @@ export default class HAPIP extends AccessoryPlatform {
         const service = new Service(null, hap_service.type, '' + hap_service.iid);
 
         service[IID] = hap_service.iid;
-        accessory[ServiceMap].set(hap_service.iid, service);
+        (accessory as any)[ServiceMap].set(hap_service.iid, service);
 
         for (const hap_characteristic of hap_service.characteristics) {
             const characteristic = this.createCharacteristicFromHAP(accessory, hap_accessory,
@@ -218,7 +221,7 @@ export default class HAPIP extends AccessoryPlatform {
         });
 
         characteristic[IID] = hap_characteristic.iid;
-        accessory[CharacteristicMap].set(hap_characteristic.iid, characteristic);
+        (accessory as any)[CharacteristicMap].set(hap_characteristic.iid, characteristic);
 
         characteristic.updateValue(hap_characteristic.value);
 
@@ -346,7 +349,7 @@ export default class HAPIP extends AccessoryPlatform {
         const removed_characteristics: Characteristic[] = [];
 
         for (const characteristic of service.characteristics as Characteristic[]) {
-            const hap_characteristic = hap_service.characteristics.find(c => characteristic[IID] === c.iid);
+            const hap_characteristic = hap_service.characteristics.find(c => characteristic[IID] === c.iid)!;
             const type = hap_characteristic.type.length === 2 ? `000000${hap_characteristic.type}-0000-1000-8000-0026BB765291` : hap_characteristic.type;
 
             // If the type has changed, remove and replace the characteristic
@@ -412,8 +415,11 @@ export default class HAPIP extends AccessoryPlatform {
             // @ts-ignore
             validValuesRange: hap_characteristic['valid-values-range'],
             unit: hap_characteristic.unit as unknown as HAPNodeJS.Characteristic.Units,
+            // @ts-ignore
             maxValue: hap_characteristic.maxValue,
+            // @ts-ignore
             minValue: hap_characteristic.minValue,
+            // @ts-ignore
             minStep: hap_characteristic.minStep,
         });
 
@@ -470,10 +476,10 @@ export default class HAPIP extends AccessoryPlatform {
 
     async processCharacteristicGetQueue() {
         const queue = this.get_queue || [];
-        clearTimeout(this.get_queue_timeout);
+        clearTimeout(this.get_queue_timeout as any);
 
         this.get_queue = null;
-        this.get_queue_timeout = null;
+        this.get_queue_timeout = undefined;
 
         try {
             const {characteristics} = await this.client.getCharacteristics(queue.map(q => q[0]));
@@ -534,10 +540,10 @@ export default class HAPIP extends AccessoryPlatform {
 
     async processCharacteristicSetQueue() {
         const queue = this.set_queue || [];
-        clearTimeout(this.set_queue_timeout);
+        clearTimeout(this.set_queue_timeout as any);
 
         this.set_queue = null;
-        this.set_queue_timeout = null;
+        this.set_queue_timeout = undefined;
 
         log.debug('Setting characteristics', queue);
 
@@ -614,10 +620,10 @@ export default class HAPIP extends AccessoryPlatform {
 
     async processCharacteristicSubscribeQueue() {
         const queue = this.subscribe_queue || [];
-        clearTimeout(this.subscribe_queue_timeout);
+        clearTimeout(this.subscribe_queue_timeout as any);
 
         this.subscribe_queue = null;
-        this.subscribe_queue_timeout = null;
+        this.subscribe_queue_timeout = undefined;
 
         try {
             const data: Record<string, boolean> = {};

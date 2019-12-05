@@ -44,7 +44,7 @@ export default class AutomationCondition extends EventEmitter {
         Object.defineProperty(this, 'log', {value: log || automations.log.withPrefix('Condition #' + this.id)});
     }
 
-    static load(automations: Automations, config: any, uuid: string, log: Logger) {
+    static load(automations: Automations, config: any, uuid?: string, log?: Logger) {
         const Condition = this.getConditionClass(config.condition, config.plugin);
         const condition = new Condition(automations, config, uuid, log);
 
@@ -61,7 +61,7 @@ export default class AutomationCondition extends EventEmitter {
             if (!plugin.automation_conditions.has(type)) throw new Error('Unknown automation condition "' + type + // eslint-disable-line curly
                 '" from plugin "' + plugin_name + '"');
 
-            return plugin.automation_conditions.get(type);
+            return plugin.automation_conditions.get(type)!;
         }
 
         const Condition = AutomationCondition.types[type];
@@ -119,7 +119,7 @@ export class AnyCondition extends AutomationCondition {
 
     async load() {
         this.conditions = await Promise.all(this.config.conditions.map((config, index) =>
-            this.automations.loadAutomationCondition(config, null, this.log.withPrefix('Child #' + index +
+            this.automations.loadAutomationCondition(config, undefined, this.log.withPrefix('Child #' + index +
                 ' (' + ((AutomationCondition as any).id + 1) + ')'))));
     }
 
@@ -181,7 +181,7 @@ export class AllCondition extends AutomationCondition {
 
     async load() {
         this.conditions = await Promise.all(this.config.conditions.map((config, index) =>
-            this.automations.loadAutomationCondition(config, null, this.log.withPrefix('Child #' + index +
+            this.automations.loadAutomationCondition(config, undefined, this.log.withPrefix('Child #' + index +
                 ' (' + ((AutomationCondition as any).id + 1) + ')'))));
     }
 

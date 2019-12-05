@@ -127,10 +127,10 @@ export default class Connection {
     readonly ws: WebSocket;
     readonly id: number;
     readonly log: Logger;
-    authenticated_user?: AuthenticatedUser;
+    authenticated_user: AuthenticatedUser | null = null;
     enable_accessory_discovery = false;
     enable_proxy_stdout = false;
-    last_message?: number;
+    last_message: number | null = null;
     closed = false;
     readonly req: http.IncomingMessage;
     readonly uploads: {
@@ -138,14 +138,22 @@ export default class Connection {
         filepath: string;
         filehash: string;
         file: any;
-    }[];
-    readonly open_consoles: Map<any, any>;
-    console_id: number;
-    readonly events: Set<any>;
+    }[] = [];
+    readonly open_consoles = new Map<any, any>();
+    console_id = 0;
+    /** Characteristics the client has subscribed to updates for */
+    readonly events = new Set<any>();
 
-    readonly permissions: Permissions;
+    readonly permissions = new Permissions(this);
 
-    terminateInterval: NodeJS.Timeout;
+    terminateInterval: NodeJS.Timeout = setInterval(() => {
+        this.ws.ping();
+
+        // A message was received less than 30 seconds ago
+        if (this.last_message && this.last_message > Date.now() - 30000) return;
+
+        this.ws.terminate();
+    }, 15000);
 
     asset_token: string;
 
@@ -154,18 +162,7 @@ export default class Connection {
         Object.defineProperty(this, 'ws', {value: ws});
         Object.defineProperty(this, 'id', {enumerable: true, value: id++});
         Object.defineProperty(this, 'log', {value: server.log.withPrefix('Connection #' + this.id)});
-        this.authenticated_user = null;
-        this.enable_accessory_discovery = false;
-        this.enable_proxy_stdout = false;
-        this.last_message = null;
-        this.closed = false;
         Object.defineProperty(this, 'req', {value: req});
-        this.uploads = [];
-        this.open_consoles = new Map();
-        this.console_id = 0;
-        this.events = new Set(); // Characteristics the client has subscribed to updates for
-
-        this.permissions = new Permissions(this);
 
         this.log.info('WebSocket connection from', this.req.connection.remoteAddress);
         // this.server.log.debug('WebSocket connection', this.id, this.ws);
@@ -239,15 +236,6 @@ export default class Connection {
         // ws.send('ping');
         ws.ping();
         ws.on('pong', () => this.last_message = Date.now());
-
-        this.terminateInterval = setInterval(() => {
-            this.ws.ping();
-
-            // A message was received less than 30 seconds ago
-            if (this.last_message > Date.now() - 30000) return;
-
-            this.ws.terminate();
-        }, 15000);
     }
 
     static getConnectionForWebSocket(ws: WebSocket) {
@@ -328,12 +316,12 @@ export default class Connection {
         },
         res: http.ServerResponse, next?: () => void
     ) {
-        const {search} = url.parse(req.url);
-        const search_params = querystring.parse(search);
+        const {search} = url.parse(req.url!);
+        const search_params = querystring.parse(search || '');
         const asset_token = search_params.token || req.cookies.asset_token;
 
         const connection = [...server.wss.clients].map(s => this.getConnectionForWebSocket(s))
-            .find(c => c.asset_token === asset_token);
+            .find(c => c && c.asset_token === asset_token);
 
         if (!asset_token || !connection) {
             server.log('Unauthorised asset request', req.url);
@@ -348,7 +336,7 @@ export default class Connection {
 
         req.hap_server_connection = connection;
 
-        next();
+        next && next();
     }
 
     /**
@@ -758,7 +746,7 @@ export default class Connection {
      */
     @messagehandler('list-layouts')
     async listLayouts() {
-        const uuids = [].concat(await this.server.storage.getItem('Layouts'));
+        const uuids: string[] = [].concat(await this.server.storage.getItem('Layouts'));
 
         if (this.authenticated_user && !uuids.includes('Overview.' + this.authenticated_user.id)) {
             uuids.push('Overview.' + this.authenticated_user.id);
@@ -1271,7 +1259,7 @@ export default class Connection {
         this.log.debug('Stopping automation', uuid);
 
         const automation = this.server.automations.automations.find(automation => automation.uuid === uuid);
-        await this.server.automations.removeAutomation(automation);
+        if (automation) await this.server.automations.removeAutomation(automation);
 
         this.log.debug('Deleting automation', uuid);
 
@@ -1478,7 +1466,7 @@ export default class Connection {
         this.log.debug('Removing scene', uuid);
 
         const scene = this.server.automations.getSceneByUUID(uuid);
-        await this.server.automations.removeScene(scene);
+        if (scene) await this.server.automations.removeScene(scene);
 
         this.log.debug('Deleting scene', uuid);
 
@@ -2016,7 +2004,7 @@ export default class Connection {
                 this.log.info('Authenticating with setup token', token);
 
                 if ([...this.server.wss.clients].map(s => (this.constructor as typeof Connection).getConnectionForWebSocket(s))
-                    .find(c => c.authenticated_user && c.authenticated_user.id === 'cli-token')
+                    .find(c => c && c.authenticated_user && c.authenticated_user.id === 'cli-token')
                 ) {
                     throw new Error('Another client is authenticated as the setup user.');
                 }
@@ -2035,7 +2023,7 @@ export default class Connection {
                 return this.respond(messageid, {
                     success: true,
                     data: this.authenticated_user,
-                    user_id: this.authenticated_user.id,
+                    user_id: this.authenticated_user!.id,
                 });
             } else {
                 throw new Error('Unknown authentication handler');
@@ -2147,6 +2135,7 @@ export default class Connection {
 
         for (const ws of this.server.wss.clients) {
             const connection = Connection.getConnectionForWebSocket(ws);
+            if (!connection) continue;
 
             if (ws.readyState !== 1 || !connection.authenticated_user ||
                 connection.authenticated_user.id !== user_id
@@ -2210,7 +2199,7 @@ export default class Connection {
             },
         });
 
-        const console = {input, output, subprocesses: new Set(), repl_server: null as repl.REPLServer};
+        const console = {input, output, subprocesses: new Set(), repl_server: null as repl.REPLServer | null};
         this.open_consoles.set(id, console);
 
         setTimeout(() => {
@@ -2246,8 +2235,8 @@ export default class Connection {
                     repl_server.pause();
                     const subprocess = child_process.exec(command);
                     console.subprocesses.add(subprocess);
-                    subprocess.stdout.on('data', data => output.write(data));
-                    subprocess.stderr.on('data', data => output.write(data));
+                    subprocess.stdout!.on('data', data => output.write(data));
+                    subprocess.stderr!.on('data', data => output.write(data));
                     console.input = subprocess.stdin as any;
                     const {code, signal} = await new Promise(rs =>
                         subprocess.on('exit', (code, signal) => rs({code, signal})));

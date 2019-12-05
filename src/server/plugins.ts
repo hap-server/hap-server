@@ -97,7 +97,7 @@ export class PluginManager extends Events {
         const paths = [];
 
         if (process.platform === 'win32') {
-            paths.push(path.join(process.env.APPDATA, 'npm', 'node_modules'));
+            paths.push(path.join(process.env.APPDATA!, 'npm', 'node_modules'));
         } else {
             paths.push('/usr/local/lib/node_modules', '/usr/lib/node_modules');
         }
@@ -341,8 +341,8 @@ export class PluginManager extends Events {
      * @param {string} plugin_name
      * @return {Plugin}
      */
-    getPlugin(plugin_name: string): Plugin {
-        return this.plugins.find(plugin => plugin.name === plugin_name || plugin.path === plugin_name);
+    getPlugin(plugin_name: string): Plugin | null {
+        return this.plugins.find(plugin => plugin.name === plugin_name || plugin.path === plugin_name) || null;
     }
 
     setPluginConfig(plugin_name: string, config: any) {
@@ -426,7 +426,7 @@ export default PluginManager.instance;
 
 export class Plugin extends Events {
     readonly plugin_manager: PluginManager;
-    readonly module?: Module = null;
+    readonly module: Module | null = null;
     readonly path: string;
     readonly name: string;
 
@@ -613,8 +613,8 @@ export class Plugin extends Events {
 
     getAccessorySetupHandlers(include_disabled = false) {
         return [...this.accessory_setup.keys()]
-            .filter(name => this.accessory_setup.get(name).enabled || include_disabled)
-            .map(name => this.accessory_setup.get(name));
+            .filter(name => this.accessory_setup.get(name)!.enabled || include_disabled)
+            .map(name => this.accessory_setup.get(name)!);
     }
 
     getAccessorySetupHandler(name: string) {
@@ -638,8 +638,8 @@ export class Plugin extends Events {
 
     getAuthenticationHandlers(include_disabled = false) {
         return [...this.authentication_handlers.keys()]
-            .filter(name => this.authentication_handlers.get(name).enabled || include_disabled)
-            .map(name => this.authentication_handlers.get(name));
+            .filter(name => this.authentication_handlers.get(name)!.enabled || include_disabled)
+            .map(name => this.authentication_handlers.get(name)!);
     }
 
     getAuthenticationHandler(name: string) {
@@ -682,12 +682,12 @@ export class Plugin extends Events {
 
     getUserManagementHandlers(include_disabled = false) {
         return [...this.user_management_handlers.keys()]
-            .filter(name => this.user_management_handlers.get(name).enabled || include_disabled)
-            .map(name => this.user_management_handlers.get(name));
+            .filter(name => this.user_management_handlers.get(name)!.enabled || include_disabled)
+            .map(name => this.user_management_handlers.get(name)!);
     }
 
     getUserManagementHandler(name: string) {
-        return this.user_management_handlers.get(name);
+        return this.user_management_handlers.get(name) || null;
     }
 
     registerUserManagementHandler(name: string, handler: UserManagementHandler): void
@@ -727,7 +727,7 @@ export class Plugin extends Events {
             name = handler.name;
         }
 
-        if (!(handler.prototype instanceof AutomationTrigger)) {
+        if (!(handler!.prototype instanceof AutomationTrigger)) {
             throw new Error('handler must be a class that extends AutomationTrigger');
         }
 
@@ -737,7 +737,7 @@ export class Plugin extends Events {
 
         log.info('Registering automation trigger', name, 'from plugin', this.name);
 
-        this.automation_triggers.set(name as string, handler);
+        this.automation_triggers.set(name as string, handler!);
     }
 
     registerAutomationCondition(name: string, handler: typeof AutomationCondition): void
@@ -748,7 +748,7 @@ export class Plugin extends Events {
             name = handler.name;
         }
 
-        if (!(handler.prototype instanceof AutomationCondition)) {
+        if (!(handler!.prototype instanceof AutomationCondition)) {
             throw new Error('handler must be a class that extends AutomationCondition');
         }
 
@@ -759,7 +759,7 @@ export class Plugin extends Events {
 
         log.info('Registering automation condition', name, 'from plugin', this.name);
 
-        this.automation_conditions.set(name as string, handler);
+        this.automation_conditions.set(name as string, handler!);
     }
 
     registerAutomationAction(name: string, handler: typeof AutomationAction): void
@@ -770,7 +770,7 @@ export class Plugin extends Events {
             name = handler.name;
         }
 
-        if (!(handler.prototype instanceof AutomationAction)) {
+        if (!(handler!.prototype instanceof AutomationAction)) {
             throw new Error('handler must be a class that extends AutomationAction');
         }
 
@@ -780,7 +780,7 @@ export class Plugin extends Events {
 
         log.info('Registering automation action', name, 'from plugin', this.name);
 
-        this.automation_actions.set(name as string, handler);
+        this.automation_actions.set(name as string, handler!);
     }
 }
 
@@ -850,7 +850,7 @@ export class AccessoryPlatform {
     addAccessory(...accessories: typeof Accessory[]) {
         for (const accessory of accessories) {
             const plugin_accessory = new PluginAccessoryPlatformAccessory(this.server, accessory, this.plugin,
-                this.constructor.name, this.config.uuid);
+                this.constructor.name, this.config.uuid!);
 
             this.server.addAccessory(plugin_accessory);
             this.removeCachedAccessory(accessory.UUID);
@@ -1008,16 +1008,16 @@ export abstract class AccessoryDiscovery extends EventEmitter {
     static id = 0;
 
     readonly id: number;
-    readonly plugin: Plugin;
+    readonly plugin: Plugin | null;
     readonly localid: string;
     readonly setup: AccessorySetup;
     readonly discovered_accessories: DiscoveredAccessory[];
 
     running = false;
-    starting?: Promise<void>;
-    stopping?: Promise<void>;
+    starting: Promise<void> | null = null;
+    stopping: Promise<void> | null = null;
 
-    constructor(plugin: Plugin, localid?: AccessorySetup | string, setup?: AccessorySetup) {
+    constructor(plugin: Plugin | null, localid?: AccessorySetup | string, setup?: AccessorySetup) {
         super();
 
         if (localid instanceof AccessorySetup) {
@@ -1173,13 +1173,13 @@ export abstract class AccessoryDiscovery extends EventEmitter {
 export class DiscoveredAccessory {
     private static id = 0;
 
-    readonly plugin: Plugin;
+    readonly plugin: Plugin | null;
     readonly id: number;
-    readonly accessory_discovery?: AccessoryDiscovery
+    readonly accessory_discovery: AccessoryDiscovery
 
     readonly [key: string]: any;
 
-    constructor(plugin: Plugin, data: object, accessory_discovery?: AccessoryDiscovery) {
+    constructor(plugin: Plugin | null, data: object, accessory_discovery?: AccessoryDiscovery) {
         Object.defineProperty(this, 'plugin', {value: plugin});
         Object.defineProperty(this, 'id', {value: DiscoveredAccessory.id++});
 
@@ -1194,13 +1194,13 @@ export class DiscoveredAccessory {
 export class AccessorySetup {
     private static id = 0;
 
-    readonly plugin: Plugin;
+    readonly plugin: Plugin | null;
     readonly id: number;
     readonly localid: string;
 
     handler: (data: any, connection: Connection) => any;
 
-    constructor(plugin: Plugin, name: string, handler: (data: any, connection: Connection) => any) {
+    constructor(plugin: Plugin | null, name: string, handler: (data: any, connection: Connection) => any) {
         Object.defineProperty(this, 'plugin', {value: plugin});
         Object.defineProperty(this, 'id', {value: AccessorySetup.id++});
         Object.defineProperty(this, 'localid', {value: name});
@@ -1232,8 +1232,9 @@ export class AuthenticationHandler {
     readonly localid: string;
 
     handler: (data: any, connection: Connection) => Promise<AuthenticatedUser | any> | AuthenticatedUser | any;
-    reconnect_handler?: (data: any) => any;
-    disconnect_handler?: (authenticated_user: AuthenticatedUser, disconnected: boolean, connection: Connection) => any;
+    reconnect_handler?: ((data: any) => any) = undefined;
+    disconnect_handler?:
+        ((authenticated_user: AuthenticatedUser, disconnected: boolean, connection: Connection) => any) = undefined;
 
     constructor(
         plugin: Plugin,
@@ -1247,7 +1248,7 @@ export class AuthenticationHandler {
         Object.defineProperty(this, 'localid', {value: localid});
 
         this.handler = handler;
-        this.reconnect_handler = null;
+        this.reconnect_handler = undefined;
         this.disconnect_handler = disconnect_handler;
     }
 
@@ -1348,15 +1349,15 @@ export class AuthenticationHandler {
 }
 
 export class AuthenticatedUser {
-    readonly plugin: Plugin;
+    readonly plugin: Plugin | null;
     readonly id: string;
-    readonly authentication_handler?: AuthenticationHandler;
+    readonly authentication_handler: AuthenticationHandler;
     readonly name: string;
     readonly token: string;
 
     [key: string]: any;
 
-    constructor(plugin: Plugin, id: string, name: string, authentication_handler?: AuthenticationHandler) {
+    constructor(plugin: Plugin | null, id: string, name: string, authentication_handler?: AuthenticationHandler) {
         Object.defineProperty(this, 'plugin', {value: plugin});
         Object.defineProperty(this, 'id', {value: id});
 

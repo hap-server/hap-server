@@ -321,7 +321,7 @@ class Accessory extends EventEmitter {
         this._updateDisplayServices(services, []);
     }
 
-    get primary_service(): Service {
+    get primary_service(): Service | null {
         for (const service of Object.values(this.services)) {
             if (!service.details.primary) continue;
 
@@ -370,8 +370,8 @@ class Accessory extends EventEmitter {
         return this.configured_name || this.default_name;
     }
 
-    get configured_name(): string {
-        return this.data.name;
+    get configured_name(): string | null {
+        return this.data.name || null;
     }
 
     get default_name(): string {

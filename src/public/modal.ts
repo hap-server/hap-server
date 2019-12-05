@@ -36,14 +36,14 @@ const translationsContextRequire: {
 } = require.context('./translations', true, /\.ts$/, 'weak');
 
 for (const file of translationsContextRequire.keys()) {
-    const [, locale] = file.match(/\/([^/]*)\.[^/.]+$/i);
+    const [, locale] = file.match(/\/([^/]*)\.[^/.]+$/i)!;
     console.log(locale, file);
     availableLocales.push(locale);
 
     // @ts-ignore
     if (module.hot) {
         const m = translationsContextRequire.resolve(file);
-        const c = updated => {
+        const c = (updated: string) => {
             i18n.setLocaleMessage(locale, translationsContextRequire(file).default);
         };
 
@@ -95,11 +95,11 @@ const vue = new Vue({
             [NativeHookSymbol]: native_hook,
             [ModalsSymbol]: modals,
             [ClientSymbol]: client,
-            [GetAssetURLSymbol]: asset => this.getAssetURL(asset),
+            [GetAssetURLSymbol]: (asset: string) => this.getAssetURL(asset),
         };
     },
     methods: {
-        getAssetURL(asset) {
+        getAssetURL(asset: string) {
             if (native_hook && native_hook.base_url) {
                 return url.resolve(native_hook.base_url, 'assets/' + asset);
             }
@@ -112,7 +112,7 @@ const vue = new Vue({
     },
 });
 
-vue.$mount(document.body.firstElementChild);
+vue.$mount(document.body.firstElementChild!);
 
 // @ts-ignore
 global.client = client;

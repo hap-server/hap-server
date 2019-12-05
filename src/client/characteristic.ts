@@ -21,10 +21,10 @@ class Characteristic extends EventEmitter {
 
     _subscribed = false;
     subscription_dependencies = new Set<any>();
-    _getting?: Promise<void>;
+    _getting: Promise<void> | null = null;
     _target_value: any = null;
     _setting: any[] = [];
-    error: any;
+    error: any = null;
 
     /**
      * Creates a Characteristic.
@@ -43,12 +43,6 @@ class Characteristic extends EventEmitter {
             iid: 0, type: null, perms: [], format: CharacteristicFormat.DATA, description: '',
         });
         this._setPermissions(permissions);
-        this._subscribed = false;
-        this.subscription_dependencies = new Set();
-        this._getting = null;
-        this._target_value = null;
-        this._setting = [];
-        this.error = null;
     }
 
     get details(): CharacteristicHap {
@@ -100,31 +94,31 @@ class Characteristic extends EventEmitter {
         return this.value !== this.target_value;
     }
 
-    get valid_values(): any[] {
+    get valid_values() {
         return this.details['valid-values'];
     }
 
-    get valid_values_range(): [number, number] {
+    get valid_values_range() {
         return this.details['valid-values-range'];
     }
 
-    get unit(): string {
+    get unit() {
         return this.details.unit;
     }
 
-    get max_value(): number {
+    get max_value() {
         return this.details.maxValue;
     }
 
-    get min_value(): number {
+    get min_value() {
         return this.details.minValue;
     }
 
-    get min_step(): number {
+    get min_step() {
         return this.details.minStep;
     }
 
-    get max_length(): number {
+    get max_length() {
         return this.details.maxLen;
     }
 

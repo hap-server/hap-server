@@ -19,7 +19,7 @@ export default class Homebridge extends Bridge {
     readonly homebridge: HomebridgeServer;
 
     constructor(server: Server, log: Logger, config: any, unauthenticated_access = false) {
-        HomebridgeUser.configPath = () => undefined as () => undefined;
+        HomebridgeUser.configPath = (() => undefined) as () => undefined;
         HomebridgeUser.config = () => config;
 
         const homebridge = new HomebridgeServer({
@@ -28,9 +28,9 @@ export default class Homebridge extends Bridge {
             hideQRCode: true,
         });
 
-        homebridge._printSetupInfo = () => undefined as () => undefined;
-        homebridge._printPin = () => undefined as () => undefined;
-        homebridge._handleNewConfig = () => undefined as () => undefined;
+        homebridge._printSetupInfo = (() => undefined) as () => undefined;
+        homebridge._printPin = (() => undefined) as () => undefined;
+        homebridge._handleNewConfig = (() => undefined) as () => undefined;
 
         super(server, log, {
             uuid: homebridge._bridge.UUID,

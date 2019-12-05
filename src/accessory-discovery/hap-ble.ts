@@ -40,7 +40,7 @@ export const HAPBLEDiscovery = AccessoryDiscovery.withHandler(accessory_discover
         log.debug('Removed service', service);
 
         accessory_discovery.removeAccessory(data => data.username === service.DeviceID);
-        accessories[service.DeviceID] = null;
+        delete accessories[service.DeviceID];
     });
 
     discovery.start();

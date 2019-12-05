@@ -119,7 +119,7 @@ export function builder(yargs: typeof import('yargs')) {
  * @param {string} [base_path]
  * @return {Array}
  */
-export function parseAddress(address: string | number, base_path?: string): Address {
+export function parseAddress(address: string | number, base_path: string): Address {
     let match;
 
     if (typeof address === 'number' || address.match(/^\d+$/)) {
@@ -155,7 +155,7 @@ export function addressToString(address: Address) {
     throw new Error('Invalid address array');
 }
 
-export function normaliseAddress(address: Address | string | number, base_path?: string) {
+export function normaliseAddress(address: Address | string | number, base_path: string) {
     return addressToString(typeof address === 'object' ? address : parseAddress(address, base_path));
 }
 
@@ -169,7 +169,7 @@ type Address = ['net', string, number] | ['unix', string];
  * @return {Promise<string[]>}
  */
 function getCertificates(certificates: string | [string, string], base_path: string) {
-    return Promise.all([].concat(certificates || []).map(async certificate => {
+    return Promise.all(([] as string[]).concat(certificates || []).map(async certificate => {
         if (certificate.startsWith('-----')) return certificate;
 
         return readFile(path.resolve(base_path, certificate), 'utf-8');
@@ -290,7 +290,8 @@ export async function handler(argv: Arguments) {
     const listen_addresses:
         (['net', string, number] | ['unix', string] | ['net', string, number, AddressOptions | undefined] |
             ['unix', string, AddressOptions | undefined])[]
-        = [].concat(config.listen || []).map(a => a instanceof Array ? a as Address : parseAddress(a, data_path));
+        = ([] as (string | number | ["net", string, number] | ["unix", string])[])
+            .concat(config.listen || []).map(a => a instanceof Array ? a as Address : parseAddress(a, data_path));
     const https_addresses: Record<string, string | [string, string] | [string, string, HttpsOptions]> = {};
     for (const [address, certificate] of Object.entries(config['listen-https'] || {})) {
         https_addresses[normaliseAddress(address, data_path)] = certificate as any;
@@ -515,9 +516,9 @@ export async function handler(argv: Arguments) {
                 await getCertificates(https_require_client_certificate || https_request_client_certificate, data_path) :
                 null,
             cert: (await getCertificates(https as string | [string, string], data_path))
-                .filter(c => c.match(/CERTIFICATE/i)),
+                .filter(c => (c as string).match(/CERTIFICATE/i)),
             key: (await getCertificates(https as string | [string, string], data_path))
-                .filter(c => c.match(/PRIVATE KEY/i)),
+                .filter(c => (c as string).match(/PRIVATE KEY/i)),
             crl: await getCertificates(https_crl, data_path),
             passphrase: https_passphrase,
 

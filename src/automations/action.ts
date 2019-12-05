@@ -64,7 +64,7 @@ export default class AutomationAction extends EventEmitter {
             if (!plugin.automation_actions.has(type)) throw new Error('Unknown automation action "' + type + // eslint-disable-line curly
                 '" from plugin "' + plugin_name + '"');
 
-            return plugin.automation_actions.get(type);
+            return plugin.automation_actions.get(type)!;
         }
 
         const Action = AutomationAction.types[type];
@@ -123,10 +123,10 @@ export class ConditionalAction extends AutomationAction {
     private actions: AutomationAction[];
 
     async load() {
-        this.condition = await this.automations.loadAutomationCondition(this.config.condition, null,
+        this.condition = await this.automations.loadAutomationCondition(this.config.condition, undefined,
             this.log.withPrefix('Condition (#' + ((AutomationCondition as any).id + 1) + ')'));
         this.actions = await Promise.all(this.config.actions.map((config, index) =>
-            this.automations.loadAutomationAction(config, null, this.log.withPrefix('Child #' + index +
+            this.automations.loadAutomationAction(config, undefined, this.log.withPrefix('Child #' + index +
                 ' (' + ((AutomationAction as any).id + 1) + ')'))));
     }
 

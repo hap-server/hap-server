@@ -189,8 +189,8 @@ export default class Automations extends Events {
      * @param {number} id
      * @return {Automation}
      */
-    getAutomation(id: number): Automation {
-        return this.automations.find(automation => automation.id === id);
+    getAutomation(id: number): Automation | null {
+        return this.automations.find(automation => automation.id === id) || null;
     }
 
     /**
@@ -199,8 +199,8 @@ export default class Automations extends Events {
      * @param {string} uuid
      * @return {Automation}
      */
-    getAutomationByUUID(uuid: string): Automation {
-        return this.automations.find(automation => automation.uuid === uuid);
+    getAutomationByUUID(uuid: string): Automation | null {
+        return this.automations.find(automation => automation.uuid === uuid) || null;
     }
 
     /**
@@ -209,8 +209,8 @@ export default class Automations extends Events {
      * @param {number} id
      * @return {Scene}
      */
-    getScene(id: number): Scene {
-        return this.scenes.find(scene => scene.id === id);
+    getScene(id: number): Scene | null {
+        return this.scenes.find(scene => scene.id === id) || null;
     }
 
     /**
@@ -219,8 +219,8 @@ export default class Automations extends Events {
      * @param {string} uuid
      * @return {Scene}
      */
-    getSceneByUUID(uuid: string): Scene {
-        return this.scenes.find(scene => scene.uuid === uuid);
+    getSceneByUUID(uuid: string): Scene | null {
+        return this.scenes.find(scene => scene.uuid === uuid) || null;
     }
 
     /**
@@ -282,7 +282,7 @@ export class Automation {
 
     readonly automations: Automations;
     readonly id: number;
-    readonly uuid?: string;
+    readonly uuid: string | null;
     readonly config?: any;
 
     readonly log: Logger;
@@ -298,10 +298,10 @@ export class Automation {
      * @param {object} config
      * @param {string} [uuid]
      */
-    constructor(automations: Automations, config: any, uuid: string) {
+    constructor(automations: Automations, config: any, uuid?: string) {
         Object.defineProperty(this, 'automations', {value: automations});
         Object.defineProperty(this, 'id', {value: Automation.id++});
-        Object.defineProperty(this, 'uuid', {value: uuid});
+        Object.defineProperty(this, 'uuid', {value: uuid || null});
         this.config = config;
 
         this.log = automations.log.withPrefix('Automation #' + this.id);
@@ -463,8 +463,8 @@ export class AutomationRunner extends EventEmitter {
     readonly conditions: Map<AutomationCondition, number>;
     readonly actions: Map<AutomationAction, number>;
 
-    private running?: Promise<void>;
-    private finished: boolean;
+    private running: Promise<void> | null = null;
+    private finished = false;
 
     /**
      * Creates an AutomationRunner.
@@ -483,9 +483,6 @@ export class AutomationRunner extends EventEmitter {
 
         Object.defineProperty(this, 'conditions', {value: new Map(automation.conditions.map(c => [c, 0]))});
         Object.defineProperty(this, 'actions', {value: new Map(automation.actions.map(a => [a, 0]))});
-
-        this.running = null;
-        this.finished = false;
     }
 
     /**

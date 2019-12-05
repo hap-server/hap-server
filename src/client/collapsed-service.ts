@@ -10,7 +10,7 @@ class CollapsedService extends Service {
     services: Service[];
 
     constructor(accessory: Accessory, uuid: string, type: string, data: ServiceData, services?: Service[]) {
-        super(accessory, uuid, {iid: 0, type: null, characteristics: []}, data);
+        super(accessory, uuid, {iid: 0, type: '', characteristics: []}, data);
 
         this.collapsed_service_uuid = uuid;
         this.collapsed_service_type = type;
@@ -47,8 +47,8 @@ class CollapsedService extends Service {
         return this.configured_name || this.default_name;
     }
 
-    get configured_name(): string {
-        return this.data.name;
+    get configured_name(): string | null {
+        return this.data.name || null;
     }
 
     get default_name() {

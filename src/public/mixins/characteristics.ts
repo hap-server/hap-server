@@ -12,7 +12,7 @@ const SubscribeCharacteristicsMixin: Component & {
         },
     },
     created() {
-        for (const characteristic of this.subscribedCharacteristics) {
+        for (const characteristic of this.subscribedCharacteristics || []) {
             if (!characteristic) continue;
 
             characteristic.subscribe(this);

@@ -127,7 +127,7 @@ export class PluginManager {
     async loadWebInterfacePluginScript(ui_plugin: UIPlugin, script: string) {
         if (!script.startsWith('/')) script = '/' + script;
 
-        return this.import(ui_plugin, undefined, this.getModuleCache(ui_plugin), undefined, script);
+        return this.import(ui_plugin, null, this.getModuleCache(ui_plugin), null, script);
     }
 
     /**
@@ -234,7 +234,7 @@ export class PluginManager {
      * @param {string} request The name of the module to return the exports of
      * @return {Promise<*>}
      */
-    async import(ui_plugin: UIPlugin, script: string, cache: RequireCache, parent: Module, request: string) {
+    async import(ui_plugin: UIPlugin, script: string | null, cache: RequireCache, parent: Module | null, request: string) {
         if (script) request = path.resolve(path.dirname(script), request);
 
         if (request.match(/^@hap-server\/accessory-ui-api(\/.*)?$/)) {
@@ -288,11 +288,11 @@ export class PluginManager {
             url: request_url,
             relative_url,
             exports: {},
-            require: undefined,
-            import: undefined,
+            require: undefined as any,
+            import: undefined as any,
             ui_plugin,
             accessory_ui: ui_plugin,
-            parent,
+            parent: parent || undefined,
         };
         module.require = this.require.bind(this, ui_plugin, request, cache, module);
         module.require.cache = cache;
@@ -318,7 +318,7 @@ export class PluginManager {
      * @return {object}
      */
     getModuleCache(ui_plugin: UIPlugin) {
-        if (this.require_caches.has(ui_plugin)) return this.require_caches.get(ui_plugin);
+        if (this.require_caches.has(ui_plugin)) return this.require_caches.get(ui_plugin)!;
 
         const cache = {};
 

@@ -22,8 +22,8 @@ export default class AutomationTrigger extends Events {
     readonly log: Logger;
 
     private running = false;
-    private starting: Promise<boolean>;
-    private stopping: Promise<boolean>;
+    private starting: Promise<boolean> | null = null;
+    private stopping: Promise<boolean> | null = null;
 
     /**
      * Creates an AutomationTrigger.
@@ -46,13 +46,9 @@ export default class AutomationTrigger extends Events {
         Object.defineProperty(this, 'config', {value: config});
 
         Object.defineProperty(this, 'log', {value: log || automations.log.withPrefix('Trigger #' + this.id)});
-
-        this.running = false;
-        this.starting = null;
-        this.stopping = null;
     }
 
-    static load(automations: Automations, config: any, uuid: string, log: Logger) {
+    static load(automations: Automations, config: any, uuid?: string, log?: Logger) {
         const Trigger = this.getTriggerClass(config.trigger, config.plugin);
         const trigger = new Trigger(automations, config, uuid, log);
 
@@ -67,7 +63,7 @@ export default class AutomationTrigger extends Events {
             if (!plugin.automation_triggers.has(type)) throw new Error('Unknown automation trigger "' + type + // eslint-disable-line curly
                 '" from plugin "' + plugin_name + '"');
 
-            return plugin.automation_triggers.get(type);
+            return plugin.automation_triggers.get(type)!;
         }
 
         const Trigger = AutomationTrigger.types[type];
@@ -145,7 +141,7 @@ export interface CronTriggerConfiguration extends AutomationTriggerConfiguration
 export class CronTrigger extends AutomationTrigger {
     readonly config: CronTriggerConfiguration;
 
-    private task: ScheduledTask;
+    private task: ScheduledTask | null = null;
 
     onstart() {
         if (this.task) this.task.destroy(), this.task = null;
@@ -180,7 +176,7 @@ export interface SceneTriggerConfiguration extends AutomationTriggerConfiguratio
 export class SceneTrigger extends AutomationTrigger {
     readonly config: SceneTriggerConfiguration;
 
-    private listener?: EventListener;
+    private listener: EventListener | null = null;
 
     onstart() {
         if (this.listener) this.listener.cancel(), this.listener = null;

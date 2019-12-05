@@ -40,7 +40,7 @@ class Service extends EventEmitter {
         this.linked_services = [];
         this._setPermissions(permissions || []);
         this._setData(data || {});
-        this._setDetails(details || {iid: 0, type: null, characteristics: []});
+        this._setDetails(details || {iid: 0, type: '', characteristics: []});
     }
 
     get details(): ServiceHap {
@@ -148,8 +148,8 @@ class Service extends EventEmitter {
         return this.configured_name || this.default_name;
     }
 
-    get configured_name(): string {
-        return this.data.name;
+    get configured_name(): string | null {
+        return this.data.name || null;
     }
 
     get default_name(): string {
@@ -195,7 +195,7 @@ class Service extends EventEmitter {
     }
 
     getCharacteristic(type: string) {
-        return this.findCharacteristic(characteristic => characteristic.type === type);
+        return this.findCharacteristic(characteristic => characteristic.type === type) || null;
     }
 
     /**
@@ -220,8 +220,7 @@ class Service extends EventEmitter {
 
     setCharacteristic(type: string, value: any) {
         const characteristic = this.getCharacteristic(type);
-
-        return characteristic.setValue(value);
+        return characteristic && characteristic.setValue(value);
     }
 
     setCharacteristicByName(name: string, value: any) {
@@ -365,7 +364,7 @@ export class UnavailableService extends Service {
      * @param {string} uuid
      */
     constructor(accessory: Accessory, uuid: string) {
-        super(accessory, uuid, null, accessory.data['Service.' + uuid] as ServiceData);
+        super(accessory, uuid, undefined, accessory.data['Service.' + uuid] as ServiceData);
     }
 
     static for(connection: Connection, accessories: {[key: string]: Accessory}, uuid: string, service_uuid: string) {
@@ -373,7 +372,9 @@ export class UnavailableService extends Service {
         if (!service_uuid) service_uuid = uuid.substr(accessory_uuid.length + 1);
 
         if (!accessories) accessories = {};
-        const accessory = accessories[accessory_uuid] || new Accessory(connection, accessory_uuid, null, null, null);
+        const accessory = accessories[accessory_uuid] ||
+            new Accessory(connection, accessory_uuid, {aid: 0, services: []}, {},
+                {get: false, set: false, set_characteristics: {}});
 
         const service = new this(accessory, service_uuid);
 

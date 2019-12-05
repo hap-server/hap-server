@@ -1,7 +1,7 @@
 import querystring from 'querystring';
 import Modals, {Modal} from './modals';
 
-const modal_windows = new WeakMap();
+const modal_windows = new WeakMap<Modal, Window>();
 
 const external_types = [
     // 'authenticate',
@@ -22,9 +22,9 @@ const external_types = [
 ];
 
 export class WindowModals extends Modals {
-    _add(modal) {
+    _add(modal: Modal) {
         if (modal_windows.has(modal)) {
-            modal_windows.get(modal).focus();
+            modal_windows.get(modal)!.focus();
             return;
         }
 
@@ -48,21 +48,21 @@ export class WindowModals extends Modals {
             .map(([k, v]) => `${k}=${v === true ? 'yes' : v === false ? 'no' : v}`).join(','));
 
         const onclose = () => {
-            modal_window.removeEventListener('close', onclose);
+            modal_window!.removeEventListener('close', onclose);
             let index;
             while ((index = this.stack.indexOf(modal)) > -1) {
                 this.stack.splice(index, 1);
             }
         };
-        modal_window.addEventListener('close', onclose);
+        modal_window!.addEventListener('close', onclose);
 
-        modal_windows.set(modal, modal_window);
+        modal_windows.set(modal, modal_window!);
     }
 
-    _remove(modal) {
+    _remove(modal: Modal) {
         if (!modal_windows.has(modal)) return;
 
-        const modal_window = modal_windows.get(modal);
+        const modal_window = modal_windows.get(modal)!;
         modal_window.close();
 
         modal_windows.delete(modal);

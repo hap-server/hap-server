@@ -24,6 +24,8 @@ interface Arguments extends GlobalArguments {
 }
 
 export async function handler(argv: Arguments) {
+    if (!argv.user) throw new Error('Unknown user');
+
     // eslint-disable-next-line no-unused-vars
     const {connection, authenticated_user, config, config_path, data_path, server_pid} = await connect(argv);
 
