@@ -19,11 +19,11 @@ export default class AutomationAction extends EventEmitter {
         [key: string]: typeof AutomationAction;
     } = {};
 
-    readonly automations: Automations;
-    readonly id: number;
-    readonly uuid?: string;
+    readonly automations!: Automations;
+    readonly id!: number;
+    readonly uuid!: string | null;
     readonly config: any;
-    readonly log: Logger;
+    readonly log!: Logger;
 
     /**
      * Creates an AutomationAction.
@@ -41,7 +41,7 @@ export default class AutomationAction extends EventEmitter {
         Object.defineProperty(this, 'automations', {value: automations});
 
         Object.defineProperty(this, 'id', {value: AutomationAction.id++});
-        Object.defineProperty(this, 'uuid', {value: uuid});
+        Object.defineProperty(this, 'uuid', {value: uuid || null});
         Object.defineProperty(this, 'config', {value: config});
 
         Object.defineProperty(this, 'log', {value: log || automations.log.withPrefix('Action #' + this.id)});
@@ -117,10 +117,10 @@ export interface ConditionalActionConfiguration extends AutomationActionConfigur
  * An AutomationAction that runs a condition before running it's child actions.
  */
 export class ConditionalAction extends AutomationAction {
-    readonly config: ConditionalActionConfiguration;
+    readonly config!: ConditionalActionConfiguration;
 
-    private condition: AutomationCondition;
-    private actions: AutomationAction[];
+    private condition: AutomationCondition | null = null;
+    private actions: AutomationAction[] | null = null;
 
     async load() {
         this.condition = await this.automations.loadAutomationCondition(this.config.condition, undefined,
@@ -135,7 +135,7 @@ export class ConditionalAction extends AutomationAction {
 
         let finished = false;
 
-        const result = await this.condition.check(runner, progress => {
+        const result = await this.condition!.check(runner, progress => {
             if (finished) throw new Error('Cannot update progress after the condition has finished running');
             if (progress < 0 || progress > 1) throw new Error('progress must be between 0 and 1');
             setProgress(progress / 2);
@@ -151,7 +151,7 @@ export class ConditionalAction extends AutomationAction {
 
         this.log.debug('Conditional action #%d condition passed', this.id);
 
-        await Promise.all(this.actions.map(async (action, index) => {
+        await Promise.all(this.actions!.map(async (action, index) => {
             try {
                 this.log.debug('Running conditional action #%d child #%d', this.id, action.id);
 
@@ -160,11 +160,11 @@ export class ConditionalAction extends AutomationAction {
                 await action.run(runner, progress => {
                     if (finished) throw new Error('Cannot update progress after the action has finished running');
                     if (progress < 0 || progress > 1) throw new Error('progress must be between 0 and 1');
-                    setProgress((index + 1) * progress / this.actions.length);
+                    setProgress((index + 1) * progress / this.actions!.length);
                 }, this, ...parent_actions);
 
                 finished = true;
-                setProgress((index + 1) / this.actions.length);
+                setProgress((index + 1) / this.actions!.length);
 
                 this.log.debug('Finished running conditional action #%d action #%d', this.id, action.id, this);
             } catch (err) {
@@ -189,7 +189,7 @@ export interface ScriptActionConfiguration extends AutomationActionConfiguration
  * An AutomationAction that runs a JavaScript VM.
  */
 export class ScriptAction extends AutomationAction {
-    readonly config: ScriptActionConfiguration;
+    readonly config!: ScriptActionConfiguration;
 
     private sandbox: {
         server: Server;
@@ -202,8 +202,8 @@ export class ScriptAction extends AutomationAction {
         automations: Automations;
         automation_action: ScriptAction;
         log: Logger;
-    };
-    private script: vm.Script;
+    } | null = null;
+    private script: vm.Script | null = null;
 
     load() {
         this.sandbox = Object.freeze({
@@ -229,7 +229,7 @@ export class ScriptAction extends AutomationAction {
     async run(runner: AutomationRunner, setProgress: (progress: number) => void, ...parent_actions: AutomationAction[]) {
         this.log.debug('Running script action #%d', this.id);
 
-        const sandbox = Object.create(this.sandbox);
+        const sandbox = Object.create(this.sandbox!);
 
         sandbox.automation_runner = runner;
         sandbox.setAutomationProgress = setProgress;
@@ -238,7 +238,7 @@ export class ScriptAction extends AutomationAction {
         Object.freeze(sandbox);
 
         const sandbox_context = vm.createContext(sandbox);
-        return await this.script.runInContext(sandbox_context);
+        return await this.script!.runInContext(sandbox_context);
     }
 }
 
@@ -262,7 +262,7 @@ export type SetCharacteristicActionConfiguration =
  * An AutomationAction that sets a characteristic.
  */
 export class SetCharacteristicAction extends AutomationAction {
-    readonly config: SetCharacteristicActionConfiguration;
+    readonly config!: SetCharacteristicActionConfiguration;
 
     async run(runner: AutomationRunner, setProgress: (progress: number) => void, ...parent_actions: AutomationAction[]) {
         const characteristic = this.automations.server.getCharacteristic(this.config.characteristic);
@@ -303,7 +303,7 @@ export interface RunAutomationActionConfiguration extends AutomationActionConfig
  * An AutomationAction that triggers an automation.
  */
 export class RunAutomationAction extends AutomationAction {
-    readonly config: RunAutomationActionConfiguration;
+    readonly config!: RunAutomationActionConfiguration;
 
     async run(parent_runner: AutomationRunner, setProgress: (progress: number) => void, ...parent_actions: AutomationAction[]) {
         const automation = this.automations.getAutomationByUUID(this.config.automation_uuid);

@@ -294,7 +294,7 @@ export class PluginManager {
             accessory_ui: ui_plugin,
             parent: parent || undefined,
         };
-        module.require = this.require.bind(this, ui_plugin, request, cache, module);
+        module.require = this.require.bind(this, ui_plugin, request, cache, module) as Module['require'];
         module.require.cache = cache;
         module.import = this.import.bind(this, ui_plugin, request, cache, module);
         module.require.import = module.import;
@@ -370,8 +370,8 @@ export class PluginManager {
 export default PluginManager.instance;
 
 export class PluginAPI {
-    readonly plugin_manager: PluginManager;
-    readonly ui_plugin: UIPlugin;
+    readonly plugin_manager!: PluginManager;
+    readonly ui_plugin!: UIPlugin;
 
     constructor(plugin_manager: PluginManager, ui_plugin: UIPlugin) {
         Object.defineProperty(this, 'plugin_manager', {value: plugin_manager});
@@ -750,9 +750,9 @@ export class PluginAPI {
 export abstract class UserManagementHandler {
     private static id = 0;
 
-    readonly id: number;
-    readonly ui_plugin: UIPlugin;
-    readonly connection: UserManagementConnection;
+    readonly id!: number;
+    readonly ui_plugin!: UIPlugin;
+    readonly connection!: UserManagementConnection;
 
     static user_management_handler_id: number;
     static user_management_handler_localid: number;

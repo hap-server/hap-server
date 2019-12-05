@@ -53,7 +53,7 @@ interface Characteristic extends HAPNodeJS.Characteristic {
 }
 
 export default class HAPIP extends AccessoryPlatform {
-    config: {
+    config!: {
         plugin: undefined;
         platform: 'HomeKitIP';
         name: string;
@@ -70,15 +70,15 @@ export default class HAPIP extends AccessoryPlatform {
     subscribed_characteristics: string[] = [];
 
     private get_queue:
-        [/** aid, iid pair */ string, /** resolve */ () => void, /** reject */ () => void][] | null = null;
+        [/** aid, iid pair */ string, /** resolve */ (v: any) => void, /** reject */ (r: any) => void][] | null = null;
     private get_queue_timeout?: NodeJS.Timeout = undefined;
     private set_queue:
-        [/** aid, iid pair */ string, /** value */ any, /** resolve */ () => void, /** reject */ () => void][] |
-        null = null;
+        [/** aid, iid pair */ string, /** value */ any, /** resolve */ (v: any) => void,
+            /** reject */ (r: any) => void][] | null = null;
     private set_queue_timeout?: NodeJS.Timeout = undefined;
     private subscribe_queue:
-        [/** aid, iid pair */ string, /** value */ boolean, /** resolve */ () => void, /** reject */ () => void][] |
-        null = null;
+        [/** aid, iid pair */ string, /** value */ boolean, /** resolve */ (v: any) => void,
+            /** reject */ (r: any) => void][] | null = null;
     private subscribe_queue_timeout?: NodeJS.Timeout = undefined;
 
     async init(cached_accessories: Accessory[]) {
@@ -225,12 +225,15 @@ export default class HAPIP extends AccessoryPlatform {
 
         characteristic.updateValue(hap_characteristic.value);
 
+        // @ts-ignore
         characteristic.on('get', this.handleCharacteristicGet.bind(this, accessory, hap_accessory, service,
             hap_service, characteristic, hap_characteristic));
         characteristic.on('set', this.handleCharacteristicSet.bind(this, accessory, hap_accessory, service,
             hap_service, characteristic, hap_characteristic));
+        // @ts-ignore
         characteristic.on('subscribe', this.handleCharacteristicSubscribe
             .bind(this, accessory, hap_accessory, service, hap_service, characteristic, hap_characteristic));
+        // @ts-ignore
         characteristic.on('unsubscribe', this.handleCharacteristicUnsubscribe
             .bind(this, accessory, hap_accessory, service, hap_service, characteristic, hap_characteristic));
 
@@ -633,7 +636,7 @@ export default class HAPIP extends AccessoryPlatform {
 
             // eslint-disable-next-line guard-for-in
             for (const q of queue) {
-                q[2].call(null);
+                q[2].call(null, null);
             }
         } catch (err) {
             for (const q of queue) {

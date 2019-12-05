@@ -17,9 +17,9 @@ class Accessory extends EventEmitter {
     readonly services: {[key: string]: Service};
     readonly display_services: Service[];
 
-    private _details: AccessoryHap;
-    private _data: AccessoryData;
-    private _permissions: GetAccessoriesPermissionsResponseMessage[0];
+    private _details!: AccessoryHap;
+    private _data!: AccessoryData;
+    private _permissions!: GetAccessoriesPermissionsResponseMessage[0];
 
     /**
      * Creates an Accessory.

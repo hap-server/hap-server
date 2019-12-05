@@ -12,8 +12,8 @@ class Automation extends EventEmitter {
     connection: Connection;
     readonly uuid: string;
 
-    _data: AutomationData;
-    _permissions: GetAutomationsPermissionsResponseMessage[0];
+    _data!: AutomationData;
+    _permissions!: GetAutomationsPermissionsResponseMessage[0];
 
     /**
      * Creates an Automation.
@@ -127,7 +127,7 @@ interface Automation {
 export default Automation;
 
 export class StagedAutomation extends Automation {
-    readonly automation: Automation;
+    readonly automation!: Automation;
 
     /**
      * Create a mutable automation.

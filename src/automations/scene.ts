@@ -12,9 +12,9 @@ import Logger from '../common/logger';
 export default class Scene extends Events {
     private static id = 0;
 
-    readonly automations: Automations;
-    readonly id: number;
-    readonly uuid?: string;
+    readonly automations!: Automations;
+    readonly id!: number;
+    readonly uuid!: string | null;
     readonly config: any;
     readonly log: Logger;
 
@@ -47,7 +47,7 @@ export default class Scene extends Events {
 
         Object.defineProperty(this, 'automations', {value: automations});
         Object.defineProperty(this, 'id', {value: Scene.id++});
-        Object.defineProperty(this, 'uuid', {value: uuid});
+        Object.defineProperty(this, 'uuid', {value: uuid || null});
         this.config = config;
 
         this.log = automations.log.withPrefix('Scene #' + this.id);
@@ -74,7 +74,8 @@ export default class Scene extends Events {
             this.check_active_progress = progress;
         }).then(is_active => {
             if (this.last_active !== is_active) {
-                this.emit(is_active ? SceneActivatedEvent : SceneDeactivatedEvent, this);
+                this.emit<SceneActivatedEvent | SceneDeactivatedEvent>(is_active ?
+                    SceneActivatedEvent : SceneDeactivatedEvent, this);
             }
 
             this.last_active = is_active;

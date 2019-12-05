@@ -70,33 +70,34 @@ export default class Server extends Events {
     readonly assets_path: string;
     readonly cli_auth_token?: string;
     setup_token?: string;
-    readonly storage: typeof persist;
-    readonly log: Logger;
+    readonly storage!: typeof persist;
+    readonly log!: Logger;
 
-    readonly accessories: PluginAccessory[];
-    readonly accessory_platforms: AccessoryPlatform[];
-    readonly cached_accessories: PluginAccessory[];
-    readonly bridges: Bridge[];
-    readonly homebridge: Homebridge;
-    readonly plugins: Map<number, ServerPlugin>;
+    readonly accessories!: PluginAccessory[];
+    readonly accessory_platforms!: AccessoryPlatform[];
+    readonly cached_accessories!: PluginAccessory[];
+    readonly bridges!: Bridge[];
 
-    private readonly config_automation_triggers: {[key: string]: AutomationTrigger};
-    private readonly config_automation_conditions: {[key: string]: AutomationCondition};
-    private readonly config_automation_actions: {[key: string]: AutomationAction};
+    readonly homebridge: Homebridge | null = null;
+    readonly plugins!: Map<number, ServerPlugin>;
 
-    private accessory_discovery_counter: number;
-    private readonly accessory_discovery_handlers: Set<AccessoryDiscovery>;
-    private readonly accessory_discovery_handlers_events:
+    private readonly config_automation_triggers: {[key: string]: AutomationTrigger} | null = null;
+    private readonly config_automation_conditions: {[key: string]: AutomationCondition} | null = null;
+    private readonly config_automation_actions: {[key: string]: AutomationAction} | null = null;
+
+    private accessory_discovery_counter!: number;
+    private readonly accessory_discovery_handlers!: Set<AccessoryDiscovery>;
+    private readonly accessory_discovery_handlers_events!:
         WeakMap<AccessoryDiscovery, {[key: string]: (...args: any[]) => void}>;
 
-    readonly app: express.Application;
-    readonly wss: WebSocket.Server;
+    readonly app!: express.Application;
+    readonly wss!: WebSocket.Server;
     // @ts-ignore
     readonly multer: typeof multer;
 
-    private readonly characteristic_change_handlers: WeakMap<typeof Accessory, Function>;
+    private readonly characteristic_change_handlers!: WeakMap<typeof Accessory, Function>;
     readonly _handleCharacteristicUpdate: any;
-    private readonly configuration_change_handlers: WeakMap<typeof Accessory, Function>;
+    private readonly configuration_change_handlers!: WeakMap<typeof Accessory, Function>;
     private readonly _handleConfigurationChange: any;
 
     private readonly _handleRegisterHomebridgePlatformAccessories: any;
@@ -141,6 +142,30 @@ export default class Server extends Events {
         Object.defineProperty(this, 'accessory_discovery_handlers_events', {value: new WeakMap()});
 
         Object.defineProperty(this, 'app', {value: express()});
+        Object.defineProperty(this, 'multer', {value: multer({dest: os.tmpdir()})});
+        Object.defineProperty(this, 'wss', {value: new WebSocket.Server({noServer: true})});
+
+        Object.defineProperty(this, 'plugins', {value: new Map()});
+
+        Object.defineProperty(this, 'characteristic_change_handlers', {value: new WeakMap()});
+        Object.defineProperty(this, '_handleCharacteristicUpdate', {value: (a: typeof Accessory, event: any) => {
+            // this.log.info('Updating characteristic', event);
+            this.handleCharacteristicUpdate(event.accessory || a, event.service,
+                event.characteristic, event.newValue, event.oldValue, event.context);
+        }});
+
+        Object.defineProperty(this, 'configuration_change_handlers', {value: new WeakMap()});
+        Object.defineProperty(this, '_handleConfigurationChange', {value: (a: typeof Accessory, event: any) => {
+            this.log.debug('Updating accessory configuration', event);
+            this.handleConfigurationChange(event.accessory || a, event.service, event.characteristic);
+        }});
+
+        Object.defineProperty(this, '_handleRegisterHomebridgePlatformAccessories', {value:
+            this.handleRegisterHomebridgePlatformAccessories.bind(this)});
+        Object.defineProperty(this, '_handleUnregisterHomebridgePlatformAccessories', {value:
+            this.handleUnregisterHomebridgePlatformAccessories.bind(this)});
+        Object.defineProperty(this, '_handleRegisterExternalHomebridgeAccessories', {value:
+            this.handleRegisterExternalHomebridgeAccessories.bind(this)});
 
         csp.extend(this.app, {
             policy: {
@@ -162,9 +187,8 @@ export default class Server extends Events {
             next();
         }, express.static(this.assets_path));
 
-        Object.defineProperty(this, 'multer', {value: multer({dest: os.tmpdir()})});
         this.app.post('/assets/upload-layout-background', this.multer.single('background'),
-            Connection.handleUploadLayoutBackground.bind(Connection, this));
+            Connection.handleUploadLayoutBackground.bind(Connection, this) as any);
 
         this.app.use((req, res, next) => {
             if (req.url.match(/^\/layout\/[^/]+$/) ||
@@ -191,31 +215,10 @@ export default class Server extends Events {
             this.app.use(hotmiddleware(compiler));
         }
 
-        Object.defineProperty(this, 'wss', {value: new WebSocket.Server({noServer: true})});
         this.wss.on('connection', (ws, req) => this.handleWebsocketConnection(ws, req));
 
         this.handle = this.handle.bind(this);
         this.upgrade = this.upgrade.bind(this);
-
-        Object.defineProperty(this, 'characteristic_change_handlers', {value: new WeakMap()});
-        Object.defineProperty(this, '_handleCharacteristicUpdate', {value: (a: typeof Accessory, event: any) => {
-            // this.log.info('Updating characteristic', event);
-            this.handleCharacteristicUpdate(event.accessory || a, event.service,
-                event.characteristic, event.newValue, event.oldValue, event.context);
-        }});
-
-        Object.defineProperty(this, 'configuration_change_handlers', {value: new WeakMap()});
-        Object.defineProperty(this, '_handleConfigurationChange', {value: (a: typeof Accessory, event: any) => {
-            this.log.debug('Updating accessory configuration', event);
-            this.handleConfigurationChange(event.accessory || a, event.service, event.characteristic);
-        }});
-
-        Object.defineProperty(this, '_handleRegisterHomebridgePlatformAccessories', {value:
-            this.handleRegisterHomebridgePlatformAccessories.bind(this)});
-        Object.defineProperty(this, '_handleUnregisterHomebridgePlatformAccessories', {value:
-            this.handleUnregisterHomebridgePlatformAccessories.bind(this)});
-        Object.defineProperty(this, '_handleRegisterExternalHomebridgeAccessories', {value:
-            this.handleRegisterExternalHomebridgeAccessories.bind(this)});
 
         Server.instances.add(this);
 
@@ -271,8 +274,6 @@ export default class Server extends Events {
             type: 'scene-deactivated',
             uuid: event.scene.uuid,
         }));
-
-        Object.defineProperty(this, 'plugins', {value: new Map()});
     }
 
     /**
@@ -498,20 +499,22 @@ export default class Server extends Events {
             platforms: this.config.platforms,
         });
 
-        this.bridges.push(this.homebridge);
+        this.bridges.push(this.homebridge!);
 
-        return this.homebridge;
+        return this.homebridge!;
     }
 
     async loadHomebridgeAccessories() {
-        for (const accessory of this.homebridge.bridge.bridgedAccessories) {
+        if (!this.homebridge) this.loadHomebridge();
+
+        for (const accessory of this.homebridge!.bridge.bridgedAccessories) {
             const plugin_accessory = new HomebridgeAccessory(this, accessory);
 
             this.addAccessory(plugin_accessory);
         }
 
         for (const platform_accessory of
-            Object.values(this.homebridge.homebridge._publishedAccessories) as PlatformAccessory[]
+            Object.values(this.homebridge!.homebridge._publishedAccessories) as PlatformAccessory[]
         ) {
             const plugin_accessory = new HomebridgeAccessory(this, platform_accessory._associatedHAPAccessory,
                 platform_accessory);
@@ -519,11 +522,11 @@ export default class Server extends Events {
             this.addAccessory(plugin_accessory);
         }
 
-        this.homebridge.homebridge._api
+        this.homebridge!.homebridge._api
             .on('handleRegisterPlatformAccessories', this._handleRegisterHomebridgePlatformAccessories);
-        this.homebridge.homebridge._api
+        this.homebridge!.homebridge._api
             .on('handleUnregisterPlatformAccessories', this._handleUnregisterHomebridgePlatformAccessories);
-        this.homebridge.homebridge._api
+        this.homebridge!.homebridge._api
             .on('publishExternalAccessories', this._handleRegisterExternalHomebridgeAccessories);
     }
 
@@ -1741,9 +1744,9 @@ export default class Server extends Events {
 Server.patchStdout();
 
 export class PluginAccessory {
-    readonly server: Server;
-    readonly accessory: typeof Accessory;
-    readonly plugin: Plugin | null;
+    readonly server!: Server;
+    readonly accessory!: typeof Accessory;
+    readonly plugin!: Plugin | null;
     readonly data: any;
     readonly cached_data: any;
 
@@ -1884,8 +1887,8 @@ export class PluginAccessory {
 
 export class PluginStandaloneAccessory extends PluginAccessory {
     readonly config: any;
-    readonly uuid: string;
-    readonly accessory_type: string;
+    readonly uuid!: string;
+    readonly accessory_type!: string;
 
     constructor(
         server: Server, accessory: typeof Accessory, plugin: Plugin | null, accessory_type: string,
@@ -1900,8 +1903,8 @@ export class PluginStandaloneAccessory extends PluginAccessory {
 }
 
 export class PluginAccessoryPlatformAccessory extends PluginAccessory {
-    readonly base_uuid: string;
-    readonly accessory_platform_name: string;
+    readonly base_uuid!: string;
+    readonly accessory_platform_name!: string;
 
     constructor(
         server: Server, accessory: typeof Accessory, plugin: Plugin | null, accessory_platform_name: string, base_uuid: string

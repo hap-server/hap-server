@@ -280,9 +280,9 @@ export default class Automations extends Events {
 export class Automation {
     private static id = 0;
 
-    readonly automations: Automations;
-    readonly id: number;
-    readonly uuid: string | null;
+    readonly automations!: Automations;
+    readonly id!: number;
+    readonly uuid!: string | null;
     readonly config?: any;
 
     readonly log: Logger;
@@ -456,12 +456,12 @@ export class Automation {
 export class AutomationRunner extends EventEmitter {
     private static id = 0;
 
-    readonly automation: Automation;
-    readonly id: number;
-    readonly event: AutomationTriggerEvent;
-    readonly log: Logger;
-    readonly conditions: Map<AutomationCondition, number>;
-    readonly actions: Map<AutomationAction, number>;
+    readonly automation!: Automation;
+    readonly id!: number;
+    readonly event!: AutomationTriggerEvent;
+    readonly log!: Logger;
+    readonly conditions!: Map<AutomationCondition, number>;
+    readonly actions!: Map<AutomationAction, number>;
 
     private running: Promise<void> | null = null;
     private finished = false;

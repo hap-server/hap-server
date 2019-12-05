@@ -56,7 +56,7 @@ const broadcast_message_methods = {
 class Connection extends EventEmitter {
     ws: WebSocket | import('ws');
     private messageid = 0;
-    private callbacks: Map<number, (() => void)[]> = new Map();
+    private callbacks: Map<number, ((v: any) => void)[]> = new Map();
     private authenticated_user: AuthenticatedUser | null = null;
     open_consoles = new Set<Console>();
 
@@ -946,8 +946,8 @@ interface Connection {
 export default Connection;
 
 class Console extends EventEmitter {
-    readonly connection: Connection;
-    readonly id: number;
+    readonly connection!: Connection;
+    readonly id!: number;
 
     private closing: Promise<void> | null = null;
     closed = false;
@@ -1015,8 +1015,8 @@ interface Console {
 export {Console};
 
 export class AuthenticationHandlerConnection {
-    readonly connection: Connection;
-    readonly authentication_handler_id: number;
+    readonly connection!: Connection;
+    readonly authentication_handler_id!: number;
 
     constructor(connection: Connection, authentication_handler_id: number) {
         Object.defineProperty(this, 'connection', {value: connection});
@@ -1064,8 +1064,8 @@ export class AuthenticationHandlerConnection {
 }
 
 export class AuthenticatedUser {
-    authentication_handler_id: number;
-    id: string;
+    authentication_handler_id!: number;
+    id!: string;
     readonly token?: string;
     readonly asset_token?: string;
 
@@ -1076,8 +1076,8 @@ export class AuthenticatedUser {
 }
 
 export class UserManagementConnection {
-    readonly connection: Connection;
-    readonly user_management_handler_id: number;
+    readonly connection!: Connection;
+    readonly user_management_handler_id!: number;
 
     static component?: any;
 
@@ -1122,8 +1122,8 @@ export class UserManagementConnection {
 }
 
 export class UserManagementUser {
-    readonly user_management_handler: UserManagementConnection;
-    readonly id: string;
+    readonly user_management_handler!: UserManagementConnection;
+    readonly id!: string;
     readonly component: any;
 
     constructor(user_management_handler: UserManagementConnection, id: string, component: any) {
@@ -1135,8 +1135,8 @@ export class UserManagementUser {
 }
 
 export class AccessorySetupConnection {
-    readonly connection: Connection;
-    readonly accessory_setup_id: number;
+    readonly connection!: Connection;
+    readonly accessory_setup_id!: number;
 
     constructor(connection: Connection, accessory_setup_id: number) {
         Object.defineProperty(this, 'connection', {value: connection});

@@ -16,8 +16,8 @@ class Scene extends EventEmitter {
     deactivating = false;
     deactivating_progress = 0;
 
-    data: SceneData;
-    _permissions: GetScenesPermissionsResponseMessage[0];
+    data!: SceneData;
+    _permissions!: GetScenesPermissionsResponseMessage[0];
     _active: CheckScenesActiveResponseMessage[0];
 
     /**

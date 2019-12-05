@@ -84,7 +84,8 @@ const hide_authentication_keys = [
     'password', 'token',
 ];
 
-function messagehandler<T extends string>(type: T, handler?: (data: RequestMessages[T]) => void) {
+function messagehandler<T extends string>(type: T, handler?: (data: RequestMessages[T]) => void): (target: Connection, method: string) => void {
+    // @ts-ignore
     return messagehandler2.bind(null, type, handler);
 }
 function messagehandler2<T extends string, M extends string, A extends Array<any>>(
@@ -123,16 +124,16 @@ import {BroadcastMessage} from '../common/types/broadcast-messages';
 import {AccessoryHap, CharacteristicHap} from '../common/types/hap';
 
 export default class Connection {
-    readonly server: Server;
-    readonly ws: WebSocket;
-    readonly id: number;
-    readonly log: Logger;
+    readonly server!: Server;
+    readonly ws!: WebSocket;
+    readonly id!: number;
+    readonly log!: Logger;
     authenticated_user: AuthenticatedUser | null = null;
     enable_accessory_discovery = false;
     enable_proxy_stdout = false;
     last_message: number | null = null;
     closed = false;
-    readonly req: http.IncomingMessage;
+    readonly req!: http.IncomingMessage;
     readonly uploads: {
         filename: string;
         filepath: string;
@@ -155,7 +156,7 @@ export default class Connection {
         this.ws.terminate();
     }, 15000);
 
-    asset_token: string;
+    private asset_token: string | null = null;
 
     constructor(server: Server, ws: WebSocket, req: http.IncomingMessage) {
         Object.defineProperty(this, 'server', {value: server});

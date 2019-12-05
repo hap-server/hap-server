@@ -1,9 +1,9 @@
 import EventEmitter from 'events';
 
 export class Event {
-    emitter: Events;
-    protected args: any[];
-    private _throw: boolean;
+    emitter!: Events;
+    protected args!: any[];
+    private _throw!: boolean;
     private _returnValue: any;
 
     private static _type: string | symbol;
@@ -112,13 +112,21 @@ export class EventListener implements EventListenerInterface {
         this.canceled = false;
         this.groups = [];
 
-        EventEmitter.prototype.on.call(this.emitter, this.event, this.handler);
+        EventEmitter.prototype.on.call(this.emitter, this.type, this.handler);
         EventEmitter.prototype.on.call(this.emitter, 'removeListener', this.removeListenerHandler = (event, handler) => {
-            if (this.event !== event || this.handler !== handler) return;
+            if (this.type !== event || this.handler !== handler) return;
 
             this.canceled = true;
             this.emitter.removeListener('removeListener', this.removeListenerHandler);
         });
+    }
+
+    get type() {
+        // @ts-ignore
+        if (this.event.prototype instanceof Event) {
+            return (this.event as typeof Event).type;
+        }
+        return this.event as string | symbol;
     }
 
     get listener() {
@@ -205,8 +213,8 @@ export class EventListenerPromise<T> extends Promise<T> implements EventListener
     canceled: boolean;
     groups: EventListeners[];
 
-    resolve: (value: T) => void;
-    reject: (value: any) => void;
+    resolve!: (value: T) => void;
+    reject!: (value: any) => void;
 
     removeListenerHandler: (...args: any[]) => void;
 
@@ -219,13 +227,21 @@ export class EventListenerPromise<T> extends Promise<T> implements EventListener
         this.canceled = false;
         this.groups = [];
 
-        EventEmitter.prototype.on.call(this.emitter, this.event, this.handler);
+        EventEmitter.prototype.on.call(this.emitter, this.type, this.handler);
         EventEmitter.prototype.on.call(this.emitter, 'removeListener', this.removeListenerHandler = (event, handler) => {
-            if (this.event !== event || this.handler !== handler) return;
+            if (this.type !== event || this.handler !== handler) return;
 
             this.canceled = true;
             this.emitter.removeListener('removeListener', this.removeListenerHandler);
         });
+    }
+
+    get type() {
+        // @ts-ignore
+        if (this.event.prototype instanceof Event) {
+            return (this.event as typeof Event).type;
+        }
+        return this.event as string | symbol;
     }
 
     get listener() {
@@ -283,7 +299,7 @@ export default class Events extends EventEmitter {
     _eventsCount: any;
     _maxListeners: any;
 
-    parent_emitter: Events | null;
+    parent_emitter!: Events | null;
 
     constructor() {
         super();
@@ -304,7 +320,7 @@ export default class Events extends EventEmitter {
      * @return {(Promise|boolean)} A promise that resolves when all event handlers finish if the event is an ExtendableEvent
      */
     emit(event: string | symbol, ...data: any): boolean
-    emit<T extends Event, A>(event: (new (...args: A[]) => T) | T, ...data: A[]): boolean
+    emit<T extends Event, A extends any[] = any[]>(event: (new (...args: A) => T) | T, ...data: A): boolean
     emit(event: any, ...data: any[]) {
         if (event.prototype instanceof Event) {
             event = new event(...data); // eslint-disable-line new-cap
@@ -412,7 +428,9 @@ export default class Events extends EventEmitter {
      * @param {function} [handler]
      * @return {(EventListener|EventListenerPromise<*>)}
      */
-    once(type: typeof Event | string | symbol, handler: (...args: any[]) => void) {
+    once(type: typeof Event | string | symbol): EventListenerPromise<unknown>
+    once(type: typeof Event | string | symbol, handler: (...args: any[]) => void): this
+    once(type: typeof Event | string | symbol, handler?: (...args: any[]) => void) {
         if (!handler) {
             const promise = new EventListenerPromise(this, type);
             return promise;
@@ -425,7 +443,7 @@ export default class Events extends EventEmitter {
             handler.expects_hap_event = true;
         }
 
-        return EventEmitter.prototype.once.call(this, type, handler);
+        return EventEmitter.prototype.once.call(this, type as string | symbol, handler) as this;
     }
 
     /**
@@ -441,6 +459,6 @@ export default class Events extends EventEmitter {
             type = (type as typeof Event).type;
         }
 
-        return EventEmitter.prototype.removeListener.call(this, type, listener);
+        return EventEmitter.prototype.removeListener.call(this, type as string | symbol, listener) as this;
     }
 }

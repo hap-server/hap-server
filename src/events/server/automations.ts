@@ -8,7 +8,7 @@ export class AutomationTriggerEvent extends Event {
     static type = 'automation-trigger';
     static types = ['trigger'];
 
-    readonly trigger: AutomationTrigger;
+    readonly trigger!: AutomationTrigger | AutomationAction;
     readonly context: any;
 
     /**
@@ -37,7 +37,7 @@ AutomationTriggerEvent.type = 'automation-trigger';
 AutomationTriggerEvent.types = ['trigger'];
 
 export class AutomationRunningEvent extends Event {
-    readonly runner: AutomationRunner;
+    readonly runner!: AutomationRunner;
 
     constructor(runner: AutomationRunner) {
         super();

@@ -15,9 +15,9 @@ class Service extends EventEmitter {
     readonly characteristics: {[key: string]: Characteristic};
     readonly linked_services: Service[];
 
-    private _details: ServiceHap;
-    private _data: ServiceData;
-    private _permissions: Readonly<GetAccessoriesPermissionsResponseMessage[0]['set_characteristics'][0]>;
+    private _details!: ServiceHap;
+    private _data!: ServiceData;
+    private _permissions!: Readonly<GetAccessoriesPermissionsResponseMessage[0]['set_characteristics'][0]>;
 
     /**
      * Creates a Service.

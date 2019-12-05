@@ -15,11 +15,11 @@ export default class AutomationTrigger extends Events {
         [key: string]: typeof AutomationTrigger;
     } = {};
 
-    readonly automations: Automations;
-    readonly id: number;
-    readonly uuid?: string;
+    readonly automations!: Automations;
+    readonly id!: number;
+    readonly uuid!: string | null;
     readonly config: any;
-    readonly log: Logger;
+    readonly log!: Logger;
 
     private running = false;
     private starting: Promise<boolean> | null = null;
@@ -42,7 +42,7 @@ export default class AutomationTrigger extends Events {
         Object.defineProperty(this, 'automations', {value: automations});
 
         Object.defineProperty(this, 'id', {value: AutomationTrigger.id++});
-        Object.defineProperty(this, 'uuid', {value: uuid});
+        Object.defineProperty(this, 'uuid', {value: uuid || null});
         Object.defineProperty(this, 'config', {value: config});
 
         Object.defineProperty(this, 'log', {value: log || automations.log.withPrefix('Trigger #' + this.id)});
@@ -139,7 +139,7 @@ export interface CronTriggerConfiguration extends AutomationTriggerConfiguration
  * An AutomationTrigger that runs based on a cron schedule.
  */
 export class CronTrigger extends AutomationTrigger {
-    readonly config: CronTriggerConfiguration;
+    readonly config!: CronTriggerConfiguration;
 
     private task: ScheduledTask | null = null;
 
@@ -174,7 +174,7 @@ export interface SceneTriggerConfiguration extends AutomationTriggerConfiguratio
  * An AutomationTrigger that runs when a scene is triggered.
  */
 export class SceneTrigger extends AutomationTrigger {
-    readonly config: SceneTriggerConfiguration;
+    readonly config!: SceneTriggerConfiguration;
 
     private listener: EventListener | null = null;
 

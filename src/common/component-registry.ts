@@ -105,13 +105,13 @@ export default class ComponentRegistry<P, C> {
             .concat(...[...this.plugin_components.values()].map(c => [...c.entries()]));
     }
 
-    find(filter: (component: C) => void) {
+    find(filter: (component: C) => boolean) {
         for (const component of this.builtin_components.values()) {
             if (filter.call(null, component)) return component;
         }
 
         for (const components of this.plugin_components.values()) {
-            for (const component of components) {
+            for (const component of components.values()) {
                 if (filter.call(null, component)) return component;
             }
         }

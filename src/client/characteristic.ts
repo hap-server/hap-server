@@ -16,8 +16,8 @@ class Characteristic extends EventEmitter {
     readonly service: Service;
     readonly uuid: string;
 
-    private _details: CharacteristicHap;
-    private _permissions: boolean;
+    private _details!: CharacteristicHap;
+    private _permissions!: boolean;
 
     _subscribed = false;
     subscription_dependencies = new Set<any>();

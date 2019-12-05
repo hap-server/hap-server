@@ -29,7 +29,7 @@ export function hapStatus(err: any): number {
 }
 
 export default class Server {
-    private static instances = new Set();
+    private static instances = new Set<Server>();
 
     readonly bridge: typeof Accessory;
     readonly config: any;

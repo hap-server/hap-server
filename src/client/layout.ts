@@ -10,10 +10,10 @@ class Layout extends EventEmitter {
     connection: Connection;
     readonly uuid: string;
     sections: {[key: string]: LayoutSection};
-    staged_sections_order: string[];
+    staged_sections_order?: string[] = undefined;
 
-    data: LayoutData;
-    _permissions: GetLayoutsPermissionsResponseMessage[0];
+    data!: LayoutData;
+    _permissions!: GetLayoutsPermissionsResponseMessage[0];
 
     /**
      * Creates a Layout.
@@ -175,8 +175,8 @@ class LayoutSection extends EventEmitter {
     readonly uuid: string;
     readonly unavailable_service_placeholders: {};
 
-    data: LayoutSectionData;
-    staged_data?: LayoutSectionData;
+    data!: LayoutSectionData;
+    staged_data?: LayoutSectionData = undefined;
 
     /**
      * Creates a LayoutSection.

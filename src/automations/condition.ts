@@ -16,11 +16,11 @@ export default class AutomationCondition extends EventEmitter {
         [key: string]: typeof AutomationCondition;
     } = {};
 
-    readonly automations: Automations;
-    readonly id: number;
-    readonly uuid?: string;
+    readonly automations!: Automations;
+    readonly id!: number;
+    readonly uuid!: string | null;
     readonly config: any;
-    readonly log: Logger;
+    readonly log!: Logger;
 
     /**
      * Creates an AutomationCondition.
@@ -38,7 +38,7 @@ export default class AutomationCondition extends EventEmitter {
         Object.defineProperty(this, 'automations', {value: automations});
 
         Object.defineProperty(this, 'id', {value: AutomationCondition.id++});
-        Object.defineProperty(this, 'uuid', {value: uuid});
+        Object.defineProperty(this, 'uuid', {value: uuid || null});
         Object.defineProperty(this, 'config', {value: config});
 
         Object.defineProperty(this, 'log', {value: log || automations.log.withPrefix('Condition #' + this.id)});
@@ -113,9 +113,9 @@ export interface AnyConditionConfiguration extends AutomationConditionConfigurat
  * An AutomationCondition that passes if any of it's child conditions passes.
  */
 export class AnyCondition extends AutomationCondition {
-    readonly config: AnyConditionConfiguration;
+    readonly config!: AnyConditionConfiguration;
 
-    private conditions: AutomationCondition[];
+    private conditions: AutomationCondition[] | null = null;
 
     async load() {
         this.conditions = await Promise.all(this.config.conditions.map((config, index) =>
@@ -138,7 +138,7 @@ export class AnyCondition extends AutomationCondition {
                 const result = await condition.check(runner, progress => {
                     if (finished) throw new Error('Cannot update progress after the condition has finished running');
                     if (progress < 0 || progress > 1) throw new Error('progress must be between 0 and 1');
-                    setProgress((index + 1) * progress / this.conditions.length);
+                    setProgress((index + 1) * progress / this.conditions!.length);
                 }, this, ...parent_conditions);
 
                 finished = true;
@@ -175,9 +175,9 @@ export interface AllConditionConfiguration extends AutomationConditionConfigurat
  * An AutomationCondition that passed if all of it's child conditions pass.
  */
 export class AllCondition extends AutomationCondition {
-    readonly config: AllConditionConfiguration;
+    readonly config!: AllConditionConfiguration;
 
-    private conditions: AutomationCondition[];
+    private conditions: AutomationCondition[] | null = null;
 
     async load() {
         this.conditions = await Promise.all(this.config.conditions.map((config, index) =>
@@ -200,7 +200,7 @@ export class AllCondition extends AutomationCondition {
                 const result = await condition.check(runner, progress => {
                     if (finished) throw new Error('Cannot update progress after the condition has finished running');
                     if (progress < 0 || progress > 1) throw new Error('progress must be between 0 and 1');
-                    setProgress((index + 1) * progress / this.conditions.length);
+                    setProgress((index + 1) * progress / this.conditions!.length);
                 }, this, ...parent_conditions);
 
                 finished = true;
@@ -237,7 +237,7 @@ export interface ScriptConditionConfiguration extends AutomationConditionConfigu
  * An AutomationCondition that runs a JavaScript VM.
  */
 export class ScriptCondition extends AutomationCondition {
-    readonly config: ScriptConditionConfiguration;
+    readonly config!: ScriptConditionConfiguration;
 
     private sandbox: {
         server: Server;
@@ -250,8 +250,8 @@ export class ScriptCondition extends AutomationCondition {
         automations: Automations;
         automation_condition: ScriptCondition;
         log: Logger;
-    };
-    private script: vm.Script;
+    } | null = null;
+    private script: vm.Script | null = null;
 
     load() {
         this.sandbox = Object.freeze({
@@ -277,7 +277,7 @@ export class ScriptCondition extends AutomationCondition {
     async check(runner: AutomationRunner, setProgress: (progress: number) => void, ...parent_conditions: AutomationCondition[]) {
         this.log.debug('Running script condition #%d', this.id);
 
-        const sandbox = Object.create(this.sandbox);
+        const sandbox = Object.create(this.sandbox!);
 
         sandbox.automation = runner.automation;
         sandbox.automation_runner = runner;
@@ -287,7 +287,7 @@ export class ScriptCondition extends AutomationCondition {
         Object.freeze(sandbox);
 
         const sandbox_context = vm.createContext(sandbox);
-        return await this.script.runInContext(sandbox_context);
+        return await this.script!.runInContext(sandbox_context);
     }
 }
 

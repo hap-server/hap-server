@@ -785,11 +785,11 @@ export class Plugin extends Events {
 }
 
 export class AccessoryPlatform {
-    readonly plugin: Plugin;
-    readonly server: Server;
-    readonly config: AccessoryPlatformConfiguration;
-    readonly accessories: PluginAccessoryPlatformAccessory[];
-    readonly cached_accessories: typeof Accessory[];
+    readonly plugin!: Plugin;
+    readonly server!: Server;
+    readonly config!: AccessoryPlatformConfiguration;
+    readonly accessories!: PluginAccessoryPlatformAccessory[];
+    readonly cached_accessories!: typeof Accessory[];
 
     /**
      * Creates an AccessoryPlatform.
@@ -905,8 +905,9 @@ export abstract class ServerPlugin {
 
     // static readonly id: number;
     private static readonly _id: number;
-    readonly instance_id: number;
-    readonly server: Server;
+    readonly instance_id!: number;
+    readonly plugin!: Plugin;
+    readonly server!: Server;
     readonly config: any;
 
     constructor(plugin: Plugin, server: Server, config: any) {
@@ -1007,11 +1008,11 @@ export {WebInterfacePlugin as AccessoryUI};
 export abstract class AccessoryDiscovery extends EventEmitter {
     static id = 0;
 
-    readonly id: number;
-    readonly plugin: Plugin | null;
-    readonly localid: string;
-    readonly setup: AccessorySetup;
-    readonly discovered_accessories: DiscoveredAccessory[];
+    readonly id!: number;
+    readonly plugin!: Plugin | null;
+    readonly localid!: string;
+    readonly setup!: AccessorySetup;
+    readonly discovered_accessories!: DiscoveredAccessory[];
 
     running = false;
     starting: Promise<void> | null = null;
@@ -1170,10 +1171,10 @@ export abstract class AccessoryDiscovery extends EventEmitter {
     }
 }
 
-class AccessoryDiscoveryWithHandler<R> extends AccessoryDiscovery {
-    start_handler_return?: R;
+export class AccessoryDiscoveryWithHandler extends AccessoryDiscovery {
+    start_handler_return?: any;
 
-    async onstart(): Promise<R> {
+    async onstart(): Promise<any> {
         return this.start_handler_return!;
     }
 
@@ -1183,9 +1184,9 @@ class AccessoryDiscoveryWithHandler<R> extends AccessoryDiscovery {
 export class DiscoveredAccessory {
     private static id = 0;
 
-    readonly plugin: Plugin | null;
-    readonly id: number;
-    readonly accessory_discovery: AccessoryDiscovery
+    readonly plugin!: Plugin | null;
+    readonly id!: number;
+    readonly accessory_discovery!: AccessoryDiscovery
 
     readonly [key: string]: any;
 
@@ -1204,9 +1205,9 @@ export class DiscoveredAccessory {
 export class AccessorySetup {
     private static id = 0;
 
-    readonly plugin: Plugin | null;
-    readonly id: number;
-    readonly localid: string;
+    readonly plugin!: Plugin | null;
+    readonly id!: number;
+    readonly localid!: string;
 
     handler: (data: any, connection: Connection) => any;
 
@@ -1237,9 +1238,9 @@ export class AccessorySetup {
 export class AuthenticationHandler {
     private static id = 0;
 
-    readonly plugin: Plugin;
-    readonly id: number;
-    readonly localid: string;
+    readonly plugin!: Plugin;
+    readonly id!: number;
+    readonly localid!: string;
 
     handler: (data: any, connection: Connection) => Promise<AuthenticatedUser | any> | AuthenticatedUser | any;
     reconnect_handler?: ((data: any) => any) = undefined;
@@ -1359,11 +1360,11 @@ export class AuthenticationHandler {
 }
 
 export class AuthenticatedUser {
-    readonly plugin: Plugin | null;
-    readonly id: string;
-    readonly authentication_handler: AuthenticationHandler;
+    readonly plugin!: Plugin | null;
+    readonly id!: string;
+    readonly authentication_handler!: AuthenticationHandler;
     readonly name: string;
-    readonly token: string;
+    readonly token!: string | null;
 
     [key: string]: any;
 
@@ -1394,9 +1395,9 @@ export class AuthenticatedUser {
 export class UserManagementHandler {
     private static id = 0;
 
-    readonly id: number;
-    readonly plugin: Plugin;
-    readonly localid: string;
+    readonly id!: number;
+    readonly plugin!: Plugin;
+    readonly localid!: string;
 
     handler: (data: any, connection: Connection) => any;
 
