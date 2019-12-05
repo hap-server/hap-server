@@ -2,7 +2,8 @@
 import Logger from '../common/logger';
 import {AccessoryDiscovery, DiscoveredAccessory} from '../server/plugins';
 
-const IPDiscovery = (() => {
+// @ts-ignore
+const IPDiscovery: typeof import('hap-controller').IPDiscovery | undefined = (() => {
     try {
         return require('hap-controller').IPDiscovery;
     } catch (err) {}
@@ -20,9 +21,9 @@ export const HAPIPDiscovery = AccessoryDiscovery.withHandler(accessory_discovery
     log.info('Starting HAP IP discovery');
 
     const discovery = new IPDiscovery();
-    const accessories = {};
+    const accessories: Record<string, DiscoveredAccessory> = {};
 
-    discovery.on('serviceUp', service => {
+    discovery.on('serviceUp', (service: any) => {
         if (accessories[service.id]) return;
 
         log.debug('New service', service);
@@ -37,7 +38,7 @@ export const HAPIPDiscovery = AccessoryDiscovery.withHandler(accessory_discovery
         }));
     });
 
-    discovery.on('serviceDown', service => {
+    discovery.on('serviceDown', (service: any) => {
         log.debug('Removed service', service);
 
         accessory_discovery.removeAccessory(accessories[service.id]);

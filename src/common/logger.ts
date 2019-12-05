@@ -26,11 +26,11 @@ class Logger {
         return loggerfunction;
     }
 
-    call(context, args) {
+    call(context: Logger, args: IArguments | any[]) {
         this.log(...args);
     }
 
-    write(level: LogLevel, ...args) {
+    write(level: LogLevel, ...args: any[]) {
         let func = console.log;
         let format = typeof args[0] === 'string' ? args.shift() : '';
 
@@ -56,25 +56,25 @@ class Logger {
         func.call(console, format, ...args);
     }
 
-    debug(...args) {
+    debug(...args: any[]) {
         if (!this.enable_debug || !this.constructor.enable_debug) return;
 
         this.write('debug', ...args);
     }
 
-    log(...args) {
+    log(...args: any[]) {
         this.write('log', ...args);
     }
 
-    info(...args) {
+    info(...args: any[]) {
         this.write('info', ...args);
     }
 
-    warn(...args) {
+    warn(...args: any[]) {
         this.write('warning', ...args);
     }
 
-    error(...args) {
+    error(...args: any[]) {
         this.write('error', ...args);
     }
 
@@ -95,7 +95,7 @@ class Logger {
      * @return {function} The new console.log/error function
      */
     static wrapConsoleFn(fn: typeof console.log, callback: typeof console.log): typeof console.log {
-        return (data, ...args) => {
+        return (data: any, ...args: any[]) => {
             callback(data, ...args);
             return fn(data, ...args);
         };

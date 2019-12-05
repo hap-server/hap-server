@@ -19,7 +19,7 @@ export default class AutomationCondition extends EventEmitter {
     readonly automations: Automations;
     readonly id: number;
     readonly uuid?: string;
-    readonly config;
+    readonly config: any;
     readonly log: Logger;
 
     /**
@@ -32,7 +32,7 @@ export default class AutomationCondition extends EventEmitter {
      * @param {string} [uuid]
      * @param {Logger} [log]
      */
-    constructor(automations: Automations, config?, uuid?: string, log?: Logger) {
+    constructor(automations: Automations, config?: any, uuid?: string, log?: Logger) {
         super();
 
         Object.defineProperty(this, 'automations', {value: automations});
@@ -44,7 +44,7 @@ export default class AutomationCondition extends EventEmitter {
         Object.defineProperty(this, 'log', {value: log || automations.log.withPrefix('Condition #' + this.id)});
     }
 
-    static load(automations, config, uuid, log) {
+    static load(automations: Automations, config: any, uuid: string, log: Logger) {
         const Condition = this.getConditionClass(config.condition, config.plugin);
         const condition = new Condition(automations, config, uuid, log);
 
@@ -53,7 +53,7 @@ export default class AutomationCondition extends EventEmitter {
         return condition;
     }
 
-    static getConditionClass(type, plugin_name) {
+    static getConditionClass(type: string, plugin_name: string) {
         if (plugin_name) {
             const plugin = PluginManager.getPlugin(plugin_name);
 
@@ -91,7 +91,7 @@ export default class AutomationCondition extends EventEmitter {
  * An AutomationCondition that always passes.
  */
 export class TestCondition extends AutomationCondition {
-    async check(runner) {
+    async check(runner: AutomationRunner) {
         this.log.info('Running test condition with runner #%d', runner.id);
 
         return true;
@@ -123,7 +123,7 @@ export class AnyCondition extends AutomationCondition {
                 ' (' + ((AutomationCondition as any).id + 1) + ')'))));
     }
 
-    async check(runner, setProgress, ...parent_conditions) {
+    async check(runner: AutomationRunner, setProgress: (progress: number) => void, ...parent_conditions: AutomationCondition[]) {
         this.log.info('Running any condition with runner #%d', runner.id);
 
         for (const i in this.conditions) { // eslint-disable-line guard-for-in
@@ -185,7 +185,7 @@ export class AllCondition extends AutomationCondition {
                 ' (' + ((AutomationCondition as any).id + 1) + ')'))));
     }
 
-    async check(runner, setProgress, ...parent_conditions) {
+    async check(runner: AutomationRunner, setProgress: (progress: number) => void, ...parent_conditions: AutomationCondition[]) {
         this.log('Running all condition with runner #%d', runner.id);
 
         for (const i in this.conditions) { // eslint-disable-line guard-for-in
@@ -274,7 +274,7 @@ export class ScriptCondition extends AutomationCondition {
         );
     }
 
-    async check(runner, setProgress, ...parent_conditions) {
+    async check(runner: AutomationRunner, setProgress: (progress: number) => void, ...parent_conditions: AutomationCondition[]) {
         this.log.debug('Running script condition #%d', this.id);
 
         const sandbox = Object.create(this.sandbox);

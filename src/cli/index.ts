@@ -36,7 +36,18 @@ yargs.option('force-colour', {
     default: false,
 });
 
-import ConfigurationFileData, {validate, Warning} from './configuration';
+export interface GlobalArguments {
+    debug: boolean;
+    timestamps: boolean;
+    forceColour: boolean;
+
+    _: string[];
+}
+
+import ConfigurationFileData, {
+    validate, Warning,
+    AutomationTriggerConfiguration, AutomationConditionConfiguration, AutomationActionConfiguration,
+} from './configuration';
 
 interface ConfigData {
     config: ConfigurationFileData;
@@ -44,16 +55,17 @@ interface ConfigData {
     data_path: string;
 }
 
-export function getConfig(argv): ConfigData {
+export function getConfig(argv: GlobalArguments): ConfigData {
     /**
      * Read configuration data.
      */
 
+    // @ts-ignore
     const config_path = path.resolve(process.cwd(), argv.config);
     let config;
 
     try {
-        const config_cache = {};
+        const config_cache: Record<string, any> = {};
 
         function requireConfig(config_path: string) {
             if (config_cache[config_path]) {
@@ -77,7 +89,7 @@ export function getConfig(argv): ConfigData {
             }
         }
 
-        function mapIncludes(config_path: string, value) {
+        function mapIncludes(config_path: string, value: any) {
             if (typeof value === 'string' && value.startsWith('include ')) {
                 return requireConfig(path.resolve(path.dirname(config_path), value.substr(8)));
             } else if (Object.keys(value).length === 1 && value.include) {
@@ -92,7 +104,7 @@ export function getConfig(argv): ConfigData {
         if (config.plugins) {
             config.plugins = Object.entries(config.plugins)
                 .map(([key, value]) => [key, mapIncludes(config_path, value)])
-                .reduce((acc, [key, value]) => (acc[key] = value, acc), {});
+                .reduce((acc, [key, value]) => (acc[key] = value, acc), {} as Record<string, any>);
         }
         if (config.accessories) config.accessories = config.accessories.map(mapIncludes.bind(null, config_path));
         if (config.platforms) config.platforms = config.platforms.map(mapIncludes.bind(null, config_path));
@@ -103,17 +115,17 @@ export function getConfig(argv): ConfigData {
         if (config['automation-triggers']) {
             config['automation-triggers'] = Object.entries(config['automation-triggers'])
                 .map(([key, value]) => [key, mapIncludes(config_path, value)])
-                .reduce((acc, [key, value]) => (acc[key] = value, acc), {});
+                .reduce((acc, [key, value]) => (acc[key] = value, acc), {} as Record<string, AutomationTriggerConfiguration>);
         }
         if (config['automation-conditions']) {
             config['automation-conditions'] = Object.entries(config['automation-conditions'])
                 .map(([key, value]) => [key, mapIncludes(config_path, value)])
-                .reduce((acc, [key, value]) => (acc[key] = value, acc), {});
+                .reduce((acc, [key, value]) => (acc[key] = value, acc), {} as Record<string, AutomationConditionConfiguration>);
         }
         if (config['automation-actions']) {
             config['automation-actions'] = Object.entries(config['automation-actions'])
                 .map(([key, value]) => [key, mapIncludes(config_path, value)])
-                .reduce((acc, [key, value]) => (acc[key] = value, acc), {});
+                .reduce((acc, [key, value]) => (acc[key] = value, acc), {} as Record<string, AutomationActionConfiguration>);
         }
     } catch (error) {
         if (error && error.code === 'ENOENT') {
@@ -136,6 +148,7 @@ export function getConfig(argv): ConfigData {
      * Storage paths.
      */
 
+    // @ts-ignore
     const data_path = argv.dataPath ? path.resolve(process.cwd(), argv.dataPath)
         : config['data-path'] ? path.resolve(path.dirname(config_path), config['data-path'])
             : path.dirname(config_path);
@@ -154,7 +167,7 @@ interface ConnectionData extends ConfigData {
     server_pid: number;
 }
 
-export async function connect(argv): Promise<ConnectionData> {
+export async function connect(argv: GlobalArguments): Promise<ConnectionData> {
     const Connection = require('../client/connection').default;
     const WebSocket = require('ws');
 
@@ -197,6 +210,10 @@ command('./make-admin', 'make-admin <user>', 'Promote a user to administrator');
 command('./get-characteristics', 'get-characteristics <config> <characteristics>', 'Get characteristics');
 command('./set-characteristic', 'set-characteristic <config> <characteristic> <value>', 'Set a characteristic');
 
+interface ValidateConfigurationArguments extends GlobalArguments {
+    strict: boolean;
+}
+
 yargs.command('validate-configuration <config>', 'Validates a configuration file', yargs => {
     yargs.option('strict', {
         alias: 'S',
@@ -204,7 +221,7 @@ yargs.command('validate-configuration <config>', 'Validates a configuration file
         type: 'boolean',
         default: false,
     });
-}, async argv => {
+}, async (argv: ValidateConfigurationArguments) => {
     const {config, config_path, data_path} = getConfig(argv);
     const errors = await validate(config, data_path);
 

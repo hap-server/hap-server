@@ -67,15 +67,18 @@ import {DiscoveredAccessory} from './components/add-accessory.vue';
 import * as vue_module from 'vue';
 import * as axios_module from 'axios';
 
-let icon_component_modules_object;
-let automation_trigger_component_module;
-let automation_condition_component_module;
-let automation_action_component_module;
-let vuedraggable_module;
-let codemirror_module;
-let vue_codemirror_module;
+let icon_component_modules_object: Record<string, any>;
+// @ts-ignore
+let automation_trigger_component_module: typeof import('./automations/trigger.vue');
+// @ts-ignore
+let automation_condition_component_module: typeof import('./automations/condition.vue');
+// @ts-ignore
+let automation_action_component_module: typeof import('./automations/action.vue');
+let vuedraggable_module: typeof import('vuedraggable');
+let codemirror_module: typeof import('codemirror');
+let vue_codemirror_module: typeof import('vue-codemirror');
 
-let instance;
+let instance: PluginManager;
 
 interface Module {
     readonly url: string;
@@ -90,8 +93,8 @@ interface Module {
     };
     import(request: string): Promise<any>;
 
-    // Deprecated
-    accessory_ui;
+    /** @deprecated */
+    accessory_ui: UIPlugin;
 }
 interface RequireCache {
     [key: string]: Module;
@@ -116,7 +119,8 @@ export class PluginManager {
         }
     }
 
-    async loadAccessoryUI(ui_plugin) {
+    /** @deprecated */
+    async loadAccessoryUI(ui_plugin: UIPlugin) {
         return this.loadWebInterfacePlugin(ui_plugin);
     }
 
@@ -173,7 +177,8 @@ export class PluginManager {
             return dropdown_component_module;
         } else if (request === '@hap-server/ui-api/icons') {
             return icon_component_modules_object || (icon_component_modules_object =
-                [...icon_component_modules.entries()].reduce((acc, cur) => (acc[cur[0]] = cur[1], acc), {}));
+                [...icon_component_modules.entries()]
+                    .reduce((acc, cur) => (acc[cur[0]] = cur[1], acc), {} as Record<string, any>));
         } else if (request.startsWith('@hap-server/ui-api/icons/') &&
             icon_component_modules.has('./' + request.substr(25) + '.vue')
         ) {
@@ -256,6 +261,7 @@ export class PluginManager {
         } else if (request === 'vuedraggable') {
             return import(/* webpackChunkName: 'layout-editor' */ 'vuedraggable').then(m => vuedraggable_module = m);
         } else if (request === 'codemirror') {
+            // @ts-ignore
             return import(/* webpackChunkName: 'codemirror' */ 'codemirror').then(m => codemirror_module = m);
         } else if (request === 'vue-codemirror') {
             return import(/* webpackChunkName: 'codemirror' */ 'vue-codemirror').then(m => vue_codemirror_module = m);
@@ -340,7 +346,7 @@ export class PluginManager {
             AuthenticatedUser,
 
             UserManagementHandler: class extends UserManagementHandler {
-                constructor(/* id, */ connection) {
+                constructor(/* id, */ connection: Connection) {
                     super(ui_plugin /* , id */, connection);
                 }
             },
@@ -372,11 +378,12 @@ export class PluginAPI {
         Object.defineProperty(this, 'ui_plugin', {value: ui_plugin});
     }
 
+    /** @deprecated */
     get accessory_ui() {
         return this.ui_plugin;
     }
 
-    log(...args) {
+    log(...args: any[]) {
         console.log('UI plugin ' + this.ui_plugin.id, ...args);
     }
 
@@ -418,7 +425,8 @@ export class PluginAPI {
         this.refreshDisplayServices();
     }
 
-    registerServiceComponent(type, component) {
+    /** @deprecated */
+    registerServiceComponent(type: string, component: Component) {
         this.registerServiceTileComponent(type, component);
     }
 
@@ -443,11 +451,13 @@ export class PluginAPI {
         this.refreshDisplayServices();
     }
 
-    registerAccessoryDetailsComponent(type, component) {
+    /** @deprecated */
+    registerAccessoryDetailsComponent(type: string, component: Component) {
         this.registerServiceDetailsComponent(type, component);
     }
 
-    registerSystemServiceType(type) {
+    /** @deprecated */
+    registerSystemServiceType(type: string) {
         // Why do we need this?
 
         if (system_service_types.includes(type)) return;
@@ -570,7 +580,8 @@ export class PluginAPI {
         ServiceSettingsComponents.addPluginComponent(this.ui_plugin, type, component);
     }
 
-    registerAccessorySettingsComponent(type, component) {
+    /** @deprecated */
+    registerAccessorySettingsComponent(type: string, component: Component) {
         this.registerServiceSettingsComponent(type, component);
     }
 
@@ -610,7 +621,7 @@ export class PluginAPI {
      * @param {function} handler A class that extends UserManagementHandler
      * @param {string} [name]
      */
-    registerUserManagementHandler<H extends typeof UserManagementHandler>(localid: string, handler: H, name) {
+    registerUserManagementHandler<H extends typeof UserManagementHandler>(localid: string, handler: H, name: string) {
         const id = this.ui_plugin.plugin_user_management_handlers[localid];
 
         if (typeof id === 'undefined') {
@@ -753,6 +764,7 @@ export abstract class UserManagementHandler {
             new UserManagementConnection(connection, this.user_management_handler_id)});
     }
 
+    /** @deprecated */
     get accessory_ui() {
         return this.ui_plugin;
     }

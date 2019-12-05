@@ -1,5 +1,6 @@
-const icon_components = new Map();
+const icon_components = new Map<string, any>();
 
+// @ts-ignore
 const contextRequire = require.context('.', true, /\.vue$/);
 
 for (const file of contextRequire.keys()) {

@@ -22,7 +22,7 @@ export default class AutomationAction extends EventEmitter {
     readonly automations: Automations;
     readonly id: number;
     readonly uuid?: string;
-    readonly config;
+    readonly config: any;
     readonly log: Logger;
 
     /**
@@ -35,7 +35,7 @@ export default class AutomationAction extends EventEmitter {
      * @param {string} [uuid]
      * @param {Logger} [log]
      */
-    constructor(automations: Automations, config, uuid?: string, log?: Logger) {
+    constructor(automations: Automations, config: any, uuid?: string, log?: Logger) {
         super();
 
         Object.defineProperty(this, 'automations', {value: automations});
@@ -47,7 +47,7 @@ export default class AutomationAction extends EventEmitter {
         Object.defineProperty(this, 'log', {value: log || automations.log.withPrefix('Action #' + this.id)});
     }
 
-    static load(automations: Automations, config, uuid?: string, log?: Logger): AutomationAction {
+    static load(automations: Automations, config: any, uuid?: string, log?: Logger): AutomationAction {
         const Action = this.getActionClass(config.action, config.plugin);
         const action = new Action(automations, config, uuid, log);
 
@@ -56,7 +56,7 @@ export default class AutomationAction extends EventEmitter {
         return action;
     }
 
-    static getActionClass(type, plugin_name): typeof AutomationAction {
+    static getActionClass(type: string, plugin_name: string): typeof AutomationAction {
         if (plugin_name) {
             const plugin = PluginManager.getPlugin(plugin_name);
 
@@ -94,7 +94,7 @@ export default class AutomationAction extends EventEmitter {
  * An AutomationAction that does nothing.
  */
 export class TestAction extends AutomationAction {
-    async run(runner) {
+    async run(runner: AutomationRunner) {
         this.log('Running test action with runner #%d', runner.id);
 
         await new Promise(rs => setTimeout(rs, 1000));
@@ -130,7 +130,7 @@ export class ConditionalAction extends AutomationAction {
                 ' (' + ((AutomationAction as any).id + 1) + ')'))));
     }
 
-    async run(runner, setProgress, ...parent_actions) {
+    async run(runner: AutomationRunner, setProgress: (progress: number) => void, ...parent_actions: AutomationAction[]) {
         this.log.debug('Running conditional action #%d condition', this.id);
 
         let finished = false;
@@ -226,7 +226,7 @@ export class ScriptAction extends AutomationAction {
         );
     }
 
-    async run(runner, setProgress, ...parent_actions) {
+    async run(runner: AutomationRunner, setProgress: (progress: number) => void, ...parent_actions: AutomationAction[]) {
         this.log.debug('Running script action #%d', this.id);
 
         const sandbox = Object.create(this.sandbox);
@@ -264,7 +264,7 @@ export type SetCharacteristicActionConfiguration =
 export class SetCharacteristicAction extends AutomationAction {
     readonly config: SetCharacteristicActionConfiguration;
 
-    async run(runner, setProgress, ...parent_actions) {
+    async run(runner: AutomationRunner, setProgress: (progress: number) => void, ...parent_actions: AutomationAction[]) {
         const characteristic = this.automations.server.getCharacteristic(this.config.characteristic);
 
         if (!characteristic) throw new Error('Unknown characteristic "' + this.config.characteristic + '"');
@@ -305,7 +305,7 @@ export interface RunAutomationActionConfiguration extends AutomationActionConfig
 export class RunAutomationAction extends AutomationAction {
     readonly config: RunAutomationActionConfiguration;
 
-    async run(parent_runner, setProgress, ...parent_actions) {
+    async run(parent_runner: AutomationRunner, setProgress: (progress: number) => void, ...parent_actions: AutomationAction[]) {
         const automation = this.automations.getAutomationByUUID(this.config.automation_uuid);
         if (!automation) return;
 

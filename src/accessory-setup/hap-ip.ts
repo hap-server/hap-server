@@ -1,7 +1,7 @@
 
 import {AccessorySetup} from '../server/plugins';
 
-const setup = new AccessorySetup(null, 'HAPIP');
+const setup = new AccessorySetup(null, 'HAPIP', () => null);
 
 // ...
 

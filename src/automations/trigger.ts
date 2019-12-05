@@ -1,4 +1,4 @@
-import cron from 'node-cron';
+import cron, {ScheduledTask} from 'node-cron';
 import {Timezone} from 'tz-offset';
 
 import Events, {EventListener} from '../events';
@@ -18,7 +18,7 @@ export default class AutomationTrigger extends Events {
     readonly automations: Automations;
     readonly id: number;
     readonly uuid?: string;
-    readonly config;
+    readonly config: any;
     readonly log: Logger;
 
     private running = false;
@@ -35,7 +35,7 @@ export default class AutomationTrigger extends Events {
      * @param {string} [uuid]
      * @param {Logger} [log]
      */
-    constructor(automations: Automations, config?, uuid?: string, log?: Logger) {
+    constructor(automations: Automations, config?: any, uuid?: string, log?: Logger) {
         super();
 
         this.parent_emitter = automations;
@@ -52,14 +52,14 @@ export default class AutomationTrigger extends Events {
         this.stopping = null;
     }
 
-    static load(automations, config, uuid, log) {
+    static load(automations: Automations, config: any, uuid: string, log: Logger) {
         const Trigger = this.getTriggerClass(config.trigger, config.plugin);
         const trigger = new Trigger(automations, config, uuid, log);
 
         return trigger;
     }
 
-    static getTriggerClass(type, plugin_name) {
+    static getTriggerClass(type: string, plugin_name: string) {
         if (plugin_name) {
             const plugin = PluginManager.getPlugin(plugin_name);
 
@@ -118,7 +118,7 @@ export default class AutomationTrigger extends Events {
      * @param {object} [context]
      * @return {TriggerEvent}
      */
-    trigger(context?) {
+    trigger(context?: any) {
         if (!this.running) throw new Error('Cannot trigger when not running');
 
         const event = new TriggerEvent(this, context);
@@ -145,7 +145,7 @@ export interface CronTriggerConfiguration extends AutomationTriggerConfiguration
 export class CronTrigger extends AutomationTrigger {
     readonly config: CronTriggerConfiguration;
 
-    private task;
+    private task: ScheduledTask;
 
     onstart() {
         if (this.task) this.task.destroy(), this.task = null;

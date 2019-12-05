@@ -15,7 +15,7 @@ export default class Scene extends Events {
     readonly automations: Automations;
     readonly id: number;
     readonly uuid?: string;
-    readonly config;
+    readonly config: any;
     readonly log: Logger;
 
     readonly conditions: AutomationCondition[];
@@ -40,7 +40,7 @@ export default class Scene extends Events {
      * @param {object} config
      * @param {string} [uuid]
      */
-    constructor(automations: Automations, config?, uuid?: string) {
+    constructor(automations: Automations, config?: any, uuid?: string) {
         super();
 
         this.parent_emitter = automations;
@@ -91,7 +91,7 @@ export default class Scene extends Events {
         });
     }
 
-    private async _checkActive(setProgress) {
+    private async _checkActive(setProgress: (progress: number) => void) {
         this.log.info('Checking if scene is active');
 
         for (const i in this.conditions) { // eslint-disable-line guard-for-in
@@ -166,7 +166,7 @@ export default class Scene extends Events {
      * @param {object} [context]
      * @return {Promise}
      */
-    enable(context?): Promise<void> {
+    enable(context?: any): Promise<void> {
         const trigger_event = new SceneTriggerEvent(this, true, context || {});
         this.emit(trigger_event, true, trigger_event.context);
 
@@ -193,7 +193,7 @@ export default class Scene extends Events {
         });
     }
 
-    private async _enable(setProgress) {
+    private async _enable(setProgress: (progress: number) => void) {
         await Promise.all(this.enable_actions.map(async (action, index) => {
             try {
                 this.log.debug('Running scene #%d enable action #%d', this.id, action.id);
@@ -255,7 +255,7 @@ export default class Scene extends Events {
      * @param {object} [context]
      * @return {Promise}
      */
-    disable(context?): Promise<void> {
+    disable(context?: any): Promise<void> {
         const trigger_event = new SceneTriggerEvent(this, false, context || {});
         this.emit(trigger_event, false, trigger_event.context);
 
@@ -284,7 +284,7 @@ export default class Scene extends Events {
         });
     }
 
-    private async _disable(setProgress) {
+    private async _disable(setProgress: (progress: number) => void) {
         await Promise.all(this.disable_actions.map(async (action, index) => {
             try {
                 this.log.debug('Running scene #%d disable action #%d', this.id, action.id);

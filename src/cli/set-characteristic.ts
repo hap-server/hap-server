@@ -1,12 +1,12 @@
 import path from 'path';
 import os from 'os';
 
-import {connect, log} from '.';
+import {connect, log, GlobalArguments} from '.';
 
 export const command = 'set-characteristic <config> <characteristic> <value>';
 export const describe = 'Set a characteristic';
 
-export function builder(yargs) {
+export function builder(yargs: typeof import('yargs')) {
     yargs.positional('config', {
         describe: 'The configuration file to use',
         type: 'string',
@@ -22,7 +22,13 @@ export function builder(yargs) {
     });
 }
 
-export async function handler(argv) {
+interface Arguments extends GlobalArguments {
+    config: string;
+    characteristic: string;
+    value: string;
+}
+
+export async function handler(argv: Arguments) {
     // eslint-disable-next-line no-unused-vars
     const {connection, authenticated_user, config, config_path, data_path, server_pid} = await connect(argv);
 

@@ -2,7 +2,8 @@
 import Logger from '../common/logger';
 import {AccessoryDiscovery, DiscoveredAccessory} from '../server/plugins';
 
-const BLEDiscovery = (() => {
+// @ts-ignore
+const BLEDiscovery: typeof import('hap-controller').BLEDiscovery | undefined = (() => {
     try {
         return require('hap-controller').BLEDiscovery;
     } catch (err) {}
@@ -20,9 +21,9 @@ export const HAPBLEDiscovery = AccessoryDiscovery.withHandler(accessory_discover
     log.info('Starting HAP BLE Discovery');
 
     const discovery = new BLEDiscovery();
-    const accessories = {};
+    const accessories: Record<string, DiscoveredAccessory> = {};
 
-    discovery.on('serviceUp', service => {
+    discovery.on('serviceUp', (service: any) => {
         if (accessories[service.DeviceID]) return;
 
         log.debug('New service', service);
@@ -35,7 +36,7 @@ export const HAPBLEDiscovery = AccessoryDiscovery.withHandler(accessory_discover
         }));
     });
 
-    discovery.on('serviceDown', service => {
+    discovery.on('serviceDown', (service: any) => {
         log.debug('Removed service', service);
 
         accessory_discovery.removeAccessory(data => data.username === service.DeviceID);

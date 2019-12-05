@@ -67,7 +67,7 @@ export default class Automations extends Events {
      * @param {string} [uuid]
      * @return {Promise<Automation>}
      */
-    async loadAutomation(config, uuid?: string): Promise<Automation> {
+    async loadAutomation(config: any, uuid?: string): Promise<Automation> {
         const automation = new Automation(this, config, uuid);
 
         this.addAutomation(automation);
@@ -136,7 +136,7 @@ export default class Automations extends Events {
      * @param {string} [uuid]
      * @return {Promise<Scene>}
      */
-    async loadScene(config, uuid?: string): Promise<Scene> {
+    async loadScene(config: any, uuid?: string): Promise<Scene> {
         const scene = new Scene(this, config, uuid);
 
         this.addScene(scene);
@@ -231,7 +231,7 @@ export default class Automations extends Events {
      * @param {Logger} [log]
      * @return {Promise<AutomationTrigger>}
      */
-    async loadAutomationTrigger(config, uuid?: string, log?: Logger): Promise<AutomationTrigger> {
+    async loadAutomationTrigger(config: any, uuid?: string, log?: Logger): Promise<AutomationTrigger> {
         return AutomationTrigger.load(this, config, uuid, log);
     }
 
@@ -243,7 +243,7 @@ export default class Automations extends Events {
      * @param {Logger} [log]
      * @return {Promise<AutomationCondition>}
      */
-    async loadAutomationCondition(config, uuid?: string, log?: Logger): Promise<AutomationCondition> {
+    async loadAutomationCondition(config: any, uuid?: string, log?: Logger): Promise<AutomationCondition> {
         return AutomationCondition.load(this, config, uuid, log);
     }
 
@@ -255,7 +255,7 @@ export default class Automations extends Events {
      * @param {Logger} [log]
      * @return {Promise<AutomationAction>}
      */
-    async loadAutomationAction(config, uuid?: string, log?: Logger): Promise<AutomationAction> {
+    async loadAutomationAction(config: any, uuid?: string, log?: Logger): Promise<AutomationAction> {
         return AutomationAction.load(this, config, uuid, log);
     }
 
@@ -269,7 +269,10 @@ export default class Automations extends Events {
      * @param {*} old_value
      * @param {object} context
      */
-    handleCharacteristicUpdate(accessory, service, characteristic, value, old_value, context) {
+    handleCharacteristicUpdate(
+        accessory: HAPNodeJS.Accessory, service: HAPNodeJS.Service,
+        characteristic: HAPNodeJS.Characteristic, value: any, old_value: any, context: any
+    ) {
         //
     }
 }
@@ -295,7 +298,7 @@ export class Automation {
      * @param {object} config
      * @param {string} [uuid]
      */
-    constructor(automations: Automations, config, uuid) {
+    constructor(automations: Automations, config: any, uuid: string) {
         Object.defineProperty(this, 'automations', {value: automations});
         Object.defineProperty(this, 'id', {value: Automation.id++});
         Object.defineProperty(this, 'uuid', {value: uuid});

@@ -5,9 +5,13 @@ import fs from 'fs';
 import crypto from 'crypto';
 import util from 'util';
 import net from 'net';
+import http from 'http';
 
+// @ts-ignore
 import {Plugin as HomebridgePluginManager} from 'homebridge/lib/plugin';
+// @ts-ignore
 import {User as HomebridgeUser} from 'homebridge/lib/user';
+// @ts-ignore
 import HomebridgeLogger from 'homebridge/lib/logger';
 import hap from 'hap-nodejs';
 
@@ -16,7 +20,7 @@ import {
     ServerStartupFinishedEvent, ServerStoppingEvent, ServerPluginRegisteredEvent,
     AddAccessoryEvent, RemoveAccessoryEvent, UpdateAccessoryConfigurationEvent,
 } from '../events/server';
-import {getConfig, log} from '.';
+import {getConfig, log, GlobalArguments} from '.';
 
 const randomBytes = util.promisify(crypto.randomBytes);
 const readFile = util.promisify(fs.readFile);
@@ -28,7 +32,7 @@ const DEVELOPMENT = true;
 export const command = '$0 [config]';
 export const describe = 'Run the HAP and web server';
 
-export function builder(yargs) {
+export function builder(yargs: typeof import('yargs')) {
     yargs.positional('config', {
         describe: 'The configuration file to use',
         type: 'string',
@@ -115,15 +119,15 @@ export function builder(yargs) {
  * @param {string} [base_path]
  * @return {Array}
  */
-export function parseAddress(address, base_path?: string) {
+export function parseAddress(address: string | number, base_path?: string): Address {
     let match;
 
     if (typeof address === 'number' || address.match(/^\d+$/)) {
-        return ['net', '::', parseInt(address)];
+        return ['net', '::', parseInt('' + address)];
     } else if ((match = address.match(/^([0-9.]+):(\d+)$/)) && net.isIPv4(match[1])) {
-        return ['net', match[1], match[2]];
+        return ['net', match[1], parseInt(match[2])];
     } else if ((match = address.match(/^\[([0-9a-f:.]+)\]:(\d+)$/i)) && net.isIPv6(match[1])) {
-        return ['net', match[1], match[2]];
+        return ['net', match[1], parseInt(match[2])];
     } else if (address.startsWith('unix:')) {
         return ['unix', path.resolve(base_path, address.substr(5))];
     } else if (address.startsWith('./') || address.startsWith('../') || address.startsWith('/')) {
@@ -139,7 +143,7 @@ export function parseAddress(address, base_path?: string) {
  * @param {Array} address
  * @return {string}
  */
-export function addressToString(address) {
+export function addressToString(address: Address) {
     if (address[0] === 'net' && net.isIPv4(address[1])) {
         return `${address[1]}:${address[2]}`;
     } else if (address[0] === 'net' && net.isIPv6(address[1])) {
@@ -151,9 +155,11 @@ export function addressToString(address) {
     throw new Error('Invalid address array');
 }
 
-export function normaliseAddress(address, base_path?: string) {
-    return addressToString(parseAddress(address, base_path));
+export function normaliseAddress(address: Address | string | number, base_path?: string) {
+    return addressToString(typeof address === 'object' ? address : parseAddress(address, base_path));
 }
+
+type Address = ['net', string, number] | ['unix', string];
 
 /**
  * Returns an array of certificates.
@@ -162,7 +168,7 @@ export function normaliseAddress(address, base_path?: string) {
  * @param {string} [base_path]
  * @return {Promise<string[]>}
  */
-function getCertificates(certificates: string | string[], base_path) {
+function getCertificates(certificates: string | [string, string], base_path: string) {
     return Promise.all([].concat(certificates || []).map(async certificate => {
         if (certificate.startsWith('-----')) return certificate;
 
@@ -170,7 +176,29 @@ function getCertificates(certificates: string | string[], base_path) {
     }));
 }
 
-export async function handler(argv) {
+interface Arguments extends GlobalArguments {
+    config: string;
+
+    advertiseWebInterface: boolean;
+    advertiseWebInterfacePort: number;
+
+    dataPath?: string;
+    pluginPath?: string[];
+
+    printSetup: boolean;
+    allowUnauthenticated: boolean;
+    enableHomebridge: boolean;
+
+    user?: string;
+    group?: string;
+
+    // Development
+    vueDevtoolsHost: string;
+    vueDevtoolsPort?: string;
+    webpackHot: boolean;
+}
+
+export async function handler(argv: Arguments) {
     if (DEVELOPMENT && argv.vueDevtoolsPort) {
         const {enableVueDevtools} = require('../server/connection');
         enableVueDevtools(argv.vueDevtoolsHost, argv.vueDevtoolsPort);
@@ -252,32 +280,43 @@ export async function handler(argv) {
 
     log.info('Starting web server');
 
-    const listen_addresses = [].concat(config.listen || []).map(a => a instanceof Array ? a : parseAddress(a, data_path));
-    const https_addresses = {};
-    for (const [address, certificate] of Object.entries(config['listen-https'] || {})) {
-        https_addresses[normaliseAddress(address, data_path)] = certificate;
+    interface AddressOptions {
+        middleware?: (req: http.IncomingMessage, res: http.ServerResponse, next: () => void) => void;
     }
-    const https_request_client_certificate_addresses = {};
+    interface HttpsOptions {
+        allow_unencrypted?: boolean;
+    }
+
+    const listen_addresses:
+        (['net', string, number] | ['unix', string] | ['net', string, number, AddressOptions | undefined] |
+            ['unix', string, AddressOptions | undefined])[]
+        = [].concat(config.listen || []).map(a => a instanceof Array ? a as Address : parseAddress(a, data_path));
+    const https_addresses: Record<string, string | [string, string] | [string, string, HttpsOptions]> = {};
+    for (const [address, certificate] of Object.entries(config['listen-https'] || {})) {
+        https_addresses[normaliseAddress(address, data_path)] = certificate as any;
+    }
+    const https_request_client_certificate_addresses: Record<string, string | string[] | boolean> = {};
     for (const [address, certificate] of config['listen-https+request-client-certificate'] instanceof Array ?
-        config['listen-https+request-client-certificate'].map(address => [address, true]) :
+        config['listen-https+request-client-certificate']
+            .map(address => [address, true] as [string | Address, boolean]) :
         Object.entries(config['listen-https+request-client-certificate'] || {})
     ) {
         https_request_client_certificate_addresses[normaliseAddress(address, data_path)] = certificate;
     }
-    const https_require_client_certificate_addresses = {};
+    const https_require_client_certificate_addresses: Record<string, string | string[]> = {};
     for (const [address, certificate] of Object.entries(config['listen-https+require-client-certificate'] || {})) {
         https_require_client_certificate_addresses[normaliseAddress(address, data_path)] = certificate;
     }
-    const https_address_crls = {};
+    const https_address_crls: Record<string, string> = {};
     for (const [address, crl] of Object.entries(config['listen-https+crl'] || {})) {
         https_address_crls[normaliseAddress(address, data_path)] = crl;
     }
-    const https_address_passphrases = {};
+    const https_address_passphrases: Record<string, string> = {};
     for (const [address, passphrase] of Object.entries(config['listen-https+passphrase'] || {})) {
         https_address_passphrases[normaliseAddress(address, data_path)] = passphrase;
     }
 
-    let bonjour_instance = null;
+    let bonjour_instance: any = null;
     let web_interface_address = null;
 
     if (argv.advertiseWebInterface) {
@@ -326,7 +365,7 @@ export async function handler(argv) {
         const public_key = forge.pki.setRsaPublicKey(private_key.n, private_key.e);
 
         let certificate;
-        let certificate_pem;
+        let certificate_pem: string;
         try {
             const certificate_file = certificate_pem = await readFile(bonjour_secure_server_certificate_path, 'utf-8');
             certificate = forge.pki.certificateFromPem(certificate_file);
@@ -384,9 +423,10 @@ export async function handler(argv) {
         const sha256 = forge.md.sha256.create();
         sha256.start();
         sha256.update(forge.asn1.toDer(forge.pki.certificateToAsn1(certificate)).getBytes());
-        const bonjour_secure_server_certificate_fingerprints = sha256.digest().toHex().replace(/(.{2})(?!$)/g, m => `${m}:`);
+        const bonjour_secure_server_certificate_fingerprints =
+            (sha256.digest().toHex() as string).replace(/(.{2})(?!$)/g, m => `${m}:`);
 
-        const htmlencode = (format, ...args) => {
+        const htmlencode = (format: TemplateStringsArray, ...args: any[]) => {
             return format.map((f, i) => i === 0 ? f : args[i - 1]
                 .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
             + f).join('');
@@ -415,6 +455,7 @@ export async function handler(argv) {
 
         listen_addresses.push(['net', '::', bonjour_server_port, {
             middleware: (req, res, next) => {
+                // @ts-ignore
                 if (req.connection.encrypted) res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
 
                 if (req.url === '/certificate') {
@@ -422,6 +463,7 @@ export async function handler(argv) {
                     res.setHeader('Content-Disposition', `attachment; filename="hap-server-${bonjour_server_uuid}-certificate.pem"`);
                     res.writeHead(200);
                     res.end(certificate_pem);
+                // @ts-ignore
                 } else if (!req.connection.encrypted) {
                     const url = `https://${bonjour_hostname}:${bonjour_server_port}${req.url}`;
                     res.setHeader('Location', url);
@@ -453,30 +495,36 @@ export async function handler(argv) {
 
     log.info('Listen addresses', listen_addresses, https_addresses, https_request_client_certificate_addresses,
         https_require_client_certificate_addresses);
-    const listening_servers = [];
+    const listening_servers: net.Server[] = [];
     let wrote_port_file = false;
 
     for (const address of listen_addresses) {
-        const options = typeof address[address.length - 1] === 'object' ? address.pop() : null;
-        const address_string = addressToString(address);
+        const options = typeof address[address.length - 1] === 'object' ? address.pop() as AddressOptions : null;
+        const address_string = addressToString(address as Address);
         const https = https_addresses[address_string];
-        const https_options = https && typeof https[https.length - 1] === 'object' ? https.pop() : null;
+        const https_options = https && typeof https[https.length - 1] === 'object' ?
+            (https as HttpsOptions[]).pop() : null;
         const https_request_client_certificate = https_request_client_certificate_addresses[address_string];
         const https_require_client_certificate = https_require_client_certificate_addresses[address_string];
         const https_crl = https_address_crls[address_string];
         const https_passphrase = https_address_passphrases[address_string];
 
         const http_server = https ? server.createSecureServer({
-            ca: await getCertificates(https_require_client_certificate || https_request_client_certificate, data_path),
-            cert: (await getCertificates(https, data_path)).filter(c => c.match(/CERTIFICATE/i)),
-            key: (await getCertificates(https, data_path)).filter(c => c.match(/PRIVATE KEY/i)),
+            ca: https_require_client_certificate || https_request_client_certificate ?
+                // @ts-ignore
+                await getCertificates(https_require_client_certificate || https_request_client_certificate, data_path) :
+                null,
+            cert: (await getCertificates(https as string | [string, string], data_path))
+                .filter(c => c.match(/CERTIFICATE/i)),
+            key: (await getCertificates(https as string | [string, string], data_path))
+                .filter(c => c.match(/PRIVATE KEY/i)),
             crl: await getCertificates(https_crl, data_path),
             passphrase: https_passphrase,
 
             requestCert: !!https_request_client_certificate || !!https_require_client_certificate,
             rejectUnauthorized: !!https_require_client_certificate,
         }, options && options.middleware) : server.createServer(null, options && options.middleware);
-        const listening_server = https && https_options && https_options.allow_unencrypted ? net.createServer(connection => {
+        const listening_server: net.Server = https && https_options && https_options.allow_unencrypted ? net.createServer(connection => {
             const data = connection.read(1);
             if (!data) return connection.once('readable', () => listening_server.emit('connection', connection));
             const first_byte = data[0];
@@ -489,8 +537,9 @@ export async function handler(argv) {
         }) : http_server;
 
         if (address[0] === 'net') {
-            await new Promise((rs, rj) => listening_server.listen(address[2], address[1], err => err ? rj(err) : rs()));
+            await new Promise((rs, rj) => listening_server.listen(address[2], address[1], () => rs()));
 
+            // @ts-ignore
             const http_port = listening_server.address().port;
             log.info(`Listening on ${address[1]} port ${http_port}`);
 
@@ -502,7 +551,7 @@ export async function handler(argv) {
             try {
                 await unlink(address[1]);
             } catch (err) {}
-            await new Promise((rs, rj) => listening_server.listen(address[1], err => err ? rj(err) : rs()));
+            await new Promise((rs, rj) => listening_server.listen(address[1], () => rs()));
 
             log.info(`Listening on UNIX socket ${address[1]}`);
         }
@@ -550,7 +599,7 @@ export async function handler(argv) {
     log.info('Saving cached accessories');
     await server.saveCachedAccessories();
 
-    function saveCachedAccessories(event) {
+    function saveCachedAccessories(event: AddAccessoryEvent | UpdateAccessoryConfigurationEvent | RemoveAccessoryEvent) {
         log.info('Saving cached accessories');
         server.saveCachedAccessories();
     }
@@ -639,7 +688,7 @@ export async function handler(argv) {
 
                 server.automations.stop(),
 
-                new Promise((rs, rj) => server.wss.close(err => err ? rj(err) : rs())),
+                new Promise((rs, rj) => server.wss.close((err: Error) => err ? rj(err) : rs())),
             ]);
 
             server.removeListener(AddAccessoryEvent, saveCachedAccessories);

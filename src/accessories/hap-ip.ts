@@ -1,7 +1,8 @@
 
 import Logger from '../common/logger';
 import {AccessoryPlatform} from '../server/plugins';
-import {Accessory, Service, Characteristic, uuid} from 'hap-nodejs';
+import {uuid} from 'hap-nodejs';
+import * as hap from 'hap-nodejs';
 
 const HttpClient = (() => {
     try {
@@ -18,16 +19,37 @@ const CharacteristicMap = Symbol('CharacteristicMap');
 // @ts-ignore
 import {HttpClient} from 'hap-controller';
 import {
-    AccessoryHap as HAPAccessory,
-    ServiceHap as HAPService,
-    CharacteristicHap as HAPCharacteristic,
-    CharacteristicFormat as HAPCharacteristicFormat,
-    CharacteristicPerms as HAPCharacteristicPermission,
-    CharacteristicUnit as HAPCharacteristicUnit,
+    AccessoryHap,
+    ServiceHap,
+    CharacteristicHap,
+    CharacteristicFormat,
+    CharacteristicPerms,
+    CharacteristicUnit,
 } from '../common/types/hap';
 
 interface HAPAccessories {
-    accessories: HAPAccessory[];
+    accessories: AccessoryHap[];
+}
+
+const Accessory = hap.Accessory;
+interface Accessory extends HAPNodeJS.Accessory {
+    [IID]?: number;
+    [ServiceMap]?: Map</** iid */ number, Service>;
+    [CharacteristicMap]?: Map</** iid */ number, Characteristic>;
+}
+const Service = hap.Service;
+interface Service extends HAPNodeJS.Service {
+    [IID]?: number;
+    [ServiceMap]?: Map</** iid */ number, Service>;
+    [CharacteristicMap]?: Map</** iid */ number, Characteristic>;
+}
+const Characteristic = hap.Characteristic;
+interface Characteristic extends HAPNodeJS.Characteristic {
+    UUID: string;
+    displayName: string;
+    [IID]?: number;
+    [ServiceMap]?: Map</** iid */ number, Service>;
+    [CharacteristicMap]?: Map</** iid */ number, Characteristic>;
 }
 
 export default class HAPIP extends AccessoryPlatform {
@@ -40,34 +62,36 @@ export default class HAPIP extends AccessoryPlatform {
         id: string; // Same as hap-nodejs usernames
         address: string;
         port: number;
-        pairing_data;
+        pairing_data: any;
     };
 
     client: HttpClient;
-    events_connection;
+    events_connection: any;
     subscribed_characteristics: string[] = [];
 
-    private get_queue?: {0: string; 1: () => void; 2: () => void}[];
+    private get_queue?: [/** aid, iid pair */ string, /** resolve */ () => void, /** reject */ () => void][];
     private get_queue_timeout?: NodeJS.Timeout;
-    private set_queue?: {0: string; 1: any; 2: () => void; 3: () => void}[];
+    private set_queue?:
+        [/** aid, iid pair */ string, /** value */ any, /** resolve */ () => void, /** reject */ () => void][];
     private set_queue_timeout?: NodeJS.Timeout;
-    private subscribe_queue?: {0: string; 1: boolean; 2: () => void; 3: () => void}[];
+    private subscribe_queue?:
+        [/** aid, iid pair */ string, /** value */ boolean, /** resolve */ () => void, /** reject */ () => void][];
     private subscribe_queue_timeout?: NodeJS.Timeout;
 
-    async init(cached_accessories) {
+    async init(cached_accessories: Accessory[]) {
         if (!HttpClient) {
             throw new Error('hap-controller is not available');
         }
 
         this.client = new HttpClient(this.config.id, this.config.address, this.config.port, this.config.pairing_data);
 
-        this.client.on('event', event => {
+        this.client.on('event', (event: any) => {
             log.info('Received event', event);
 
             for (const hap_characteristic of event.characteristics) {
                 try {
                     const accessory_uuid = uuid.generate(this.config.uuid + ':' + hap_characteristic.aid);
-                    const accessory = this.accessories.find(plugin_accessory =>
+                    const accessory: Accessory = this.accessories.find(plugin_accessory =>
                         plugin_accessory.uuid === accessory_uuid).accessory;
                     const characteristic = accessory[CharacteristicMap].get(hap_characteristic.iid);
 
@@ -79,7 +103,7 @@ export default class HAPIP extends AccessoryPlatform {
         });
 
         const {accessories} = await this.client.getAccessories();
-        const subscribe_characteristics = [];
+        const subscribe_characteristics: string[] = [];
 
         for (const hap_accessory of accessories) {
             if (hap_accessory.aid === 1 && (!hap_accessory.services.length || (hap_accessory.services.length === 1 &&
@@ -107,9 +131,10 @@ export default class HAPIP extends AccessoryPlatform {
         this.removeAllCachedAccessories();
     }
 
-    createAccessoryFromHAP(hap_accessory, subscribe_characteristics) {
+    createAccessoryFromHAP(hap_accessory: AccessoryHap, subscribe_characteristics: string[]) {
         // The name will be replaced later
-        const accessory = new Accessory('Accessory', uuid.generate(this.config.uuid + ':' + hap_accessory.aid));
+        const accessory: Accessory =
+            new Accessory('Accessory', uuid.generate(this.config.uuid + ':' + hap_accessory.aid));
 
         accessory[IID] = hap_accessory.aid;
         accessory[ServiceMap] = new Map();
@@ -127,7 +152,8 @@ export default class HAPIP extends AccessoryPlatform {
         for (const hap_service of hap_accessory.services) {
             if (!hap_service.linked || !hap_service.linked.length) continue;
 
-            const service = accessory.services.find(s => s.UUID === hap_service.type && s.subtype === hap_service.iid);
+            const service = accessory.services
+                .find(s => s.UUID === hap_service.type && s.subtype === '' + hap_service.iid);
 
             for (const linked_service_iid of hap_service.linked) {
                 const linked_service = accessory[ServiceMap].get(linked_service_iid);
@@ -140,7 +166,9 @@ export default class HAPIP extends AccessoryPlatform {
         return accessory;
     }
 
-    createServiceFromHAP(accessory, hap_accessory, hap_service, subscribe_characteristics) {
+    createServiceFromHAP(
+        accessory: Accessory, hap_accessory: AccessoryHap, hap_service: ServiceHap, subscribe_characteristics: string[]
+    ) {
         if (hap_service.type.length === 2) {
             hap_service.type = '000000' + hap_service.type + '-0000-1000-8000-0026BB765291';
         }
@@ -164,7 +192,10 @@ export default class HAPIP extends AccessoryPlatform {
         return service;
     }
 
-    createCharacteristicFromHAP(accessory, hap_accessory, service, hap_service, hap_characteristic, subscribe_characteristics?) {
+    createCharacteristicFromHAP(
+        accessory: Accessory, hap_accessory: AccessoryHap, service: Service, hap_service: ServiceHap,
+        hap_characteristic: CharacteristicHap, subscribe_characteristics?: string[]
+    ) {
         if (hap_characteristic.type.length === 2) {
             hap_characteristic.type = '000000' + hap_characteristic.type + '-0000-1000-8000-0026BB765291';
         }
@@ -211,15 +242,15 @@ export default class HAPIP extends AccessoryPlatform {
         await this.patchAccessories(accessories);
     }
 
-    async patchAccessories(accessories) {
+    async patchAccessories(accessories: AccessoryHap[]) {
         const new_accessories: any[] = [];
-        const existing_accessories = [];
-        const removed_accessories: typeof Accessory[] = [];
-        const subscribe_characteristics = [];
-        const patch_characteristics = {};
+        const existing_accessories: [Accessory, AccessoryHap][] = [];
+        const removed_accessories: Accessory[] = [];
+        const subscribe_characteristics: string[] = [];
+        const patch_characteristics: Record<string, boolean> = {};
 
         for (const accessory of this.accessories) {
-            const hap_accessory = accessories.find(a => accessory[IID] === a.aid);
+            const hap_accessory = accessories.find(a => (accessory.accessory as Accessory)[IID] === a.aid);
 
             if (hap_accessory) {
                 existing_accessories.push([accessory.accessory, hap_accessory]);
@@ -266,13 +297,13 @@ export default class HAPIP extends AccessoryPlatform {
         await this.patchSubscribedCharacteristics(patch_characteristics);
     }
 
-    patchAccessory(accessory, hap_accessory, subscribe_characteristics) {
+    patchAccessory(accessory: Accessory, hap_accessory: AccessoryHap, subscribe_characteristics: string[]) {
         const new_services: any[] = [];
-        const existing_services = [];
-        const removed_services: typeof Service[] = [];
+        const existing_services: [Service, ServiceHap][] = [];
+        const removed_services: Service[] = [];
 
         for (const service of accessory.services) {
-            const hap_service = hap_accessory.services.find(s => service[IID] === s.iid);
+            const hap_service = hap_accessory.services.find(s => (service as Service)[IID] === s.iid);
 
             if (hap_service) {
                 existing_services.push([service, hap_service]);
@@ -301,23 +332,25 @@ export default class HAPIP extends AccessoryPlatform {
             accessory.removeService(service);
 
             // We don't need to unsubscribe from any characteristics if they don't exist
-            const unsubscribed = service.characteristics.map(c => `${accessory[IID]}.${c[IID]}`);
+            const unsubscribed = service.characteristics.map(c => `${accessory[IID]}.${(c as Characteristic)[IID]}`);
             this.subscribed_characteristics = this.subscribed_characteristics
                 .filter(cid => !unsubscribed.includes(cid));
         }
     }
 
-    patchService(accessory, hap_accessory, service, hap_service) {
+    patchService(
+        accessory: Accessory, hap_accessory: AccessoryHap, service: Service, hap_service: ServiceHap
+    ) {
         const new_characteristics: any[] = [];
-        const existing_characteristics = [];
-        const removed_characteristics: typeof Characteristic[] = [];
+        const existing_characteristics: [Characteristic, CharacteristicHap][] = [];
+        const removed_characteristics: Characteristic[] = [];
 
-        for (const characteristic of service.characteristics) {
+        for (const characteristic of service.characteristics as Characteristic[]) {
             const hap_characteristic = hap_service.characteristics.find(c => characteristic[IID] === c.iid);
-            const type = hap_characteristic.type.length === 2 ? `000000${hap_characteristic.type}-0000-1000-8000-0026BB765291` : hap_characteristic.type.length;
+            const type = hap_characteristic.type.length === 2 ? `000000${hap_characteristic.type}-0000-1000-8000-0026BB765291` : hap_characteristic.type;
 
             // If the type has changed, remove and replace the characteristic
-            if (hap_characteristic && characteristic.type === type) {
+            if (hap_characteristic && characteristic.UUID === type) {
                 existing_characteristics.push([characteristic, hap_characteristic]);
             } else {
                 removed_characteristics.push(characteristic);
@@ -351,7 +384,10 @@ export default class HAPIP extends AccessoryPlatform {
         }
     }
 
-    async patchCharacteristic(accessory, hap_accessory, service, hap_service, characteristic, hap_characteristic) {
+    async patchCharacteristic(
+        accessory: Accessory, hap_accessory: AccessoryHap, service: Service, hap_service: ServiceHap,
+        characteristic: Characteristic, hap_characteristic: CharacteristicHap
+    ) {
         if (hap_characteristic.type.length === 2) {
             hap_characteristic.type = '000000' + hap_characteristic.type + '-0000-1000-8000-0026BB765291';
         }
@@ -362,18 +398,20 @@ export default class HAPIP extends AccessoryPlatform {
             accessory.displayName = hap_characteristic.value;
         }
 
-        if (characteristic.type !== hap_characteristic.type) {
+        if (characteristic.UUID !== hap_characteristic.type) {
             throw new Error('Cannot change characteristic type');
         }
 
         characteristic.displayName = hap_characteristic.description;
 
         characteristic.setProps({
-            perms: hap_characteristic.perms,
-            format: hap_characteristic.format,
+            perms: hap_characteristic.perms as unknown as HAPNodeJS.Characteristic.Perms[],
+            format: hap_characteristic.format as unknown as HAPNodeJS.Characteristic.Formats,
+            // @ts-ignore
             validValues: hap_characteristic['valid-values'],
+            // @ts-ignore
             validValuesRange: hap_characteristic['valid-values-range'],
-            unit: hap_characteristic.unit,
+            unit: hap_characteristic.unit as unknown as HAPNodeJS.Characteristic.Units,
             maxValue: hap_characteristic.maxValue,
             minValue: hap_characteristic.minValue,
             minStep: hap_characteristic.minStep,
@@ -403,7 +441,9 @@ export default class HAPIP extends AccessoryPlatform {
      * @param {function} callback
      */
     handleCharacteristicGet(
-        accessory, hap_accessory, service, hap_service, characteristic, hap_characteristic, callback
+        accessory: Accessory, hap_accessory: AccessoryHap, service: Service, hap_service: ServiceHap,
+        characteristic: Characteristic, hap_characteristic: CharacteristicHap,
+        callback: (err?: Error | null, value?: any) => void
     ) {
         this.queueCharacteristicGet(hap_accessory.aid, hap_characteristic.iid)
             .then(c => callback(null, c.value), callback);
@@ -440,7 +480,7 @@ export default class HAPIP extends AccessoryPlatform {
 
             // eslint-disable-next-line guard-for-in
             for (const index in characteristics) {
-                queue[index][1].call(null, characteristics[index]);
+                queue[index as unknown as number][1].call(null, characteristics[index]);
             }
         } catch (err) {
             for (const q of queue) {
@@ -462,7 +502,9 @@ export default class HAPIP extends AccessoryPlatform {
      * @param {function} callback
      */
     handleCharacteristicSet(
-        accessory, hap_accessory, service, hap_service, characteristic, hap_characteristic, value, callback
+        accessory: Accessory, hap_accessory: AccessoryHap, service: Service, hap_service: ServiceHap,
+        characteristic: Characteristic, hap_characteristic: CharacteristicHap,
+        value: any, callback: (err?: Error | null, value?: any) => void
     ) {
         this.queueCharacteristicSet(hap_accessory.aid, hap_characteristic.iid, value)
             .then(v => callback(null, v), callback);
@@ -476,7 +518,7 @@ export default class HAPIP extends AccessoryPlatform {
      * @param {*} value
      * @return {Promise<object>}
      */
-    queueCharacteristicSet(aid: number, iid: number, value): Promise<{aid: number; iid: number; status: number}> {
+    queueCharacteristicSet(aid: number, iid: number, value: any): Promise<{aid: number; iid: number; status: number}> {
         return new Promise((resolve, reject) => {
             const queue = this.set_queue || (this.set_queue = []);
 
@@ -501,13 +543,13 @@ export default class HAPIP extends AccessoryPlatform {
 
         try {
             const {characteristics} = await this.client.setCharacteristics(queue
-                .reduce((acc, cur) => (acc[cur[0]] = cur[1], acc), {}));
+                .reduce((acc, cur) => (acc[cur[0]] = cur[1], acc), {} as Record<string, any>));
 
             log.debug('Set characteristics', characteristics);
 
             // eslint-disable-next-line guard-for-in
             for (const index in characteristics) {
-                queue[index][2].call(null, characteristics[index]);
+                queue[index as unknown as number][2].call(null, characteristics[index]);
             }
         } catch (err) {
             for (const q of queue) {
@@ -527,7 +569,8 @@ export default class HAPIP extends AccessoryPlatform {
      * @param {object} hap_characteristic
      */
     handleCharacteristicSubscribe(
-        accessory, hap_accessory, service, hap_service, characteristic, hap_characteristic
+        accessory: Accessory, hap_accessory: AccessoryHap, service: Service, hap_service: ServiceHap,
+        characteristic: Characteristic, hap_characteristic: CharacteristicHap
     ) {
         this.queueCharacteristicSubscribe(hap_accessory.aid, hap_characteristic.iid, true);
     }
@@ -543,7 +586,8 @@ export default class HAPIP extends AccessoryPlatform {
      * @param {object} hap_characteristic
      */
     handleCharacteristicUnsubscribe(
-        accessory, hap_accessory, service, hap_service, characteristic, hap_characteristic
+        accessory: Accessory, hap_accessory: AccessoryHap, service: Service, hap_service: ServiceHap,
+        characteristic: Characteristic, hap_characteristic: CharacteristicHap
     ) {
         this.queueCharacteristicSubscribe(hap_accessory.aid, hap_characteristic.iid, false);
     }
@@ -576,7 +620,7 @@ export default class HAPIP extends AccessoryPlatform {
         this.subscribe_queue_timeout = null;
 
         try {
-            const data = {};
+            const data: Record<string, boolean> = {};
             for (const q of queue) data[q[0]] = q[1];
 
             await this.patchSubscribedCharacteristics(data);
@@ -594,7 +638,11 @@ export default class HAPIP extends AccessoryPlatform {
 
     async patchSubscribedCharacteristics(characteristics: {[key: string]: boolean}) {
         const data = {
-            characteristics: [],
+            characteristics: [] as {
+                aid: number;
+                iid: number;
+                ev: boolean;
+            }[],
         };
 
         for (const [cid, subscribe] of Object.entries(characteristics)) {

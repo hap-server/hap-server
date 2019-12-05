@@ -1,12 +1,12 @@
 import path from 'path';
 import os from 'os';
 
-import {connect, log} from '.';
+import {connect, log, GlobalArguments} from '.';
 
 export const command = 'make-admin <user>';
 export const describe = 'Get characteristics';
 
-export function builder(yargs) {
+export function builder(yargs: typeof import('yargs')) {
     yargs.positional('user', {
         describe: 'The ID of the user to promote to administrator',
         type: 'string',
@@ -18,7 +18,12 @@ export function builder(yargs) {
     });
 }
 
-export async function handler(argv) {
+interface Arguments extends GlobalArguments {
+    user?: string;
+    config: string;
+}
+
+export async function handler(argv: Arguments) {
     // eslint-disable-next-line no-unused-vars
     const {connection, authenticated_user, config, config_path, data_path, server_pid} = await connect(argv);
 

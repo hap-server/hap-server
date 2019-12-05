@@ -88,16 +88,7 @@ type Includes<T> = string | {include: string} | T;
 type NetAddressType = 'net';
 type UnixSocketAddressType = 'unix';
 
-type ListenAddress = number | string | {
-    0: NetAddressType;
-    1: string;
-    2: number;
-    __proto__: typeof Array.prototype;
-} | {
-    0: UnixSocketAddressType;
-    1: string;
-    __proto__: typeof Array.prototype;
-};
+type ListenAddress = number | string | [NetAddressType, string, number] | [UnixSocketAddressType, string];
 
 interface ConfigurationFile {
     hostname?: string;
@@ -129,7 +120,7 @@ interface ConfigurationFile {
     'automation-actions'?: {[key: string]: Includes<AutomationActionConfiguration>};
     automations?: AutomationConfiguration[];
 
-    // Deprecated
+    /** @deprecated */
     http_host?: string;
 }
 
@@ -415,7 +406,7 @@ export async function validate(configuration: ConfigurationFile, base_path?: str
 
     // TODO: validate plugins configuration
 
-    const bridge_uuids = [];
+    const bridge_uuids: string[] = [];
     const bridge_usernames = [];
 
     if (typeof configuration.bridge !== 'undefined') {
@@ -605,7 +596,7 @@ export async function validate(configuration: ConfigurationFile, base_path?: str
     return errors;
 }
 
-async function isdir(path) {
+async function isdir(path: string) {
     console.log('Checking if %s is a directory', path);
     try {
         const stat = await fs.stat(path);
@@ -618,7 +609,7 @@ async function isdir(path) {
     return true;
 }
 
-async function isfile(path) {
+async function isfile(path: string) {
     try {
         const stat = await fs.stat(path);
 
