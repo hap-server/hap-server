@@ -71,14 +71,15 @@ export default class Bridge {
             Object.freeze(this);
         });
 
-        this._handleCharacteristicUpdate = this.server._handleCharacteristicUpdate.bind(this.server, this.bridge);
+        this._handleCharacteristicUpdate =
+            this.server.accessories._handleCharacteristicUpdate.bind(this.server, this.bridge);
         this.bridge.on('service-characteristic-change', this._handleCharacteristicUpdate);
     }
 
     protected _createBridge(config: any) {
         const bridge = new HAPBridge(this.name, this.uuid);
 
-        bridge.on('hap-server-update-pairings', () => this.server.handlePairingsUpdate(this));
+        bridge.on('hap-server-update-pairings', () => this.server.accessories.handlePairingsUpdate(this));
 
         bridge.addBridgedAccessory = this._addBridgedAccessory.bind(this, bridge);
         bridge.removeBridgeAccessory = this._removeBridgedAccessory.bind(this, bridge);

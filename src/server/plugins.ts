@@ -17,7 +17,7 @@ import {Plugin as HomebridgePluginManager} from 'homebridge/lib/plugin';
 import Events, {Event, EventListener, EventListenerPromise, EventListeners} from '../events';
 import {ServerPluginRegisteredEvent} from '../events/server';
 import * as ServerEvents from '../events/server';
-import {PluginAccessoryPlatformAccessory} from './server';
+import {PluginAccessoryPlatformAccessory} from './accessories';
 import Logger from '../common/logger';
 import AutomationTrigger from '../automations/trigger';
 import AutomationCondition from '../automations/condition';
@@ -852,7 +852,7 @@ export class AccessoryPlatform {
             const plugin_accessory = new PluginAccessoryPlatformAccessory(this.server, accessory, this.plugin,
                 this.constructor.name, this.config.uuid!);
 
-            this.server.addAccessory(plugin_accessory);
+            this.server.accessories.addAccessory(plugin_accessory);
             this.removeCachedAccessory(accessory.UUID);
             this.accessories.push(plugin_accessory);
         }
@@ -867,7 +867,7 @@ export class AccessoryPlatform {
         for (const accessory of accessories) {
             let index;
             while ((index = this.accessories.findIndex(a => a.uuid === accessory.UUID)) !== -1) {
-                this.server.removeAccessory(this.accessories[index]);
+                this.server.accessories.removeAccessory(this.accessories[index]);
                 this.accessories.splice(index, 1);
             }
         }
@@ -879,7 +879,7 @@ export class AccessoryPlatform {
      * @param {string} uuid
      */
     removeCachedAccessory(uuid: string) {
-        this.server.removeCachedAccessory(uuid);
+        this.server.accessories.removeCachedAccessory(uuid);
 
         let index;
         while ((index = this.cached_accessories.findIndex(accessory => accessory.UUID === uuid)) !== -1) {
@@ -892,7 +892,7 @@ export class AccessoryPlatform {
      */
     removeAllCachedAccessories() {
         for (const accessory of this.cached_accessories) {
-            this.server.removeCachedAccessory(accessory.UUID);
+            this.server.accessories.removeCachedAccessory(accessory.UUID);
         }
 
         this.cached_accessories.splice(0, this.cached_accessories.length);

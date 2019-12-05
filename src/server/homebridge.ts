@@ -57,7 +57,7 @@ export default class Homebridge extends Bridge {
     private _handlePair(bridge: any, handlePair: any, ...args: any[]) {
         const r = handlePair.call(bridge, ...args);
 
-        this.server.handlePairingsUpdate(this);
+        this.server.accessories.handlePairingsUpdate(this);
 
         return r;
     }
@@ -65,7 +65,7 @@ export default class Homebridge extends Bridge {
     private _handleUnpair(bridge: any, handleUnpair: any, ...args: any[]) {
         const r = handleUnpair.call(bridge, ...args);
 
-        this.server.handlePairingsUpdate(this);
+        this.server.accessories.handlePairingsUpdate(this);
 
         return r;
     }

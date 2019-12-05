@@ -349,19 +349,19 @@ export default class Connection {
     async listAccessories() {
         const uuids = [];
 
-        for (const bridge of this.server.bridges) {
+        for (const bridge of this.server.accessories.bridges) {
             uuids.push(bridge.uuid);
         }
 
-        for (const accessory of this.server.accessories) {
+        for (const accessory of this.server.accessories.accessories) {
             uuids.push(accessory.uuid);
         }
 
-        for (const accessory of this.server.cached_accessories) {
+        for (const accessory of this.server.accessories.cached_accessories) {
             uuids.push(accessory.uuid);
         }
 
-        for (const bridge of this.server.bridges) {
+        for (const bridge of this.server.accessories.bridges) {
             if (!(bridge instanceof Homebridge)) continue;
 
             for (const accessory of bridge.bridge.bridgedAccessories) {
@@ -1522,7 +1522,7 @@ export default class Connection {
     async listBridges(include_homebridge = false) {
         const uuids = [];
 
-        for (const bridge of this.server.bridges) {
+        for (const bridge of this.server.accessories.bridges) {
             if (!include_homebridge && bridge instanceof Homebridge) continue;
 
             uuids.push(bridge.uuid);
@@ -1549,7 +1549,7 @@ export default class Connection {
         await this.server.storage.setItem('Bridge.' + uuid, data);
 
         this.log.debug('Starting bridge', uuid);
-        const bridge = await this.server.loadBridge(data, uuid);
+        const bridge = await this.server.accessories.loadBridge(data, uuid);
         await bridge.publish();
 
         const bridge_uuids = await this.server.storage.getItem('Bridges') || [];
@@ -1578,7 +1578,7 @@ export default class Connection {
         await this.permissions.assertCanGetAccessory(uuid);
         const authorised_uuids = await this.permissions.getAuthorisedAccessoryUUIDs();
 
-        const bridge = this.server.bridges.find(bridge => bridge.uuid === uuid);
+        const bridge = this.server.accessories.bridges.find(bridge => bridge.uuid === uuid);
         this.log.debug('Getting bridge info', uuid);
         if (!bridge) return;
 
@@ -1609,7 +1609,7 @@ export default class Connection {
 
         this.log.debug('Getting bridge configuration', uuid);
 
-        const bridge = this.server.bridges.find(b => b.uuid === uuid);
+        const bridge = this.server.accessories.bridges.find(b => b.uuid === uuid);
         if (bridge) return bridge.config;
 
         return this.server.storage.getItem('Bridge.' + uuid) || {};
@@ -1635,7 +1635,8 @@ export default class Connection {
 
         return {
             get, set, delete: del,
-            is_from_config: is_from_config || this.server.homebridge && this.server.homebridge.uuid === uuid,
+            is_from_config: is_from_config ||
+                (this.server.accessories.homebridge && this.server.accessories.homebridge.uuid === uuid),
         };
     }
 
@@ -1652,14 +1653,14 @@ export default class Connection {
 
         const is_from_config = (this.server.config.bridges && this.server.config.bridges.find((c: any) =>
             c.uuid ? c.uuid === uuid : hap.uuid.generate('hap-server:bridge:' + c.username) === uuid)) ||
-            (this.server.homebridge && this.server.homebridge.uuid === uuid);
+            (this.server.accessories.homebridge && this.server.accessories.homebridge.uuid === uuid);
         if (is_from_config) throw new Error('Cannot update bridges not created in the web interface');
 
         if (!data.username || !data.username.toLowerCase().match(/^([0-9a-f]{2}:){5}[0-9a-f]{2}$/)) {
             data.username = await genusername(this.server.storage);
         }
 
-        const bridge = this.server.bridges.find(b => b.uuid === uuid);
+        const bridge = this.server.accessories.bridges.find(b => b.uuid === uuid);
         if (!bridge) throw new Error('Unknown bridge');
 
         if (!isEqual(
@@ -1667,13 +1668,13 @@ export default class Connection {
             Object.assign({}, {accessories: undefined}, bridge.config, {accessories: undefined})
         )) {
             this.log.debug('Stopping bridge', uuid);
-            await this.server.unloadBridge(uuid);
+            await this.server.accessories.unloadBridge(uuid);
 
             this.log.debug('Setting bridge configuration', uuid, data);
             await this.server.storage.setItem('Bridge.' + uuid, data);
 
             this.log.debug('Starting bridge', uuid);
-            const bridge = await this.server.loadBridge(data, uuid);
+            const bridge = await this.server.accessories.loadBridge(data, uuid);
             await bridge.publish();
         } else {
             this.log.debug('Setting bridge configuration', uuid, bridge.config, data);
@@ -1723,11 +1724,11 @@ export default class Connection {
 
         const is_from_config = (this.server.config.bridges && this.server.config.bridges .find((c: any) =>
             c.uuid ? c.uuid === uuid : hap.uuid.generate('hap-server:bridge:' + c.username) === uuid)) ||
-            (this.server.homebridge && this.server.homebridge.uuid === uuid);
+            (this.server.accessories.homebridge && this.server.accessories.homebridge.uuid === uuid);
         if (is_from_config) throw new Error('Cannot delete bridges not created in the web interface');
 
         this.log.debug('Stopping bridge', uuid);
-        await this.server.unloadBridge(uuid);
+        await this.server.accessories.unloadBridge(uuid);
 
         this.log.debug('Deleting bridge', uuid);
         await this.server.storage.removeItem('Bridge.' + uuid);
@@ -1757,7 +1758,7 @@ export default class Connection {
         await this.permissions.assertCanGetAccessory(bridge_uuid);
         // await this.permissions.assertCanAccessServerRuntimeInfo();
 
-        const bridge = this.server.bridges.find(bridge => bridge.uuid === bridge_uuid);
+        const bridge = this.server.accessories.bridges.find(bridge => bridge.uuid === bridge_uuid);
         if (!bridge) return;
 
         return {
@@ -1779,7 +1780,7 @@ export default class Connection {
         await this.permissions.assertCanGetAccessory(bridge_uuid);
         // await this.permissions.assertCanAccessServerRuntimeInfo();
 
-        const bridge = this.server.bridges.find(bridge => bridge.uuid === bridge_uuid);
+        const bridge = this.server.accessories.bridges.find(bridge => bridge.uuid === bridge_uuid);
         if (!bridge) return;
 
         for (const client_username of Object.keys(bridge.accessory_info.pairedClients)) {
@@ -1798,7 +1799,7 @@ export default class Connection {
         await this.permissions.assertCanGetAccessory(bridge_uuid);
         // await this.permissions.assertCanAccessServerRuntimeInfo();
 
-        const bridge = this.server.bridges.find(bridge => bridge.uuid === bridge_uuid);
+        const bridge = this.server.accessories.bridges.find(bridge => bridge.uuid === bridge_uuid);
         if (!bridge) return null;
 
         const ids = [];
@@ -1822,7 +1823,7 @@ export default class Connection {
         await this.permissions.assertCanGetAccessory(bridge_uuid);
         // await this.permissions.assertCanAccessServerRuntimeInfo();
 
-        const bridge = this.server.bridges.find(bridge => bridge.uuid === bridge_uuid);
+        const bridge = this.server.accessories.bridges.find(bridge => bridge.uuid === bridge_uuid);
         if (!bridge) return null;
 
         const public_key = bridge.accessory_info.pairedClients[id];

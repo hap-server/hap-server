@@ -80,19 +80,19 @@ export default class Permissions {
     private getAllAccessoryUUIDs(): string[] {
         const uuids = [];
 
-        for (const bridge of this.connection.server.bridges) {
+        for (const bridge of this.connection.server.accessories.bridges) {
             uuids.push(bridge.uuid);
         }
 
-        for (const accessory of this.connection.server.accessories) {
+        for (const accessory of this.connection.server.accessories.accessories) {
             uuids.push(accessory.uuid);
         }
 
-        for (const accessory of this.connection.server.cached_accessories) {
+        for (const accessory of this.connection.server.accessories.cached_accessories) {
             uuids.push(accessory.uuid);
         }
 
-        for (const bridge of this.connection.server.bridges) {
+        for (const bridge of this.connection.server.accessories.bridges) {
             if (!(bridge instanceof Homebridge)) continue;
 
             for (const accessory of bridge.bridge.bridgedAccessories) {
