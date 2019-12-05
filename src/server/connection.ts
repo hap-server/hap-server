@@ -144,7 +144,7 @@ export default class Connection {
     /** Characteristics the client has subscribed to updates for */
     readonly events = new Set<any>();
 
-    readonly permissions = new Permissions(this);
+    readonly permissions: Permissions;
 
     terminateInterval: NodeJS.Timeout = setInterval(() => {
         this.ws.ping();
@@ -163,6 +163,8 @@ export default class Connection {
         Object.defineProperty(this, 'id', {enumerable: true, value: id++});
         Object.defineProperty(this, 'log', {value: server.log.withPrefix('Connection #' + this.id)});
         Object.defineProperty(this, 'req', {value: req});
+
+        this.permissions = new Permissions(this);
 
         this.log.info('WebSocket connection from', this.req.connection.remoteAddress);
         // this.server.log.debug('WebSocket connection', this.id, this.ws);

@@ -1043,7 +1043,7 @@ export abstract class AccessoryDiscovery extends EventEmitter {
     static withHandler<R>(
         start_handler: (accessory_discovery: AccessoryDiscovery) => R,
         stop_handler: (accessory_discovery: AccessoryDiscovery, start_handler_return: R) => any
-    ) {
+    ): typeof AccessoryDiscoveryWithHandler {
         return class extends this {
             start_handler_return?: any;
 
@@ -1168,6 +1168,16 @@ export abstract class AccessoryDiscovery extends EventEmitter {
         this.discovered_accessories.splice(0, this.discovered_accessories.length);
         this.emit('remove-accessories', removed);
     }
+}
+
+class AccessoryDiscoveryWithHandler<R> extends AccessoryDiscovery {
+    start_handler_return?: R;
+
+    async onstart(): Promise<R> {
+        return this.start_handler_return!;
+    }
+
+    onstop() {}
 }
 
 export class DiscoveredAccessory {
