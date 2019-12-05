@@ -5,7 +5,7 @@ import Scene from '../../automations/scene';
 export class SceneTriggerEvent extends Event {
     static readonly type = 'scene-triggered';
 
-    constructor(scene: Scene, enable: boolean, context) {
+    constructor(scene: Scene, enable: boolean, context: any) {
         super(scene, enable, context);
     }
 

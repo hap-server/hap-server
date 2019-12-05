@@ -7,24 +7,24 @@ export class CharacteristicUpdateEvent extends Event {
 
     constructor(
         server: Server, accessory: typeof Accessory, service: typeof Service, characteristic: typeof Characteristic,
-        value, old_value, hap_context
+        value: any, old_value: any, hap_context: any
     ) {
         super(server, accessory, service, characteristic, value, old_value, hap_context);
     }
 
-    get server() {
+    get server(): Server {
         return this.args[0];
     }
 
-    get accessory() {
+    get accessory(): typeof Accessory {
         return this.args[1];
     }
 
-    get service() {
+    get service(): typeof Service {
         return this.args[2];
     }
 
-    get characteristic() {
+    get characteristic(): typeof Characteristic {
         return this.args[3];
     }
 

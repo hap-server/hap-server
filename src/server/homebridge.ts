@@ -1,17 +1,25 @@
 
 import Bridge from './bridge';
 
+// @ts-ignore
 import {Server as HomebridgeServer} from 'homebridge/lib/server';
+// @ts-ignore
 import {User as HomebridgeUser} from 'homebridge/lib/user';
+// @ts-ignore
 import {_system as homebridge_logger} from 'homebridge/lib/logger';
+
+// Types
+import Server from './server';
+import Logger from '../common/logger';
+import {Accessory} from 'hap-nodejs';
 
 homebridge_logger.prefix = 'Homebridge';
 
 export default class Homebridge extends Bridge {
     readonly homebridge: HomebridgeServer;
 
-    constructor(server, log, config, unauthenticated_access = false) {
-        HomebridgeUser.configPath = () => undefined;
+    constructor(server: Server, log: Logger, config: any, unauthenticated_access = false) {
+        HomebridgeUser.configPath = () => undefined as () => undefined;
         HomebridgeUser.config = () => config;
 
         const homebridge = new HomebridgeServer({
@@ -20,9 +28,9 @@ export default class Homebridge extends Bridge {
             hideQRCode: true,
         });
 
-        homebridge._printSetupInfo = () => undefined;
-        homebridge._printPin = () => undefined;
-        homebridge._handleNewConfig = () => undefined;
+        homebridge._printSetupInfo = () => undefined as () => undefined;
+        homebridge._printPin = () => undefined as () => undefined;
+        homebridge._handleNewConfig = () => undefined as () => undefined;
 
         super(server, log, {
             uuid: homebridge._bridge.UUID,
@@ -37,7 +45,7 @@ export default class Homebridge extends Bridge {
         this.homebridge = homebridge;
     }
 
-    protected _createBridge(config) {
+    protected _createBridge(config: {homebridge: HomebridgeServer}) {
         const bridge = config.homebridge._bridge;
 
         bridge._handlePair = this._handlePair.bind(this, bridge, bridge._handlePair);
@@ -46,7 +54,7 @@ export default class Homebridge extends Bridge {
         return bridge;
     }
 
-    private _handlePair(bridge, handlePair, ...args) {
+    private _handlePair(bridge: any, handlePair: any, ...args: any[]) {
         const r = handlePair.call(bridge, ...args);
 
         this.server.handlePairingsUpdate(this);
@@ -54,7 +62,7 @@ export default class Homebridge extends Bridge {
         return r;
     }
 
-    private _handleUnpair(bridge, handleUnpair, ...args) {
+    private _handleUnpair(bridge: any, handleUnpair: any, ...args: any[]) {
         const r = handleUnpair.call(bridge, ...args);
 
         this.server.handlePairingsUpdate(this);
@@ -82,19 +90,19 @@ export default class Homebridge extends Bridge {
         return this.bridge._identifierCache;
     }
 
-    addAccessory(accessory) {
+    addAccessory(accessory: typeof Accessory) {
         throw new Error('Cannot add accessory to Homebridge');
     }
 
-    removeAccessory(accessory) {
+    removeAccessory(accessory: typeof Accessory) {
         throw new Error('Cannot remove accessory from Homebridge');
     }
 
-    addCachedAccessory(accessory) {
+    addCachedAccessory(accessory: typeof Accessory) {
         throw new Error('Cannot add accessory to Homebridge');
     }
 
-    removeCachedAccessory(accessory) {
+    removeCachedAccessory(accessory: typeof Accessory) {
         throw new Error('Cannot remove accessory from Homebridge');
     }
 

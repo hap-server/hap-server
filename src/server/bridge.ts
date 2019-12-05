@@ -2,13 +2,18 @@
 import os from 'os';
 import crypto from 'crypto';
 import chalk from 'chalk';
+// @ts-ignore
 import qrcode from 'qrcode-terminal';
 import {Accessory, Service, Characteristic} from 'hap-nodejs';
+// @ts-ignore
 import {Bridge as HAPBridge} from 'hap-nodejs/lib/Bridge';
 import HAPServer from './hap-server';
 
+// @ts-ignore
 import {AccessoryInfo} from 'hap-nodejs/lib/model/AccessoryInfo';
+// @ts-ignore
 import {IdentifierCache} from 'hap-nodejs/lib/model/IdentifierCache';
+// @ts-ignore
 import {clone} from 'hap-nodejs/lib/util/clone';
 
 import Server from './server';
@@ -18,7 +23,7 @@ export default class Bridge {
     readonly server: Server;
     readonly log: Logger;
 
-    config;
+    config: any;
     readonly uuid: string;
     readonly name: string;
     readonly username: string;
@@ -26,7 +31,7 @@ export default class Bridge {
     readonly pincode: string;
     unauthenticated_access: boolean;
 
-    accessory_uuids: (string | {0?: string; 1?: string; 2: string})[];
+    accessory_uuids: (string | [string | null, string, string] | ['homebridge', null, string])[];
     readonly external_accessories: typeof Accessory[];
     readonly external_accessory_accessory_infos: Map<typeof Accessory, AccessoryInfo>;
     readonly external_accessory_identifier_caches: Map<typeof Accessory, IdentifierCache>;
@@ -36,7 +41,7 @@ export default class Bridge {
     bridge: HAPBridge;
     _handleCharacteristicUpdate: any;
 
-    constructor(server, log, config) {
+    constructor(server: Server, log: Logger, config: any) {
         this.server = server;
         this.log = log;
 
@@ -61,7 +66,7 @@ export default class Bridge {
 
         this.bridge = this._createBridge(config);
 
-        this.bridge.on('listening', port => {
+        this.bridge.on('listening', (port: number) => {
             this.log.info(`${this.name} is running on port ${port}`);
             Object.freeze(this);
         });
@@ -70,7 +75,7 @@ export default class Bridge {
         this.bridge.on('service-characteristic-change', this._handleCharacteristicUpdate);
     }
 
-    protected _createBridge(config) {
+    protected _createBridge(config: any) {
         const bridge = new HAPBridge(this.name, this.uuid);
 
         bridge.on('hap-server-update-pairings', () => this.server.handlePairingsUpdate(this));
@@ -89,7 +94,8 @@ export default class Bridge {
         return bridge;
     }
 
-    private _addBridgedAccessory(bridge, accessory, defer_update) {
+    private _addBridgedAccessory(bridge: HAPBridge, accessory: typeof Accessory, defer_update = false) {
+        // @ts-ignore
         if (accessory._isBridge) throw new Error('Cannot Bridge another Bridge!');
 
         // Check for UUID conflict
@@ -106,10 +112,10 @@ export default class Bridge {
         let eventhandlers = _eventhandlers.get(accessory);
         if (!eventhandlers) _eventhandlers.set(accessory, eventhandlers = {});
 
-        if (!eventhandlers.characteristic_change) eventhandlers.characteristic_change = change => { // eslint-disable-line curly
+        if (!eventhandlers.characteristic_change) eventhandlers.characteristic_change = (change: any) => { // eslint-disable-line curly
             bridge._handleCharacteristicChange(clone(change, {accessory}));
         };
-        if (!eventhandlers.configuration_change) eventhandlers.configuration_change = change => { // eslint-disable-line curly
+        if (!eventhandlers.configuration_change) eventhandlers.configuration_change = (change: any) => { // eslint-disable-line curly
             bridge._updateConfiguration();
         };
 
@@ -124,8 +130,8 @@ export default class Bridge {
         return accessory;
     }
 
-    private _removeBridgedAccessory(bridge, accessory, defer_update) {
-        const index = bridge.bridgedAccessories.findIndex(a => a.UUID === accessory.UUID);
+    private _removeBridgedAccessory(bridge: HAPBridge, accessory: typeof Accessory, defer_update = false) {
+        const index = bridge.bridgedAccessories.findIndex((a: typeof Accessory) => a.UUID === accessory.UUID);
         if (index <= -1) throw new Error('Cannot find the bridged Accessory to remove.');
 
         const existing = bridge.bridgedAccessories[index];
@@ -136,7 +142,7 @@ export default class Bridge {
         if (!defer_update) bridge._updateConfiguration();
     }
 
-    private _removeBridgedAccessoryEventListeners(bridge, accessory) {
+    private _removeBridgedAccessoryEventListeners(bridge: HAPBridge, accessory: typeof Accessory) {
         if (!bridge.__hap_server_eventhandlers) return;
         const eventhandlers = bridge.__hap_server_eventhandlers.get(accessory);
         if (!eventhandlers) return;
@@ -151,7 +157,7 @@ export default class Bridge {
         }
     }
 
-    private _updateConfiguration(bridge, dont_update_advertisement) {
+    private _updateConfiguration(bridge: HAPBridge, dont_update_advertisement = false) {
         this.log.debug('Maybe update configuration for bridge', bridge.UUID);
 
         if (!dont_update_advertisement && (!this.hasOwnProperty('hap_server') ||
@@ -473,8 +479,8 @@ export default class Bridge {
 
         if (!(accessory as any).external_groups || !(accessory as any).external_groups.length) return false;
 
-        if (this.bridge.bridgedAccessories.find(a => a.external_groups &&
-            a.external_groups.find(g => (accessory as any).external_groups.includes(g)))) return true;
+        if (this.bridge.bridgedAccessories.find((a: any) => a.external_groups &&
+            a.external_groups.find((g: any) => (accessory as any).external_groups.includes(g)))) return true;
 
         for (const a of this.cached_accessories) {
             if (a.UUID === accessory.UUID) continue;
@@ -487,7 +493,9 @@ export default class Bridge {
                 (a as any).plugin_accessory.cached_data.bridge_uuids_external &&
                 (a as any).plugin_accessory.cached_data.bridge_uuids.includes(this.uuid) &&
                 !(a as any).plugin_accessory.cached_data.bridge_uuids_external.includes(this.uuid)) return false;
-            if ((a as any).external_groups.find(g => (accessory as any).external_groups.includes(g))) return true;
+            if ((a as any).external_groups.find((g: any) => (accessory as any).external_groups.includes(g))) {
+                return true;
+            }
         }
 
         return false;
@@ -518,7 +526,7 @@ export default class Bridge {
      *
      * @param {Accessory} accessory
      */
-    removeAccessory(accessory) {
+    removeAccessory(accessory: typeof Accessory) {
         try {
             this.removeExternalAccessory(accessory);
         } catch (err) {}
@@ -541,8 +549,8 @@ export default class Bridge {
             for (const accessory of add) {
                 if ((accessory as any).external ||
                     ((accessory as any).external_groups && (accessory as any).external_groups.length &&
-                        this.bridge.bridgedAccessories.find(a => a.external_groups &&
-                            a.external_groups.find(g => (accessory as any).external_groups.includes(g))))
+                        this.bridge.bridgedAccessories.find((a: any) => a.external_groups &&
+                            a.external_groups.find((g: any) => (accessory as any).external_groups.includes(g))))
                 ) {
                     this.addExternalAccessory(accessory);
 

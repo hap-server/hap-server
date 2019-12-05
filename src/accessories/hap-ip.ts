@@ -15,50 +15,19 @@ const ServiceMap = Symbol('ServiceMap');
 const CharacteristicMap = Symbol('CharacteristicMap');
 
 // Types
+// @ts-ignore
 import {HttpClient} from 'hap-controller';
+import {
+    AccessoryHap as HAPAccessory,
+    ServiceHap as HAPService,
+    CharacteristicHap as HAPCharacteristic,
+    CharacteristicFormat as HAPCharacteristicFormat,
+    CharacteristicPerms as HAPCharacteristicPermission,
+    CharacteristicUnit as HAPCharacteristicUnit,
+} from '../common/types/hap';
 
 interface HAPAccessories {
     accessories: HAPAccessory[];
-}
-
-interface HAPAccessory {
-    aid: number;
-    services: HAPService[];
-}
-
-interface HAPService {
-    iid: number;
-    characteristics: HAPCharacteristic[];
-}
-
-enum HAPCharacteristicPermission {
-    PAIRED_READ = 'pr',
-    PAIRED_WRITE = 'pw',
-}
-
-enum HAPCharacteristicFormat {
-    STRING = 'string',
-}
-
-enum HAPCharacteristicUnit {
-
-}
-
-interface HAPCharacteristic {
-    iid: number;
-    type: string;
-    description: string;
-
-    perms: HAPCharacteristicPermission[];
-    format?: HAPCharacteristicFormat;
-    'valid-values'?: any[];
-    'valid-values-range'?: number[];
-    unit?: HAPCharacteristicUnit;
-    maxValue?: number;
-    minValue?: number;
-    minStep?: number;
-
-    value?;
 }
 
 export default class HAPIP extends AccessoryPlatform {
@@ -79,11 +48,11 @@ export default class HAPIP extends AccessoryPlatform {
     subscribed_characteristics: string[] = [];
 
     private get_queue?: {0: string; 1: () => void; 2: () => void}[];
-    private get_queue_timeout?;
+    private get_queue_timeout?: NodeJS.Timeout;
     private set_queue?: {0: string; 1: any; 2: () => void; 3: () => void}[];
-    private set_queue_timeout?;
+    private set_queue_timeout?: NodeJS.Timeout;
     private subscribe_queue?: {0: string; 1: boolean; 2: () => void; 3: () => void}[];
-    private subscribe_queue_timeout?;
+    private subscribe_queue_timeout?: NodeJS.Timeout;
 
     async init(cached_accessories) {
         if (!HttpClient) {

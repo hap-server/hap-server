@@ -258,8 +258,8 @@ export default class Connection {
         this.ws.send('**:' + JSON.stringify(data));
     }
 
-    async respond(messageid: number, data: ResponseMessage, error?: boolean)
-    async respond(messageid: number, data: any, error: true)
+    async respond(messageid: number, data: ResponseMessage, error?: boolean): Promise<void>
+    async respond(messageid: number, data: any, error: true): Promise<void>
     async respond(messageid: number, data: any, error = false) {
         if (data instanceof Promise) {
             try {
@@ -812,11 +812,11 @@ export default class Connection {
      * Gets data of layouts.
      */
     @messagehandler('get-layouts', data => data.id)
-    getLayouts(...id) {
+    getLayouts(...id: string[]) {
         return Promise.all(id.map(id => this.getLayout(id)));
     }
 
-    async getLayout(id) {
+    async getLayout(id: string) {
         await this.permissions.assertCanGetLayout(id);
 
         this.log.debug('Getting data for layout', id);
@@ -1152,7 +1152,7 @@ export default class Connection {
      */
     @messagehandler('list-automations')
     async listAutomations() {
-        const uuids = await this.server.storage.getItem('Automations') || [];
+        const uuids: string[] = await this.server.storage.getItem('Automations') || [];
 
         const authorised_uuids = await this.permissions.getAuthorisedAutomationUUIDs();
         return uuids.filter(uuid => authorised_uuids.includes(uuid));
@@ -1295,7 +1295,7 @@ export default class Connection {
      */
     @messagehandler('list-scenes')
     async listScenes() {
-        const uuids = await this.server.storage.getItem('Scenes') || [];
+        const uuids: string[] = await this.server.storage.getItem('Scenes') || [];
 
         const authorised_uuids = await this.permissions.getAuthorisedSceneUUIDs();
         return uuids.filter(uuid => authorised_uuids.includes(uuid));
@@ -1593,7 +1593,7 @@ export default class Connection {
 
         const bridge_details = {
             uuid,
-            accessory_uuids: [],
+            accessory_uuids: [] as string[],
         };
 
         for (const accessory of bridge.bridge.bridgedAccessories) {
@@ -1633,8 +1633,8 @@ export default class Connection {
     }
 
     async getBridgeConfigurationPermissions(uuid: string) {
-        const is_from_config = this.server.config.bridges && this.server.config.bridges
-            .find(c => c.uuid ? c.uuid === uuid : hap.uuid.generate('hap-server:bridge:' + c.username) === uuid);
+        const is_from_config = this.server.config.bridges && this.server.config.bridges.find((c: any) =>
+            c.uuid ? c.uuid === uuid : hap.uuid.generate('hap-server:bridge:' + c.username) === uuid);
 
         const [get, set, del] = await Promise.all([
             this.permissions.checkCanGetBridgeConfiguration(uuid),
@@ -1659,8 +1659,8 @@ export default class Connection {
     async setBridgeConfiguration(uuid: string, data: any) {
         await this.permissions.assertCanSetBridgeConfiguration(uuid);
 
-        const is_from_config = (this.server.config.bridges && this.server.config.bridges
-            .find(c => c.uuid ? c.uuid === uuid : hap.uuid.generate('hap-server:bridge:' + c.username) === uuid)) ||
+        const is_from_config = (this.server.config.bridges && this.server.config.bridges.find((c: any) =>
+            c.uuid ? c.uuid === uuid : hap.uuid.generate('hap-server:bridge:' + c.username) === uuid)) ||
             (this.server.homebridge && this.server.homebridge.uuid === uuid);
         if (is_from_config) throw new Error('Cannot update bridges not created in the web interface');
 
@@ -1692,8 +1692,8 @@ export default class Connection {
 
             const old_accessories = bridge.config.accessories || [];
             const new_accessories = data.accessories || [];
-            const added_accessories = new_accessories.filter(u => !old_accessories.includes(u));
-            const removed_accessories = old_accessories.filter(u => !new_accessories.includes(u));
+            const added_accessories = new_accessories.filter((u: string) => !old_accessories.includes(u));
+            const removed_accessories = old_accessories.filter((u: string) => !new_accessories.includes(u));
 
             bridge.config = data;
             bridge.accessory_uuids = data.accessories || [];
@@ -1701,8 +1701,8 @@ export default class Connection {
             this.log.debug('Updating accessories', added_accessories, removed_accessories);
 
             bridge.patchAccessories(
-                added_accessories.map(u => this.server.getAccessory(u)).filter(a => a),
-                removed_accessories.map(u => this.server.getAccessory(u))
+                added_accessories.map((u: string) => this.server.getAccessory(u)).filter((a: string) => a),
+                removed_accessories.map((u: string) => this.server.getAccessory(u))
             );
         }
 
@@ -1730,8 +1730,8 @@ export default class Connection {
     async deleteBridge(uuid: string) {
         await this.permissions.assertCanDeleteBridge(uuid);
 
-        const is_from_config = (this.server.config.bridges && this.server.config.bridges
-            .find(c => c.uuid ? c.uuid === uuid : hap.uuid.generate('hap-server:bridge:' + c.username) === uuid)) ||
+        const is_from_config = (this.server.config.bridges && this.server.config.bridges .find((c: any) =>
+            c.uuid ? c.uuid === uuid : hap.uuid.generate('hap-server:bridge:' + c.username) === uuid)) ||
             (this.server.homebridge && this.server.homebridge.uuid === uuid);
         if (is_from_config) throw new Error('Cannot delete bridges not created in the web interface');
 
@@ -1914,24 +1914,24 @@ export default class Connection {
     @messagehandler('get-web-interface-plugins')
     getWebInterfacePlugins() {
         return PluginManager.getWebInterfacePlugins().map(ui_plugin => {
-            const plugin_authentication_handlers = {};
+            const plugin_authentication_handlers: {[localid: string]: number} = {};
             for (const [localid, authentication_handler] of ui_plugin.plugin.authentication_handlers.entries()) {
                 plugin_authentication_handlers[localid] = authentication_handler.id;
             }
 
-            const plugin_user_management_handlers = {};
+            const plugin_user_management_handlers: {[localid: string]: number} = {};
             for (const [localid, user_management_handler] of ui_plugin.plugin.user_management_handlers.entries()) {
                 plugin_user_management_handlers[localid] = user_management_handler.id;
             }
 
-            const plugin_accessory_discovery_handlers = {};
-            const plugin_accessory_discovery_handler_setup_handlers = {};
+            const plugin_accessory_discovery_handlers: {[localid: string]: number} = {};
+            const plugin_accessory_discovery_handler_setup_handlers: {[localid: string]: number} = {};
             for (const [localid, accessory_discovery] of ui_plugin.plugin.accessory_discovery.entries()) {
                 plugin_accessory_discovery_handlers[localid] = accessory_discovery.id;
                 plugin_accessory_discovery_handler_setup_handlers[localid] = accessory_discovery.setup.id;
             }
 
-            const plugin_accessory_setup_handlers = {};
+            const plugin_accessory_setup_handlers: {[localid: string]: number} = {};
             for (const [localid, accessory_setup] of ui_plugin.plugin.accessory_setup.entries()) {
                 plugin_accessory_setup_handlers[localid] = accessory_setup.id;
             }
@@ -2210,7 +2210,7 @@ export default class Connection {
             },
         });
 
-        const console = {input, output, subprocesses: new Set(), repl_server: null};
+        const console = {input, output, subprocesses: new Set(), repl_server: null as repl.REPLServer};
         this.open_consoles.set(id, console);
 
         setTimeout(() => {
@@ -2268,7 +2268,7 @@ export default class Connection {
     }
 
     @messagehandler('close-console', data => [data.id])
-    async closeConsole(id) {
+    async closeConsole(id: number) {
         const {repl_server, subprocesses} = this.open_consoles.get(id) || {};
         if (!repl_server) throw new Error('Unknown console with ID "' + id + '"');
 
@@ -2281,7 +2281,7 @@ export default class Connection {
     }
 
     @messagehandler('console-input', data => [data.id, data.data])
-    async handleConsoleInput(id, data) {
+    async handleConsoleInput(id: number, data: string) {
         const {repl_server, input} = this.open_consoles.get(id) || {};
         if (!repl_server) throw new Error('Unknown console with ID "' + id + '"');
 
@@ -2298,11 +2298,11 @@ if (DEVELOPMENT) {
 
     message_methods['development-data'] = 'handleDevelopmentDataMessage';
 
-    (Connection as any).prototype.handleDevelopmentDataMessage = function(messageid) {
+    (Connection as any).prototype.handleDevelopmentDataMessage = function(this: Connection, messageid: number) {
         this.respond(messageid, development_data);
     };
 
-    exports.enableVueDevtools = function(host, port) {
+    exports.enableVueDevtools = function(host: string, port: number) {
         development_data.vue_devtools_host = host;
         development_data.vue_devtools_port = port;
     };

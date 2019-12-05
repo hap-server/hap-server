@@ -439,14 +439,14 @@ export default class Server extends Events {
         for (const accessory_uuid of bridge.accessory_uuids) {
             if (accessory_uuid instanceof Array) {
                 const accessory = this.accessories.find(accessory =>
-                    accessory_uuid[0] === accessory.plugin ? accessory.plugin.name : null &&
+                    accessory_uuid[0] === (accessory.plugin ? accessory.plugin.name : null) &&
                     // @ts-ignore
                     accessory_uuid[1] === accessory.accessory_type &&
                     accessory_uuid[2] === accessory.accessory.displayName);
                 if (accessory) bridge.addAccessory(accessory.accessory);
 
                 const cached_accessory = this.cached_accessories.find(accessory =>
-                    accessory_uuid[0] === accessory.plugin ? accessory.plugin.name : null &&
+                    accessory_uuid[0] === (accessory.plugin ? accessory.plugin.name : null) &&
                     // @ts-ignore
                     accessory_uuid[1] === accessory.accessory_type &&
                     accessory_uuid[2] === accessory.accessory.displayName);

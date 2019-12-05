@@ -41,7 +41,7 @@ Object.defineProperty(Characteristic.prototype, 'get_handler', {
 
         if (handler) {
             const listener = async function(this: HAPNodeJS.Characteristic,
-                callback: (err, value) => void, context?: any, connection_id?: string
+                callback: (err: any, value: any) => void, context?: any, connection_id?: string
             ) {
                 try {
                     const value = await handler.call(this, context, connection_id); // eslint-disable-line no-invalid-this
@@ -79,7 +79,7 @@ Object.defineProperty(Characteristic.prototype, 'set_handler', {
 
         if (handler) {
             const listener = async function(this: HAPNodeJS.Characteristic,
-                new_value, callback: (err, value) => void, context?: any, connection_id?: string
+                new_value: any, callback: (err: any, value: any) => void, context?: any, connection_id?: string
             ) {
                 try {
                     const value = await handler.call(this, new_value, context, connection_id); // eslint-disable-line no-invalid-this

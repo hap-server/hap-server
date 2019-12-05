@@ -17,7 +17,7 @@ export class AutomationTriggerEvent extends Event {
      * @param {AutomationTrigger} trigger
      * @param {object} [context]
      */
-    constructor(trigger: AutomationTrigger | AutomationAction, context?) {
+    constructor(trigger: AutomationTrigger | AutomationAction, context?: any) {
         super();
 
         Object.defineProperty(this, 'trigger', {value: trigger});
