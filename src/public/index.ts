@@ -63,6 +63,7 @@ for (const file of translationsContextRequire.keys()) {
 
         // @ts-ignore
         module.hot.accept(m, c);
+        // @ts-ignore
         require.cache[translationsContextRequire.id].hot.accept(m, c);
     }
 }
