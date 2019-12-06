@@ -17,15 +17,25 @@ build:
         - npx gulp --color build-release
         - npx gulp --color build-example-plugins
 
-        - cd release
+        - cd release/hap-server
         - PACKAGE_PATH=`npm --color="always" pack`
-        - mv $PACKAGE_PATH ../hap-server-release.tgz
+        - mv $PACKAGE_PATH ../../hap-server-release.tgz
+
+        - cd ../api-types
+        - PACKAGE_PATH=`npm --color="always" pack`
+        - mv $PACKAGE_PATH ../../hap-server-api-types-release.tgz
+
+        - cd ../ui-api-types
+        - PACKAGE_PATH=`npm --color="always" pack`
+        - mv $PACKAGE_PATH ../../hap-server-ui-api-types-release.tgz
     artifacts:
         paths:
             - dist
             - release
             - example-plugins/dist
             - hap-server-release.tgz
+            - hap-server-api-types-release.tgz
+            - hap-server-ui-api-types-release.tgz
     only:
         changes:
             - .gitlab-ci.yml
@@ -89,7 +99,15 @@ audit:
 publish-npm:
     stage: deploy
     script:
-        - cd release
+        - cd release/hap-server
+        - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
+        - npm --color="always" publish
+
+        - cd ../api-types
+        - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
+        - npm --color="always" publish
+
+        - cd ../ui-api-types
         - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
         - npm --color="always" publish
     dependencies:
@@ -109,7 +127,15 @@ publish-npm:
 publish-github:
     stage: deploy
     script:
-        - cd release
+        - cd release/hap-server
+        - echo "//npm.pkg.github.com/:_authToken=${GITHUB_NPM_TOKEN}" > .npmrc
+        - npm --color="always" --registry=https://npm.pkg.github.com/ publish
+
+        - cd ../api-types
+        - echo "//npm.pkg.github.com/:_authToken=${GITHUB_NPM_TOKEN}" > .npmrc
+        - npm --color="always" --registry=https://npm.pkg.github.com/ publish
+
+        - cd ../ui-api-types
         - echo "//npm.pkg.github.com/:_authToken=${GITHUB_NPM_TOKEN}" > .npmrc
         - npm --color="always" --registry=https://npm.pkg.github.com/ publish
     dependencies:

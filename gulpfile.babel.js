@@ -27,12 +27,21 @@ import TerserPlugin from 'terser-webpack-plugin';
 import OptimizeCSSAssetsPlugin from 'optimize-css-assets-webpack-plugin';
 import HotModuleReplacementPlugin from 'webpack/lib/HotModuleReplacementPlugin';
 
-const README_BASE_URL =
-    `https://gitlab.fancy.org.uk/hap-server/hap-server/blob/v${require('./package').version}/README.md`;
-const README_IMAGE_BASE_URL =
-    `https://gitlab.fancy.org.uk/hap-server/hap-server/raw/v${require('./package').version}/README.md`;
-
+import * as pkg from './package';
 import {compilerOptions as typescript_config} from './tsconfig';
+
+const README_BASE_URL =
+    `https://gitlab.fancy.org.uk/hap-server/hap-server/blob/v${pkg.version}/README.md`;
+const README_IMAGE_BASE_URL =
+    `https://gitlab.fancy.org.uk/hap-server/hap-server/raw/v${pkg.version}/README.md`;
+const API_TYPES_README_BASE_URL =
+    `https://gitlab.fancy.org.uk/hap-server/hap-server/blob/v${pkg.version}/src/types/api/README.md`;
+const API_TYPES_README_IMAGE_BASE_URL =
+    `https://gitlab.fancy.org.uk/hap-server/hap-server/raw/v${pkg.version}/src/types/api/README.md`;
+const UI_API_TYPES_README_BASE_URL =
+    `https://gitlab.fancy.org.uk/hap-server/hap-server/blob/v${pkg.version}/src/types/ui-api/README.md`;
+const UI_API_TYPES_README_IMAGE_BASE_URL =
+    `https://gitlab.fancy.org.uk/hap-server/hap-server/raw/v${pkg.version}/src/types/ui-api/README.md`;
 
 const webpack_config = {
     context: __dirname,
@@ -171,7 +180,7 @@ export const webpack_hot_config = Object.assign({}, webpack_config, {
     ]),
 });
 
-gulp.task('build-backend-no-ts', function () {
+gulp.task('build-backend-no-ts', function() {
     return pump([
         merge([
             pump([
@@ -188,7 +197,7 @@ gulp.task('build-backend-no-ts', function () {
 
 const tsProject = typescript.createProject(typescript_config);
 
-gulp.task('build-backend', function () {
+gulp.task('build-backend', function() {
     return pump([
         merge([
             pump([
@@ -209,7 +218,7 @@ gulp.task('build-backend', function () {
     ]);
 });
 
-gulp.task('build-frontend', function () {
+gulp.task('build-frontend', function() {
     return pump([
         gulp.src('src/public/scss/index.scss'),
         gulp.src('src/public/index.ts'),
@@ -218,7 +227,7 @@ gulp.task('build-frontend', function () {
     ]);
 });
 
-gulp.task('build-example-plugins', function () {
+gulp.task('build-example-plugins', function() {
     return pump([
         gulp.src('example-plugins/src/**/*.js'),
         sourcemaps.init(),
@@ -231,7 +240,7 @@ gulp.task('build-example-plugins', function () {
 
 gulp.task('build', gulp.parallel('build-backend', 'build-frontend', 'build-example-plugins'));
 
-gulp.task('watch-backend-no-ts', function () {
+gulp.task('watch-backend-no-ts', function() {
     return pump([
         watch(['src/**/*.js', '!src/public/**/*.js'], {verbose: true}),
         plumber(),
@@ -243,8 +252,8 @@ gulp.task('watch-backend-no-ts', function () {
     ]);
 });
 
-gulp.task('watch-backend', gulp.parallel('watch-backend-no-ts', function () {
-    return gulp.watch(['src/**/*.ts', '!src/public/**/*.ts'], function () {
+gulp.task('watch-backend', gulp.parallel('watch-backend-no-ts', function() {
+    return gulp.watch(['src/**/*.ts', '!src/public/**/*.ts'], function() {
         return pump([
             gulp.src(['src/**/*.ts', '!src/public/**/*.ts']),
             sourcemaps.init(),
@@ -255,7 +264,7 @@ gulp.task('watch-backend', gulp.parallel('watch-backend-no-ts', function () {
     });
 }));
 
-gulp.task('watch-frontend', function () {
+gulp.task('watch-frontend', function() {
     return pump([
         gulp.src('src/public/scss/index.scss'),
         gulp.src('src/public/index.ts'),
@@ -264,7 +273,7 @@ gulp.task('watch-frontend', function () {
     ]);
 });
 
-gulp.task('watch-example-plugins', function () {
+gulp.task('watch-example-plugins', function() {
     return pump([
         watch('example-plugins/src/**/*.js', {verbose: true}),
         plumber(),
@@ -313,7 +322,7 @@ const release_webpack_config = Object.assign({}, webpack_config, {
     }),
 });
 
-gulp.task('build-backend-release', function () {
+gulp.task('build-backend-release', function() {
     return pump([
         merge([
             pump([
@@ -339,20 +348,20 @@ gulp.task('build-backend-release', function () {
                 'src/types/**/*.d.ts',
             ], {base: 'src'}),
         ]),
-        gulp.dest('release'),
+        gulp.dest('release/hap-server'),
     ]);
 });
 
-gulp.task('build-frontend-release', function () {
+gulp.task('build-frontend-release', function() {
     return pump([
         gulp.src('src/public/scss/index.scss'),
         gulp.src('src/public/index.ts'),
         webpack(release_webpack_config),
-        gulp.dest('release/public'),
+        gulp.dest('release/hap-server/public'),
     ]);
 });
 
-gulp.task('copy-release-executables', function () {
+gulp.task('copy-release-executables', function() {
     return pump([
         file('hap-server',
             `#!/usr/bin/env node\n` +
@@ -362,50 +371,121 @@ gulp.task('copy-release-executables', function () {
             `#!/usr/bin/env node\n` +
             `require('../cli').default.showCompletionScript();\n`),
 
-        gulp.dest('release/bin', {
+        gulp.dest('release/hap-server/bin', {
             mode: 0o755,
         }),
     ]);
 });
 
-gulp.task('release-package', function () {
+gulp.task('release-package', function() {
     return pump([
         gulp.src('package.json'),
         json(packagejson => {
             packagejson.private = false;
             packagejson.main = 'index.js';
             packagejson.types = 'index.d.ts';
-            // packagejson.dependencies['@hap-server/api'] = 'file:types/api';
-            // packagejson.dependencies['@hap-server/ui-api'] = 'file:types/ui-api';
-            packagejson.devDependencies = [];
+            packagejson.devDependencies = {};
             packagejson.scripts = {
                 start: 'bin/hap-server',
             };
             return packagejson;
         }),
-        gulp.dest('release'),
+        gulp.dest('release/hap-server'),
     ]);
 });
 
-gulp.task('release-readme', function () {
+gulp.task('release-readme', function() {
     return pump([
         gulp.src('README.md'),
         replace(/^(.|\n)+$/, input => markdownlinks(input, (link, title) =>
             url.resolve(title.match(/Screenshot/) ? README_IMAGE_BASE_URL : README_BASE_URL, link))),
-        gulp.dest('release'),
+        gulp.dest('release/hap-server'),
     ]);
 });
 
-gulp.task('copy-release-files', gulp.parallel('release-package', 'release-readme', function () {
+gulp.task('copy-release-files', gulp.parallel('release-package', 'release-readme', function() {
     return pump([
         gulp.src('LICENSE'),
 
-        gulp.dest('release'),
+        gulp.dest('release/hap-server'),
     ]);
 }));
 
-gulp.task('build-release', gulp.parallel('build-backend-release', 'build-frontend-release', 'copy-release-executables', 'copy-release-files'));
+gulp.task('build-release',
+    gulp.parallel('build-backend-release', 'build-frontend-release', 'copy-release-executables', 'copy-release-files'));
 
-gulp.task('clean-release', gulp.series(function () {
-    return del(['release']);
+gulp.task('clean-release', gulp.series(function() {
+    return del(['release/hap-server']);
 }, 'build-release'));
+
+function processApiTypesPackageJson(packagejson) {
+    packagejson.version = pkg.version;
+    packagejson.private = false;
+    packagejson.repository = pkg.repository;
+    packagejson.author = pkg.author;
+    packagejson.main = 'index.js';
+    packagejson.types = 'index.d.ts';
+    for (const name of Object.keys(packagejson.dependencies)) {
+        packagejson.dependencies[name] = name === pkg.name ? pkg.version :
+            pkg.dependencies[name] || pkg.devDependencies[name] || '*';
+    }
+    packagejson.devDependencies = {};
+    packagejson.publishConfig = {
+        access: 'public',
+    };
+    return packagejson;
+}
+
+gulp.task('build-api-types', function() {
+    return pump([
+        merge([
+            gulp.src(['src/types/api/**/*', '!src/types/api/package.json', '!src/types/api/README.md']),
+            pump([
+                gulp.src('src/types/api/package.json'),
+                json(processApiTypesPackageJson),
+            ]),
+            pump([
+                gulp.src('src/types/api/README.md'),
+                replace(/^(.|\n)+$/, input => markdownlinks(input, (link, title) =>
+                    url.resolve(title.match(/Screenshot/) ?
+                        API_TYPES_README_IMAGE_BASE_URL : API_TYPES_README_BASE_URL, link))),
+            ]),
+        ]),
+
+        gulp.dest('release/api-types'),
+    ]);
+});
+
+gulp.task('clean-api-types', gulp.series(function() {
+    return del(['release/api-types']);
+}, 'build-api-types'));
+
+gulp.task('build-ui-api-types', function() {
+    return pump([
+        merge([
+            gulp.src(['src/types/ui-api/**/*', '!src/types/ui-api/package.json', '!src/types/ui-api/README.md']),
+            pump([
+                gulp.src('src/types/ui-api/package.json'),
+                json(processApiTypesPackageJson),
+            ]),
+            pump([
+                gulp.src('src/types/ui-api/README.md'),
+                replace(/^(.|\n)+$/, input => markdownlinks(input, (link, title) =>
+                    url.resolve(title.match(/Screenshot/) ?
+                        UI_API_TYPES_README_IMAGE_BASE_URL : UI_API_TYPES_README_BASE_URL, link))),
+            ]),
+        ]),
+
+        gulp.dest('release/ui-api-types'),
+    ]);
+});
+
+gulp.task('clean-ui-api-types', gulp.series(function() {
+    return del(['release/ui-api-types']);
+}, 'build-ui-api-types'));
+
+gulp.task('build-packages', gulp.parallel('build-release', 'build-api-types', 'build-ui-api-types'));
+
+gulp.task('clean-packages', gulp.series(function() {
+    return del(['release']);
+}, 'build-packages'));

@@ -22,13 +22,15 @@ To make hap-server load a Node.js package as a plugin you need to add the hap-se
 ```
 
 As of version 0.9.0 hap-server includes TypeScript definitions, including for the plugin API. To use these include
-`@hap-server/hap-server` as a development dependency. Don't include `@hap-server/hap-server` as a production
-dependency as `npm` won't drop this when users install your plugin.
+`@hap-server/api` (and `@hap-server/ui-api` if necessary) as a development dependency. Don't include these as
+production dependencies as `npm` won't drop them when users install your plugin. These only include TypeScript
+definitions - you don't need to install these if you aren't using TypeScript.
 
 ```json
 {
     "devDependencies": {
-        "@hap-server/hap-server": "^0.9.0"
+        "@hap-server/api": "^0.9.0",
+        "@hap-server/ui-api": "^0.9.0"
     }
 }
 ```

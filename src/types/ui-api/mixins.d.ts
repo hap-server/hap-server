@@ -1,1 +1,1 @@
-export * from '../../public/mixins';
+export * from '@hap-server/hap-server/public/mixins';

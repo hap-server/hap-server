@@ -1,8 +1,8 @@
-import {events} from '../..';
-import Events, {Event, EventListener, EventListenerPromise, EventListeners} from '../../events';
-import * as ServerEvents from '../../events/server';
-import Server from '../../server/server';
-import Connection from '../../server/connection';
+import {events} from '@hap-server/hap-server';
+import Events, {Event, EventListener, EventListenerPromise, EventListeners} from '@hap-server/hap-server/events';
+import * as ServerEvents from '@hap-server/hap-server/events/server';
+import Server from '@hap-server/hap-server/server/server';
+import Connection from '@hap-server/hap-server/server/connection';
 import {
     Plugin,
     PluginAPI,
@@ -16,11 +16,11 @@ import {
     AuthenticationHandler as BaseAuthenticationHandler,
     AuthenticatedUser as BaseAuthenticatedUser,
     UserManagementHandler as BaseUserManagementHandler,
-} from '../../server/plugins';
-import AutomationTrigger from '../../automations/trigger';
-import AutomationCondition from '../../automations/condition';
-import AutomationAction from '../../automations/action';
-import Logger from '../../common/logger';
+} from '@hap-server/hap-server/server/plugins';
+import AutomationTrigger from '@hap-server/hap-server/automations/trigger';
+import AutomationCondition from '@hap-server/hap-server/automations/condition';
+import AutomationAction from '@hap-server/hap-server/automations/action';
+import Logger from '@hap-server/hap-server/common/logger';
 import Module from 'module';
 import {Accessory} from 'hap-nodejs';
 

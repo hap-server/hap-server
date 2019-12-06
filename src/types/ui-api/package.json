@@ -1,5 +1,13 @@
 {
     "name": "@hap-server/ui-api",
     "version": "0.0.0",
-    "private": true
+    "private": true,
+    "dependencies": {
+        "@hap-server/hap-server": "*",
+        "axios": "*",
+        "codemirror": "*",
+        "vue": "*",
+        "vue-color": "*",
+        "vue-codemirror": "*"
+    }
 }

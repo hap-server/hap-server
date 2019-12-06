@@ -9,11 +9,16 @@
         "outDir": "./dist"
     },
     "include": [
-        "src/**/*.ts"
+        "src/**/*.ts",
+        "src/public/plugins.ts",
+        "src/public/mixins/**/*.ts"
     ],
     "exclude": [
         "dist",
         "node_modules",
-        "src/public/**/*.ts"
+        "src/public/**/*.ts",
+        "src/types/api/**/*.ts",
+        "src/types/ui-api/**/*.ts",
+        "src/types/node_modules/**/*"
     ]
 }

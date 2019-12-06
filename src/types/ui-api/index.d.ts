@@ -1,4 +1,4 @@
-import {PluginAPI, UserManagementHandler as BaseUserManagementHandler} from '../../public/plugins';
+import {PluginAPI, UserManagementHandler as BaseUserManagementHandler} from '@hap-server/hap-server/public/plugins';
 
 import Connection, {
     AuthenticationHandlerConnection,
@@ -8,12 +8,12 @@ import Connection, {
     UserManagementUser,
 
     AccessorySetupConnection,
-} from '../../client/connection';
-import Service from '../../client/service';
-import Characteristic from '../../client/characteristic';
+} from '@hap-server/hap-server/client/connection';
+import Service from '@hap-server/hap-server/client/service';
+import Characteristic from '@hap-server/hap-server/client/characteristic';
 
 // @ts-ignore
-import {DiscoveredAccessory} from '../../public/components/add-accessory.vue';
+import {DiscoveredAccessory} from '@hap-server/hap-server/public/components/add-accessory.vue';
 
 declare module '@hap-server/ui-api' {
     const plugin_api: PluginAPI;
