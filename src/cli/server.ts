@@ -570,10 +570,10 @@ export async function handler(argv: Arguments) {
         log.info('Not loading Homebridge as it was disabled on the command line');
     } else if (config.bridge || config.accessories || config.platforms) {
         log.info('Loading Homebridge');
-        server.loadHomebridge();
+        server.accessories.loadHomebridge();
     }
 
-    for (const bridge of server.bridges) {
+    for (const bridge of server.accessories.bridges) {
         bridge.unauthenticated_access = argv.allowUnauthenticated;
     }
 
@@ -586,14 +586,14 @@ export async function handler(argv: Arguments) {
         server.loadAccessoryPlatformsFromConfig(),
     ]);
 
-    if (server.homebridge) {
-        if (server.homebridge.homebridge._asyncCalls !== 0) {
+    if (server.accessories.homebridge) {
+        if (server.accessories.homebridge.homebridge._asyncCalls !== 0) {
             log.info('Waiting for Homebridge to finish loading');
-            await new Promise(rs => server.homebridge.bridge.once('listening', rs));
+            await new Promise(rs => server.accessories.homebridge.bridge.once('listening', rs));
         }
 
         log.info('Loading accessories from Homebridge');
-        await server.loadHomebridgeAccessories();
+        await server.accessories.loadHomebridgeAccessories();
     }
 
     log.info('Saving cached accessories');
@@ -619,12 +619,12 @@ export async function handler(argv: Arguments) {
 
     server.emit(ServerStartupFinishedEvent, server);
 
-    log.info('Running', server.accessories.length, 'accessories',
-        server.cached_accessories.length, 'cached accessories');
+    log.info('Running', server.accessories.accessories.length, 'accessories',
+        server.accessories.cached_accessories.length, 'cached accessories');
 
-    for (const bridge of server.bridges) {
+    for (const bridge of server.accessories.bridges) {
         log.info('Bridge', bridge.name, bridge.bridge.bridgedAccessories.length, 'accessories',
-            server.cached_accessories.length, 'cached accessories');
+            bridge.cached_accessories.length, 'cached accessories');
 
         // Save the identifier cache in case any new accessories/services/characteristics have been added or expired
         bridge.expireUnusedIDs();
