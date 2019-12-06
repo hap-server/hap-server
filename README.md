@@ -332,7 +332,7 @@ bin/hap-server data/config.yaml
 ```
 
 To build the frontend in Gulp instead of the hap-server process (and disable webpack hot module replacement) add
-`watch-frontend` to the Gulp command and add the `--no-webpack-hot` to the hap-server command.
+`watch-frontend` to the Gulp command and add the `--no-webpack-hot` flag to the hap-server command.
 
 To use the [standalone Vue devtools](https://github.com/vuejs/vue-devtools/blob/master/shells/electron/README.md)
 run `npx vue-devtools` and pass the `--vue-devtools-port` flag to `hap-server`.
