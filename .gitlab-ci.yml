@@ -15,6 +15,7 @@ build:
         - npm --color="always" install
         - npx gulp --color build
         - npx gulp --color build-release
+        - npx gulp --color build-api-types build-ui-api-types
         - npx gulp --color build-example-plugins
 
         - cd release/hap-server
