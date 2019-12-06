@@ -1,3 +1,5 @@
+/// <reference path="../types/vuedraggable" />
+/// <reference path="../types/vue-codemirror" />
 
 import path from 'path';
 import url from 'url';

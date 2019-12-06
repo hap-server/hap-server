@@ -29,19 +29,19 @@ export const AuthenticationHandlerComponents = new ComponentRegistry<UIPlugin, {
 export const UserManagementHandlers = new ComponentRegistry<UIPlugin, typeof UserManagementHandler>();
 export const AutomationTriggerComponents = new ComponentRegistry<UIPlugin, {
     component: Component;
-    plugin: string;
+    plugin: string | null;
     type: string;
     name: string;
 }>();
 export const AutomationConditionComponents = new ComponentRegistry<UIPlugin, {
     component: Component;
-    plugin: string;
+    plugin: string | null;
     type: string;
     name: string;
 }>();
 export const AutomationActionComponents = new ComponentRegistry<UIPlugin, {
     component: Component;
-    plugin: string;
+    plugin: string | null;
     type: string;
     name: string;
 }>();
