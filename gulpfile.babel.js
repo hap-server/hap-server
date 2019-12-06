@@ -207,7 +207,11 @@ gulp.task('build-backend', function() {
                 sourcemaps.write('.', {includeContent: false, destPath: 'dist'}),
             ]),
             pump([
-                gulp.src(['src/**/*.ts', '!src/public/**/*.ts']),
+                gulp.src([
+                    'src/**/*.ts',
+                    '!src/public/**/*.ts', 'src/public/plugins.ts', 'src/public/mixins/**/*.ts',
+                    '!src/types/node_modules/**/*',
+                ]),
                 sourcemaps.init(),
                 tsProject(),
                 sourcemaps.write('.', {includeContent: false, destPath: 'dist'}),
