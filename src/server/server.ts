@@ -1,3 +1,5 @@
+/// <reference path="../types/express-csp" />
+
 import http from 'http';
 import https from 'https';
 import net from 'net';
@@ -85,8 +87,7 @@ export default class Server extends Events {
 
     readonly app!: express.Application;
     readonly wss!: WebSocket.Server;
-    // @ts-ignore
-    readonly multer: typeof multer;
+    readonly multer!: multer.Instance;
 
     // private readonly characteristic_change_handlers!: WeakMap<typeof Accessory, Function>;
     // readonly _handleCharacteristicUpdate: any;

@@ -1,14 +1,16 @@
+/// <reference path="../types/hap-controller" />
 
 import Logger from '../common/logger';
 import {AccessoryPlatform} from '../server/plugins';
 import {uuid} from 'hap-nodejs';
 import * as hap from 'hap-nodejs';
 
-const HttpClient = (() => {
+const HttpClient: typeof import('hap-controller').HttpClient | undefined = (() => {
     try {
         return require('hap-controller').HttpClient;
     } catch (err) {}
 })();
+type HttpClient = import('hap-controller').HttpClient;
 
 const log = new Logger('HAP IP Accessory');
 const IID = Symbol('IID');
@@ -16,8 +18,6 @@ const ServiceMap = Symbol('ServiceMap');
 const CharacteristicMap = Symbol('CharacteristicMap');
 
 // Types
-// @ts-ignore
-import {HttpClient} from 'hap-controller';
 import {
     AccessoryHap,
     ServiceHap,

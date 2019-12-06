@@ -17,8 +17,6 @@
         "dist",
         "node_modules",
         "src/public/**/*.ts",
-        "src/types/api/**/*.ts",
-        "src/types/ui-api/**/*.ts",
-        "src/types/node_modules/**/*"
+        "src/types/**/*.ts"
     ]
 }

@@ -5,8 +5,11 @@
     "dependencies": {
         "@hap-server/hap-server": "*",
         "@types/express": "*",
+        "@types/multer": "*",
         "@types/node": "*",
         "@types/node-persist": "*",
+        "@types/tz-offset": "*",
+        "@types/ws": "*",
         "hap-nodejs": "*"
     }
 }

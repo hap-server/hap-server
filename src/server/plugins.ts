@@ -1,3 +1,4 @@
+/// <reference path="../types/homebridge" />
 
 import Module from 'module';
 import fs from 'fs';
@@ -11,7 +12,6 @@ import persist from 'node-persist';
 import express from 'express';
 import hap from 'hap-nodejs';
 
-// @ts-ignore
 import {Plugin as HomebridgePluginManager} from 'homebridge/lib/plugin';
 
 import Events, {Event, EventListener, EventListenerPromise, EventListeners} from '../events';

@@ -1,3 +1,5 @@
+/// <reference path="../types/homebridge" />
+
 import path from 'path';
 import process from 'process';
 import os from 'os';
@@ -7,11 +9,8 @@ import util from 'util';
 import net from 'net';
 import http from 'http';
 
-// @ts-ignore
 import {Plugin as HomebridgePluginManager} from 'homebridge/lib/plugin';
-// @ts-ignore
 import {User as HomebridgeUser} from 'homebridge/lib/user';
-// @ts-ignore
 import HomebridgeLogger from 'homebridge/lib/logger';
 import hap from 'hap-nodejs';
 

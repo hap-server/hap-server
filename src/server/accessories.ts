@@ -1,3 +1,5 @@
+/// <reference path="../types/homebridge" />
+
 import Server from './server';
 import PluginManager, {Plugin, AccessoryPlatform} from './plugins';
 import Bridge from './bridge';
@@ -13,7 +15,6 @@ import {BridgeConfiguration} from '../cli/configuration';
 
 import {Accessory, Service, Characteristic} from 'hap-nodejs';
 import * as hap from 'hap-nodejs';
-// @ts-ignore
 import {PlatformAccessory} from 'homebridge/lib/platformAccessory';
 
 export default class AccessoryManager {

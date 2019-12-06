@@ -1,11 +1,9 @@
+/// <reference path="../types/homebridge" />
 
 import Bridge from './bridge';
 
-// @ts-ignore
 import {Server as HomebridgeServer} from 'homebridge/lib/server';
-// @ts-ignore
 import {User as HomebridgeUser} from 'homebridge/lib/user';
-// @ts-ignore
 import {_system as homebridge_logger} from 'homebridge/lib/logger';
 
 // Types

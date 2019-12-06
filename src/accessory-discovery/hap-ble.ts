@@ -1,13 +1,14 @@
+/// <reference path="../types/hap-controller" />
 
 import Logger from '../common/logger';
 import {AccessoryDiscovery, DiscoveredAccessory} from '../server/plugins';
 
-// @ts-ignore
 const BLEDiscovery: typeof import('hap-controller').BLEDiscovery | undefined = (() => {
     try {
         return require('hap-controller').BLEDiscovery;
     } catch (err) {}
 })();
+type BLEDiscovery = import('hap-controller').BLEDiscovery;
 
 import setup from '../accessory-setup/hap-ble';
 

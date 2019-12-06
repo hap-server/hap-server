@@ -1,13 +1,14 @@
+/// <reference path="../types/hap-controller" />
 
 import Logger from '../common/logger';
 import {AccessoryDiscovery, DiscoveredAccessory} from '../server/plugins';
 
-// @ts-ignore
 const IPDiscovery: typeof import('hap-controller').IPDiscovery | undefined = (() => {
     try {
         return require('hap-controller').IPDiscovery;
     } catch (err) {}
 })();
+type IPDiscovery = import('hap-controller').IPDiscovery;
 
 import setup from '../accessory-setup/hap-ip';
 

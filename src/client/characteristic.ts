@@ -1,7 +1,8 @@
+/// <reference path="../types/hap-nodejs" />
+
 import EventEmitter from 'events';
 import Client from './client';
 
-// @ts-ignore
 import {Characteristic as HAPCharacteristic} from 'hap-nodejs/lib/Characteristic';
 import 'hap-nodejs/lib/gen/HomeKitTypes';
 import Service from './service';

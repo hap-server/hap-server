@@ -1,3 +1,5 @@
+/// <reference path="../types/hap-nodejs" />
+
 import EventEmitter from 'events';
 
 import {$set, $delete} from './client';
@@ -400,7 +402,6 @@ export const types: {[key: string]: string} = {};
 export const type_uuids: {[key: string]: string} = {};
 export const type_names: {[key: string]: string} = {};
 
-// @ts-ignore
 import {Service as HAPService} from 'hap-nodejs/lib/Service';
 import 'hap-nodejs/lib/gen/HomeKitTypes';
 

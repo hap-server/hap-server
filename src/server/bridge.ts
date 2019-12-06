@@ -1,19 +1,16 @@
+/// <reference path="../types/qrcode-terminal" />
+/// <reference path="../types/hap-nodejs" />
 
 import os from 'os';
 import crypto from 'crypto';
 import chalk from 'chalk';
-// @ts-ignore
 import qrcode from 'qrcode-terminal';
 import {Accessory, Service, Characteristic} from 'hap-nodejs';
-// @ts-ignore
 import {Bridge as HAPBridge} from 'hap-nodejs/lib/Bridge';
 import HAPServer from './hap-server';
 
-// @ts-ignore
 import {AccessoryInfo} from 'hap-nodejs/lib/model/AccessoryInfo';
-// @ts-ignore
 import {IdentifierCache} from 'hap-nodejs/lib/model/IdentifierCache';
-// @ts-ignore
 import {clone} from 'hap-nodejs/lib/util/clone';
 
 import Server from './server';

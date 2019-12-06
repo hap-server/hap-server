@@ -67,11 +67,9 @@ export interface ServiceData {
 
 export interface AccessoryData {
     // Service.* and CollapsedService.*
-    [key: string]: ServiceData | string;
+    [key: string]: ServiceData | string | undefined;
 
-    // @ts-ignore
     name?: string;
-    // @ts-ignore
     room_name?: string;
 }
 

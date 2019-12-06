@@ -1,14 +1,10 @@
+/// <reference path="../types/hap-nodejs" />
 
 import {Accessory, Service, Characteristic} from 'hap-nodejs';
-// @ts-ignore
 import {HAPServer} from 'hap-nodejs/lib/HAPServer';
-// @ts-ignore
 import {Advertiser} from 'hap-nodejs/lib/Advertiser';
-// @ts-ignore
 import {AccessoryInfo} from 'hap-nodejs/lib/model/AccessoryInfo';
-// @ts-ignore
 import {IdentifierCache} from 'hap-nodejs/lib/model/IdentifierCache';
-// @ts-ignore
 import {Camera as CameraSource} from 'hap-nodejs/lib/Camera';
 
 import Logger from '../common/logger';
