@@ -84,4 +84,6 @@ declare module '@hap-server/api' {
         EventListeners,
         events,
     };
+
+    export type Connection = import('@hap-server/hap-server/server/connection').default;
 }
