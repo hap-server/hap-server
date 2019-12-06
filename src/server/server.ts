@@ -22,13 +22,13 @@ import {
     SceneActivateProgressEvent, SceneActivatedEvent, SceneDeactivateProgressEvent, SceneDeactivatedEvent,
 } from '../events/server';
 
+import AccessoryManager from './accessories';
+import {HAPIP as HAPIPDiscovery, HAPBLE as HAPBLEDiscovery} from '../accessory-discovery';
+
 import Connection from './connection';
 import PluginManager, {ServerPlugin, DiscoveredAccessory} from './plugins';
 import Logger from '../common/logger';
 import {Accessory, Characteristic} from 'hap-nodejs';
-
-import AccessoryManager from './accessories';
-import {HAPIP as HAPIPDiscovery, HAPBLE as HAPBLEDiscovery} from '../accessory-discovery';
 
 import Automations from '../automations';
 
