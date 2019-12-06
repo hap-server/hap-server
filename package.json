@@ -46,9 +46,6 @@
         "yaml": "^1.7.2",
         "yargs": "^13.3.0"
     },
-    "optionalDependencies": {
-        "hap-controller": "^0.1.9"
-    },
     "devDependencies": {
         "@types/codemirror": "0.0.81",
         "@types/cookie-parser": "^1.4.2",
@@ -121,7 +118,8 @@
         "xterm": "^3.14.5"
     },
     "peerDependencies": {
-        "@hap-server/authenticate-pam": "^0.3.1"
+        "@hap-server/authenticate-pam": "^0.3.1",
+        "hap-controller": "^0.1.9"
     },
     "scripts": {
         "build": "gulp build",
