@@ -61,7 +61,7 @@ export default class Server extends Events {
     readonly assets_path: string;
     readonly cli_auth_token?: string;
     setup_token?: string;
-    readonly storage!: typeof persist;
+    readonly storage!: persist.LocalStorage;
     readonly log!: Logger;
 
     readonly accessories!: AccessoryManager;
@@ -108,7 +108,7 @@ export default class Server extends Events {
      * @param {persist} storage
      * @param {Logger} [log]
      */
-    constructor(options: ServerOptions, storage: typeof persist, log?: Logger) {
+    constructor(options: ServerOptions, storage: persist.LocalStorage, log?: Logger) {
         super();
 
         this.parent_emitter = events;

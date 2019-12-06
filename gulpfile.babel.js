@@ -324,17 +324,15 @@ gulp.task('build-backend-release', function () {
                 minify(release_minify_config),
             ]),
             pump([
-                gulp.src(['src/**/*.ts', '!src/public/**/*.ts']),
+                gulp.src([
+                    'src/**/*.ts',
+                    '!src/public/**/*.ts', 'src/public/plugins.ts', 'src/public/mixins/**/*.ts',
+                    '!src/types/node_modules/**/*',
+                ]),
                 replace(/\bDEVELOPMENT\s*=\s*true\b/gi, 'DEVELOPMENT = false'),
                 replace(/\bDEVELOPMENT(?!\s*=)\b/gi, 'false'),
                 tsProject(),
                 minify(release_minify_config),
-            ]),
-            pump([
-                gulp.src(['src/public/component-registry.ts', 'src/public/plugins.ts'], {base: 'src'}),
-                typescript(typescript_config),
-                filter(['**/*.d.ts']),
-                gulp.dest('release'),
             ]),
             gulp.src([
                 'src/**/*', '!src/public/**/*', '!src/**/*.js', '!src/**/*.ts',

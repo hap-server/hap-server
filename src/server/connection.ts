@@ -32,7 +32,7 @@ const randomBytes = util.promisify(crypto.randomBytes);
  * @param {persist} storage
  * @return {Promise<Buffer>}
  */
-async function getoui(storage: typeof persist) {
+async function getoui(storage: persist.LocalStorage) {
     const oui = await storage.getItem('OUI');
     if (oui) return Buffer.from(oui, 'hex');
 
@@ -52,7 +52,7 @@ async function getoui(storage: typeof persist) {
  * @param {persist} storage
  * @return {Promise<string>}
  */
-async function genusername(storage: typeof persist) {
+async function genusername(storage: persist.LocalStorage) {
     const oui = await getoui(storage);
     const bytes = await randomBytes(3);
 

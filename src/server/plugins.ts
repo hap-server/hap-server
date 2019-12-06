@@ -54,7 +54,7 @@ export class PluginManager extends Events {
     readonly plugins: Plugin[];
     readonly plugin_paths: string[];
     readonly plugin_apis: WeakMap<Plugin, object>;
-    readonly plugin_storage: Map<string, {default: typeof persist}>;
+    readonly plugin_storage: Map<string, {default: persist.LocalStorage}>;
     readonly plugin_config: Map<string, any>;
     default_plugin_config: any;
 
