@@ -1,5 +1,6 @@
-import {ServiceSettingsComponents as accessory_setup_components} from '../../component-registry';
+import {AccessorySetupComponents as accessory_setup_components} from '../../component-registry';
 
+// @ts-ignore
 const contextRequire = require.context('.', true, /\.vue$/);
 
 for (const file of contextRequire.keys()) {

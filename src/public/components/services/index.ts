@@ -1,6 +1,7 @@
 import {ServiceTileComponents as service_components} from '../../component-registry';
 import {PluginAPI} from '../../plugins';
 
+// @ts-ignore
 const contextRequire = require.context('.', true, /\.vue$/);
 
 for (const file of contextRequire.keys()) {

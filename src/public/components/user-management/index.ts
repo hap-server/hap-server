@@ -1,5 +1,6 @@
 import {UserManagementHandlers as user_management_components} from '../../component-registry';
 
+// @ts-ignore
 const contextRequire = require.context('.', true, /\.vue$/);
 
 for (const file of contextRequire.keys()) {
@@ -7,10 +8,7 @@ for (const file of contextRequire.keys()) {
 
     if (!user_management.hasOwnProperty('id')) continue;
 
-    user_management_components.set(user_management.id, {
-        component: user_management.default,
-        name: user_management.name,
-    });
+    user_management_components.set(user_management.id, user_management.default);
 
     console.log('User management', file, user_management);
 }
