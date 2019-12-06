@@ -211,7 +211,7 @@ gulp.task('build-backend', function() {
                     'src/**/*.ts',
                     '!src/public/**/*.ts', 'src/public/plugins.ts', 'src/public/mixins/**/*.ts',
                     '!src/types/node_modules/**/*',
-                ]),
+                ], {base: 'src'}),
                 sourcemaps.init(),
                 tsProject(),
                 sourcemaps.write('.', {includeContent: false, destPath: 'dist'}),
@@ -261,13 +261,13 @@ gulp.task('watch-backend', gulp.parallel('watch-backend-no-ts', function() {
         'src/**/*.ts',
         '!src/public/**/*.ts', 'src/public/plugins.ts', 'src/public/mixins/**/*.ts',
         '!src/types/node_modules/**/*',
-    ], function() {
+    ], {base: 'src'}, function() {
         return pump([
             gulp.src([
                 'src/**/*.ts',
                 '!src/public/**/*.ts', 'src/public/plugins.ts', 'src/public/mixins/**/*.ts',
                 '!src/types/node_modules/**/*',
-            ]),
+            ], {base: 'src'}),
             sourcemaps.init(),
             tsProject(),
             sourcemaps.write('.', {includeContent: false, destPath: 'dist'}),
@@ -349,7 +349,7 @@ gulp.task('build-backend-release', function() {
                     'src/**/*.ts',
                     '!src/public/**/*.ts', 'src/public/plugins.ts', 'src/public/mixins/**/*.ts',
                     '!src/types/node_modules/**/*',
-                ]),
+                ], {base: 'src'}),
                 replace(/\bDEVELOPMENT\s*=\s*true\b/gi, 'DEVELOPMENT = false'),
                 replace(/\bDEVELOPMENT(?!\s*=)\b/gi, 'false'),
                 tsProject(),

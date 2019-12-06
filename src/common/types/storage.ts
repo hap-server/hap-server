@@ -219,4 +219,4 @@ export default interface StorageTypes {
     OUI: OUI;
     'Session.': Session;
     'Permissions.': Permissions;
-}
+} // eslint-disable-line semi

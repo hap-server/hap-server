@@ -116,7 +116,7 @@ export interface AutomationFinishedMessage extends AutomationRunnerMessage {
 
 export interface SceneMessage {
     type: 'add-scene' | 'update-scene' | 'remove-scene' | 'scene-activating' | 'scene-activated' |
-        'scene-deactivating' | 'scene-deactivated' | 'scene-progress';
+        'scene-deactivating' | 'scene-deactivated' | 'scene-progress'; // eslint-disable-line @typescript-eslint/indent
     uuid: string;
 }
 export interface AddSceneMessage extends SceneMessage {
@@ -194,5 +194,5 @@ export type SendableBroadcastMessage =
     SceneActivatingMessage | SceneActivatedMessage | SceneDeactivatingMessage | SceneDeactivatedMessage |
     SceneProgressMessage |
     UpdatePairingsMessage | UpdatePairingDataMessage;
-export type BroadcastMessage = SendableBroadcastMessage |
-    UpdatePermissionsMessage | StdoutMessage | StderrMessage | ConsoleOutputMessage;
+export type BroadcastMessage =
+    SendableBroadcastMessage | UpdatePermissionsMessage | StdoutMessage | StderrMessage | ConsoleOutputMessage;

@@ -7,7 +7,7 @@ export interface ErrorResponse {
     reject: true;
     error: boolean;
     constructor: string;
-    data: {message: string; code: number; stack: string;} | any;
+    data: {message: string; code: number; stack: string} | any;
 }
 
 export interface ListAccessoriesRequestMessage {
@@ -497,8 +497,9 @@ type DefinedRequestResponseMessages = {
     'get-characteristics': [GetCharacteristicsRequestMessage, GetCharacteristicsResponseMessage];
     'set-characteristics': [SetCharacteristicsRequestMessage, SetCharacteristicsResponseMessage];
     'subscribe-characteristics': [SubscribeCharacteristicsRequestMessage, SubscribeCharacteristicsResponseMessage];
-    'unsubscribe-characteristics':
-        [UnsubscribeCharacteristicsRequestMessage, UnsubscribeCharacteristicsResponseMessage];
+    'unsubscribe-characteristics': [
+        UnsubscribeCharacteristicsRequestMessage, UnsubscribeCharacteristicsResponseMessage,
+    ];
     'get-accessories-data': [GetAccessoriesDataRequestMessage, GetAccessoriesDataResponseMessage];
     'set-accessories-data': [SetAccessoriesDataRequestMessage, SetAccessoriesDataResponseMessage];
 
