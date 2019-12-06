@@ -287,10 +287,9 @@ export async function handler(argv: Arguments) {
         allow_unencrypted?: boolean;
     }
 
-    const listen_addresses:
-        (['net', string, number] | ['unix', string] | ['net', string, number, AddressOptions | undefined] |
-            ['unix', string, AddressOptions | undefined])[]
-        = ([] as (string | number | ["net", string, number] | ["unix", string])[])
+    const listen_addresses: (['net', string, number] | ['unix', string] |
+        ['net', string, number, AddressOptions | undefined] | ['unix', string, AddressOptions | undefined])[] = // @typescript-eslint/indent
+        ([] as (string | number | ['net', string, number] | ['unix', string])[])
             .concat(config.listen || []).map(a => a instanceof Array ? a as Address : parseAddress(a, data_path));
     const https_addresses: Record<string, string | [string, string] | [string, string, HttpsOptions]> = {};
     for (const [address, certificate] of Object.entries(config['listen-https'] || {})) {

@@ -531,7 +531,7 @@ export default class AccessoryManager {
      * @param {object} context
      * @return {Promise}
      */
-    async handleCharacteristicUpdate(
+    private async handleCharacteristicUpdate(
         accessory: typeof Accessory, service: typeof Service, characteristic: typeof Characteristic,
         value: any, old_value: any, context: any
     ) {
@@ -575,7 +575,7 @@ export default class AccessoryManager {
      * @param {Service} service
      * @param {Characteristic} characteristic
      */
-    handleConfigurationChange(
+    private handleConfigurationChange(
         accessory: typeof Accessory, service: typeof Service, characteristic: typeof Characteristic
     ) {
         this.server.emit(UpdateAccessoryConfigurationEvent, this.server, accessory, service, characteristic);

@@ -147,6 +147,7 @@ export default class Connection {
 
     readonly permissions: Permissions;
 
+    /* eslint-disable no-invalid-this */
     terminateInterval: NodeJS.Timeout = setInterval(() => {
         this.ws.ping();
 
@@ -155,6 +156,7 @@ export default class Connection {
 
         this.ws.terminate();
     }, 15000);
+    /* eslint-enable no-invalid-this */
 
     private asset_token: string | null = null;
 

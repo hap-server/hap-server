@@ -119,6 +119,7 @@ export class PluginManager {
         }
     }
 
+    // eslint-disable-next-line valid-jsdoc
     /** @deprecated */
     async loadAccessoryUI(ui_plugin: UIPlugin) {
         return this.loadWebInterfacePlugin(ui_plugin);
@@ -425,6 +426,7 @@ export class PluginAPI {
         this.refreshDisplayServices();
     }
 
+    // eslint-disable-next-line valid-jsdoc
     /** @deprecated */
     registerServiceComponent(type: string, component: Component) {
         this.registerServiceTileComponent(type, component);
@@ -451,11 +453,13 @@ export class PluginAPI {
         this.refreshDisplayServices();
     }
 
+    // eslint-disable-next-line valid-jsdoc
     /** @deprecated */
     registerAccessoryDetailsComponent(type: string, component: Component) {
         this.registerServiceDetailsComponent(type, component);
     }
 
+    // eslint-disable-next-line valid-jsdoc
     /** @deprecated */
     registerSystemServiceType(type: string) {
         // Why do we need this?
@@ -580,6 +584,7 @@ export class PluginAPI {
         ServiceSettingsComponents.addPluginComponent(this.ui_plugin, type, component);
     }
 
+    // eslint-disable-next-line valid-jsdoc
     /** @deprecated */
     registerAccessorySettingsComponent(type: string, component: Component) {
         this.registerServiceSettingsComponent(type, component);

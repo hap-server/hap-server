@@ -42,13 +42,13 @@ let storage_path: string;
 
 export type AccessoryHandler =
     (config: AccessoryConfiguration, cached_accessory?: typeof Accessory) =>
-        (Promise<typeof Accessory> | typeof Accessory);
+    (Promise<typeof Accessory> | typeof Accessory);
 export type AccessoryPlatformHandler =
     (config: AccessoryPlatformConfiguration, cached_accessories: typeof Accessory[]) =>
-        (Promise<typeof Accessory[]> | typeof Accessory[]);
+    (Promise<typeof Accessory[]> | typeof Accessory[]);
 export type DynamicAccessoryPlatformHandler =
     (platform: AccessoryPlatform, config: AccessoryPlatformConfiguration, cached_accessories: typeof Accessory[]) =>
-        (Promise<typeof Accessory[]> | typeof Accessory[]);
+    (Promise<typeof Accessory[]> | typeof Accessory[]);
 
 export class PluginManager extends Events {
     readonly plugins: Plugin[];
@@ -1245,7 +1245,7 @@ export class AuthenticationHandler {
     handler: (data: any, connection: Connection) => Promise<AuthenticatedUser | any> | AuthenticatedUser | any;
     reconnect_handler?: ((data: any) => any) = undefined;
     disconnect_handler?:
-        ((authenticated_user: AuthenticatedUser, disconnected: boolean, connection: Connection) => any) = undefined;
+        ((authenticated_user: AuthenticatedUser, disconnected: boolean, connection: Connection) => any) = undefined; // eslint-disable-line @typescript-eslint/indent
 
     constructor(
         plugin: Plugin,

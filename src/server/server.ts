@@ -79,8 +79,9 @@ export default class Server extends Events {
 
     private accessory_discovery_counter!: number;
     private readonly accessory_discovery_handlers!: Set<AccessoryDiscovery>;
-    private readonly accessory_discovery_handlers_events!:
-        WeakMap<AccessoryDiscovery, {[key: string]: (...args: any[]) => void}>;
+    private readonly accessory_discovery_handlers_events!: WeakMap<AccessoryDiscovery, {
+        [key: string]: (...args: any[]) => void;
+    }>;
 
     readonly app!: express.Application;
     readonly wss!: WebSocket.Server;

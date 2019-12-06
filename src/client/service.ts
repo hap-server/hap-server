@@ -282,7 +282,7 @@ export type ServiceEvents = {
 
     'data-updated': (this: Service, here: boolean) => void;
     'permissions-updated':
-        (this: Service, permissions: GetAccessoriesPermissionsResponseMessage[0]['set_characteristics'][0]) => void;
+        (this: Service, permissions: GetAccessoriesPermissionsResponseMessage[0]['set_characteristics'][0]) => void; // eslint-disable-line @typescript-eslint/indent
 };
 
 interface Service {

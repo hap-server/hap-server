@@ -882,16 +882,13 @@ type ConnectionEvents = {
     'add-accessories': (this: Connection, ids: AddAccessoriesMessage['ids']) => void;
     'remove-accessories': (this: Connection, ids: RemoveAccessoriesMessage['ids']) => void;
     'update-accessory': (this: Connection, uuid: string, details: UpdateAccessoryMessage['details']) => void;
-    'update-characteristic':
-        (this: Connection, accessory_uuid: string, service_id: string, characteristic_id: string,
-            details: UpdateCharacteristicMessage['details']) => void;
+    'update-characteristic': (this: Connection, accessory_uuid: string, service_id: string, characteristic_id: string,
+        details: UpdateCharacteristicMessage['details']) => void;
     'update-accessory-data': (this: Connection, uuid: string, data: UpdateAccessoryDataMessage['data']) => void;
 
-    'add-discovered-accessory':
-        (this: Connection, plugin: string, accessory_discovery: number, id: number,
-            data: AddDiscoveredAccessoryMessage['data']) => void;
-    'remove-discovered-accessory':
-        (this: Connection, plugin: string, accessory_discovery: number, id: number) => void;
+    'add-discovered-accessory': (this: Connection, plugin: string, accessory_discovery: number, id: number,
+        data: AddDiscoveredAccessoryMessage['data']) => void;
+    'remove-discovered-accessory': (this: Connection, plugin: string, accessory_discovery: number, id: number) => void;
     'update-home-settings': (this: Connection, data: UpdateHomeSettingsMessage['data']) => void;
 
     'add-layout': (this: Connection, uuid: string) => void;
@@ -899,8 +896,8 @@ type ConnectionEvents = {
     'update-layout': (this: Connection, uuid: string, data: UpdateLayoutMessage['data']) => void;
     'add-layout-section': (this: Connection, layout_uuid: string, uuid: string) => void;
     'remove-layout-section': (this: Connection, layout_uuid: string, uuid: string) => void;
-    'update-layout-section':
-        (this: Connection, layout_uuid: string, uuid: string, data: UpdateLayoutSectionMessage['data']) => void;
+    'update-layout-section': (this: Connection, layout_uuid: string, uuid: string,
+        data: UpdateLayoutSectionMessage['data']) => void;
 
     'add-automation': (this: Connection, uuid: string) => void;
     'remove-automation': (this: Connection, uuid: string) => void;

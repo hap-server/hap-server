@@ -69,16 +69,19 @@ export default class HAPIP extends AccessoryPlatform {
     events_connection: any;
     subscribed_characteristics: string[] = [];
 
-    private get_queue:
-        [/** aid, iid pair */ string, /** resolve */ (v: any) => void, /** reject */ (r: any) => void][] | null = null;
+    private get_queue: [
+        /** aid, iid pair */ string, /** resolve */ (v: any) => void, /** reject */ (r: any) => void,
+    ][] | null = null;
     private get_queue_timeout?: NodeJS.Timeout = undefined;
-    private set_queue:
-        [/** aid, iid pair */ string, /** value */ any, /** resolve */ (v: any) => void,
-            /** reject */ (r: any) => void][] | null = null;
+    private set_queue: [
+        /** aid, iid pair */ string, /** value */ any, /** resolve */ (v: any) => void,
+        /** reject */ (r: any) => void,
+    ][] | null = null;
     private set_queue_timeout?: NodeJS.Timeout = undefined;
-    private subscribe_queue:
-        [/** aid, iid pair */ string, /** value */ boolean, /** resolve */ (v: any) => void,
-            /** reject */ (r: any) => void][] | null = null;
+    private subscribe_queue: [
+        /** aid, iid pair */ string, /** value */ boolean, /** resolve */ (v: any) => void,
+        /** reject */ (r: any) => void,
+    ][] | null = null;
     private subscribe_queue_timeout?: NodeJS.Timeout = undefined;
 
     async init(cached_accessories: Accessory[]) {
