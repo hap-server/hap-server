@@ -288,7 +288,7 @@ export async function handler(argv: Arguments) {
     }
 
     const listen_addresses: (['net', string, number] | ['unix', string] |
-        ['net', string, number, AddressOptions | undefined] | ['unix', string, AddressOptions | undefined])[] = // @typescript-eslint/indent
+        ['net', string, number, AddressOptions | undefined] | ['unix', string, AddressOptions | undefined])[] = // eslint-disable-line @typescript-eslint/indent
         ([] as (string | number | ['net', string, number] | ['unix', string])[])
             .concat(config.listen || []).map(a => a instanceof Array ? a as Address : parseAddress(a, data_path));
     const https_addresses: Record<string, string | [string, string] | [string, string, HttpsOptions]> = {};
