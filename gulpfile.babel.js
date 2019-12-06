@@ -184,12 +184,12 @@ gulp.task('build-backend-no-ts', function() {
     return pump([
         merge([
             pump([
-                gulp.src(['src/**/*.js', '!src/public/**/*.js']),
+                gulp.src(['src/**/*.js', '!src/public/**/*.js', '!src/types/node_modules/**/*']),
                 sourcemaps.init(),
                 babel(),
                 sourcemaps.write('.', {includeContent: false, destPath: 'dist'}),
             ]),
-            gulp.src(['src/**/*', '!src/public/**/*', '!src/**/*.js', '!src/**/*.ts']),
+            gulp.src(['src/**/*', '!src/public/**/*', '!src/types/**/*', '!src/**/*.js', '!src/**/*.ts']),
         ]),
         gulp.dest('dist'),
     ]);
@@ -201,7 +201,7 @@ gulp.task('build-backend', function() {
     return pump([
         merge([
             pump([
-                gulp.src(['src/**/*.js', '!src/public/**/*.js']),
+                gulp.src(['src/**/*.js', '!src/public/**/*.js', '!src/types/node_modules/**/*']),
                 sourcemaps.init(),
                 babel(),
                 sourcemaps.write('.', {includeContent: false, destPath: 'dist'}),
@@ -216,7 +216,7 @@ gulp.task('build-backend', function() {
                 tsProject(),
                 sourcemaps.write('.', {includeContent: false, destPath: 'dist'}),
             ]),
-            gulp.src(['src/**/*', '!src/public/**/*', '!src/**/*.js', '!src/**/*.ts']),
+            gulp.src(['src/**/*', '!src/public/**/*', '!src/types/**/*', '!src/**/*.js', '!src/**/*.ts']),
         ]),
         gulp.dest('dist'),
     ]);
@@ -246,20 +246,28 @@ gulp.task('build', gulp.parallel('build-backend', 'build-frontend', 'build-examp
 
 gulp.task('watch-backend-no-ts', function() {
     return pump([
-        watch(['src/**/*.js', '!src/public/**/*.js'], {verbose: true}),
+        watch(['src/**/*.js', '!src/public/**/*.js', '!src/types/node_modules/**/*'], {verbose: true}),
         plumber(),
         sourcemaps.init(),
         babel(),
         sourcemaps.write('.', {includeContent: false, destPath: 'dist'}),
-        watch(['src/**/*', '!src/public/**/*', '!src/**/*.js', '!src/**/*.ts'], {verbose: true}),
+        watch(['src/**/*', '!src/public/**/*', '!src/types/**/*', '!src/**/*.js', '!src/**/*.ts'], {verbose: true}),
         gulp.dest('dist'),
     ]);
 });
 
 gulp.task('watch-backend', gulp.parallel('watch-backend-no-ts', function() {
-    return gulp.watch(['src/**/*.ts', '!src/public/**/*.ts'], function() {
+    return gulp.watch([
+        'src/**/*.ts',
+        '!src/public/**/*.ts', 'src/public/plugins.ts', 'src/public/mixins/**/*.ts',
+        '!src/types/node_modules/**/*',
+    ], function() {
         return pump([
-            gulp.src(['src/**/*.ts', '!src/public/**/*.ts']),
+            gulp.src([
+                'src/**/*.ts',
+                '!src/public/**/*.ts', 'src/public/plugins.ts', 'src/public/mixins/**/*.ts',
+                '!src/types/node_modules/**/*',
+            ]),
             sourcemaps.init(),
             tsProject(),
             sourcemaps.write('.', {includeContent: false, destPath: 'dist'}),
@@ -330,7 +338,7 @@ gulp.task('build-backend-release', function() {
     return pump([
         merge([
             pump([
-                gulp.src(['src/**/*.js', '!src/public/**/*.js']),
+                gulp.src(['src/**/*.js', '!src/public/**/*.js', '!src/types/node_modules/**/*']),
                 replace(/\bDEVELOPMENT\s*=\s*true\b/gi, 'DEVELOPMENT = false'),
                 replace(/\bDEVELOPMENT(?!\s*=)\b/gi, 'false'),
                 babel(),
@@ -349,7 +357,7 @@ gulp.task('build-backend-release', function() {
             ]),
             gulp.src([
                 'src/**/*', '!src/public/**/*', '!src/**/*.js', '!src/**/*.ts',
-                'src/types/**/*.d.ts',
+                'src/types/**/*.d.ts', '!src/types/node_modules/**/*',
             ], {base: 'src'}),
         ]),
         gulp.dest('release/hap-server'),
