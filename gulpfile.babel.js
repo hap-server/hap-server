@@ -361,7 +361,7 @@ gulp.task('build-backend-release', function() {
                 // In the development build this is fine as the src directory still exists but in the release build it
                 // doesn't so we need to rewrite it back
                 // We copy the types directory later so it works without rewriting the path
-                replace(/^\/\/\/ <reference path="((\.\.\/)*)\.\.\/src\/(.*)" \/>$/m, '/// <reference path="$1$3" />'),
+                replace(/^\/\/\/ <reference path="((\.\.\/)*)\.\.\/src\/(.*)" \/>$/mg, '/// <reference path="$1$3" />'),
                 minify(release_minify_config),
             ]),
             gulp.src([
