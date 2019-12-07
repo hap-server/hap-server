@@ -1,6 +1,10 @@
 {
     "name": "@hap-server/ui-api",
     "version": "0.0.0",
+    "description": "TypeScript definitions for the hap-server web interface plugin API.",
+    "keywords": [
+        "typescript"
+    ],
     "private": true,
     "dependencies": {
         "@hap-server/hap-server": "*",

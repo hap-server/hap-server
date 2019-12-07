@@ -1,7 +1,7 @@
 {
     "name": "@hap-server/hap-server",
     "version": "0.10.1",
-    "description": "",
+    "description": "Home automation system based on HomeKit.",
     "keywords": [
         "homekit",
         "apple-homekit",
