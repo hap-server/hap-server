@@ -29,6 +29,9 @@ module.exports = {
 
         '@typescript-eslint/ban-ts-ignore': 'warn',
 
+        'spaced-comment': 'warn',
+        '@typescript-eslint/triple-slash-reference': 'off',
+
         'vue/html-indent': ['error', 4, {
             alignAttributesVertically: false,
         }],
