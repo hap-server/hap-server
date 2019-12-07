@@ -357,11 +357,16 @@ gulp.task('build-backend-release', function() {
                 replace(/\bDEVELOPMENT\s*=\s*true\b/gi, 'DEVELOPMENT = false'),
                 replace(/\bDEVELOPMENT(?!\s*=)\b/gi, 'false'),
                 tsProject(),
+                // Fix relative references as TypeScript rewrites them so they work properly
+                // In the development build this is fine as the src directory still exists but in the release build it
+                // doesn't so we need to rewrite it back
+                // We copy the types directory later so it works without rewriting the path
+                replace(/^\/\/\/ <reference path="((\.\.\/)*)\.\.\/src\/(.*)" \/>$/m, '/// <reference path="$1$3" />'),
                 minify(release_minify_config),
             ]),
             gulp.src([
                 'src/**/*', '!src/public/**/*', '!src/**/*.js', '!src/**/*.ts',
-                'src/types/**/*.d.ts', '!src/types/node_modules/**/*',
+                'src/types/**/*.d.ts', '!src/types/node_modules', '!src/types/node_modules/**/*',
             ], {base: 'src'}),
         ]),
         gulp.dest('release/hap-server'),
