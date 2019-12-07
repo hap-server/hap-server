@@ -6,7 +6,11 @@
         "experimentalDecorators": true,
         "module": "commonjs",
         "declaration": true,
-        "outDir": "./dist"
+        "importHelpers": true,
+        "incremental": true,
+        "tsBuildInfoFile": "tsbuildinfo.json",
+        "rootDir": "src",
+        "outDir": "dist"
     },
     "include": [
         "src/**/*.ts",

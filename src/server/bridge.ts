@@ -1,5 +1,5 @@
-/// <reference path="../types/qrcode-terminal" />
-/// <reference path="../types/hap-nodejs" />
+/// <reference path="../types/qrcode-terminal.d.ts" />
+/// <reference path="../types/hap-nodejs.d.ts" />
 
 import os from 'os';
 import crypto from 'crypto';

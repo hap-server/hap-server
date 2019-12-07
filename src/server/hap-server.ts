@@ -1,4 +1,4 @@
-/// <reference path="../types/hap-nodejs" />
+/// <reference path="../types/hap-nodejs.d.ts" />
 
 import {Accessory, Service, Characteristic} from 'hap-nodejs';
 import {HAPServer} from 'hap-nodejs/lib/HAPServer';

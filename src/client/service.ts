@@ -1,4 +1,4 @@
-/// <reference path="../types/hap-nodejs" />
+/// <reference path="../types/hap-nodejs.d.ts" />
 
 import EventEmitter from 'events';
 

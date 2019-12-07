@@ -1,4 +1,4 @@
-/// <reference path="../types/homebridge" />
+/// <reference path="../types/homebridge.d.ts" />
 
 import Module from 'module';
 import fs from 'fs';

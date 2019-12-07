@@ -1,4 +1,4 @@
-/// <reference path="../types/express-csp" />
+/// <reference path="../types/express-csp.d.ts" />
 
 import http from 'http';
 import https from 'https';

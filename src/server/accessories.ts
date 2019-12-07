@@ -1,4 +1,4 @@
-/// <reference path="../types/homebridge" />
+/// <reference path="../types/homebridge.d.ts" />
 
 import Server from './server';
 import PluginManager, {Plugin, AccessoryPlatform} from './plugins';

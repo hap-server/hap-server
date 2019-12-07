@@ -30,6 +30,9 @@ import HotModuleReplacementPlugin from 'webpack/lib/HotModuleReplacementPlugin';
 import * as pkg from './package';
 import {compilerOptions as typescript_config} from './tsconfig';
 
+typescript_config.incremental = false;
+delete typescript_config.tsBuildInfoFile;
+
 const README_BASE_URL =
     `https://gitlab.fancy.org.uk/hap-server/hap-server/blob/v${pkg.version}/README.md`;
 const README_IMAGE_BASE_URL =
@@ -64,6 +67,7 @@ const webpack_config = {
                 options: {
                     compilerOptions: Object.assign({}, typescript_config, {
                         declaration: false,
+                        incremental: true,
                     }),
                 },
             },

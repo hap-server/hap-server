@@ -1,4 +1,4 @@
-/// <reference path="../types/homebridge" />
+/// <reference path="../types/homebridge.d.ts" />
 
 import Bridge from './bridge';
 

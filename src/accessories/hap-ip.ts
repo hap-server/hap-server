@@ -1,4 +1,4 @@
-/// <reference path="../types/hap-controller" />
+/// <reference path="../types/hap-controller.d.ts" />
 
 import Logger from '../common/logger';
 import {AccessoryPlatform} from '../server/plugins';
