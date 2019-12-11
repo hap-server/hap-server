@@ -1,12 +1,14 @@
 <template>
     <panel ref="panel" class="accessory-settings" @close="$emit('close')">
-        <p v-if="deleteBridge">Are you sure you want to delete this bridge?</p>
+        <p v-if="deleteBridge">{{ $t('accessory_settings.delete_bridge_info') }}</p>
 
         <panel-tabs v-if="!createBridge && !deleteBridge && is_bridge" v-model="tab" :tabs="tabs" />
 
         <form v-if="!createBridge && !deleteBridge && (!is_bridge || tab === 'general')" @submit="save(true)">
             <div class="form-group row">
-                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-name'">Name</label>
+                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-name'">
+                    {{ $t('accessory_settings.name') }}
+                </label>
                 <div class="col-sm-9">
                     <input :id="_uid + '-name'" v-model="name" type="text" class="form-control form-control-sm"
                         :placeholder="accessory.default_name" :disabled="saving" />
@@ -14,14 +16,18 @@
             </div>
 
             <div class="form-group row">
-                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-room-name'">Room</label>
+                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-room-name'">
+                    {{ $t('accessory_settings.room') }}
+                </label>
                 <div class="col-sm-9">
                     <input :id="_uid + '-room-name'" v-model="room_name" type="text"
                         class="form-control form-control-sm" :disabled="saving" />
                 </div>
             </div>
 
-            <h5 v-if="accessory.findService(s => !s.is_system_service && !s.collapse_to, true)">Services</h5>
+            <h5 v-if="accessory.findService(s => !s.is_system_service && !s.collapse_to, true)">
+                {{ $t('accessory_settings.services') }}
+            </h5>
             <list-group class="mb-3">
                 <!-- eslint-disable-next-line vue/no-use-v-if-with-v-for -->
                 <list-item v-for="service in accessory.findServices(s => !s.is_system_service && !s.collapse_to, true)"
@@ -35,27 +41,27 @@
 
             <dl class="row">
                 <template v-if="manufacturer">
-                    <dt class="col-sm-4">Manufacturer</dt>
+                    <dt class="col-sm-4">{{ $t('accessory_settings.manufacturer') }}</dt>
                     <dd class="col-sm-8 text-right selectable">{{ manufacturer.value }}</dd>
                 </template>
 
                 <template v-if="model">
-                    <dt class="col-sm-4">Model</dt>
+                    <dt class="col-sm-4">{{ $t('accessory_settings.model') }}</dt>
                     <dd class="col-sm-8 text-right selectable">{{ model.value }}</dd>
                 </template>
 
                 <template v-if="serial_number">
-                    <dt class="col-sm-4">Serial Number</dt>
+                    <dt class="col-sm-4">{{ $t('accessory_settings.serial_number') }}</dt>
                     <dd class="col-sm-8 text-right selectable">{{ serial_number.value }}</dd>
                 </template>
 
                 <template v-if="firmware_revision">
-                    <dt class="col-sm-4">Firmware</dt>
+                    <dt class="col-sm-4">{{ $t('accessory_settings.firmware_revision') }}</dt>
                     <dd class="col-sm-8 text-right selectable">{{ firmware_revision.value }}</dd>
                 </template>
 
                 <template v-if="hardware_revision">
-                    <dt class="col-sm-4">Hardware Revision</dt>
+                    <dt class="col-sm-4">{{ $t('accessory_settings.hardware_revision') }}</dt>
                     <dd class="col-sm-8 text-right selectable">{{ hardware_revision.value }}</dd>
                 </template>
             </dl>
@@ -63,7 +69,9 @@
 
         <form v-if="!deleteBridge && (createBridge || tab === 'config') && config" @submit.prevent="saveConfig(true)">
             <div class="form-group row">
-                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-config-name'">Name</label>
+                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-config-name'">
+                    {{ $t('accessory_settings.name') }}
+                </label>
                 <div class="col-sm-9">
                     <input :id="_uid + '-config-name'" v-model="config.name" type="text"
                         class="form-control form-control-sm" :disabled="saving || !can_set_config" />
@@ -71,16 +79,20 @@
             </div>
 
             <div class="form-group row">
-                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-config-username'">Username</label>
+                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-config-username'">
+                    {{ $t('accessory_settings.username') }}
+                </label>
                 <div class="col-sm-9">
                     <input :id="_uid + '-config-username'" v-model="config.username" type="text"
                         class="form-control form-control-sm" pattern="^[0-9a-f]{2}:){5}[0-9a-f]$"
-                        placeholder="Leave blank to generate a username" :disabled="saving || !can_set_config" />
+                        :placeholder="$t('accessory_settings.username_info')" :disabled="saving || !can_set_config" />
                 </div>
             </div>
 
             <div class="form-group row">
-                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-config-pincode'">Passcode</label>
+                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-config-pincode'">
+                    {{ $t('accessory_settings.setup_code') }}
+                </label>
                 <div class="col-sm-9">
                     <input :id="_uid + '-config-pincode'" v-model="config.pincode" type="text"
                         class="form-control form-control-sm" pattern="^[0-9]{3}-[0-9]{2}-[0-9]{3}$"
@@ -89,10 +101,12 @@
             </div>
 
             <div class="form-group row">
-                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-config-port'">Port</label>
+                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-config-port'">
+                    {{ $t('accessory_settings.port') }}
+                </label>
                 <div class="col-sm-9">
                     <input :id="_uid + '-config-port'" v-model="config.port" type="number"
-                        class="form-control form-control-sm" placeholder="Use a random port"
+                        class="form-control form-control-sm" :placeholder="$t('accessory_settings.port_info')"
                         :disabled="saving || !can_set_config" />
                 </div>
             </div>
@@ -115,7 +129,7 @@
             </div>
 
             <div v-if="config && can_set_config" class="list-group-group-item">
-                <h4>Other accessories</h4>
+                <h4>{{ $t('accessory_settings.other_accessories') }}</h4>
 
                 <list-group>
                     <draggable class="draggable" :value="accessories_available_to_bridge"
@@ -145,14 +159,14 @@
 
         <template v-if="!createBridge && !deleteBridge && tab === 'pairings'">
             <div v-if="pairing_details && !pairings.length">
-                <p>Enter the code <code>{{ pairing_details.pincode }}</code> or scan this QR code to pair with this bridge:</p>
+                <p v-html="$t('accessory_settings.pair_setup_info', {pincode: pairing_details.pincode})" />
 
                 <qr-code class="mb-3" :data="pairing_details.url" />
 
-                <p>Setup payload: <code>{{ pairing_details.url }}</code></p>
+                <p>{{ $t('accessory_settings.setup_payload') }} <code>{{ pairing_details.url }}</code></p>
             </div>
 
-            <p v-if="pairings.length">Each Apple ID your home is shared with has it's own pairing. You can assign each pairing a name if you know which device/Apple ID it is for.</p>
+            <p v-if="pairings.length">{{ $t('accessory_settings.pairings_info') }}</p>
 
             <list-group v-if="pairings.length" class="mb-3">
                 <list-item v-for="[pairing, data, permissions] in pairings" :key="pairing.id"
@@ -169,50 +183,50 @@
             <div v-if="is_bridge && can_delete && !deleteBridge">
                 <button class="btn btn-danger btn-sm" type="button"
                     @click="() => ($emit('close'), $emit('modal', {type: 'delete-bridge', accessory}))"
-                >Delete</button>&nbsp;
+                >{{ $t('accessory_settings.delete') }}</button>&nbsp;
             </div>
             <div v-if="tab === 'pairings' && pairings.length">
                 <button class="btn btn-warning btn-sm" type="button" :disabled="resetting_pairings"
-                    @click="resetPairings">Reset pairings</button>
+                    @click="resetPairings">{{ $t('accessory_settings.reset_pairings') }}</button>
             </div>
 
-            <div v-if="loading || loading_config || loading_pairings">Loading</div>
-            <div v-else-if="saving">Saving</div>
+            <div v-if="loading || loading_config || loading_pairings">{{ $t('accessory_settings.loading') }}</div>
+            <div v-else-if="saving">{{ $t('accessory_settings.saving') }}</div>
             <div class="flex-fill"></div>
             <button v-if="identify && !deleteBridge" class="btn btn-default btn-sm" type="button"
-                :disabled="identify_saving" @click="setIdentify">Identify</button>
+                :disabled="identify_saving" @click="setIdentify">{{ $t('accessory_settings.identify') }}</button>
             <template v-if="deleteBridge">
                 <button class="btn btn-default btn-sm" type="button" :disabled="saving || saving_config"
-                    @click="() => $refs.panel.close()">Cancel</button>&nbsp;
+                    @click="() => $refs.panel.close()">{{ $t('accessory_settings.cancel') }}</button>&nbsp;
                 <button key="primary" class="btn btn-danger btn-sm" type="button" :disabled="saving || saving_config"
-                    @click="save(true)">Delete</button>
+                    @click="save(true)">{{ $t('accessory_settings.save') }}</button>
             </template>
             <template v-else-if="createBridge || (tab === 'config' && config_changed) ||
                 (config && can_set_config && tab === 'accessories' && accessories_changed)"
             >
                 <button class="btn btn-default btn-sm" type="button" :disabled="changed || saving || saving_config"
-                    @click="() => $refs.panel.close()">Cancel</button>&nbsp;
+                    @click="() => $refs.panel.close()">{{ $t('accessory_settings.cancel') }}</button>&nbsp;
                 <button key="primary" class="btn btn-primary btn-sm" type="button"
                     :disabled="loading || saving || saving_config || !can_set_config"
-                    @click="saveConfig(!changed)">{{ createBridge ? 'Create' : 'Save' }}</button>
+                    @click="saveConfig(!changed)">{{ $t('accessory_settings.' + (createBridge ? 'create' : 'save')) }}</button>
             </template>
             <template v-else-if="(!is_bridge || tab === 'general') && changed">
                 <button class="btn btn-default btn-sm" type="button"
                     :disabled="config_changed || accessories_changed || saving || saving_config"
-                    @click="() => $refs.panel.close()">Cancel</button>&nbsp;
+                    @click="() => $refs.panel.close()">{{ $t('accessory_settings.cancel') }}</button>&nbsp;
                 <button key="primary" class="btn btn-primary btn-sm" type="button"
                     :disabled="loading || saving || saving_config"
-                    @click="save(!config_changed && !accessories_changed)">Save</button>
+                    @click="save(!config_changed && !accessories_changed)">{{ $t('accessory_settings.save') }}</button>
             </template>
             <template v-else>
                 <button v-if="changed || config_changed || accessories_changed" class="btn btn-default btn-sm"
                     type="button" :disabled="saving || saving_config"
-                    @click="() => $refs.panel.close()">Cancel</button>&nbsp;
+                    @click="() => $refs.panel.close()">{{ $t('accessory_settings.cancel') }}</button>&nbsp;
                 <button key="primary" class="btn btn-primary btn-sm" type="button"
                     :disabled="changed || config_changed || accessories_changed || loading || saving || saving_config"
-                    :title="loading || saving || saving_config ? null : changed || config_changed || accessories_changed ?
-                        'You have unsaved changes in another tab' : null"
-                    @click="() => $refs.panel.close()">Done</button>
+                    :title="loading || saving || saving_config ? null : changed || config_changed ||
+                        accessories_changed ? $t('accessory_settings.unsaved_in_other_tab') : null"
+                    @click="() => $refs.panel.close()">{{ $t('accessory_settings.done') }}</button>
             </template>
         </div>
     </panel>
@@ -257,10 +271,10 @@
 
                 tab: 'general',
                 tabs: {
-                    general: 'General',
-                    config: {label: 'Configuration', if: () => this.config},
-                    accessories: 'Accessories',
-                    pairings: 'Pairings',
+                    general: {label: () => this.$t('accessory_settings.pairings_info')},
+                    config: {label: () => this.$t('accessory_settings.configuration'), if: () => this.config},
+                    accessories: {label: () => this.$t('accessory_settings.accessories')},
+                    pairings: {label: () => this.$t('accessory_settings.pairings')},
                 },
 
                 config: null,

@@ -25,6 +25,13 @@ export default {
         reconnecting: 'Reconnecting',
     },
 
+    modal: {
+        try_again: 'Try again',
+        cancel: 'Cancel',
+        loading: 'Loading',
+        invalid: 'Invalid modal.',
+    },
+
     layout: {
         home: 'Home',
 
@@ -132,6 +139,18 @@ export default {
             off: 'Off',
             updating: 'Updating',
             input: 'Input',
+        },
+    },
+
+    scenes: {
+        scenes: {
+            scenes: 'Scenes',
+            new: 'New',
+            add: 'Add scene',
+        },
+
+        scene: {
+            unknown: 'Unknown',
         },
     },
 
@@ -363,6 +382,105 @@ export default {
         status: 'Status',
     },
 
+    accessory_settings: {
+        delete_bridge_info: 'Are you sure you want to delete this bridge?',
+
+        name: 'Name',
+        room: 'Room',
+        services: 'Services',
+        other_accessories: 'Other accessories',
+
+        username: 'Device ID',
+        username_info: 'Leave blank to generate a device ID',
+        setup_code: 'Setup code',
+        port: 'Port',
+        port_info: 'Use a random port',
+
+        manufacturer: 'Manufacturer',
+        model: 'Model',
+        serial_number: 'Serial Number',
+        firmware_revision: 'Firmware',
+        hardware_revision: 'Hardware Revision',
+
+        pair_setup_info: 'Enter the code {pincode} or scan this QR code to pair with this bridge:',
+        setup_payload: 'Setup payload:',
+
+        pairings_info: 'Each Apple ID your home is shared with has it\'s own pairing. You can assign each pairing a name if you know which device/Apple ID it is for.',
+
+        delete: 'Delete',
+        reset_pairings: 'Reset pairings',
+        loading: 'Loading',
+        saving: 'Saving',
+        identify: 'Identify',
+        cancel: 'Cancel',
+        create: 'Create',
+        save: 'Save',
+        done: 'Done',
+        unsaved_in_other_tab: 'You have unsaved changes in another tab',
+
+        general: 'General',
+        configuration: 'Configuration',
+        accessories: 'Accessories',
+        pairings: 'Pairings',
+    },
+
+    pairing_settings: {
+        name: 'Name',
+        username: 'Pairing ID',
+        public_key: 'Public key',
+
+        saving: 'Saving',
+        cancel: 'Cancel',
+        save: 'Save',
+        done: 'Done',
+    },
+
+    service_settings: {
+        name: 'Name',
+        room: 'Room',
+
+        saving: 'Saving',
+        accessory_settings: 'Accessory settings',
+        cancel: 'Cancel',
+        save: 'Save',
+        done: 'Done',
+    },
+
+    layout_settings: {
+        delete_info: 'Are you sure you want to delete this layout?',
+
+        name: 'Name',
+        wallpaper: 'Wallpaper',
+        choose_file: 'Choose file',
+
+        deleting: 'Deleting',
+        saving: 'Saving',
+        cancel: 'Cancel',
+        delete: 'Delete',
+        create: 'Create',
+        save: 'Save',
+        done: 'Done',
+    },
+
+    add_accessory: {
+        discovered_accessories: 'Discovered accessories',
+        other: 'Other',
+        saving: 'Saving',
+        cancel: 'Cancel',
+    },
+
+    accessory_discovery: {
+        unknown: 'Unknown',
+    },
+
+    accessory_setup: {
+        hap_ip: {
+            manual: 'Manual',
+            saving: 'Saving',
+            cancel: 'Cancel',
+        },
+    },
+
     setup: {
         token: 'Token',
 
@@ -373,5 +491,15 @@ export default {
         finished_1: 'You are now authenticated to the server.',
         finished_2: 'You should now setup your own user using a plugin with an authentication handler.',
         finished_3: 'Once you login with your own account setup will be disabled.',
+    },
+
+    authenticate: {
+        no_authentication_handlers: 'No authentication handlers',
+        no_authentication_handlers_info: 'There are no authentication handlers configured.',
+
+        handler: 'Handler',
+
+        logout: 'Logout',
+        cancel: 'Cancel',
     },
 };

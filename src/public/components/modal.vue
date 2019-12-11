@@ -3,13 +3,13 @@
         <div v-if="error" class="modal-window-error">
             <pre class="selectable"><code>Error: {{ error.message }}</code><code>{{ error.stack.substr(error.stack.indexOf('\n')) }}</code></pre>
 
-            <button class="btn btn-default btn-sm" @click="reload">Try again</button>
-            <button class="btn btn-default btn-sm" @click="close">Cancel</button>
+            <button class="btn btn-default btn-sm" @click="reload">{{ $t('modal.try_again') }}</button>
+            <button class="btn btn-default btn-sm" @click="close">{{ $t('modal.cancel') }}</button>
         </div>
         <div v-else-if="!modal" class="modal-window-loading">
-            <p>Loading</p>
+            <p>{{ $t('modal.loading') }}</p>
 
-            <button class="btn btn-default btn-sm" @click="close">Cancel</button>
+            <button class="btn btn-default btn-sm" @click="close">{{ $t('modal.cancel') }}</button>
         </div>
 
         <authenticate v-else-if="modal.type === 'authenticate'" :connection="client.connection" @close="close" />
@@ -69,7 +69,7 @@
             @close="close" />
 
         <div v-else>
-            <p>Invalid modal.</p>
+            <p>{{ $t('modal.invalid_modal') }}</p>
         </div>
 
         <div v-if="!client.connection" class="connecting" :class="{reconnecting: has_connected}">

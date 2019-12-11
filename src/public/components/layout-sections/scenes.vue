@@ -1,21 +1,21 @@
 <template>
     <layout-section v-if="editing || Object.values(scenes).filter(s => effective_scenes_order.includes(s.uuid)).length"
-        class="scene-container" :section="section" :name="section.name" default-name="Scenes" :editing="editing"
-        @update-name="name => $emit('update-name', name)"
+        class="scene-container" :section="section" :name="section.name" :default-name="$t('scenes.scenes.scenes')"
+        :editing="editing" @update-name="name => $emit('update-name', name)"
     >
         <template v-if="editing" slot="actions">
             <dropdown v-if="Object.values(scenes).filter(s => !effective_scenes_order.includes(s.uuid)).length"
-                class="ml-3" label="Add scene" colour="dark" align="right"
+                class="ml-3" :label="$t('scenes.scenes.add')" colour="dark" align="right"
             >
                 <a v-for="scene in Object.values(scenes).filter(s => !effective_scenes_order.includes(s.uuid))"
                     :key="scene.uuid" class="dropdown-item" href="#" @click.prevent="addScene(scene)"
                 >{{ scene.data.name || scene.uuid }}</a>
 
                 <div class="dropdown-divider" />
-                <a class="dropdown-item" href="#" @click.prevent="createScene">New</a>
+                <a class="dropdown-item" href="#" @click.prevent="createScene">{{ $t('scenes.scenes.new') }}</a>
             </dropdown>
 
-            <button v-else class="btn btn-sm btn-dark ml-3" @click="createScene">Add scene</button>
+            <button v-else class="btn btn-sm btn-dark ml-3" @click="createScene">{{ $t('scenes.scenes.add') }}</button>
         </template>
 
         <draggable v-if="editing && show_remove_drop_target" class="draggable remove-drop-target" :list="[]"

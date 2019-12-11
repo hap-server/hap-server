@@ -13,8 +13,8 @@
         <div class="service-info">
             <slot name="info">
                 <slot name="name">
-                    <h5>{{ name || 'Unknown' }}</h5>
-                    <p>{{ type || 'Unknown' }}</p>
+                    <h5>{{ name || $t('accessory_discovery.unknown') }}</h5>
+                    <p>{{ type || $t('accessory_discovery.unknown') }}</p>
                 </slot>
 
                 <div class="service-status">

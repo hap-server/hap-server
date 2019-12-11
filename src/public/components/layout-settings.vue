@@ -1,10 +1,12 @@
 <template>
     <panel ref="panel" @close="$emit('close')">
-        <p v-if="deleteLayout">Are you sure you want to delete this layout?</p>
+        <p v-if="deleteLayout">{{ $t('layout_settings.delete_info') }}</p>
 
         <form v-else @submit.prevent="save(true)">
             <div class="form-group row">
-                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-name'">Name</label>
+                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-name'">
+                    {{ $t('layout_settings.name') }}
+                </label>
                 <div class="col-sm-9">
                     <input :id="_uid + '-name'" v-model="name" type="text" class="form-control form-control-sm"
                         :disabled="saving" />
@@ -12,12 +14,16 @@
             </div>
 
             <div class="form-group row">
-                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-wallpaper'">Wallpaper</label>
+                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-wallpaper'">
+                    {{ $t('layout_settings.wallpaper') }}
+                </label>
                 <div class="col-sm-9">
                     <div class="custom-file form-control-sm">
                         <input :id="_uid + '-wallpaper'" ref="file" type="file" class="custom-file-input"
                             :disabled="saving || uploading" @change="upload" />
-                        <label class="custom-file-label" :for="_uid + '-wallpaper'">Choose file</label>
+                        <label class="custom-file-label" :for="_uid + '-wallpaper'">
+                            {{ $t('layout_settings.choose_file') }}
+                        </label>
                     </div>
                     <div v-if="uploading" class="progress mt-3">
                         <div class="progress-bar" :class="{'progress-bar-striped': typeof upload_progress !== 'number'}"
@@ -35,19 +41,20 @@
         </form>
 
         <div class="d-flex">
-            <div v-if="saving && deleteLayout">Deleting</div>
-            <div v-else-if="saving">Saving</div>
+            <div v-if="saving && deleteLayout">{{ $t('layout_settings.deleting') }}</div>
+            <div v-else-if="saving">{{ $t('layout_settings.saving') }}</div>
             <div class="flex-fill"></div>
             <template v-if="create || deleteLayout || changed || uploading">
                 <button class="btn btn-default btn-sm" type="button" :disabled="saving || uploading"
-                    @click="() => $refs.panel.close()">Cancel</button>&nbsp;
+                    @click="() => $refs.panel.close()">{{ $t('layout_settings.cancel') }}</button>&nbsp;
                 <button v-if="deleteLayout" class="btn btn-danger btn-sm" type="button" :disabled="saving"
-                    @click="save(true)">Delete</button>
-                <button v-else key="primary" class="btn btn-primary btn-sm" type="button" :disabled="saving || uploading"
-                    @click="save(true)">{{ create ? 'Create' : 'Save' }}</button>
+                    @click="save(true)">{{ $t('layout_settings.delete') }}</button>
+                <button v-else key="primary" class="btn btn-primary btn-sm" type="button"
+                    :disabled="saving || uploading" @click="save(true)"
+                >{{ $t('layout_settings.' + (create ? 'create' : 'save')) }}</button>
             </template>
             <button v-else key="primary" class="btn btn-primary btn-sm" type="button" :disabled="saving || uploading"
-                @click="() => $refs.panel.close()">Done</button>
+                @click="() => $refs.panel.close()">{{ $t('layout_settings.done') }}</button>
         </div>
     </panel>
 </template>

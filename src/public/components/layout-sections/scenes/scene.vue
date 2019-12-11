@@ -15,7 +15,7 @@
                 </div>
 
                 <div class="service-info">
-                    <h5>{{ scene.data.name || 'Unknown' }}</h5>
+                    <h5>{{ scene.data.name || $t('scenes.scene.unknown') }}</h5>
                 </div>
             </div>
 

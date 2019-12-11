@@ -2,7 +2,9 @@
     <panel ref="panel" @close="$emit('close')">
         <form @submit.prevent="save(true)">
             <div class="form-group row">
-                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-name'">Name</label>
+                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-name'">
+                    {{ $t('service_settings.name') }}
+                </label>
                 <div class="col-sm-9">
                     <input :id="_uid + '-name'" v-model="name" type="text" class="form-control form-control-sm"
                         :placeholder="service.default_name" :disabled="saving" />
@@ -10,7 +12,9 @@
             </div>
 
             <div class="form-group row">
-                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-room-name'">Room</label>
+                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-room-name'">
+                    {{ $t('service_settings.room') }}
+                </label>
                 <div class="col-sm-9">
                     <input :id="_uid + '-room-name'" v-model="room_name" type="text"
                         class="form-control form-control-sm" :placeholder="service.accessory.data.room_name"
@@ -20,21 +24,21 @@
         </form>
 
         <div class="d-flex">
-            <div v-if="saving">Saving</div>
+            <div v-if="saving">{{ $t('service_settings.saving') }}</div>
             <div class="flex-fill"></div>
             <button v-if="!fromAccessorySettings" class="btn btn-default btn-sm" type="button"
                 @click="$emit('show-accessory-settings')"
             >
-                Accessory settings
+                {{ $t('service_settings.accessory_settings') }}
             </button>&nbsp;
             <template v-if="changed || saving">
                 <button class="btn btn-default btn-sm" type="button" :disabled="saving"
-                    @click="() => $refs.panel.close()">Cancel</button>&nbsp;
+                    @click="() => $refs.panel.close()">{{ $t('service_settings.cancel') }}</button>&nbsp;
                 <button key="primary" class="btn btn-primary btn-sm" type="button" :disabled="saving"
-                    @click="save(true)">Save</button>
+                    @click="save(true)">{{ $t('service_settings.save') }}</button>
             </template>
             <button v-else key="primary" class="btn btn-primary btn-sm" type="button"
-                @click="() => $refs.panel.close()">Done</button>
+                @click="() => $refs.panel.close()">{{ $t('service_settings.done') }}</button>
         </div>
 
         <template v-if="accessory_settings_component">
