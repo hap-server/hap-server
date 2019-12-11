@@ -769,6 +769,9 @@ export abstract class UserManagementHandler {
         Object.defineProperty(this, 'ui_plugin', {value: ui_plugin});
         Object.defineProperty(this, 'connection', {value:
             new UserManagementConnection(connection, this.user_management_handler_id)});
+
+        Object.defineProperty(this.connection, 'component', {configurable: true,
+            get: () => this.constructor.component});
     }
 
     /** @deprecated */
@@ -777,20 +780,24 @@ export abstract class UserManagementHandler {
     }
 
     get user_management_handler_id() {
-        return (this.constructor as typeof UserManagementHandler).user_management_handler_id;
+        return this.constructor.user_management_handler_id;
     }
     get user_management_handler_localid() {
-        return (this.constructor as typeof UserManagementHandler).user_management_handler_localid;
+        return this.constructor.user_management_handler_localid;
     }
 
     static get component() {
         throw new Error('The user management handler didn\'t set the component property');
     }
-    static set component(value) {
+    static set component(value: Component) {
         Object.defineProperty(this, 'component', {writable: true, value});
     }
 
     async getUsers(): Promise<UserManagementUser[]> {
         throw new Error('The user management handler didn\'t override the getUsers method');
     }
+}
+
+export interface UserManagementHandler {
+    constructor: typeof UserManagementHandler;
 }

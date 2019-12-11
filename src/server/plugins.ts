@@ -564,7 +564,7 @@ export class Plugin extends Events {
         }
     }
 
-    registerWebInterfacePlugin(handler: typeof WebInterfacePlugin) {
+    registerWebInterfacePlugin(handler: WebInterfacePlugin) {
         if (!(handler instanceof WebInterfacePlugin)) {
             throw new Error('handler must be a WebInterfacePlugin object');
         }
@@ -1454,11 +1454,11 @@ export class PluginAPI {
         return this.plugin.registerServerPlugin(handler);
     }
 
-    registerWebInterfacePlugin(handler: typeof WebInterfacePlugin) {
+    registerWebInterfacePlugin(handler: WebInterfacePlugin) {
         this.plugin.registerWebInterfacePlugin(handler);
     }
 
-    registerAccessoryUI(handler: typeof WebInterfacePlugin) {
+    registerAccessoryUI(handler: WebInterfacePlugin) {
         return this.registerWebInterfacePlugin(handler);
     }
 

@@ -1123,7 +1123,7 @@ export class UserManagementUser {
     readonly id!: string;
     readonly component: any;
 
-    constructor(user_management_handler: UserManagementConnection, id: string, component: any) {
+    constructor(user_management_handler: UserManagementConnection, id: string, component?: any) {
         Object.defineProperty(this, 'user_management_handler', {value: user_management_handler});
         Object.defineProperty(this, 'id', {configurable: true, writable: true, value: id});
         Object.defineProperty(this, 'component', {value: component || user_management_handler.component ||
