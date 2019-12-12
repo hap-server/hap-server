@@ -1,3 +1,9 @@
+/// <reference path="types/gulpfile/gulp-babel.d.ts" />
+/// <reference path="types/gulpfile/gulp-file.d.ts" />
+/// <reference path="types/gulpfile/gulp-minify.d.ts" />
+/// <reference path="types/gulpfile/transform-markdown-links.d.ts" />
+/// <reference path="types/gulpfile/webpack.d.ts" />
+
 import path from 'path';
 import url from 'url';
 
@@ -13,7 +19,7 @@ import json from 'gulp-json-editor';
 import file from 'gulp-file';
 import minify from 'gulp-minify';
 import replace from 'gulp-replace';
-import filter from 'gulp-filter';
+// import filter from 'gulp-filter';
 import merge from 'merge2';
 import del from 'del';
 import markdownlinks from 'transform-markdown-links';
@@ -27,7 +33,15 @@ import TerserPlugin from 'terser-webpack-plugin';
 import OptimizeCSSAssetsPlugin from 'optimize-css-assets-webpack-plugin';
 import HotModuleReplacementPlugin from 'webpack/lib/HotModuleReplacementPlugin';
 
+declare module 'gulp-sourcemaps' {
+    interface WriteOptions {
+        destPath?: string;
+    }
+}
+
+// @ts-ignore
 import * as pkg from './package';
+// @ts-ignore
 import {compilerOptions as typescript_config} from './tsconfig';
 
 typescript_config.incremental = false;
@@ -46,7 +60,7 @@ const UI_API_TYPES_README_BASE_URL =
 const UI_API_TYPES_README_IMAGE_BASE_URL =
     `https://gitlab.fancy.org.uk/hap-server/hap-server/raw/v${pkg.version}/src/types/ui-api/README.md`;
 
-const webpack_config = {
+const webpack_config: import('webpack').Configuration = {
     context: __dirname,
     mode: 'development',
     entry: {
@@ -68,6 +82,7 @@ const webpack_config = {
                     compilerOptions: Object.assign({}, typescript_config, {
                         declaration: false,
                         incremental: true,
+                        module: 'es2015',
                     }),
                 },
             },
@@ -170,7 +185,7 @@ export const webpack_hot_config = Object.assign({}, webpack_config, {
         ],
     },
     module: Object.assign({}, webpack_config.module, {
-        rules: webpack_config.module.rules.map((rule, i) => i === 2 ? {
+        rules: webpack_config.module!.rules.map((rule, i) => i === 2 ? {
             test: /\.(s?c|sa)ss$/,
             use: [
                 'style-loader',
@@ -179,22 +194,22 @@ export const webpack_hot_config = Object.assign({}, webpack_config, {
             ],
         } : rule),
     }),
-    plugins: webpack_config.plugins.concat([
+    plugins: webpack_config.plugins!.concat([
         new HotModuleReplacementPlugin(),
     ]),
 });
 
 gulp.task('build-backend-no-ts', function() {
     return pump([
-        merge([
-            pump([
-                gulp.src(['src/**/*.js', '!src/public/**/*.js', '!src/types/node_modules/**/*']),
-                sourcemaps.init(),
-                babel(),
-                sourcemaps.write('.', {includeContent: false, destPath: 'dist'}),
-            ]),
+        // merge([
+        //     pump([
+        //         gulp.src(['src/**/*.js', '!src/public/**/*.js', '!src/types/node_modules/**/*']),
+        //         sourcemaps.init(),
+        //         babel(),
+        //         sourcemaps.write('.', {includeContent: false, destPath: 'dist'}),
+        //     ]),
             gulp.src(['src/**/*', '!src/public/**/*', '!src/types/**/*', '!src/**/*.js', '!src/**/*.ts']),
-        ]),
+        // ] as any),
         gulp.dest('dist'),
     ]);
 });
@@ -204,12 +219,12 @@ const tsProject = typescript.createProject(typescript_config);
 gulp.task('build-backend', function() {
     return pump([
         merge([
-            pump([
-                gulp.src(['src/**/*.js', '!src/public/**/*.js', '!src/types/node_modules/**/*']),
-                sourcemaps.init(),
-                babel(),
-                sourcemaps.write('.', {includeContent: false, destPath: 'dist'}),
-            ]),
+            // pump([
+            //     gulp.src(['src/**/*.js', '!src/public/**/*.js', '!src/types/node_modules/**/*']),
+            //     sourcemaps.init(),
+            //     babel(),
+            //     sourcemaps.write('.', {includeContent: false, destPath: 'dist'}),
+            // ]),
             pump([
                 gulp.src([
                     'src/**/*.ts',
@@ -221,7 +236,7 @@ gulp.task('build-backend', function() {
                 sourcemaps.write('.', {includeContent: false, destPath: 'dist'}),
             ]),
             gulp.src(['src/**/*', '!src/public/**/*', '!src/types/**/*', '!src/**/*.js', '!src/**/*.ts']),
-        ]),
+        ] as any),
         gulp.dest('dist'),
     ]);
 });
@@ -249,15 +264,16 @@ gulp.task('build-example-plugins', function() {
 gulp.task('build', gulp.parallel('build-backend', 'build-frontend', 'build-example-plugins'));
 
 gulp.task('watch-backend-no-ts', function() {
-    return pump([
-        watch(['src/**/*.js', '!src/public/**/*.js', '!src/types/node_modules/**/*'], {verbose: true}),
-        plumber(),
-        sourcemaps.init(),
-        babel(),
-        sourcemaps.write('.', {includeContent: false, destPath: 'dist'}),
-        watch(['src/**/*', '!src/public/**/*', '!src/types/**/*', '!src/**/*.js', '!src/**/*.ts'], {verbose: true}),
-        gulp.dest('dist'),
-    ]);
+    // return pump([
+    //     watch(['src/**/*.js', '!src/public/**/*.js', '!src/types/node_modules/**/*'], {verbose: true}),
+    //     plumber(),
+    //     sourcemaps.init(),
+    //     babel(),
+    //     sourcemaps.write('.', {includeContent: false, destPath: 'dist'}),
+    //     watch(['src/**/*', '!src/public/**/*', '!src/types/**/*', '!src/**/*.js', '!src/**/*.ts'], {verbose: true}),
+    //     gulp.dest('dist'),
+    // ]);
+    return Promise.resolve();
 });
 
 gulp.task('watch-backend', gulp.parallel('watch-backend-no-ts', function() {
@@ -265,6 +281,7 @@ gulp.task('watch-backend', gulp.parallel('watch-backend-no-ts', function() {
         'src/**/*.ts',
         '!src/public/**/*.ts', 'src/public/plugins.ts', 'src/public/mixins/**/*.ts',
         '!src/types/node_modules/**/*',
+    // @ts-ignore
     ], {base: 'src'}, function() {
         return pump([
             gulp.src([
@@ -341,13 +358,13 @@ const release_webpack_config = Object.assign({}, webpack_config, {
 gulp.task('build-backend-release', function() {
     return pump([
         merge([
-            pump([
-                gulp.src(['src/**/*.js', '!src/public/**/*.js', '!src/types/node_modules/**/*']),
-                replace(/\bDEVELOPMENT\s*=\s*true\b/gi, 'DEVELOPMENT = false'),
-                replace(/\bDEVELOPMENT(?!\s*=)\b/gi, 'false'),
-                babel(),
-                minify(release_minify_config),
-            ]),
+            // pump([
+            //     gulp.src(['src/**/*.js', '!src/public/**/*.js', '!src/types/node_modules/**/*']),
+            //     replace(/\bDEVELOPMENT\s*=\s*true\b/gi, 'DEVELOPMENT = false'),
+            //     replace(/\bDEVELOPMENT(?!\s*=)\b/gi, 'false'),
+            //     babel(),
+            //     minify(release_minify_config),
+            // ]),
             pump([
                 gulp.src([
                     'src/**/*.ts',
@@ -368,7 +385,7 @@ gulp.task('build-backend-release', function() {
                 'src/**/*', '!src/public/**/*', '!src/**/*.js', '!src/**/*.ts',
                 'src/types/**/*.d.ts', '!src/types/node_modules', '!src/types/node_modules/**/*',
             ], {base: 'src'}),
-        ]),
+        ] as any),
         gulp.dest('release/hap-server'),
     ]);
 });
@@ -401,7 +418,7 @@ gulp.task('copy-release-executables', function() {
 gulp.task('release-package', function() {
     return pump([
         gulp.src('package.json'),
-        json(packagejson => {
+        json((packagejson: any) => {
             packagejson.private = false;
             packagejson.main = 'index.js';
             packagejson.types = 'index.d.ts';
@@ -439,7 +456,7 @@ gulp.task('clean-release', gulp.series(function() {
     return del(['release/hap-server']);
 }, 'build-release'));
 
-function processApiTypesPackageJson(packagejson) {
+function processApiTypesPackageJson(packagejson: any) {
     packagejson.version = pkg.version;
     packagejson.private = false;
     packagejson.repository = pkg.repository;
@@ -471,7 +488,7 @@ gulp.task('build-api-types', function() {
                     url.resolve(title.match(/Screenshot/) ?
                         API_TYPES_README_IMAGE_BASE_URL : API_TYPES_README_BASE_URL, link))),
             ]),
-        ]),
+        ] as any),
 
         gulp.dest('release/api-types'),
     ]);
@@ -495,7 +512,7 @@ gulp.task('build-ui-api-types', function() {
                     url.resolve(title.match(/Screenshot/) ?
                         UI_API_TYPES_README_IMAGE_BASE_URL : UI_API_TYPES_README_BASE_URL, link))),
             ]),
-        ]),
+        ] as any),
 
         gulp.dest('release/ui-api-types'),
     ]);
