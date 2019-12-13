@@ -10,7 +10,8 @@
         "incremental": true,
         "tsBuildInfoFile": "tsbuildinfo.json",
         "rootDir": "src",
-        "outDir": "dist"
+        "outDir": "dist",
+        "sourceMap": true
     },
     "include": [
         "src/**/*.ts",

@@ -117,7 +117,8 @@ export default class AccessoryManager {
         const accessory = this.getAccessory(accessory_uuid);
         if (!accessory) return;
 
-        return accessory.services.find(s => s.UUID === service_type && s.subtype === service_subtype);
+        return accessory.services.find(s => s.UUID === service_type &&
+            (s.subtype === service_subtype || (!s.subtype && !service_subtype)));
     }
 
     /**
