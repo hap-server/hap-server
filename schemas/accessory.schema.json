@@ -1,0 +1,94 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"version": "0.10.0",
+	"title": "Accessory configuration",
+    "type": "object",
+    "properties": {
+        "plugin": {
+            "type": "string",
+            "description": "The name of the plugin that provides this accessory."
+        },
+        "accessory": {
+            "type": "string",
+            "description": "The type of accessory."
+        },
+        "name": {
+            "type": "string",
+            "description": "The name of the accessory."
+        },
+        "uuid": {
+            "type": "string",
+            "description": "The UUID of the accessory."
+        }
+    },
+    "required": [
+        "accessory",
+        "name"
+    ],
+    "allOf": [
+        {
+            "anyOf": [
+                {
+                    "required": [
+                        "plugin"
+                    ]
+                },
+                {
+                    "accessory": {
+                        "enum": [
+                            "HomeKitBLE"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "anyOf": [
+                {
+                    "oneOf": [
+                        {
+                            "properties": {
+                                "plugin": {
+                                    "not": {
+                                        "type": "string"
+                                    }
+                                },
+                                "accessory": {
+                                    "not": {
+                                        "enum": [
+                                            "HomeKitBLE"
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "required": [
+                                "plugin",
+                                "accessory"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "properties": {
+                        "accessory": {
+                            "enum": [
+                                "HomeKitBLE"
+                            ]
+                        },
+                        "name": {},
+                        "uuid": {},
+                        "pairing-data": {
+                            "type": "object"
+                        }
+                    },
+                    "required": [
+                        "pairing-data"
+                    ],
+                    "additionalProperties": false
+                }
+            ]
+        }
+    ]
+}
