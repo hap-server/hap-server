@@ -17,7 +17,7 @@ import {Plugin as HomebridgePluginManager} from 'homebridge/lib/plugin';
 import Events, {Event, EventListener, EventListenerPromise, EventListeners} from '../events';
 import {ServerPluginRegisteredEvent} from '../events/server';
 import * as ServerEvents from '../events/server';
-import {PluginAccessoryPlatformAccessory} from './accessories';
+import {AccessoryPlatform, PluginAccessoryPlatformAccessory} from './accessories';
 import Logger from '../common/logger';
 import AutomationTrigger from '../automations/trigger';
 import AutomationCondition from '../automations/condition';
@@ -784,120 +784,7 @@ export class Plugin extends Events {
     }
 }
 
-export class AccessoryPlatform {
-    readonly plugin!: Plugin;
-    readonly server!: Server;
-    readonly config!: AccessoryPlatformConfiguration;
-    readonly accessories!: PluginAccessoryPlatformAccessory[];
-    readonly cached_accessories!: typeof Accessory[];
-
-    /**
-     * Creates an AccessoryPlatform.
-     *
-     * @param {Plugin} plugin
-     * @param {Server} server
-     * @param {object} config
-     * @param {Array} cached_accessories
-     */
-    constructor(
-        plugin: Plugin, server: Server, config: AccessoryPlatformConfiguration, cached_accessories: typeof Accessory[]
-    ) {
-        Object.defineProperty(this, 'plugin', {value: plugin});
-        Object.defineProperty(this, 'server', {value: server});
-        Object.defineProperty(this, 'config', {value: Object.freeze(config)});
-        Object.defineProperty(this, 'accessories', {value: []});
-        Object.defineProperty(this, 'cached_accessories', {value: cached_accessories});
-    }
-
-    static withHandler(handler: AccessoryPlatformHandler) {
-        return class extends AccessoryPlatform {
-            async init(cached_accessories: typeof Accessory[]) {
-                const accessories = await handler.call(this.plugin, this.config, cached_accessories);
-
-                this.addAccessory(...accessories);
-                this.removeAllCachedAccessories();
-            }
-        };
-    }
-
-    static withDynamicHandler(handler: DynamicAccessoryPlatformHandler) {
-        return class extends AccessoryPlatform {
-            async init(cached_accessories: typeof Accessory[]) {
-                const accessories = await handler.call(this.plugin, this, this.config, cached_accessories);
-
-                this.addAccessory(...accessories);
-                this.removeAllCachedAccessories();
-            }
-        };
-    }
-
-    /**
-     * Initialise the accessory platform.
-     * Plugins should override this method.
-     *
-     * @param {Array} cached_accessories
-     */
-    async init(cached_accessories: typeof Accessory[]) {
-        this.addAccessory(...cached_accessories);
-    }
-
-    /**
-     * Adds an accessory.
-     * This will automatically remove it from the cached accessories.
-     *
-     * @param {Accessory} accessory
-     */
-    addAccessory(...accessories: typeof Accessory[]) {
-        for (const accessory of accessories) {
-            const plugin_accessory = new PluginAccessoryPlatformAccessory(this.server, accessory, this.plugin,
-                this.constructor.name, this.config.uuid!);
-
-            this.server.accessories.addAccessory(plugin_accessory);
-            this.removeCachedAccessory(accessory.UUID);
-            this.accessories.push(plugin_accessory);
-        }
-    }
-
-    /**
-     * Removes an accessory.
-     *
-     * @param {Accessory} accessory
-     */
-    removeAccessory(...accessories: typeof Accessory[]) {
-        for (const accessory of accessories) {
-            let index;
-            while ((index = this.accessories.findIndex(a => a.uuid === accessory.UUID)) !== -1) {
-                this.server.accessories.removeAccessory(this.accessories[index]);
-                this.accessories.splice(index, 1);
-            }
-        }
-    }
-
-    /**
-     * Removes a cached accessory.
-     *
-     * @param {string} uuid
-     */
-    removeCachedAccessory(uuid: string) {
-        this.server.accessories.removeCachedAccessory(uuid);
-
-        let index;
-        while ((index = this.cached_accessories.findIndex(accessory => accessory.UUID === uuid)) !== -1) {
-            this.cached_accessories.splice(index, 1);
-        }
-    }
-
-    /**
-     * Removes all cached accessories.
-     */
-    removeAllCachedAccessories() {
-        for (const accessory of this.cached_accessories) {
-            this.server.accessories.removeCachedAccessory(accessory.UUID);
-        }
-
-        this.cached_accessories.splice(0, this.cached_accessories.length);
-    }
-}
+export {AccessoryPlatform};
 
 export abstract class ServerPlugin {
     private static next_id = 0;

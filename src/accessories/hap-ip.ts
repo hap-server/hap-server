@@ -1,7 +1,7 @@
 /// <reference path="../types/hap-controller.d.ts" />
 
 import Logger from '../common/logger';
-import {AccessoryPlatform} from '../server/plugins';
+import {AccessoryPlatform} from '../server/accessories';
 import {uuid} from 'hap-nodejs';
 import * as hap from 'hap-nodejs';
 

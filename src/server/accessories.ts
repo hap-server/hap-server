@@ -1,7 +1,7 @@
 /// <reference path="../types/homebridge.d.ts" />
 
 import Server from './server';
-import PluginManager, {Plugin, AccessoryPlatform} from './plugins';
+import PluginManager, {Plugin, AccessoryPlatformHandler, DynamicAccessoryPlatformHandler} from './plugins';
 import Bridge from './bridge';
 import Homebridge from './homebridge';
 
@@ -10,8 +10,7 @@ import {
     AddAccessoryEvent, RemoveAccessoryEvent,
     CharacteristicUpdateEvent, UpdateAccessoryConfigurationEvent,
 } from '../events/server';
-import {builtin_accessory_types, builtin_accessory_platforms} from '../accessories';
-import {BridgeConfiguration} from '../cli/configuration';
+import {BridgeConfiguration, AccessoryPlatformConfiguration} from '../cli/configuration';
 
 import {Accessory, Service, Characteristic} from 'hap-nodejs';
 import * as hap from 'hap-nodejs';
@@ -234,6 +233,8 @@ export default class AccessoryManager {
         if (!accessory_type || !name) throw new Error('Invalid accessory configuration: accessories must have the' +
             ' plugin, accessory and name properties');
 
+        const {builtin_accessory_types}: typeof import('../accessories') = require('../accessories');
+
         const is_builtin = !plugin_name && builtin_accessory_types[accessory_type];
 
         const plugin = is_builtin ? null : PluginManager.getPlugin(plugin_name);
@@ -270,6 +271,8 @@ export default class AccessoryManager {
         // eslint-disable-next-line curly
         if (!accessory_platform_name || !name) throw new Error('Invalid accessory platform configuration: accessory' +
             ' platforms must have the plugin, platform and name properties');
+
+        const {builtin_accessory_platforms}: typeof import('../accessories') = require('../accessories');
 
         const is_builtin = !plugin_name && builtin_accessory_platforms[accessory_platform_name];
 
@@ -598,6 +601,121 @@ export default class AccessoryManager {
     }
 }
 
+export class AccessoryPlatform {
+    readonly plugin!: Plugin;
+    readonly server!: Server;
+    readonly config!: AccessoryPlatformConfiguration;
+    readonly accessories!: PluginAccessoryPlatformAccessory[];
+    readonly cached_accessories!: typeof Accessory[];
+
+    /**
+     * Creates an AccessoryPlatform.
+     *
+     * @param {Plugin} plugin
+     * @param {Server} server
+     * @param {object} config
+     * @param {Array} cached_accessories
+     */
+    constructor(
+        plugin: Plugin, server: Server, config: AccessoryPlatformConfiguration, cached_accessories: typeof Accessory[]
+    ) {
+        Object.defineProperty(this, 'plugin', {value: plugin});
+        Object.defineProperty(this, 'server', {value: server});
+        Object.defineProperty(this, 'config', {value: Object.freeze(config)});
+        Object.defineProperty(this, 'accessories', {value: []});
+        Object.defineProperty(this, 'cached_accessories', {value: cached_accessories});
+    }
+
+    static withHandler(handler: AccessoryPlatformHandler) {
+        return class extends AccessoryPlatform {
+            async init(cached_accessories: typeof Accessory[]) {
+                const accessories = await handler.call(this.plugin, this.config, cached_accessories);
+
+                this.addAccessory(...accessories);
+                this.removeAllCachedAccessories();
+            }
+        };
+    }
+
+    static withDynamicHandler(handler: DynamicAccessoryPlatformHandler) {
+        return class extends AccessoryPlatform {
+            async init(cached_accessories: typeof Accessory[]) {
+                const accessories = await handler.call(this.plugin, this, this.config, cached_accessories);
+
+                this.addAccessory(...accessories);
+                this.removeAllCachedAccessories();
+            }
+        };
+    }
+
+    /**
+     * Initialise the accessory platform.
+     * Plugins should override this method.
+     *
+     * @param {Array} cached_accessories
+     */
+    async init(cached_accessories: typeof Accessory[]) {
+        this.addAccessory(...cached_accessories);
+    }
+
+    /**
+     * Adds an accessory.
+     * This will automatically remove it from the cached accessories.
+     *
+     * @param {Accessory} accessory
+     */
+    addAccessory(...accessories: typeof Accessory[]) {
+        for (const accessory of accessories) {
+            const plugin_accessory = new PluginAccessoryPlatformAccessory(this.server, accessory, this.plugin,
+                this.constructor.name, this.config.uuid!);
+
+            this.server.accessories.addAccessory(plugin_accessory);
+            this.removeCachedAccessory(accessory.UUID);
+            this.accessories.push(plugin_accessory);
+        }
+    }
+
+    /**
+     * Removes an accessory.
+     *
+     * @param {Accessory} accessory
+     */
+    removeAccessory(...accessories: typeof Accessory[]) {
+        for (const accessory of accessories) {
+            let index;
+            while ((index = this.accessories.findIndex(a => a.uuid === accessory.UUID)) !== -1) {
+                this.server.accessories.removeAccessory(this.accessories[index]);
+                this.accessories.splice(index, 1);
+            }
+        }
+    }
+
+    /**
+     * Removes a cached accessory.
+     *
+     * @param {string} uuid
+     */
+    removeCachedAccessory(uuid: string) {
+        this.server.accessories.removeCachedAccessory(uuid);
+
+        let index;
+        while ((index = this.cached_accessories.findIndex(accessory => accessory.UUID === uuid)) !== -1) {
+            this.cached_accessories.splice(index, 1);
+        }
+    }
+
+    /**
+     * Removes all cached accessories.
+     */
+    removeAllCachedAccessories() {
+        for (const accessory of this.cached_accessories) {
+            this.server.accessories.removeCachedAccessory(accessory.UUID);
+        }
+
+        this.cached_accessories.splice(0, this.cached_accessories.length);
+    }
+}
+
 export class PluginAccessory {
     readonly server!: Server;
     readonly accessory!: typeof Accessory;
@@ -710,6 +828,9 @@ export class PluginAccessory {
         }
 
         (accessory as any).external_groups = cache.accessory.external_groups;
+
+        const {builtin_accessory_types, builtin_accessory_platforms}: typeof import('../accessories') =
+            require('../accessories');
 
         const is_builtin = !cache.plugin && (builtin_accessory_types[cache.accessory_type] ||
             builtin_accessory_platforms[cache.accessory_platform]);
