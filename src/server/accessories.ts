@@ -885,7 +885,8 @@ export class PluginAccessoryPlatformAccessory extends PluginAccessory {
     readonly accessory_platform_name!: string;
 
     constructor(
-        server: Server, accessory: typeof Accessory, plugin: Plugin | null, accessory_platform_name: string, base_uuid: string
+        server: Server, accessory: typeof Accessory, plugin: Plugin | null, accessory_platform_name: string,
+        base_uuid: string
     ) {
         super(server, accessory, plugin);
 

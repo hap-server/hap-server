@@ -138,8 +138,9 @@ export default class Permissions {
      * @param {*} value
      * @return {Promise<boolean>}
      */
-    async checkCanSetCharacteristic(accessory_uuid: string, service_uuid: string, characteristic_uuid: string, value?: undefined):
-    Promise<boolean> {
+    async checkCanSetCharacteristic(
+        accessory_uuid: string, service_uuid: string, characteristic_uuid: string, value?: undefined
+    ): Promise<boolean> {
         if (DEVELOPMENT && (this as any).__development_allow_local()) return true;
 
         if (!this.user) return false;
@@ -155,7 +156,9 @@ export default class Permissions {
             _default || false;
     }
 
-    async assertCanSetCharacteristic(accessory_uuid: string, service_uuid: string, characteristic_uuid: string, value?: any): Promise<void> {
+    async assertCanSetCharacteristic(
+        accessory_uuid: string, service_uuid: string, characteristic_uuid: string, value?: any
+    ): Promise<void> {
         if (!await this.checkCanSetCharacteristic(accessory_uuid, service_uuid, characteristic_uuid, value)) {
             throw new Error('You don\'t have permission to control this accessory');
         }
