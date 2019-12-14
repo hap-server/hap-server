@@ -67,7 +67,7 @@ export default class HAPIP extends AccessoryPlatform {
         pairing_data: any;
     };
 
-    client: HttpClient;
+    client: HttpClient | null = null;
     events_connection: any;
     subscribed_characteristics: string[] = [];
 
@@ -245,7 +245,7 @@ export default class HAPIP extends AccessoryPlatform {
     }
 
     async updateAccessories() {
-        const {accessories} = await this.client.getAccessories();
+        const {accessories} = await this.client!.getAccessories();
 
         await this.patchAccessories(accessories);
     }
@@ -485,7 +485,7 @@ export default class HAPIP extends AccessoryPlatform {
         this.get_queue_timeout = undefined;
 
         try {
-            const {characteristics} = await this.client.getCharacteristics(queue.map(q => q[0]));
+            const {characteristics} = await this.client!.getCharacteristics(queue.map(q => q[0]));
 
             // eslint-disable-next-line guard-for-in
             for (const index in characteristics) {
@@ -551,7 +551,7 @@ export default class HAPIP extends AccessoryPlatform {
         log.debug('Setting characteristics', queue);
 
         try {
-            const {characteristics} = await this.client.setCharacteristics(queue
+            const {characteristics} = await this.client!.setCharacteristics(queue
                 .reduce((acc, cur) => (acc[cur[0]] = cur[1], acc), {} as Record<string, any>));
 
             log.debug('Set characteristics', characteristics);
