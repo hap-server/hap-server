@@ -13,6 +13,8 @@ import AutomationTrigger from './automations/trigger';
 import AutomationCondition from './automations/condition';
 import AutomationAction from './automations/action';
 
+import * as util from './util';
+
 export {
     Events,
     Event,
@@ -30,6 +32,8 @@ export {
     AutomationTrigger,
     AutomationCondition,
     AutomationAction,
+
+    util,
 };
 
 export const DEVELOPMENT = true;

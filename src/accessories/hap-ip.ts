@@ -2,7 +2,8 @@
 
 import Logger from '../common/logger';
 import {AccessoryPlatform} from '../server/accessories';
-import {Accessory, Service, Characteristic, uuid} from '../hap-nodejs';
+import {Accessory, Service, Characteristic} from '../hap-nodejs';
+import * as uuid from '../util/uuid';
 
 const HttpClient: typeof import('hap-controller').HttpClient | undefined = (() => {
     try {
@@ -51,6 +52,8 @@ declare module 'hap-nodejs/lib/Characteristic' {
     }
 }
 
+const APPLE_BASE_UUID = '-0000-1000-8000-0026BB765291';
+
 export default class HAPIP extends AccessoryPlatform {
     config!: {
         plugin: undefined;
@@ -95,7 +98,7 @@ export default class HAPIP extends AccessoryPlatform {
 
             for (const hap_characteristic of event.characteristics) {
                 try {
-                    const accessory_uuid = uuid.generate(this.config.uuid + ':' + hap_characteristic.aid);
+                    const accessory_uuid = uuid.fromString(this.config.uuid + ':' + hap_characteristic.aid);
                     const accessory: Accessory = this.accessories.find(plugin_accessory =>
                         plugin_accessory.uuid === accessory_uuid)!.accessory;
                     const characteristic = (accessory as any)[CharacteristicMap].get(hap_characteristic.iid);
@@ -112,9 +115,7 @@ export default class HAPIP extends AccessoryPlatform {
 
         for (const hap_accessory of accessories) {
             if (hap_accessory.aid === 1 && (!hap_accessory.services.length || (hap_accessory.services.length === 1 &&
-                (hap_accessory.services[0].type === Service.AccessoryInformation.UUID ||
-                    '000000' + hap_accessory.services[0].type + '-0000-1000-8000-0026BB765291' ===
-                        Service.AccessoryInformation.UUID)))
+                uuid.toLongForm(hap_accessory.services[0].type, APPLE_BASE_UUID) === Service.AccessoryInformation.UUID))
             ) {
                 // If this is the first accessory and it only has an AccessoryInformation service it's probably
                 // just a placeholder for a bridge
@@ -138,7 +139,7 @@ export default class HAPIP extends AccessoryPlatform {
 
     createAccessoryFromHAP(hap_accessory: AccessoryHap, subscribe_characteristics: string[]) {
         // The name will be replaced later
-        const accessory = new Accessory('Accessory', uuid.generate(this.config.uuid + ':' + hap_accessory.aid));
+        const accessory = new Accessory('Accessory', uuid.fromString(this.config.uuid + ':' + hap_accessory.aid));
 
         accessory[IID] = hap_accessory.aid;
         accessory[ServiceMap] = new Map();
@@ -173,9 +174,7 @@ export default class HAPIP extends AccessoryPlatform {
     createServiceFromHAP(
         accessory: Accessory, hap_accessory: AccessoryHap, hap_service: ServiceHap, subscribe_characteristics: string[]
     ) {
-        if (hap_service.type.length === 2) {
-            hap_service.type = '000000' + hap_service.type + '-0000-1000-8000-0026BB765291';
-        }
+        hap_service.type = uuid.toLongForm(hap_service.type, APPLE_BASE_UUID);
 
         // subtype must be a string
         const service = new Service(undefined, hap_service.type, '' + hap_service.iid);
@@ -202,9 +201,7 @@ export default class HAPIP extends AccessoryPlatform {
         accessory: Accessory, hap_accessory: AccessoryHap, service: Service, hap_service: ServiceHap,
         hap_characteristic: CharacteristicHap, subscribe_characteristics?: string[]
     ) {
-        if (hap_characteristic.type.length === 2) {
-            hap_characteristic.type = '000000' + hap_characteristic.type + '-0000-1000-8000-0026BB765291';
-        }
+        hap_characteristic.type = uuid.toLongForm(hap_characteristic.type, APPLE_BASE_UUID);
 
         if (service.UUID === Service.AccessoryInformation.UUID &&
             hap_characteristic.type === Characteristic.Name.UUID
@@ -278,9 +275,7 @@ export default class HAPIP extends AccessoryPlatform {
 
         for (const hap_accessory of new_accessories) {
             if (hap_accessory.aid === 1 && (!hap_accessory.services.length || (hap_accessory.services.length === 1 &&
-                (hap_accessory.services[0].type === Service.AccessoryInformation.UUID ||
-                    '000000' + hap_accessory.services[0].type + '-0000-1000-8000-0026BB765291' ===
-                        Service.AccessoryInformation.UUID)))
+                uuid.toLongForm(hap_accessory.services[0].type, APPLE_BASE_UUID) === Service.AccessoryInformation.UUID))
             ) {
                 // If this is the first accessory and it only has an AccessoryInformation service it's probably
                 // just a placeholder for a bridge
@@ -358,7 +353,7 @@ export default class HAPIP extends AccessoryPlatform {
 
         for (const characteristic of service.characteristics as Characteristic[]) {
             const hap_characteristic = hap_service.characteristics.find(c => characteristic[IID] === c.iid)!;
-            const type = hap_characteristic.type.length === 2 ? `000000${hap_characteristic.type}-0000-1000-8000-0026BB765291` : hap_characteristic.type;
+            const type = uuid.toLongForm(hap_characteristic.type, APPLE_BASE_UUID);
 
             // If the type has changed, remove and replace the characteristic
             if (hap_characteristic && characteristic.UUID === type) {
@@ -399,9 +394,7 @@ export default class HAPIP extends AccessoryPlatform {
         accessory: Accessory, hap_accessory: AccessoryHap, service: Service, hap_service: ServiceHap,
         characteristic: Characteristic, hap_characteristic: CharacteristicHap
     ) {
-        if (hap_characteristic.type.length === 2) {
-            hap_characteristic.type = '000000' + hap_characteristic.type + '-0000-1000-8000-0026BB765291';
-        }
+        hap_characteristic.type = uuid.toLongForm(hap_characteristic.type, APPLE_BASE_UUID);
 
         if (service.UUID === Service.AccessoryInformation.UUID &&
             hap_characteristic.type === Characteristic.Name.UUID
