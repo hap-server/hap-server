@@ -93,6 +93,12 @@ export function builder(yargs: typeof import('yargs')) {
         describe: 'Group to run as after starting',
     });
 
+    yargs.option('experimental-history', {
+        describe: 'Experimental history support',
+        type: 'boolean',
+        default: false,
+    });
+
     if (DEVELOPMENT) {
         yargs.option('vue-devtools-host', {
             describe: 'Host to connect to Vue.js devtools with',
@@ -187,6 +193,8 @@ interface Arguments extends GlobalArguments {
     printSetup: boolean;
     allowUnauthenticated: boolean;
     enableHomebridge: boolean;
+
+    experimentalHistory: boolean;
 
     user?: string;
     group?: string;
@@ -611,6 +619,11 @@ export async function handler(argv: Arguments) {
     await server.loadAutomationsFromStorage();
     await server.loadScenesFromStorage();
     await server.automations.start();
+
+    if (argv.experimentalHistory) {
+        log.info('Starting history');
+        await server.loadHistory(path.join(data_path, 'history'));
+    }
 
     if (argv.user || argv.group) log.info('Setting uid/gid');
     if (argv.group) process.setgid(argv.group);

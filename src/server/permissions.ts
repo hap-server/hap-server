@@ -165,6 +165,24 @@ export default class Permissions {
     }
 
     /**
+     * Check if the user can access an accessory's history data.
+     *
+     * @param {string} accessory_uuid
+     * @param {string} service_id
+     * @param {string} characteristic_uuid
+     * @return {Promise<boolean>}
+     */
+    async checkCanGetCharacteristicHistory(accessory_uuid: string, service_id: string, characteristic_uuid: string) {
+        return !!this.connection.server.history && this.checkCanGetAccessory(accessory_uuid);
+    }
+
+    async assertCanGetCharacteristicHistory(accessory_uuid: string, service_id: string, characteristic_uuid: string) {
+        if (!await this.checkCanGetCharacteristicHistory(accessory_uuid, service_id, characteristic_uuid)) {
+            throw new Error('You don\'t have permission to access this accessory\'s history data');
+        }
+    }
+
+    /**
      * Check if the user can manage an accessory.
      *
      * @param {string} accessory_uuid

@@ -35,6 +35,7 @@ import {Accessory, Characteristic} from '../hap-nodejs';
 import Automations from '../automations';
 
 import {events} from '..';
+import History from '../history';
 
 // Types
 import {AccessoryDiscovery} from './plugins';
@@ -67,6 +68,7 @@ export default class Server extends Events {
     readonly log!: Logger;
 
     readonly accessories!: AccessoryManager;
+    readonly history!: History | null;
     // readonly accessories!: PluginAccessory[];
     // readonly accessory_platforms!: AccessoryPlatform[];
     // readonly cached_accessories!: PluginAccessory[];
@@ -122,6 +124,7 @@ export default class Server extends Events {
         Object.defineProperty(this, 'log', {value: log || new Logger()});
 
         Object.defineProperty(this, 'accessories', {value: new AccessoryManager(this)});
+        Object.defineProperty(this, 'history', {configurable: true, value: null});
         // Object.defineProperty(this, 'accessories', {value: []});
         // Object.defineProperty(this, 'accessory_platforms', {value: []});
         // Object.defineProperty(this, 'cached_accessories', {value: []});
@@ -830,6 +833,14 @@ export default class Server extends Events {
             added_conditions, removed_conditions, added_enable_actions, removed_enable_actions,
             added_disable_actions, removed_disable_actions,
         };
+    }
+
+    async loadHistory(history_path: string) {
+        const history = await History.init(this, history_path);
+
+        Object.defineProperty(this, 'history', {value: history});
+
+        return history;
     }
 
     /**

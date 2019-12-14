@@ -582,6 +582,31 @@ export default class Connection {
     }
 
     /**
+     * Gets history records.
+     */
+    @messagehandler('get-history-records', data => data.ids_date_range)
+    getCharacteristicsHistoryRecords(...ids: string[]) {
+        return Promise.all(ids.map(ids =>
+            this.getHistoryRecords(ids[1], ids[1], ids[2], new Date(ids[3]), new Date(ids[4]))));
+    }
+
+    async getHistoryRecords(
+        accessory_uuid: string, service_id: string, characteristic_uuid: string, from: Date, to: Date
+    ) {
+        await this.permissions.assertCanGetCharacteristicHistory(accessory_uuid, service_id, characteristic_uuid);
+
+        const accessory = this.server.getAccessory(accessory_uuid);
+        const service = this.server.getService(accessory_uuid, service_id);
+        const characteristic = this.server.getCharacteristic(accessory_uuid, service_id, characteristic_uuid);
+
+        if (!accessory || !service || !characteristic) return;
+
+        const records = this.server.history!.findRecords(accessory, service, characteristic, from, to);
+
+        return records;
+    }
+
+    /**
      * Gets the details of accessories.
      * This is stored by the web UI.
      */
