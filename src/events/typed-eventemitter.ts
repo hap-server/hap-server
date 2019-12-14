@@ -2,9 +2,15 @@ import {EventEmitter} from 'events';
 
 type EventListener<T extends EventEmitter, A extends any[]> = (this: T, ...args: A) => void;
 
-export default class TypedEventEmitter<T extends EventEmitter, Events extends Record<string | symbol, any[]> =  Record<string | symbol, any[]>> extends EventEmitter {}
+export default class TypedEventEmitter<
+    T extends EventEmitter,
+    Events extends Record<string | symbol, any[]> = Record<string | symbol, any[]>
+> extends EventEmitter {}
 
-export default interface TypedEventEmitter<T extends EventEmitter, Events extends Record<string | symbol, any[]>> {
+export default interface TypedEventEmitter<
+    T extends EventEmitter,
+    Events extends Record<string | symbol, any[]>
+> {
     addListener<E extends keyof Events>(event: E, listener: EventListener<T, Events[E]>): this;
     on<E extends keyof Events>(event: E, listener: EventListener<T, Events[E]>): this;
     once<E extends keyof Events>(event: E, listener: EventListener<T, Events[E]>): this;
@@ -20,4 +26,4 @@ export default interface TypedEventEmitter<T extends EventEmitter, Events extend
 
     // eventNames(): (number & keyof Events)[];
     listenerCount<E extends keyof Events>(type: E): number;
-}
+} // eslint-disable-line semi

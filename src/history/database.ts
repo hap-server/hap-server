@@ -89,7 +89,7 @@ export default class HistoryDatabase extends TypedEventEmitter<HistoryDatabase, 
     ) {
         const service_uuid = characteristic_uuid ? service_id :
             service_id.substr(0, service_id.indexOf('.') > -1 ? service_id.indexOf('.') : service_id.length)
-            .toLowerCase();
+                .toLowerCase();
         const service_subtype = characteristic_uuid ? service_id2 :
             service_id.indexOf('.') > -1 ? service_id.substr(service_id.indexOf('.') + 1) : null;
         if (!characteristic_uuid) characteristic_uuid = service_id2;
@@ -118,14 +118,14 @@ export default class HistoryDatabase extends TypedEventEmitter<HistoryDatabase, 
     ) {
         const characteristic = await this.database.get(
             sql`SELECT i FROM c WHERE a = ${accessory_uuid} AND s = ${service_uuid} AND `
-            .append(typeof service_subtype === 'string' ? sql`t = ${service_subtype}` : `t IS NULL`)
-            .append(sql` AND c = ${characteristic_uuid}`));
+                .append(typeof service_subtype === 'string' ? sql`t = ${service_subtype}` : `t IS NULL`)
+                .append(sql` AND c = ${characteristic_uuid}`));
 
         if (!characteristic) {
             const statement = await this.database.run(
                 sql`INSERT INTO c (a, s, t, c) VALUES (${accessory_uuid}, ${service_uuid}, `
-                .append(typeof service_subtype === 'string' ? sql`${service_subtype}` : `NULL`)
-                .append(sql`, ${characteristic_uuid})`));
+                    .append(typeof service_subtype === 'string' ? sql`${service_subtype}` : `NULL`)
+                    .append(sql`, ${characteristic_uuid})`));
 
             this.emit('assigned-characteristic-id', statement.lastID,
                 [accessory_uuid, service_uuid, service_subtype, characteristic_uuid]);
@@ -141,13 +141,13 @@ export default class HistoryDatabase extends TypedEventEmitter<HistoryDatabase, 
     async getCharacteristicUUIDs(characteristic_id: number): Promise<Characteristic | null> {
         if (!this._getCharacteristicUUIDsPromise.has(characteristic_id)) {
             this._getCharacteristicUUIDsPromise.set(characteristic_id, this._getCharacteristicUUIDs(characteristic_id)
-            .then(id => {
-                this._getCharacteristicUUIDsPromise.delete(characteristic_id);
-                return id;
-            }, err => {
-                this._getCharacteristicUUIDsPromise.delete(characteristic_id);
-                throw err;
-            }));
+                .then(id => {
+                    this._getCharacteristicUUIDsPromise.delete(characteristic_id);
+                    return id;
+                }, err => {
+                    this._getCharacteristicUUIDsPromise.delete(characteristic_id);
+                    throw err;
+                }));
         }
 
         return this._getCharacteristicUUIDsPromise.get(characteristic_id)! || null;
@@ -239,9 +239,8 @@ export default class HistoryDatabase extends TypedEventEmitter<HistoryDatabase, 
     async findRecords(characteristic_id: number, from: Date, to: Date, include_last = true) {
         const records = await this.database.all(
             sql`SELECT * FROM r WHERE c = ${characteristic_id} AND d > ${from} AND d <= ${to}`
-            .append(include_last ?
-                sql` UNION SELECT * FROM (SELECT * FROM r WHERE c = ${characteristic_id} AND d <= ${from} ORDER BY d DESC LIMIT 1)` :
-                ''));
+                .append(include_last ?
+                    sql` UNION SELECT * FROM (SELECT * FROM r WHERE c = ${characteristic_id} AND d <= ${from} ORDER BY d DESC LIMIT 1)` : ''));
 
         return records as Record[];
     }
