@@ -3,7 +3,7 @@ import {Component} from 'vue';
 import Characteristic from '../../client/characteristic';
 
 const SubscribeCharacteristicsMixin: Component & {
-    subscribedCharacteristics?: Characteristic[];
+    subscribedCharacteristics?: (Characteristic | null)[];
 } = {
     watch: {
         subscribedCharacteristics(characteristics, old_characteristics) {

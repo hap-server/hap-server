@@ -82,7 +82,6 @@ const webpack_config: import('webpack').Configuration = {
                     compilerOptions: Object.assign({}, typescript_config, {
                         declaration: false,
                         incremental: true,
-                        module: 'es2015',
                     }),
                 },
             },
