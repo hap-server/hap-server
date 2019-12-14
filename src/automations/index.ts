@@ -7,6 +7,8 @@ import AutomationCondition from './condition';
 import AutomationAction from './action';
 import Scene from './scene';
 
+import {Accessory, Service, Characteristic} from '../hap-nodejs';
+
 import Server from '../server/server';
 import Logger from '../common/logger';
 
@@ -270,8 +272,8 @@ export default class Automations extends Events {
      * @param {object} context
      */
     handleCharacteristicUpdate(
-        accessory: HAPNodeJS.Accessory, service: HAPNodeJS.Service,
-        characteristic: HAPNodeJS.Characteristic, value: any, old_value: any, context: any
+        accessory: Accessory, service: Service,
+        characteristic: Characteristic, value: any, old_value: any, context: any
     ) {
         //
     }

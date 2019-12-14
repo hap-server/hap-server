@@ -2,8 +2,7 @@
 
 import Logger from '../common/logger';
 import {AccessoryPlatform} from '../server/accessories';
-import {uuid} from 'hap-nodejs';
-import * as hap from 'hap-nodejs';
+import {Accessory, Service, Characteristic, uuid} from '../hap-nodejs';
 
 const HttpClient: typeof import('hap-controller').HttpClient | undefined = (() => {
     try {
@@ -22,34 +21,34 @@ import {
     AccessoryHap,
     ServiceHap,
     CharacteristicHap,
-    CharacteristicFormat,
-    CharacteristicPerms,
-    CharacteristicUnit,
 } from '../common/types/hap';
 
 interface HAPAccessories {
     accessories: AccessoryHap[];
 }
 
-const Accessory = hap.Accessory;
-interface Accessory extends HAPNodeJS.Accessory {
-    [IID]?: number;
-    [ServiceMap]?: Map</** iid */ number, Service>;
-    [CharacteristicMap]?: Map</** iid */ number, Characteristic>;
+declare module 'hap-nodejs/lib/Accessory' {
+    interface Accessory {
+        [IID]?: number;
+        [ServiceMap]?: Map</** iid */ number, Service>;
+        [CharacteristicMap]?: Map</** iid */ number, Characteristic>;
+    }
 }
-const Service = hap.Service;
-interface Service extends HAPNodeJS.Service {
-    [IID]?: number;
-    [ServiceMap]?: Map</** iid */ number, Service>;
-    [CharacteristicMap]?: Map</** iid */ number, Characteristic>;
+
+declare module 'hap-nodejs/lib/Service' {
+    interface Service {
+        [IID]?: number;
+        [ServiceMap]?: Map</** iid */ number, Service>;
+        [CharacteristicMap]?: Map</** iid */ number, Characteristic>;
+    }
 }
-const Characteristic = hap.Characteristic;
-interface Characteristic extends HAPNodeJS.Characteristic {
-    UUID: string;
-    displayName: string;
-    [IID]?: number;
-    [ServiceMap]?: Map</** iid */ number, Service>;
-    [CharacteristicMap]?: Map</** iid */ number, Characteristic>;
+
+declare module 'hap-nodejs/lib/Characteristic' {
+    interface Characteristic {
+        [IID]?: number;
+        [ServiceMap]?: Map</** iid */ number, Service>;
+        [CharacteristicMap]?: Map</** iid */ number, Characteristic>;
+    }
 }
 
 export default class HAPIP extends AccessoryPlatform {
@@ -139,8 +138,7 @@ export default class HAPIP extends AccessoryPlatform {
 
     createAccessoryFromHAP(hap_accessory: AccessoryHap, subscribe_characteristics: string[]) {
         // The name will be replaced later
-        const accessory: Accessory =
-            new Accessory('Accessory', uuid.generate(this.config.uuid + ':' + hap_accessory.aid));
+        const accessory = new Accessory('Accessory', uuid.generate(this.config.uuid + ':' + hap_accessory.aid));
 
         accessory[IID] = hap_accessory.aid;
         accessory[ServiceMap] = new Map();
@@ -180,7 +178,7 @@ export default class HAPIP extends AccessoryPlatform {
         }
 
         // subtype must be a string
-        const service = new Service(null, hap_service.type, '' + hap_service.iid);
+        const service = new Service(undefined, hap_service.type, '' + hap_service.iid);
 
         service[IID] = hap_service.iid;
         (accessory as any)[ServiceMap].set(hap_service.iid, service);
@@ -192,7 +190,9 @@ export default class HAPIP extends AccessoryPlatform {
             service.addCharacteristic(characteristic);
         }
 
+        // @ts-ignore
         service.isPrimaryService = !!hap_service.primary;
+        // @ts-ignore
         service.isHiddenService = !!hap_service.hidden;
 
         return service;
@@ -209,6 +209,7 @@ export default class HAPIP extends AccessoryPlatform {
         if (service.UUID === Service.AccessoryInformation.UUID &&
             hap_characteristic.type === Characteristic.Name.UUID
         ) {
+            // @ts-ignore
             accessory.displayName = hap_characteristic.value;
         }
 
@@ -231,6 +232,7 @@ export default class HAPIP extends AccessoryPlatform {
         // @ts-ignore
         characteristic.on('get', this.handleCharacteristicGet.bind(this, accessory, hap_accessory, service,
             hap_service, characteristic, hap_characteristic));
+        // @ts-ignore
         characteristic.on('set', this.handleCharacteristicSet.bind(this, accessory, hap_accessory, service,
             hap_service, characteristic, hap_characteristic));
         // @ts-ignore
@@ -404,6 +406,7 @@ export default class HAPIP extends AccessoryPlatform {
         if (service.UUID === Service.AccessoryInformation.UUID &&
             hap_characteristic.type === Characteristic.Name.UUID
         ) {
+            // @ts-ignore
             accessory.displayName = hap_characteristic.value;
         }
 
@@ -411,16 +414,17 @@ export default class HAPIP extends AccessoryPlatform {
             throw new Error('Cannot change characteristic type');
         }
 
+        // @ts-ignore
         characteristic.displayName = hap_characteristic.description;
 
         characteristic.setProps({
-            perms: hap_characteristic.perms as unknown as HAPNodeJS.Characteristic.Perms[],
-            format: hap_characteristic.format as unknown as HAPNodeJS.Characteristic.Formats,
+            perms: hap_characteristic.perms,
+            format: hap_characteristic.format,
             // @ts-ignore
             validValues: hap_characteristic['valid-values'],
             // @ts-ignore
             validValuesRange: hap_characteristic['valid-values-range'],
-            unit: hap_characteristic.unit as unknown as HAPNodeJS.Characteristic.Units,
+            unit: hap_characteristic.unit,
             // @ts-ignore
             maxValue: hap_characteristic.maxValue,
             // @ts-ignore

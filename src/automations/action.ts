@@ -10,7 +10,7 @@ import Server from '../server/server';
 import Automations from '.';
 import Scene from './scene';
 import Logger from '../common/logger';
-import {Accessory, Service, Characteristic} from 'hap-nodejs';
+import {Accessory, Service, Characteristic} from '../hap-nodejs';
 import {AutomationActionConfiguration, AutomationConditionConfiguration} from '../cli/configuration';
 
 export default class AutomationAction extends EventEmitter {
@@ -280,7 +280,7 @@ export class SetCharacteristicAction extends AutomationAction {
         } else if (typeof this.config.decrease !== 'undefined') {
             this.log.debug('Decreasing characteristic "%s" by "%s"', this.config.characteristic, this.config.decrease);
 
-            await characteristic.setValue(characteristic.value - this.config.decrease);
+            await characteristic.setValue((characteristic.value as number) - this.config.decrease);
         } else {
             throw new Error('Invalid action');
         }

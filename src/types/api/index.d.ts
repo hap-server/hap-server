@@ -22,7 +22,7 @@ import AutomationCondition from '@hap-server/hap-server/automations/condition';
 import AutomationAction from '@hap-server/hap-server/automations/action';
 import Logger from '@hap-server/hap-server/common/logger';
 import Module from 'module';
-import {Accessory} from 'hap-nodejs';
+import {Accessory} from '@hap-server/hap-server/hap-nodejs';
 
 declare module '@hap-server/api' {
     const pluginapi: PluginAPI;
@@ -34,7 +34,7 @@ declare module '@hap-server/api' {
     export const log: Logger;
 
     export class AccessoryPlatform extends BaseAccessoryPlatform {
-        constructor(server: Server, config: any, cached_accessories: typeof Accessory[]);
+        constructor(server: Server, config: any, cached_accessories: Accessory[]);
     }
     export abstract class ServerPlugin extends BaseServerPlugin {
         constructor(server: Server, config: any);

@@ -12,7 +12,7 @@ import http from 'http';
 import {Plugin as HomebridgePluginManager} from 'homebridge/lib/plugin';
 import {User as HomebridgeUser} from 'homebridge/lib/user';
 import HomebridgeLogger from 'homebridge/lib/logger';
-import hap from 'hap-nodejs';
+import * as hap from '../hap-nodejs';
 
 import {Server, PluginManager, Logger, forceColourLogs, events} from '..';
 import {

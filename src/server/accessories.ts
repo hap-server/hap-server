@@ -12,8 +12,8 @@ import {
 } from '../events/server';
 import {BridgeConfiguration, AccessoryPlatformConfiguration} from '../cli/configuration';
 
-import {Accessory, Service, Characteristic} from 'hap-nodejs';
-import * as hap from 'hap-nodejs';
+import {Accessory, Service, Characteristic} from '../hap-nodejs';
+import * as hap from '../hap-nodejs';
 import {PlatformAccessory} from 'homebridge/lib/platformAccessory';
 
 export default class AccessoryManager {
@@ -27,9 +27,9 @@ export default class AccessoryManager {
     readonly bridges: Bridge[] = [];
     readonly homebridge: Homebridge | null = null;
 
-    private readonly characteristic_change_handlers!: WeakMap<typeof Accessory, Function>;
+    private readonly characteristic_change_handlers!: WeakMap<Accessory, Function>;
     readonly _handleCharacteristicUpdate: any;
-    private readonly configuration_change_handlers!: WeakMap<typeof Accessory, Function>;
+    private readonly configuration_change_handlers!: WeakMap<Accessory, Function>;
     private readonly _handleConfigurationChange: any;
 
     private readonly _handleRegisterHomebridgePlatformAccessories: any;
@@ -41,14 +41,14 @@ export default class AccessoryManager {
         this.log = server.log.withPrefix('Accessories');
 
         Object.defineProperty(this, 'characteristic_change_handlers', {value: new WeakMap()});
-        Object.defineProperty(this, '_handleCharacteristicUpdate', {value: (a: typeof Accessory, event: any) => {
+        Object.defineProperty(this, '_handleCharacteristicUpdate', {value: (a: Accessory, event: any) => {
             // this.log.info('Updating characteristic', event);
             this.handleCharacteristicUpdate(event.accessory || a, event.service,
                 event.characteristic, event.newValue, event.oldValue, event.context);
         }});
 
         Object.defineProperty(this, 'configuration_change_handlers', {value: new WeakMap()});
-        Object.defineProperty(this, '_handleConfigurationChange', {value: (a: typeof Accessory, event: any) => {
+        Object.defineProperty(this, '_handleConfigurationChange', {value: (a: Accessory, event: any) => {
             this.log.debug('Updating accessory configuration', event);
             this.handleConfigurationChange(event.accessory || a, event.service, event.characteristic);
         }});
@@ -67,7 +67,7 @@ export default class AccessoryManager {
      * @param {string} uuid
      * @return {Accessory}
      */
-    getAccessory(uuid: string): typeof Accessory | null {
+    getAccessory(uuid: string): Accessory | null {
         const plugin_accessory = this.getPluginAccessory(uuid);
 
         if (plugin_accessory) return plugin_accessory.accessory;
@@ -105,7 +105,7 @@ export default class AccessoryManager {
      * @param {string} [service_uuid]
      * @return {Service}
      */
-    getService(uuid: string | string[], service_uuid?: string): typeof Service | null {
+    getService(uuid: string | string[], service_uuid?: string): Service | null {
         if (uuid instanceof Array) [uuid, service_uuid] = uuid;
 
         const accessory_uuid = uuid.split('.')[0];
@@ -115,10 +115,10 @@ export default class AccessoryManager {
         const service_subtype = service_uuid.substr(service_type.length + 1);
 
         const accessory = this.getAccessory(accessory_uuid);
-        if (!accessory) return;
+        if (!accessory) return null;
 
         return accessory.services.find(s => s.UUID === service_type &&
-            (s.subtype === service_subtype || (!s.subtype && !service_subtype)));
+            (s.subtype === service_subtype || (!s.subtype && !service_subtype))) || null;
     }
 
     /**
@@ -129,8 +129,9 @@ export default class AccessoryManager {
      * @param {string} [characteristic_uuid]
      * @return {Characteristic}
      */
-    getCharacteristic(uuid: string | string[], service_uuid?: string, characteristic_uuid?: string):
-        typeof Characteristic | null {
+    getCharacteristic(
+        uuid: string | string[], service_uuid?: string, characteristic_uuid?: string
+    ): Characteristic | null {
         if (uuid instanceof Array) [uuid, service_uuid, characteristic_uuid] = uuid;
 
         const accessory_uuid = uuid.split('.')[0];
@@ -141,9 +142,9 @@ export default class AccessoryManager {
         }
 
         const service = this.getService(accessory_uuid, service_uuid);
-        if (!service) return;
+        if (!service) return null;
 
-        return service.characteristics.find((c: typeof Characteristic) => c.UUID === characteristic_uuid);
+        return service.characteristics.find(c => c.UUID === characteristic_uuid) || null;
     }
 
     /**
@@ -156,12 +157,13 @@ export default class AccessoryManager {
         if (this.accessories.find(a => a.uuid === plugin_accessory.uuid)) throw new Error('Already have an' +
             ' accessory with the UUID "' + plugin_accessory.uuid + '"');
 
+        // @ts-ignore
         plugin_accessory.accessory.bridged = true;
 
         const prev_characteristic_change_handler = this.characteristic_change_handlers.get(plugin_accessory.accessory);
         if (prev_characteristic_change_handler) {
             plugin_accessory.accessory.removeListener('service-characteristic-change',
-                prev_characteristic_change_handler);
+                prev_characteristic_change_handler as any);
         }
         const characteristic_change_handler = this._handleCharacteristicUpdate.bind(this, plugin_accessory.accessory);
         this.characteristic_change_handlers.set(plugin_accessory.accessory, characteristic_change_handler);
@@ -169,7 +171,8 @@ export default class AccessoryManager {
 
         const prev_configuration_change_handler = this.configuration_change_handlers.get(plugin_accessory.accessory);
         if (prev_configuration_change_handler) {
-            plugin_accessory.accessory.removeListener('service-configurationChange', prev_configuration_change_handler);
+            plugin_accessory.accessory.removeListener('service-configurationChange',
+                prev_configuration_change_handler as any);
         }
         const configuration_change_handler = this._handleConfigurationChange.bind(this, plugin_accessory.accessory);
         this.configuration_change_handlers.set(plugin_accessory.accessory, configuration_change_handler);
@@ -206,7 +209,7 @@ export default class AccessoryManager {
             plugin_accessory.accessory.removeListener('service-characteristic-change',
                 this._handleCharacteristicUpdate);
         }
-        const configuration_change_handler = this.configuration_change_handlers.get(plugin_accessory.accessory);
+        const configuration_change_handler = this.configuration_change_handlers.get(plugin_accessory.accessory) as any;
         if (configuration_change_handler) {
             plugin_accessory.accessory.removeListener('service-configurationChange', configuration_change_handler);
         }
@@ -217,7 +220,7 @@ export default class AccessoryManager {
         }
 
         for (const bridge of this.bridges) {
-            if (!bridge.bridge.bridgedAccessories.find((a: typeof Accessory) => a.UUID === plugin_accessory.uuid)) {
+            if (!bridge.bridge.bridgedAccessories.find(a => a.UUID === plugin_accessory.uuid)) {
                 continue;
             }
 
@@ -537,7 +540,7 @@ export default class AccessoryManager {
      * @return {Promise}
      */
     private async handleCharacteristicUpdate(
-        accessory: typeof Accessory, service: typeof Service, characteristic: typeof Characteristic,
+        accessory: Accessory, service: Service, characteristic: Characteristic,
         value: any, old_value: any, context: any
     ) {
         this.server.emit(CharacteristicUpdateEvent,
@@ -581,7 +584,7 @@ export default class AccessoryManager {
      * @param {Characteristic} characteristic
      */
     private handleConfigurationChange(
-        accessory: typeof Accessory, service: typeof Service, characteristic: typeof Characteristic
+        accessory: Accessory, service: Service, characteristic: Characteristic
     ) {
         this.server.emit(UpdateAccessoryConfigurationEvent, this.server, accessory, service, characteristic);
 
@@ -607,7 +610,7 @@ export class AccessoryPlatform {
     readonly server!: Server;
     readonly config!: AccessoryPlatformConfiguration;
     readonly accessories!: PluginAccessoryPlatformAccessory[];
-    readonly cached_accessories!: typeof Accessory[];
+    readonly cached_accessories!: Accessory[];
 
     /**
      * Creates an AccessoryPlatform.
@@ -618,7 +621,7 @@ export class AccessoryPlatform {
      * @param {Array} cached_accessories
      */
     constructor(
-        plugin: Plugin, server: Server, config: AccessoryPlatformConfiguration, cached_accessories: typeof Accessory[]
+        plugin: Plugin, server: Server, config: AccessoryPlatformConfiguration, cached_accessories: Accessory[]
     ) {
         Object.defineProperty(this, 'plugin', {value: plugin});
         Object.defineProperty(this, 'server', {value: server});
@@ -629,7 +632,7 @@ export class AccessoryPlatform {
 
     static withHandler(handler: AccessoryPlatformHandler) {
         return class extends AccessoryPlatform {
-            async init(cached_accessories: typeof Accessory[]) {
+            async init(cached_accessories: Accessory[]) {
                 const accessories = await handler.call(this.plugin, this.config, cached_accessories);
 
                 this.addAccessory(...accessories);
@@ -640,7 +643,7 @@ export class AccessoryPlatform {
 
     static withDynamicHandler(handler: DynamicAccessoryPlatformHandler) {
         return class extends AccessoryPlatform {
-            async init(cached_accessories: typeof Accessory[]) {
+            async init(cached_accessories: Accessory[]) {
                 const accessories = await handler.call(this.plugin, this, this.config, cached_accessories);
 
                 this.addAccessory(...accessories);
@@ -655,7 +658,7 @@ export class AccessoryPlatform {
      *
      * @param {Array} cached_accessories
      */
-    async init(cached_accessories: typeof Accessory[]) {
+    async init(cached_accessories: Accessory[]) {
         this.addAccessory(...cached_accessories);
     }
 
@@ -665,7 +668,7 @@ export class AccessoryPlatform {
      *
      * @param {Accessory} accessory
      */
-    addAccessory(...accessories: typeof Accessory[]) {
+    addAccessory(...accessories: Accessory[]) {
         for (const accessory of accessories) {
             const plugin_accessory = new PluginAccessoryPlatformAccessory(this.server, accessory, this.plugin,
                 this.constructor.name, this.config.uuid!);
@@ -681,7 +684,7 @@ export class AccessoryPlatform {
      *
      * @param {Accessory} accessory
      */
-    removeAccessory(...accessories: typeof Accessory[]) {
+    removeAccessory(...accessories: Accessory[]) {
         for (const accessory of accessories) {
             let index;
             while ((index = this.accessories.findIndex(a => a.uuid === accessory.UUID)) !== -1) {
@@ -719,12 +722,12 @@ export class AccessoryPlatform {
 
 export class PluginAccessory {
     readonly server!: Server;
-    readonly accessory!: typeof Accessory;
+    readonly accessory!: Accessory;
     readonly plugin!: Plugin | null;
     readonly data: any;
     readonly cached_data: any;
 
-    constructor(server: Server, accessory: typeof Accessory, plugin: Plugin | null, data?: any) {
+    constructor(server: Server, accessory: Accessory, plugin: Plugin | null, data?: any) {
         Object.defineProperty(this, 'server', {value: server});
         Object.defineProperty(this, 'accessory', {value: accessory});
         Object.defineProperty(this, 'plugin', {value: plugin});
@@ -738,6 +741,7 @@ export class PluginAccessory {
     }
 
     destroy() {
+        // @ts-ignore
         if (this.accessory.listenerCount('destroy') <= 0) {
             this.server.log.warn('Accessory %s doesn\'t have a destory handler', this.uuid);
         }
@@ -804,15 +808,20 @@ export class PluginAccessory {
     static restore(server: Server, cache: any) {
         const accessory = new Accessory(cache.accessory.displayName, cache.accessory.UUID);
 
+        // @ts-ignore
         accessory.services = cache.accessory.services.map((service_cache: any) => {
             const service = new Service(service_cache.displayName, service_cache.UUID, service_cache.subtype);
 
+            // @ts-ignore
             service.characteristics = service_cache.characteristics.map((characteristic_cache: any) => {
                 const characteristic = new Characteristic(characteristic_cache.displayName, characteristic_cache.UUID,
                     characteristic_cache.props);
 
+                // @ts-ignore
                 characteristic.value = characteristic_cache.value;
+                // @ts-ignore
                 characteristic.status = characteristic_cache.status;
+                // @ts-ignore
                 characteristic.eventOnlyCharacteristic = characteristic_cache.eventOnlyCharacteristic;
 
                 return characteristic;
@@ -869,7 +878,7 @@ export class PluginStandaloneAccessory extends PluginAccessory {
     readonly accessory_type!: string;
 
     constructor(
-        server: Server, accessory: typeof Accessory, plugin: Plugin | null, accessory_type: string,
+        server: Server, accessory: Accessory, plugin: Plugin | null, accessory_type: string,
         config: any, uuid: string
     ) {
         super(server, accessory, plugin);
@@ -885,7 +894,7 @@ export class PluginAccessoryPlatformAccessory extends PluginAccessory {
     readonly accessory_platform_name!: string;
 
     constructor(
-        server: Server, accessory: typeof Accessory, plugin: Plugin | null, accessory_platform_name: string,
+        server: Server, accessory: Accessory, plugin: Plugin | null, accessory_platform_name: string,
         base_uuid: string
     ) {
         super(server, accessory, plugin);
@@ -898,7 +907,7 @@ export class PluginAccessoryPlatformAccessory extends PluginAccessory {
 export class HomebridgeAccessory extends PluginAccessory {
     readonly platform_accessory: PlatformAccessory;
 
-    constructor(server: Server, accessory: typeof Accessory, platform_accessory?: PlatformAccessory) {
+    constructor(server: Server, accessory: Accessory, platform_accessory?: PlatformAccessory) {
         super(server, accessory, null);
 
         Object.defineProperty(this, 'platform_accessory', {value: platform_accessory});

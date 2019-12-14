@@ -30,7 +30,7 @@ import {HAPIP as HAPIPDiscovery, HAPBLE as HAPBLEDiscovery} from '../accessory-d
 import Connection from './connection';
 import PluginManager, {ServerPlugin, DiscoveredAccessory} from './plugins';
 import Logger from '../common/logger';
-import {Accessory, Characteristic} from 'hap-nodejs';
+import {Accessory, Characteristic} from '../hap-nodejs';
 
 import Automations from '../automations';
 
@@ -990,7 +990,7 @@ export default class Server extends Events {
      * @param {string} uuid
      * @return {Accessory}
      */
-    getAccessory(uuid: string): typeof Accessory | null {
+    getAccessory(uuid: string): Accessory | null {
         return this.accessories.getAccessory(uuid);
     }
 
@@ -1036,15 +1036,15 @@ export default class Server extends Events {
      * @return {Promise<any>}
      */
     getCharacteristicValue(
-        characteristic: typeof Characteristic | string | string[], context?: any, connection_id?: string
+        characteristic: Characteristic | string | string[], context?: any, connection_id?: string
     ): Promise<any> {
         if (!(characteristic instanceof Characteristic)) {
-            characteristic = this.getCharacteristic(characteristic as string | string[]);
+            characteristic = this.getCharacteristic(characteristic as string | string[])!;
         }
 
         return new Promise((resolve, reject) => {
-            characteristic.getValue(
-                (err: Error, value: any) => err ? reject(err) : resolve(value), context, connection_id);
+            (characteristic as Characteristic).getValue(
+                (err: Error | null, value: any) => err ? reject(err) : resolve(value), context, connection_id);
         });
     }
 
@@ -1058,12 +1058,13 @@ export default class Server extends Events {
      * @return {Promise<any>}
      */
     setCharacteristicValue(
-        characteristic: typeof Characteristic | string | string[], value: any, context?: any, connection_id?: string
+        characteristic: Characteristic | string | string[], value: any, context?: any, connection_id?: string
     ): Promise<void> {
-        if (!(characteristic instanceof Characteristic)) characteristic = this.getCharacteristic(characteristic);
+        if (!(characteristic instanceof Characteristic)) characteristic = this.getCharacteristic(characteristic)!;
 
         return new Promise((resolve, reject) => {
-            characteristic.setValue(value, (err: Error) => err ? reject(err) : resolve(), context, connection_id);
+            (characteristic as Characteristic).setValue(
+                value, (err?: Error) => err ? reject(err) : resolve(), context, connection_id);
         });
     }
 

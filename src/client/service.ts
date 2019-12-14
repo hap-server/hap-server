@@ -398,17 +398,22 @@ export class UnavailableService extends Service {
     }
 }
 
-export const types: {[key: string]: string} = {};
-export const type_uuids: {[key: string]: string} = {};
-export const type_names: {[key: string]: string} = {};
-
-import {Service as HAPService} from 'hap-nodejs/lib/Service';
+import {Service as HAPService, PredefinedService} from 'hap-nodejs/lib/Service';
 import 'hap-nodejs/lib/gen/HomeKitTypes';
 
-for (const key of Object.keys(HAPService)) {
-    if (HAPService[key].prototype instanceof HAPService) {
+export const types: {[key: string]: PredefinedService} = {};
+export const type_uuids: {[name: string]: string} = {};
+export const type_names: {[uuid: string]: string} = {};
+
+const isPredefinedService = (a: any): a is PredefinedService => a && a.prototype instanceof HAPService;
+
+for (const key of Object.keys(HAPService) as (keyof typeof HAPService)[]) {
+    if (isPredefinedService(HAPService[key])) {
+        // @ts-ignore
         types[key] = HAPService[key];
+        // @ts-ignore
         type_uuids[key] = HAPService[key].UUID;
+        // @ts-ignore
         type_names[HAPService[key].UUID] = key;
     }
 }

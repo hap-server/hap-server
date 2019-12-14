@@ -15,7 +15,7 @@ import genuuid from 'uuid/v4';
 import mkdirp from 'mkdirp';
 import chalk from 'chalk';
 
-import hap from 'hap-nodejs';
+import * as hap from '../hap-nodejs';
 
 import isEqual from 'lodash.isequal';
 
@@ -114,7 +114,7 @@ import Logger from '../common/logger';
 import WebSocket from 'ws';
 import http from 'http';
 import persist from 'node-persist';
-import {Accessory} from 'hap-nodejs';
+import {Accessory} from '../hap-nodejs';
 
 import {
     RequestMessages, RequestMessage, ProgressMessage, ResponseMessage,
@@ -403,8 +403,7 @@ export default class Connection {
             service_hap.subtype = service.subtype;
             service_hap.linked_indexes = [];
 
-            // @ts-ignore
-            for (const linked_service of service.linkedServices as HAPNodeJS.Service[]) {
+            for (const linked_service of service.linkedServices as hap.Service[]) {
                 if (!accessory.services.includes(linked_service)) continue;
 
                 service_hap.linked_indexes.push(accessory.services.indexOf(linked_service));
@@ -437,7 +436,7 @@ export default class Connection {
         return {get, set, set_characteristics};
     }
 
-    async getCharacteristicsWithSetPermission(accessory: typeof Accessory) {
+    async getCharacteristicsWithSetPermission(accessory: Accessory) {
         const services: {
             [service_id: string]: string[];
         } = {};

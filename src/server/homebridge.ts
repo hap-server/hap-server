@@ -9,7 +9,7 @@ import {_system as homebridge_logger} from 'homebridge/lib/logger';
 // Types
 import Server from './server';
 import Logger from '../common/logger';
-import {Accessory} from 'hap-nodejs';
+import {Accessory} from '../hap-nodejs';
 
 homebridge_logger.prefix = 'Homebridge';
 
@@ -88,19 +88,19 @@ export default class Homebridge extends Bridge {
         return this.bridge._identifierCache;
     }
 
-    addAccessory(accessory: typeof Accessory) {
+    addAccessory(accessory: Accessory) {
         throw new Error('Cannot add accessory to Homebridge');
     }
 
-    removeAccessory(accessory: typeof Accessory) {
+    removeAccessory(accessory: Accessory) {
         throw new Error('Cannot remove accessory from Homebridge');
     }
 
-    addCachedAccessory(accessory: typeof Accessory) {
+    addCachedAccessory(accessory: Accessory) {
         throw new Error('Cannot add accessory to Homebridge');
     }
 
-    removeCachedAccessory(accessory: typeof Accessory) {
+    removeCachedAccessory(accessory: Accessory) {
         throw new Error('Cannot remove accessory from Homebridge');
     }
 

@@ -5,15 +5,15 @@
  */
 
 import Logger from '../common/logger';
-import {Characteristic} from 'hap-nodejs';
+import {Characteristic} from '../hap-nodejs';
 
 type GetCharacteristicHandler =
-    (this: HAPNodeJS.Characteristic, context?: any, connection_id?: string) => Promise<any> | any;
+    (this: Characteristic, context?: any, connection_id?: string) => Promise<any> | any;
 type SetCharacteristicHandler =
-    (this: HAPNodeJS.Characteristic, new_value: any, context?: any, connection_id?: string) => Promise<void> | void;
+    (this: Characteristic, new_value: any, context?: any, connection_id?: string) => Promise<void> | void;
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
-declare namespace HAPNodeJS {
+declare module 'hap-nodejs/lib/Characteristic' {
     interface Characteristic {
         get_handler?: GetCharacteristicHandler;
         getHandler(handler?: GetCharacteristicHandler): this;
@@ -42,7 +42,7 @@ Object.defineProperty(Characteristic.prototype, 'get_handler', {
         if (this._get_handler) this.removeListener('get', this._get_handler.listener);
 
         if (handler) {
-            const listener = async function(this: HAPNodeJS.Characteristic,
+            const listener = async function(this: Characteristic,
                 callback: (err: any, value: any) => void, context?: any, connection_id?: string
             ) {
                 try {
@@ -63,9 +63,7 @@ Object.defineProperty(Characteristic.prototype, 'get_handler', {
     },
 });
 
-(Characteristic.prototype as HAPNodeJS.Characteristic).getHandler = function(this: HAPNodeJS.Characteristic,
-    handler?: GetCharacteristicHandler
-) {
+Characteristic.prototype.getHandler = function(this: Characteristic, handler?: GetCharacteristicHandler) {
     this.get_handler = handler;
     return this;
 };
@@ -80,7 +78,7 @@ Object.defineProperty(Characteristic.prototype, 'set_handler', {
         if (this._set_handler) this.removeListener('set', this._set_handler.listener);
 
         if (handler) {
-            const listener = async function(this: HAPNodeJS.Characteristic,
+            const listener = async function(this: Characteristic,
                 new_value: any, callback: (err: any, value: any) => void, context?: any, connection_id?: string
             ) {
                 try {
@@ -101,9 +99,7 @@ Object.defineProperty(Characteristic.prototype, 'set_handler', {
     },
 });
 
-(Characteristic.prototype as HAPNodeJS.Characteristic).setHandler = function(this: HAPNodeJS.Characteristic,
-    handler?: SetCharacteristicHandler
-) {
+Characteristic.prototype.setHandler = function(this: Characteristic, handler?: SetCharacteristicHandler) {
     this.set_handler = handler;
     return this;
 };

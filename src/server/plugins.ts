@@ -10,7 +10,7 @@ import EventEmitter from 'events';
 import semver from 'semver';
 import persist from 'node-persist';
 import express from 'express';
-import hap from 'hap-nodejs';
+import * as hap from '../hap-nodejs';
 
 import {Plugin as HomebridgePluginManager} from 'homebridge/lib/plugin';
 
@@ -28,7 +28,7 @@ import Server from './server';
 import Connection from './connection';
 import {AccessoryConfiguration, AccessoryPlatformConfiguration} from '../cli/configuration';
 import http from 'http';
-import {Accessory} from 'hap-nodejs';
+import {Accessory} from '../hap-nodejs';
 
 import {events, version as hap_server_version} from '..';
 
@@ -41,14 +41,14 @@ let instance: PluginManager;
 let storage_path: string;
 
 export type AccessoryHandler =
-    (config: AccessoryConfiguration, cached_accessory?: typeof Accessory) =>
-    (Promise<typeof Accessory> | typeof Accessory);
+    (config: AccessoryConfiguration, cached_accessory?: Accessory) =>
+    (Promise<Accessory> | Accessory);
 export type AccessoryPlatformHandler =
-    (config: AccessoryPlatformConfiguration, cached_accessories: typeof Accessory[]) =>
-    (Promise<typeof Accessory[]> | typeof Accessory[]);
+    (config: AccessoryPlatformConfiguration, cached_accessories: Accessory[]) =>
+    (Promise<Accessory[]> | Accessory[]);
 export type DynamicAccessoryPlatformHandler =
-    (platform: AccessoryPlatform, config: AccessoryPlatformConfiguration, cached_accessories: typeof Accessory[]) =>
-    (Promise<typeof Accessory[]> | typeof Accessory[]);
+    (platform: AccessoryPlatform, config: AccessoryPlatformConfiguration, cached_accessories: Accessory[]) =>
+    (Promise<Accessory[]> | Accessory[]);
 
 export class PluginManager extends Events {
     readonly plugins: Plugin[];
@@ -430,8 +430,8 @@ export class Plugin extends Events {
     readonly path: string;
     readonly name: string;
 
-    readonly accessories: Map<string, (config: any, cached_accessory?: typeof Accessory) => (Promise<typeof Accessory> |
-        typeof Accessory)> = new Map();
+    readonly accessories: Map<string, (config: any, cached_accessory?: Accessory) => (Promise<Accessory> |
+        Accessory)> = new Map();
     readonly accessory_platforms: Map<string, typeof AccessoryPlatform> = new Map();
     readonly server_plugins: Set<typeof ServerPlugin> = new Set();
     readonly web_interface_plugins: Set<WebInterfacePlugin> = new Set();

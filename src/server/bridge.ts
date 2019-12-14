@@ -5,7 +5,7 @@ import os from 'os';
 import crypto from 'crypto';
 import chalk from 'chalk';
 import qrcode from 'qrcode-terminal';
-import {Accessory, Service, Characteristic} from 'hap-nodejs';
+import {Accessory, Service, Characteristic} from '../hap-nodejs';
 import {Bridge as HAPBridge} from 'hap-nodejs/lib/Bridge';
 import HAPServer from './hap-server';
 
@@ -15,6 +15,17 @@ import {clone} from 'hap-nodejs/lib/util/clone';
 
 import Server from './server';
 import Logger from '../common/logger';
+
+const hapserver_eventhandlers = Symbol('__hap_server_eventhandlers');
+
+declare module 'hap-nodejs/lib/Bridge' {
+    interface Bridge {
+        [hapserver_eventhandlers]?: WeakMap<any, {
+            characteristic_change?: any;
+            configuration_change?: any;
+        }>;
+    }
+}
 
 export default class Bridge {
     readonly server: Server;
@@ -29,11 +40,11 @@ export default class Bridge {
     unauthenticated_access: boolean;
 
     accessory_uuids: (string | [string | null, string, string] | ['homebridge', null, string])[];
-    readonly external_accessories: typeof Accessory[];
-    readonly external_accessory_accessory_infos: Map<typeof Accessory, AccessoryInfo>;
-    readonly external_accessory_identifier_caches: Map<typeof Accessory, IdentifierCache>;
-    readonly external_accessory_servers: Map<typeof Accessory, HAPServer>;
-    readonly cached_accessories: typeof Accessory[];
+    readonly external_accessories: Accessory[];
+    readonly external_accessory_accessory_infos: Map<Accessory, AccessoryInfo>;
+    readonly external_accessory_identifier_caches: Map<Accessory, IdentifierCache>;
+    readonly external_accessory_servers: Map<Accessory, HAPServer>;
+    readonly cached_accessories: Accessory[];
 
     bridge: HAPBridge;
     _handleCharacteristicUpdate: any;
@@ -76,10 +87,13 @@ export default class Bridge {
     protected _createBridge(config: any) {
         const bridge = new HAPBridge(this.name, this.uuid);
 
+        // @ts-ignore
         bridge.on('hap-server-update-pairings', () => this.server.accessories.handlePairingsUpdate(this));
 
+        // @ts-ignore
         bridge.addBridgedAccessory = this._addBridgedAccessory.bind(this, bridge);
-        bridge.removeBridgeAccessory = this._removeBridgedAccessory.bind(this, bridge);
+        bridge.removeBridgedAccessory = this._removeBridgedAccessory.bind(this, bridge);
+        // @ts-ignore
         bridge._updateConfiguration = this._updateConfiguration.bind(this, bridge, false);
 
         bridge.getService(Service.AccessoryInformation)
@@ -92,7 +106,7 @@ export default class Bridge {
         return bridge;
     }
 
-    private _addBridgedAccessory(bridge: HAPBridge, accessory: typeof Accessory, defer_update = false) {
+    private _addBridgedAccessory(bridge: HAPBridge, accessory: Accessory, defer_update = false) {
         // @ts-ignore
         if (accessory._isBridge) throw new Error('Cannot Bridge another Bridge!');
 
@@ -106,30 +120,34 @@ export default class Bridge {
                 ' UUID as another external Accessory: ' + existing.UUID);
         }
 
-        const _eventhandlers = bridge.__hap_server_eventhandlers || (bridge.__hap_server_eventhandlers = new WeakMap());
+        const _eventhandlers = bridge[hapserver_eventhandlers] || (bridge[hapserver_eventhandlers] = new WeakMap());
         let eventhandlers = _eventhandlers.get(accessory);
         if (!eventhandlers) _eventhandlers.set(accessory, eventhandlers = {});
 
         if (!eventhandlers.characteristic_change) eventhandlers.characteristic_change = (change: any) => { // eslint-disable-line curly
+            // @ts-ignore
             bridge._handleCharacteristicChange(clone(change, {accessory}));
         };
         if (!eventhandlers.configuration_change) eventhandlers.configuration_change = (change: any) => { // eslint-disable-line curly
+            // @ts-ignore
             bridge._updateConfiguration();
         };
 
         accessory.on('service-characteristic-change', eventhandlers.characteristic_change);
         accessory.on('service-configurationChange', eventhandlers.configuration_change);
 
+        // @ts-ignore
         accessory.bridged = true;
         bridge.bridgedAccessories.push(accessory);
 
+        // @ts-ignore
         if (!defer_update) bridge._updateConfiguration();
 
         return accessory;
     }
 
-    private _removeBridgedAccessory(bridge: HAPBridge, accessory: typeof Accessory, defer_update = false) {
-        const index = bridge.bridgedAccessories.findIndex((a: typeof Accessory) => a.UUID === accessory.UUID);
+    private _removeBridgedAccessory(bridge: HAPBridge, accessory: Accessory, defer_update = false) {
+        const index = bridge.bridgedAccessories.findIndex(a => a.UUID === accessory.UUID);
         if (index <= -1) throw new Error('Cannot find the bridged Accessory to remove.');
 
         const existing = bridge.bridgedAccessories[index];
@@ -137,12 +155,13 @@ export default class Bridge {
 
         this._removeBridgedAccessoryEventListeners(bridge, existing);
 
+        // @ts-ignore
         if (!defer_update) bridge._updateConfiguration();
     }
 
-    private _removeBridgedAccessoryEventListeners(bridge: HAPBridge, accessory: typeof Accessory) {
-        if (!bridge.__hap_server_eventhandlers) return;
-        const eventhandlers = bridge.__hap_server_eventhandlers.get(accessory);
+    private _removeBridgedAccessoryEventListeners(bridge: HAPBridge, accessory: Accessory) {
+        if (!bridge[hapserver_eventhandlers]) return;
+        const eventhandlers = bridge[hapserver_eventhandlers]!.get(accessory);
         if (!eventhandlers) return;
 
         if (eventhandlers.characteristic_change) {
@@ -225,16 +244,22 @@ export default class Bridge {
         }
 
         if (accessory_info.setupID === undefined || accessory_info.setupID === '') {
+            // @ts-ignore
             this.bridge._setupID = this.bridge._generateSetupID();
         } else {
+            // @ts-ignore
             this.bridge._setupID = accessory_info.setupID;
         }
 
+        // @ts-ignore
         accessory_info.setupID = this.bridge._setupID;
 
         // Make sure we have up-to-date values in AccessoryInfo, then save it in case they changed (or if we just created it)
+        // @ts-ignore
         accessory_info.displayName = this.name;
+        // @ts-ignore
         accessory_info.category = Accessory.Categories.BRIDGE;
+        // @ts-ignore
         accessory_info.pincode = this.pincode;
         accessory_info.save();
 
@@ -265,7 +290,7 @@ export default class Bridge {
         return Object.defineProperty(this, 'hap_server', {value: hap_server}).hap_server;
     }
 
-    addExternalAccessory(accessory: typeof Accessory) {
+    addExternalAccessory(accessory: Accessory) {
         // Check for UUID conflict
         for (const existing of this.bridge.bridgedAccessories) {
             if (existing.UUID === accessory.UUID) throw new Error('Cannot add an external Accessory with the same' + // eslint-disable-line curly
@@ -289,10 +314,10 @@ export default class Bridge {
         return `${bridge_username.substr(0, 8)}:xx:xx:xx`.replace(/[x]/g, x => s[i++]);
     }
 
-    static getExternalAccessoryCategory(accessory: typeof Accessory): number {
+    static getExternalAccessoryCategory(accessory: Accessory): number {
         if (accessory.category !== Accessory.Categories.OTHER) return accessory.category;
 
-        if ((accessory as any)._isBridge) return Accessory.Categories.BRIDGE;
+        if (accessory._isBridge) return Accessory.Categories.BRIDGE;
 
         if (accessory.services.find(s => s.UUID === Service.Fan.UUID)) return Accessory.Categories.FAN;
         if (accessory.services.find(s =>
@@ -314,7 +339,7 @@ export default class Bridge {
             s.UUID === Service.TemperatureSensor.UUID ||
             s.UUID === Service.AirQualitySensor.UUID)) return Accessory.Categories.SENSOR;
         if (accessory.services.find(s =>
-            s.UUID === Service.SecuritySystem.UUID)) return (Accessory.Categories as any).SECURITY_SYSTEM;
+            s.UUID === Service.SecuritySystem.UUID)) return Accessory.Categories.SECURITY_SYSTEM;
         if (accessory.services.find(s => s.UUID === Service.Door.UUID)) return Accessory.Categories.DOOR;
         if (accessory.services.find(s => s.UUID === Service.Window.UUID)) return Accessory.Categories.WINDOW;
         if (accessory.services.find(s =>
@@ -322,34 +347,35 @@ export default class Bridge {
         if (accessory.services.find(s =>
             s.UUID === Service.StatelessProgrammableSwitch.UUID)) return Accessory.Categories.PROGRAMMABLE_SWITCH;
         if (accessory.cameraSource && accessory.services.find(s =>
-            s.UUID === Service.Doorbell.UUID)) return (Accessory.Categories as any).VIDEO_DOORBELL;
-        if (accessory.cameraSource) return (Accessory.Categories as any).IP_CAMERA;
-        if (accessory.services.find(s => s.UUID === Service.AirPurifier.UUID)) return (Accessory.Categories as any).AIR_PURIFIER;
-        if (accessory.services.find(s => s.UUID === Service.Television.UUID)) return (Accessory.Categories as any).TELEVISION;
-        if (accessory.services.find(s => s.UUID === Service.Speaker.UUID)) return (Accessory.Categories as any).SPEAKER;
+            s.UUID === Service.Doorbell.UUID)) return Accessory.Categories.VIDEO_DOORBELL;
+        if (accessory.cameraSource) return Accessory.Categories.IP_CAMERA;
+        if (accessory.services.find(s => s.UUID === Service.AirPurifier.UUID)) return Accessory.Categories.AIR_PURIFIER;
+        if (accessory.services.find(s => s.UUID === Service.Television.UUID)) return Accessory.Categories.TELEVISION;
+        if (accessory.services.find(s => s.UUID === Service.Speaker.UUID)) return Accessory.Categories.SPEAKER;
         if (accessory.services.find(s => s.UUID === Service.Valve.UUID &&
-            (s.getCharacteristic(Characteristic.ValveType) as any).value === Characteristic.ValveType.IRRIGATION
-        )) return (Accessory.Categories as any).SPRINKLER;
+            s.getCharacteristic(Characteristic.ValveType).value === Characteristic.ValveType.IRRIGATION
+        )) return Accessory.Categories.SPRINKLER;
         if (accessory.services.find(s => s.UUID === Service.Faucet.UUID || (s.UUID === Service.Valve.UUID &&
-            (s.getCharacteristic(Characteristic.ValveType) as any).value === Characteristic.ValveType.WATER_FAUCET)
-        )) return (Accessory.Categories as any).FAUCET;
+            s.getCharacteristic(Characteristic.ValveType).value === Characteristic.ValveType.WATER_FAUCET)
+        )) return Accessory.Categories.FAUCET;
         if (accessory.services.find(s => s.UUID === Service.Valve.UUID &&
-            (s.getCharacteristic(Characteristic.ValveType) as any).value === Characteristic.ValveType.SHOWER_HEAD
-        )) return (Accessory.Categories as any).SHOWER_HEAD;
+            s.getCharacteristic(Characteristic.ValveType).value === Characteristic.ValveType.SHOWER_HEAD
+        )) return Accessory.Categories.SHOWER_HEAD;
 
         return Accessory.Categories.OTHER;
     }
 
-    getExternalAccessoryAccessoryInfo(accessory: typeof Accessory): AccessoryInfo {
+    getExternalAccessoryAccessoryInfo(accessory: Accessory): AccessoryInfo {
         if (!this.external_accessories.includes(accessory)) {
             throw new Error('Unknown external accessory');
         }
 
         if (this.external_accessory_accessory_infos.has(accessory)) {
-            return this.external_accessory_accessory_infos.get(accessory);
+            return this.external_accessory_accessory_infos.get(accessory)!;
         }
 
-        const username = (this.constructor as typeof Bridge).generateExternalAccessoryUsername(this.username, accessory.UUID);
+        const username = (this.constructor as typeof Bridge)
+            .generateExternalAccessoryUsername(this.username, accessory.UUID);
 
         // Attempt to load existing AccessoryInfo from disk
         let accessory_info = AccessoryInfo.load(username);
@@ -367,11 +393,15 @@ export default class Bridge {
             (accessory as any)._setupID = accessory_info.setupID;
         }
 
+        // @ts-ignore
         accessory_info.setupID = (accessory as any)._setupID;
 
         // Make sure we have up-to-date values in AccessoryInfo, then save it in case they changed (or if we just created it)
+        // @ts-ignore
         accessory_info.displayName = this.name + ' ' + accessory.displayName;
+        // @ts-ignore
         accessory_info.category = (this.constructor as typeof Bridge).getExternalAccessoryCategory(accessory);
+        // @ts-ignore
         accessory_info.pincode = this.pincode;
         accessory_info.save();
 
@@ -379,16 +409,17 @@ export default class Bridge {
         return accessory_info;
     }
 
-    getExternalAccessoryIdentifierCache(accessory: typeof Accessory): IdentifierCache {
+    getExternalAccessoryIdentifierCache(accessory: Accessory): IdentifierCache {
         if (!this.external_accessories.includes(accessory)) {
             throw new Error('Unknown external accessory');
         }
 
         if (this.external_accessory_identifier_caches.has(accessory)) {
-            return this.external_accessory_identifier_caches.get(accessory);
+            return this.external_accessory_identifier_caches.get(accessory)!;
         }
 
-        const username = (this.constructor as typeof Bridge).generateExternalAccessoryUsername(this.username, accessory.UUID);
+        const username = (this.constructor as typeof Bridge)
+            .generateExternalAccessoryUsername(this.username, accessory.UUID);
 
         // Create our IdentifierCache so we can provide clients with stable aid/iid's
         let identifier_cache = IdentifierCache.load(username);
@@ -404,7 +435,7 @@ export default class Bridge {
         return identifier_cache;
     }
 
-    getExternalAccessoryServer(accessory: typeof Accessory) {
+    getExternalAccessoryServer(accessory: Accessory) {
         if (!this.external_accessories.includes(accessory)) {
             throw new Error('Unknown external accessory');
         }
@@ -436,7 +467,7 @@ export default class Bridge {
         return hap_server;
     }
 
-    expireExternalAccessoryUnusedIDs(accessory: typeof Accessory) {
+    expireExternalAccessoryUnusedIDs(accessory: Accessory) {
         if (!this.external_accessory_identifier_caches.has(accessory) ||
             !this.external_accessory_servers.has(accessory)) return;
 
@@ -452,7 +483,7 @@ export default class Bridge {
         identifier_cache.save();
     }
 
-    removeExternalAccessory(accessory: typeof Accessory) {
+    removeExternalAccessory(accessory: Accessory) {
         const index = this.external_accessories.findIndex(a => a.UUID === accessory.UUID);
         if (index <= -1) throw new Error('Cannot find the external Accessory to remove.');
 
@@ -470,7 +501,7 @@ export default class Bridge {
         this.external_accessory_servers.delete(existing);
     }
 
-    checkAccessoryMustBeExternal(accessory: typeof Accessory) {
+    checkAccessoryMustBeExternal(accessory: Accessory) {
         if ((accessory as any).plugin_accessory && (accessory as any).plugin_accessory.cached_data &&
             (accessory as any).plugin_accessory.cached_data.bridge_uuids_external &&
             (accessory as any).plugin_accessory.cached_data.bridge_uuids_external.includes(this.uuid)) return true;
@@ -504,7 +535,7 @@ export default class Bridge {
      *
      * @param {Accessory} accessory
      */
-    addAccessory(accessory: typeof Accessory) {
+    addAccessory(accessory: Accessory) {
         if ((accessory as any).external || this.checkAccessoryMustBeExternal(accessory)) {
             this.addExternalAccessory(accessory);
 
@@ -524,12 +555,12 @@ export default class Bridge {
      *
      * @param {Accessory} accessory
      */
-    removeAccessory(accessory: typeof Accessory) {
+    removeAccessory(accessory: Accessory) {
         try {
             this.removeExternalAccessory(accessory);
         } catch (err) {}
         try {
-            this.bridge.removeBridgeAccessory(accessory);
+            this.bridge.removeBridgedAccessory(accessory);
         } catch (err) {}
 
         this.removeCachedAccessory(accessory);
@@ -542,7 +573,7 @@ export default class Bridge {
      * @param {Accessory[]} add
      * @param {Accessory[]} remove
      */
-    patchAccessories(add: typeof Accessory[], remove: typeof Accessory[]) {
+    patchAccessories(add: Accessory[], remove: Accessory[]) {
         try {
             for (const accessory of add) {
                 if ((accessory as any).external ||
@@ -568,17 +599,18 @@ export default class Bridge {
                     this.removeExternalAccessory(accessory);
                 } catch (err) {}
                 try {
-                    this.bridge.removeBridgeAccessory(accessory, true);
+                    this.bridge.removeBridgedAccessory(accessory, true);
                 } catch (err) {}
                 this.removeCachedAccessory(accessory.UUID);
                 if (this.hasOwnProperty('hap_server')) this.hap_server.unsubscribeAllEventsForAccessory(accessory);
             }
         } finally {
+            // @ts-ignore
             this.bridge._updateConfiguration();
         }
     }
 
-    addCachedAccessory(accessory: typeof Accessory) {
+    addCachedAccessory(accessory: Accessory) {
         this.log.debug('Adding cached accessory %s (UUID %s)', accessory.displayName, accessory.UUID);
 
         if ((accessory as any)._isBridge) throw new Error('Cannot Bridge another Bridge!');
@@ -593,12 +625,13 @@ export default class Bridge {
                 ' UUID as another external Accessory: ' + existing.UUID);
         }
 
+        // @ts-ignore
         accessory.bridged = true;
 
         this.cached_accessories.push(accessory);
     }
 
-    removeCachedAccessory(accessory: typeof Accessory | string) {
+    removeCachedAccessory(accessory: Accessory | string) {
         let index;
         while ((index = typeof accessory === 'string' ?
             this.cached_accessories.findIndex(a => a.UUID === accessory) :
@@ -629,6 +662,7 @@ export default class Bridge {
 
     get setup_uri(): string {
         // Make sure this is set otherwise setupURI won't work
+        // @ts-ignore
         this.bridge._accessoryInfo = this.accessory_info;
 
         return this.bridge.setupURI();

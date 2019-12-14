@@ -1,12 +1,12 @@
 import {Event} from '..';
 import {Server} from '../../server';
-import {Accessory, Service, Characteristic} from 'hap-nodejs';
+import {Accessory, Service, Characteristic} from '../../hap-nodejs';
 
 export class CharacteristicUpdateEvent extends Event {
     static readonly type = 'characteristic-update';
 
     constructor(
-        server: Server, accessory: typeof Accessory, service: typeof Service, characteristic: typeof Characteristic,
+        server: Server, accessory: Accessory, service: Service, characteristic: Characteristic,
         value: any, old_value: any, hap_context: any
     ) {
         super(server, accessory, service, characteristic, value, old_value, hap_context);
@@ -16,15 +16,15 @@ export class CharacteristicUpdateEvent extends Event {
         return this.args[0];
     }
 
-    get accessory(): typeof Accessory {
+    get accessory(): Accessory {
         return this.args[1];
     }
 
-    get service(): typeof Service {
+    get service(): Service {
         return this.args[2];
     }
 
-    get characteristic(): typeof Characteristic {
+    get characteristic(): Characteristic {
         return this.args[3];
     }
 

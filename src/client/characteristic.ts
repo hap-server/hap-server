@@ -3,7 +3,7 @@
 import EventEmitter from 'events';
 import Client from './client';
 
-import {Characteristic as HAPCharacteristic} from 'hap-nodejs/lib/Characteristic';
+import {Characteristic as HAPCharacteristic, PredefinedCharacteristic} from 'hap-nodejs/lib/Characteristic';
 import 'hap-nodejs/lib/gen/HomeKitTypes';
 import Service from './service';
 
@@ -331,7 +331,7 @@ export default Characteristic;
 
 const subscribed_characteristics = new Map();
 
-export const types: {[name: string]: typeof HAPCharacteristic} = {};
+export const types: {[name: string]: PredefinedCharacteristic} = {};
 export const type_uuids: {[name: string]: /** UUID */ string} = {};
 export const type_names: {[uuid: string]: /** Name */ string} = {};
 
@@ -339,10 +339,16 @@ Characteristic.Formats = HAPCharacteristic.Formats;
 Characteristic.Units = HAPCharacteristic.Units;
 Characteristic.Perms = HAPCharacteristic.Perms;
 
-for (const key of Object.keys(HAPCharacteristic)) {
-    if (HAPCharacteristic[key].prototype instanceof HAPCharacteristic) {
+const isPredefinedCharacteristic = (a: any): a is PredefinedCharacteristic =>
+    a && a.prototype instanceof HAPCharacteristic;
+
+for (const key of Object.keys(HAPCharacteristic) as (keyof typeof HAPCharacteristic)[]) {
+    if (isPredefinedCharacteristic(HAPCharacteristic[key])) {
+        // @ts-ignore
         types[key] = HAPCharacteristic[key];
+        // @ts-ignore
         type_uuids[key] = HAPCharacteristic[key].UUID;
+        // @ts-ignore
         type_names[HAPCharacteristic[key].UUID] = key;
     }
 }

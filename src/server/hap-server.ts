@@ -1,6 +1,6 @@
 /// <reference path="../types/hap-nodejs.d.ts" />
 
-import {Accessory, Service, Characteristic} from 'hap-nodejs';
+import {Accessory, Service, Characteristic} from '../hap-nodejs';
 import {HAPServer} from 'hap-nodejs/lib/HAPServer';
 import {Advertiser} from 'hap-nodejs/lib/Advertiser';
 import {AccessoryInfo} from 'hap-nodejs/lib/model/AccessoryInfo';
@@ -15,6 +15,7 @@ export function hapStatus(err: any): number {
     for (const k in HAPServer.Status) {
         if (err.message !== k) continue;
 
+        // @ts-ignore
         value = HAPServer.Status[k];
         break;
     }
@@ -27,15 +28,15 @@ export function hapStatus(err: any): number {
 export default class Server {
     private static instances = new Set<Server>();
 
-    readonly bridge: typeof Accessory;
+    readonly bridge: Accessory;
     readonly config: any;
     readonly log: Logger;
-    readonly accessories: typeof Accessory[];
-    readonly cached_accessories: typeof Accessory[];
+    readonly accessories: Accessory[];
+    readonly cached_accessories: Accessory[];
 
     readonly accessory_info: AccessoryInfo;
     readonly identifier_cache: IdentifierCache;
-    readonly camera_source?: CameraSource;
+    readonly camera_source: CameraSource | null;
 
     readonly server: HAPServer;
     readonly advertiser: Advertiser;
@@ -58,8 +59,8 @@ export default class Server {
      * @param {Camera} camera_source
      */
     constructor(
-        bridge: typeof Accessory, config: any, log: Logger,
-        accessory_info: AccessoryInfo, identifier_cache: IdentifierCache, camera_source?: CameraSource
+        bridge: Accessory, config: any, log: Logger,
+        accessory_info: AccessoryInfo, identifier_cache: IdentifierCache, camera_source?: CameraSource | null
     ) {
         this.bridge = bridge;
         this.config = config;
@@ -70,7 +71,7 @@ export default class Server {
 
         this.accessory_info = accessory_info;
         this.identifier_cache = identifier_cache;
-        this.camera_source = camera_source;
+        this.camera_source = camera_source || null;
 
         // Create our HAP server which handles all communication between iOS devices and us
         const server = this.server = new HAPServer(this.accessory_info /* , this.relay_server */);
@@ -109,7 +110,9 @@ export default class Server {
         // Create our Advertiser which broadcasts our presence over mdns
         this.advertiser = new Advertiser(this.accessory_info, this.mdns);
 
+        // @ts-ignore
         const publish = this.advertiser._bonjourService.publish;
+        // @ts-ignore
         this.advertiser._bonjourService.publish = function(this: Advertiser, options: any) {
             options.probe = false;
             // eslint-disable-next-line prefer-rest-params
@@ -173,7 +176,7 @@ export default class Server {
      * @param {number} iid
      * @return {Service}
      */
-    getServiceByID(aid: typeof Accessory | number, iid: number) {
+    getServiceByID(aid: Accessory | number, iid: number) {
         const accessory = aid instanceof Accessory ? aid : this.getAccessoryByID(aid);
         if (!accessory) return null;
 
@@ -189,7 +192,7 @@ export default class Server {
      * @param {number} iid
      * @return {Characteristic}
      */
-    getCharacteristicByID(aid: typeof Accessory | number, iid: number): typeof Characteristic {
+    getCharacteristicByID(aid: Accessory | number, iid: number): Characteristic | null {
         const accessory = aid instanceof Accessory ? aid : this.getAccessoryByID(aid);
         if (!accessory) return null;
 
@@ -198,6 +201,8 @@ export default class Server {
                 if (this.getCharacteristicID(accessory, service, characteristic) === iid) return characteristic;
             }
         }
+
+        return null;
     }
 
     /**
@@ -206,7 +211,7 @@ export default class Server {
      * @param {Accessory} accessory
      * @return {number}
      */
-    getAccessoryID(accessory: typeof Accessory): number {
+    getAccessoryID(accessory: Accessory): number {
         if (accessory.UUID === this.bridge.UUID) return 1;
 
         return this.identifier_cache.getAID(accessory.UUID);
@@ -219,7 +224,7 @@ export default class Server {
      * @param {Service} service
      * @return {number}
      */
-    getServiceID(accessory: typeof Accessory, service: typeof Service): number {
+    getServiceID(accessory: Accessory, service: Service): number {
         // The Accessory Information service must have a (reserved by IdentifierCache) ID of 1
         if (service.UUID === '0000003E-0000-1000-8000-0026BB765291' && !service.subtype) return 1;
 
@@ -237,18 +242,20 @@ export default class Server {
      * @return {number}
      */
     getCharacteristicID(
-        accessory: typeof Accessory, service: typeof Service, characteristic: typeof Characteristic
+        accessory: Accessory, service: Service, characteristic: Characteristic
     ): number {
         return this.identifier_cache.getIID(accessory.UUID, service.UUID, service.subtype, characteristic.UUID);
     }
 
     get listening_port(): number | null {
-        const listening = this.server._httpServer._tcpServer.address();
+        const listening = this.server._httpServer._tcpServer.address() as import('net').AddressInfo | null;
         return listening && listening.port;
     }
 
     startAdvertising() {
+        if (!this.listening_port) throw new Error('Not listening');
         this.advertiser.startAdvertising(this.listening_port);
+        // @ts-ignore
         if (this.config.hostname) this.advertiser._advertisement.host = this.config.hostname;
     }
 
@@ -278,7 +285,7 @@ export default class Server {
      *
      * @param {Accessory} accessory
      */
-    unsubscribeAllEventsForAccessory(accessory: typeof Accessory) {
+    unsubscribeAllEventsForAccessory(accessory: Accessory) {
         const aid = this.getAccessoryID(accessory);
 
         for (const connection of this.server._httpServer._connections) {
@@ -398,7 +405,7 @@ export default class Server {
      * @param {boolean} [is_cached]
      * @return {object}
      */
-    accessoryToHAP(accessory: typeof Accessory, options?: any, is_cached = false) {
+    accessoryToHAP(accessory: Accessory, options?: any, is_cached = false) {
         return {
             aid: this.getAccessoryID(accessory),
             services: accessory.services.map(service => ({
@@ -584,7 +591,7 @@ export default class Server {
 
             try {
                 // Set the value and wait for success
-                await new Promise((rs, rj) => characteristic.setValue(value, (err: any, value: any) => {
+                await new Promise((rs, rj) => characteristic.setValue(value, (err?, value?) => {
                     err ? rj(err) : rs(value);
                 }, context, connection_id));
 
@@ -618,7 +625,7 @@ export default class Server {
      */
     async handleResource(data: any) {
         if (data['resource-type'] === 'image' && this.camera_source) {
-            return await new Promise((rs, rj) => this.camera_source.handleSnapshotRequest({
+            return await new Promise((rs, rj) => this.camera_source!.handleSnapshotRequest({
                 width: data['image-width'],
                 height: data['image-height'],
             }, (err: any, data: any) => err ? rj(err) : rs(data)));

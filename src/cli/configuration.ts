@@ -4,7 +4,7 @@ import {parseAddress, addressToString, normaliseAddress} from './server';
 import path from 'path';
 import {promises as fs} from 'fs';
 
-import hap from 'hap-nodejs';
+import * as hap from '../hap-nodejs';
 
 export interface HomebridgeBridgeConfiguration {
     name?: string;
