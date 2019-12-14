@@ -136,7 +136,8 @@
     },
     "peerDependencies": {
         "@hap-server/authenticate-pam": "^0.3.1",
-        "hap-controller": "^0.1.9"
+        "hap-controller": "^0.1.9",
+        "ts-node": "^8.5.4"
     },
     "scripts": {
         "build": "gulp build",

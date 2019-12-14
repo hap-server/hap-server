@@ -39,6 +39,7 @@ const log = new Logger('Plugins');
 
 let instance: PluginManager;
 let storage_path: string;
+let loading_tsnode: Promise<void>;
 
 export type AccessoryHandler =
     (config: AccessoryConfiguration, cached_accessory?: Accessory) =>
@@ -125,8 +126,8 @@ export class PluginManager extends Events {
     }
 
     getPluginByModule(module: Module) {
-        return this.plugins.find(plugin => module.filename === plugin.path ||
-            module.filename.startsWith(plugin.path + path.sep));
+        return module[Plugin.ModuleSymbol] || this.plugins.find(plugin => module.filename === plugin.path ||
+            module.filename.startsWith(plugin.path + path.sep)) || null;
     }
 
     static bindConstructor(constructor: any, ...args: any[]) {
@@ -260,10 +261,31 @@ export class PluginManager extends Events {
         this.plugins.push(plugin);
 
         try {
+            // If this is a single file plugin written in TypeScript load ts-node
+            if (!package_json && plugin_path.endsWith('.ts')) {
+                try {
+                    await (loading_tsnode || (loading_tsnode = (async () => {
+                        log.warn('Loading TypeScript Node');
+                        log.warn('Using TypeScript Node instead of compiling single file plugins seperately will ' +
+                            'increase startup time.');
+
+                        const tsnode = await import('ts-node');
+
+                        const compiler = tsnode.register();
+                    })()));
+                } catch (err) {
+                    log.error('Failed to load TypeScript Node, which is required to use single file plugins ' +
+                        'written in TypeScript without compiling seperately. Run `%s` to install TypeScript Node ' +
+                        'or run `%s` to compile the plugin.', 'npm install --global ts-node', 'npx tsc ' +
+                        JSON.stringify(plugin_path));
+                }
+            }
+
             const module_path = require.resolve(plugin_path);
             require(plugin_path);
 
             Object.defineProperty(plugin, 'module', {value: require.cache[module_path]});
+            Object.defineProperty(require.cache[module_path], Plugin.ModuleSymbol, {value: plugin});
         } catch (err) {
             log.error('Error loading plugin', name, err);
         }
@@ -425,13 +447,15 @@ export class PluginManager extends Events {
 export default PluginManager.instance;
 
 export class Plugin extends Events {
+    static readonly ModuleSymbol = Symbol('HapServerPlugin');
+
     readonly plugin_manager: PluginManager;
     readonly module: Module | null = null;
     readonly path: string;
     readonly name: string;
 
     readonly accessories: Map<string, (config: any, cached_accessory?: Accessory) => (Promise<Accessory> |
-        Accessory)> = new Map();
+        Accessory)> = new Map(); // eslint-disable-line @typescript-eslint/indent
     readonly accessory_platforms: Map<string, typeof AccessoryPlatform> = new Map();
     readonly server_plugins: Set<typeof ServerPlugin> = new Set();
     readonly web_interface_plugins: Set<WebInterfacePlugin> = new Set();
@@ -781,6 +805,15 @@ export class Plugin extends Events {
         log.info('Registering automation action', name, 'from plugin', this.name);
 
         this.automation_actions.set(name as string, handler!);
+    }
+}
+
+declare global {
+    // eslint-disable-next-line @typescript-eslint/no-namespace
+    namespace NodeJS {
+        interface Module {
+            [Plugin.ModuleSymbol]?: Plugin;
+        }
     }
 }
 
