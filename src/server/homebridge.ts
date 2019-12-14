@@ -18,6 +18,7 @@ export default class Homebridge extends Bridge {
     readonly homebridge: HomebridgeServer;
 
     constructor(server: Server, log: Logger, config: any, unauthenticated_access = false) {
+        // @ts-ignore
         HomebridgeUser.configPath = (() => undefined) as () => undefined;
         HomebridgeUser.config = () => config;
 
@@ -29,6 +30,7 @@ export default class Homebridge extends Bridge {
 
         homebridge._printSetupInfo = (() => undefined) as () => undefined;
         homebridge._printPin = (() => undefined) as () => undefined;
+        // @ts-ignore
         homebridge._handleNewConfig = (() => undefined) as () => undefined;
 
         super(server, log, {
@@ -47,7 +49,9 @@ export default class Homebridge extends Bridge {
     protected _createBridge(config: {homebridge: HomebridgeServer}) {
         const bridge = config.homebridge._bridge;
 
+        // @ts-ignore
         bridge._handlePair = this._handlePair.bind(this, bridge, bridge._handlePair);
+        // @ts-ignore
         bridge._handleUnpair = this._handleUnpair.bind(this, bridge, bridge._handleUnpair);
 
         return bridge;

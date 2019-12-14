@@ -479,16 +479,16 @@ export default class AccessoryManager {
         for (const platform_accessory of
             Object.values(this.homebridge!.homebridge._publishedAccessories) as PlatformAccessory[]
         ) {
-            const plugin_accessory = new HomebridgeAccessory(this.server, platform_accessory._associatedHAPAccessory,
+            const plugin_accessory = new HomebridgeAccessory(this.server, platform_accessory._associatedHAPAccessory!,
                 platform_accessory);
 
             this.addAccessory(plugin_accessory);
         }
 
         this.homebridge!.homebridge._api
-            .on('handleRegisterPlatformAccessories', this._handleRegisterHomebridgePlatformAccessories);
+            .on('registerPlatformAccessories', this._handleRegisterHomebridgePlatformAccessories);
         this.homebridge!.homebridge._api
-            .on('handleUnregisterPlatformAccessories', this._handleUnregisterHomebridgePlatformAccessories);
+            .on('unregisterPlatformAccessories', this._handleUnregisterHomebridgePlatformAccessories);
         this.homebridge!.homebridge._api
             .on('publishExternalAccessories', this._handleRegisterExternalHomebridgeAccessories);
     }
@@ -905,7 +905,7 @@ export class PluginAccessoryPlatformAccessory extends PluginAccessory {
 }
 
 export class HomebridgeAccessory extends PluginAccessory {
-    readonly platform_accessory: PlatformAccessory;
+    readonly platform_accessory!: PlatformAccessory;
 
     constructor(server: Server, accessory: Accessory, platform_accessory?: PlatformAccessory) {
         super(server, accessory, null);
