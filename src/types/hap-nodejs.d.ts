@@ -439,6 +439,7 @@ declare module 'hap-nodejs/lib/Accessory' {
         /** Purge unused ids by default */
         readonly shouldPurgeUnusedIDs: boolean;
 
+        private _setupID;
         private _setupURI;
 
         constructor(displayName: string, UUID: string);
@@ -698,21 +699,23 @@ declare module 'hap-nodejs/lib/Characteristic' {
 }
 
 declare module 'hap-nodejs/lib/model/AccessoryInfo' {
+    import {Category} from 'hap-nodejs/lib/Accessory';
+
     export class AccessoryInfo {
         readonly username: string;
-        readonly displayName: string;
-        readonly category: string;
-        readonly pincode: string;
+        displayName: string;
+        category: Category;
+        pincode: string;
         readonly signSk: Buffer;
         readonly signPk: Buffer;
         readonly pairedClients: {
             /** pairedClients[clientUsername:string] = clientPublicKey:Buffer */
             [clientUsername: string]: Buffer | undefined;
         };
-        readonly configVersion: number;
-        readonly configHash: string;
+        configVersion: number;
+        configHash: string;
 
-        readonly setupID: string;
+        setupID: string;
 
         readonly relayEnabled: boolean;
         readonly relayState: number;

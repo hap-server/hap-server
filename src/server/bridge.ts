@@ -233,7 +233,7 @@ export default class Bridge {
         }
     }
 
-    get accessory_info() {
+    get accessory_info(): AccessoryInfo {
         // Attempt to load existing AccessoryInfo from disk
         let accessory_info = AccessoryInfo.load(this.username);
 
@@ -255,18 +255,15 @@ export default class Bridge {
         accessory_info.setupID = this.bridge._setupID;
 
         // Make sure we have up-to-date values in AccessoryInfo, then save it in case they changed (or if we just created it)
-        // @ts-ignore
         accessory_info.displayName = this.name;
-        // @ts-ignore
         accessory_info.category = Accessory.Categories.BRIDGE;
-        // @ts-ignore
         accessory_info.pincode = this.pincode;
         accessory_info.save();
 
         return Object.defineProperty(this, 'accessory_info', {value: accessory_info}).accessory_info;
     }
 
-    get identifier_cache() {
+    get identifier_cache(): IdentifierCache {
         // Create our IdentifierCache so we can provide clients with stable aid/iid's
         let identifier_cache = IdentifierCache.load(this.username);
 
@@ -279,7 +276,7 @@ export default class Bridge {
         return Object.defineProperty(this, 'identifier_cache', {value: identifier_cache}).identifier_cache;
     }
 
-    get hap_server() {
+    get hap_server(): HAPServer {
         // Create our HAP server which handles all communication between iOS devices and us
         const hap_server = new HAPServer(this.bridge, {
             port: this.port,

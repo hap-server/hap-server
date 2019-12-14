@@ -1,6 +1,7 @@
 /// <reference path="../types/homebridge.d.ts" />
 
 import Bridge from './bridge';
+import HAPServer from './hap-server';
 
 import {Server as HomebridgeServer} from 'homebridge/lib/server';
 import {User as HomebridgeUser} from 'homebridge/lib/user';
@@ -76,16 +77,16 @@ export default class Homebridge extends Bridge {
         this.homebridge._teardown();
     }
 
-    get hap_server() {
+    get hap_server(): HAPServer {
         throw new Error('Cannot create a HAPServer for Homebridge');
     }
 
     get accessory_info() {
-        return this.bridge._accessoryInfo;
+        return this.bridge._accessoryInfo!;
     }
 
     get identifier_cache() {
-        return this.bridge._identifierCache;
+        return this.bridge._identifierCache!;
     }
 
     addAccessory(accessory: Accessory) {

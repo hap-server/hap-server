@@ -500,7 +500,9 @@ export default class Connection {
             return;
         }
 
-        await this.server.setCharacteristicValue(characteristic, value);
+        await this.server.setCharacteristicValue(characteristic, value, {
+            [ConnectionSymbol]: this,
+        });
     }
 
     /**
@@ -1829,11 +1831,11 @@ export default class Connection {
 
         const public_key = bridge.accessory_info.pairedClients[id];
 
-        return {
+        return public_key ? {
             bridge_uuid,
             id,
             public_key: public_key.toString('hex'),
-        };
+        } : null;
     }
 
     /**
@@ -2283,6 +2285,8 @@ export default class Connection {
         else input.push(data, 'utf-8');
     }
 }
+
+export const ConnectionSymbol = Symbol('Connection');
 
 if (DEVELOPMENT) {
     const development_data = exports.development_data = {
