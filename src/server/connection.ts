@@ -84,7 +84,9 @@ const hide_authentication_keys = [
     'password', 'token',
 ];
 
-function messagehandler<T extends string>(type: T, handler?: (data: RequestMessages[T]) => void): (target: Connection, method: string) => void {
+function messagehandler<T extends string>(
+    type: T, handler?: (data: RequestMessages[T]) => void
+): (target: Connection, method: string) => void {
     // @ts-ignore
     return messagehandler2.bind(null, type, handler);
 }
@@ -448,7 +450,9 @@ export default class Connection {
                     // @ts-ignore
                     characteristic.UUID)) characteristics.push(characteristic.UUID);
             }));
-            if (characteristics.length) services[service.UUID + (service.subtype ? '.' + service.subtype : '')] = characteristics;
+            if (characteristics.length) {
+                services[service.UUID + (service.subtype ? '.' + service.subtype : '')] = characteristics;
+            }
         }));
 
         // await Promise.all(service.characteristics.map(async characteristic => this.permissions.checkCanSetCharacteristic(uuid, service.UUID, characteristic.UUID).then(can_set => can_set ? characteristic.UUID)))
@@ -1195,6 +1199,7 @@ export default class Connection {
         await this.server.storage.setItem('Automation.' + uuid, data);
 
         // Don't wait for the automation to load
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
         this.server.loadAutomation(uuid, data).catch(() => {});
 
         const automation_uuids = await this.server.storage.getItem('Automations') || [];
@@ -1261,6 +1266,7 @@ export default class Connection {
         await this.server.storage.setItem('Automation.' + uuid, data);
 
         // Don't wait for the automation to load
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
         this.server.updateAutomation(uuid, data).catch(() => {});
 
         const automation_uuids = await this.server.storage.getItem('Automations') || [];
@@ -1338,6 +1344,7 @@ export default class Connection {
         await this.server.storage.setItem('Scene.' + uuid, data);
 
         // Don't wait for the automation to load
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
         this.server.loadScene(uuid, data).catch(() => {});
 
         const scene_uuids = await this.server.storage.getItem('Scenes') || [];
@@ -1405,6 +1412,7 @@ export default class Connection {
         await this.server.storage.setItem('Scene.' + uuid, data);
 
         // Don't wait for the scene to load
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
         this.server.updateScene(uuid, data).catch(() => {});
 
         const scene_uuids = await this.server.storage.getItem('Scenes') || [];
@@ -2035,7 +2043,8 @@ export default class Connection {
 
                 this.log.info('Authenticating with setup token', token);
 
-                if ([...this.server.wss.clients].map(s => (this.constructor as typeof Connection).getConnectionForWebSocket(s))
+                if ([...this.server.wss.clients]
+                    .map(s => (this.constructor as typeof Connection).getConnectionForWebSocket(s))
                     .find(c => c && c.authenticated_user && c.authenticated_user.id === 'cli-token')
                 ) {
                     throw new Error('Another client is authenticated as the setup user.');
@@ -2217,6 +2226,7 @@ export default class Connection {
         const id = this.console_id++;
 
         const input = new stream.Readable({
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
             read: () => {},
         });
         const output = new stream.Writable({
@@ -2275,7 +2285,8 @@ export default class Connection {
                     console.input = input;
                     console.subprocesses.delete(subprocess);
                     repl_server.resume();
-                    this.log.info('Command %s exited with %s %d', command, signal ? 'signal' : 'code', signal ? signal : code);
+                    this.log.info('Command %s exited with %s %d',
+                        command, signal ? 'signal' : 'code', signal ? signal : code);
                     if (signal) output.write(chalk.yellow('Killed with signal ' + signal) + '\n');
                     else output.write(chalk[code === 0 ? 'grey' : 'red']('Exit code ' + code) + '\n');
                     repl_server.displayPrompt();
