@@ -32,8 +32,8 @@ A lot.
         - [x] Television
         - [x] Lock Mechanism
         - [x] Garage Door Opener
-        - [ ] [All other services supported by hap-nodejs](https://github.com/khaost/hap-nodejs/tree/master/lib/gen)
-        - [x] [Other services with plugins](docs/plugins.md#uipluginregisterservicecomponent)
+        - [ ] [All other services supported by hap-nodejs](https://github.com/khaost/hap-nodejs/tree/master/src/lib/gen)
+        - [x] [Other services with plugins](docs/plugins.md#uipluginregisterservicetilecomponent)
     - [x] Accessory control
         - [x] Switch
         - [x] Lightbulb
@@ -44,8 +44,8 @@ A lot.
             - [ ] Remote
         - [ ] Lock Mechanism
         - [ ] Garage Door Opener
-        - [ ] [All other services supported by hap-nodejs](https://github.com/khaost/hap-nodejs/tree/master/lib/gen)
-        - [x] [Other services with plugins](docs/plugins.md#uipluginregisteraccessorydetailscomponent)
+        - [ ] [All other services supported by hap-nodejs](https://github.com/khaost/hap-nodejs/tree/master/src/lib/gen)
+        - [x] [Other services with plugins](docs/plugins.md#uipluginregisterservicedetailscomponent)
     - [x] Dark theme [(system wide)](https://caniuse.com/#search=prefers-color-scheme)
     - [ ] Notifications
     - Configuration
@@ -245,11 +245,13 @@ Commands:
   <characteristics>
   hap-server set-characteristic <config>    Set a characteristic
   <characteristic> <value>
+  hap-server validate-configuration         Validates a configuration file
+  <config>
   hap-server version                        Show version number
 
 Positionals:
-  config  The configuration file to use
-                     [string] [default: "/Users/samuel/.homebridge/config.json"]
+  config  The configuration file to use                       [string] [default:
+                 "/Users/samuel/Documents/Projects/hap-server/data/config.yaml"]
 
 Options:
   --debug, -D                     Enable debug level logging
@@ -289,24 +291,32 @@ hap-nodejs version 0.4.51
 Configuration
 ---
 
-hap-server stores data in the same default location as Homebridge and supports the same configuration. Using the same
-configuration as Homebridge, hap-server will behave exactly like Homebridge but will have a web interface for
-controlling accessories. Using Homebridge and hap-server plugins at the same time are supported, however you shouldn't
-run multiple instances of hap-server/Homebridge using the same data location.
+hap-server stores data in a platform-specific default location (falling back to the same location as Homebridge) and
+supports the same configuration format as Homebridge, as well as YAML. Using the same configuration as Homebridge,
+hap-server will behave exactly like Homebridge but will have a web interface for controlling accessories. Using
+Homebridge and hap-server plugins at the same time are supported, however you shouldn't run multiple instances of
+hap-server/Homebridge using the same data location.
+
+Platform    | Directory
+------------|-----------
+macOS       | `~/Library/Application Support/hap-server`, `~/.homebridge`, `/Library/Application Support/hap-server`
+Linux       | `~/.config/hap-server`, `~/.homebridge`, `/var/lib/hap-server`
+
+For other platforms `~/.homebridge` is used.
 
 [See docs/config.md.](docs/config.md)
 
 You can also use hap-server programmatically with `Server.createServer`.
 
-```js
-import {Server} from 'hap-server';
+```ts
+import {Server} from '@hap-server/hap-server';
 
 const server = await Server.createServer({
     config: ...,
     data_path: ...,
 });
 
-// See src/cli.js to see what you can do with the Server object
+// See src/cli/server.ts to see what you can do with the Server object
 ```
 
 Development

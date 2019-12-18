@@ -2,6 +2,7 @@ import path from 'path';
 import os from 'os';
 
 import {connect, log, GlobalArguments} from '.';
+import {getDefaultConfigPath} from './configuration';
 
 export const command = 'get-characteristics <config> <characteristics>';
 export const describe = 'Get characteristics';
@@ -10,7 +11,9 @@ export function builder(yargs: typeof import('yargs')) {
     yargs.positional('config', {
         describe: 'The configuration file to use',
         type: 'string',
-        default: path.join(os.homedir(), '.homebridge', 'config.json'),
+        default: getDefaultConfigPath(process.platform, [
+            path.join(os.homedir(), '.homebridge'),
+        ]),
     });
     yargs.positional('characteristics', {
         describe: 'Dot separated accessory, service and characteristic UUIDs to get',

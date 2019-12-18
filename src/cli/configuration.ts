@@ -2,9 +2,13 @@
 import {parseAddress, addressToString, normaliseAddress} from './server';
 
 import path from 'path';
-import {promises as fs} from 'fs';
+import {promises as fs, statSync} from 'fs';
+import process from 'process';
+import os from 'os';
 
 import * as hap from '../hap-nodejs';
+
+const DEVELOPMENT = true;
 
 export interface HomebridgeBridgeConfiguration {
     name?: string;
@@ -596,6 +600,65 @@ export async function validate(configuration: ConfigurationFile, base_path: stri
     return errors;
 }
 
+const default_data_paths: {
+    [K in NodeJS.Platform]?: string[];
+} = {
+    darwin: [
+        path.join(os.homedir(), 'Library', 'Application Support', 'hap-server'),
+        path.join(os.homedir(), '.homebridge'),
+        path.join('/', 'Library', 'Application Support', 'hap-server'),
+    ],
+    linux: [
+        path.join(os.homedir(), '.config', 'hap-server'),
+        path.join(os.homedir(), '.homebridge'),
+        path.join('/', 'var', 'lib', 'hap-server'),
+    ],
+};
+
+export function getDefaultDataPaths(platform = process.platform, _default?: string[]) {
+    if (DEVELOPMENT && !default_data_paths[platform] && _default) {
+        return [path.join(__dirname, '..', '..', 'data'), ..._default];
+    }
+
+    if (!default_data_paths[platform] && _default) return _default;
+    if (!default_data_paths[platform]) throw new Error('Unknown platform');
+
+    if (DEVELOPMENT) {
+        return [path.join(__dirname, '..', '..', 'data'), ...default_data_paths[platform]!];
+    }
+
+    return default_data_paths[platform]!;
+}
+
+export function getDefaultDataPath(platform = process.platform, _default?: string[]) {
+    const paths = getDefaultDataPaths(platform, _default);
+
+    for (const pathname of paths) {
+        if (isdirSync(pathname)) return pathname;
+    }
+
+    // If none exist use the first
+    return paths[0];
+}
+
+const default_config_paths = [
+    'config.yaml',
+    'config.yml',
+    'config.json',
+];
+
+export function getDefaultConfigPath(platform = process.platform, _default?: string[]) {
+    const data_path = getDefaultDataPath(platform, _default);
+
+    for (const config_path of default_config_paths) {
+        const pathname = path.join(data_path, config_path);
+        if (isfileSync(pathname)) return pathname;
+    }
+
+    // If none exist use the first
+    return path.join(data_path, default_config_paths[0]);
+}
+
 async function isdir(path: string) {
     console.log('Checking if %s is a directory', path);
     try {
@@ -609,9 +672,34 @@ async function isdir(path: string) {
     return true;
 }
 
+function isdirSync(path: string) {
+    console.log('Checking if %s is a directory', path);
+    try {
+        const stat = statSync(path);
+
+        if (!stat.isDirectory()) return false;
+    } catch (err) {
+        return false;
+    }
+
+    return true;
+}
+
 async function isfile(path: string) {
     try {
         const stat = await fs.stat(path);
+
+        if (!stat.isFile()) return false;
+    } catch (err) {
+        return false;
+    }
+
+    return true;
+}
+
+function isfileSync(path: string) {
+    try {
+        const stat = statSync(path);
 
         if (!stat.isFile()) return false;
     } catch (err) {

@@ -20,6 +20,7 @@ import {
     AddAccessoryEvent, RemoveAccessoryEvent, UpdateAccessoryConfigurationEvent,
 } from '../events/server';
 import {getConfig, log, GlobalArguments} from '.';
+import {getDefaultConfigPath} from './configuration';
 
 const randomBytes = util.promisify(crypto.randomBytes);
 const readFile = util.promisify(fs.readFile);
@@ -35,7 +36,9 @@ export function builder(yargs: typeof import('yargs')) {
     yargs.positional('config', {
         describe: 'The configuration file to use',
         type: 'string',
-        default: path.join(os.homedir(), '.homebridge', 'config.json'),
+        default: getDefaultConfigPath(process.platform, [
+            path.join(os.homedir(), '.homebridge'),
+        ]),
     });
 
     yargs.option('advertise-web-interface', {
