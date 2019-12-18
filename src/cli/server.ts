@@ -1,4 +1,5 @@
 /// <reference path="../types/homebridge.d.ts" />
+/// <reference path="../types/xkcd-password.d.ts" />
 
 import path from 'path';
 import process from 'process';
@@ -664,7 +665,9 @@ export async function handler(argv: Arguments) {
     }
 
     if (!await server.storage.getItem('HasCompletedSetup')) {
-        const password = new (require('xkcd-password'))();
+        // const password = new (require('xkcd-password'))();
+        const {default: XkcdPassword} = await import('xkcd-password');
+        const password = new XkcdPassword();
 
         const setup_token = server.setup_token = await password.generate({
             numWords: 4,
