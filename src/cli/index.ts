@@ -2,6 +2,7 @@ import path from 'path';
 import process from 'process';
 import fs from 'fs';
 import util from 'util';
+import os from 'os';
 
 import yargs from 'yargs';
 import chalk from 'chalk';
@@ -55,13 +56,19 @@ interface ConfigData {
     data_path: string;
 }
 
+function resolveTidle(pathname: string) {
+    if (pathname === '~') return os.homedir();
+    if (pathname.startsWith('~' + path.sep)) return path.join(os.homedir(), pathname.substr(1 + path.sep.length));
+    return pathname;
+}
+
 export function getConfig(argv: GlobalArguments): ConfigData {
     /**
      * Read configuration data.
      */
 
     // @ts-ignore
-    const config_path = path.resolve(process.cwd(), argv.config);
+    const config_path = path.resolve(process.cwd(), resolveTidle(argv.config));
     let config;
 
     try {
@@ -91,9 +98,9 @@ export function getConfig(argv: GlobalArguments): ConfigData {
 
         function mapIncludes(config_path: string, value: any) {
             if (typeof value === 'string' && value.startsWith('include ')) {
-                return requireConfig(path.resolve(path.dirname(config_path), value.substr(8)));
+                return requireConfig(path.resolve(path.dirname(config_path), resolveTidle(value.substr(8))));
             } else if (Object.keys(value).length === 1 && value.include) {
-                return requireConfig(path.resolve(path.dirname(config_path), value.include));
+                return requireConfig(path.resolve(path.dirname(config_path), resolveTidle(value.include)));
             }
 
             return value;
@@ -168,8 +175,8 @@ interface ConnectionData extends ConfigData {
 }
 
 export async function connect(argv: GlobalArguments): Promise<ConnectionData> {
-    const Connection = require('../client/connection').default;
-    const WebSocket = require('ws');
+    const {default: Connection} = await import('../client/connection');
+    const {default: WebSocket} = await import('ws');
 
     const {config, config_path, data_path} = await getConfig(argv);
 
