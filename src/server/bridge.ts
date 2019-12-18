@@ -98,9 +98,9 @@ export default class Bridge {
 
         bridge.getService(Service.AccessoryInformation)
             .setCharacteristic(Characteristic.Manufacturer, 'Samuel Elliott')
-            .setCharacteristic(Characteristic.Model, require('../../package').name)
+            .setCharacteristic(Characteristic.Model, require('..').name)
             .setCharacteristic(Characteristic.SerialNumber, this.username)
-            .setCharacteristic(Characteristic.FirmwareRevision, require('../../package').version)
+            .setCharacteristic(Characteristic.FirmwareRevision, require('..').version)
             .setCharacteristic(Characteristic.HardwareRevision, os.hostname());
 
         return bridge;
