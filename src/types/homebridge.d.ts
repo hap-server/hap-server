@@ -65,14 +65,34 @@ declare module 'homebridge/lib/server' {
 }
 
 declare module 'homebridge/lib/api' {
-    import {EventEmitter} from 'events';
     import {User} from 'homebridge/lib/user';
     import {PlatformAccessory} from 'homebridge/lib/platformAccessory';
+    import {CallableLogger} from 'homebridge/lib/logger';
+    import {Service} from 'hap-nodejs/lib/Service';
     import TypedEventEmitter from '@hap-server/types/typed-eventemitter';
 
-    type AccessoryConstructor = unknown;
+    type AccessoryConstructor = {
+        new (log: CallableLogger, config: any): AccessoryInstance;
+    };
+    interface AccessoryInstance {
+        getServices(): Service[];
+        identify?(callback: (err?: Error) => void): void;
+    }
     type ConfigurationRequestHandler = unknown;
-    type PlatformConstructor = unknown;
+    type PlatformConstructor = {
+        new (log: CallableLogger, config: any, homebridge: API): PlatformInstance;
+    };
+    interface PlatformInstance {
+        accessories(callback: (accessories: AccessoryInstance[]) => void): void;
+        configurationRequestHandler?: unknown;
+    }
+    type DynamicPlatformConstructor = {
+        new (log: CallableLogger, config: any, homebridge: API): DynamicPlatformInstance;
+    };
+    interface DynamicPlatformInstance {
+        configureAccessory(accessory: PlatformAccessory): void;
+        configurationRequestHandler?: unknown;
+    }
 
     type Events = {
         'publishExternalAccessories': [PlatformAccessory[]];
@@ -99,11 +119,19 @@ declare module 'homebridge/lib/api' {
         constructor();
 
         accessory(name: string): AccessoryConstructor;
-        registerAccessory(pluginName: string, accessoryName: string, constructor: AccessoryConstructor, configurationRequestHandler?: ConfigurationRequestHandler): void;
+        registerAccessory(
+            pluginName: string, accessoryName: string, constructor: AccessoryConstructor,
+            configurationRequestHandler?: ConfigurationRequestHandler
+        ): void;
         publishCameraAccessories(pluginName: string, accessories: PlatformAccessory[]): void;
         publishExternalAccessories(pluginName: string, accessories: PlatformAccessory[]): void;
         platform(name: string): PlatformConstructor;
-        registerPlatform(pluginName: string, platformName: string, constructor: PlatformConstructor, dynamic?: boolean): void;
+        registerPlatform(
+            pluginName: string, platformName: string, constructor: DynamicPlatformConstructor, dynamic: true
+        ): void;
+        registerPlatform(
+            pluginName: string, platformName: string, constructor: PlatformConstructor, dynamic?: false
+        ): void;
         registerPlatformAccessories(pluginName: string, platformName: string, accessories: PlatformAccessory[]): void;
         updatePlatformAccessories(accessories: PlatformAccessory[]): void;
         unregisterPlatformAccessories(pluginName: string, platformName: string, accessories: PlatformAccessory[]): void;
@@ -188,10 +216,12 @@ declare module 'homebridge/lib/logger' {
 
         log(level: 'debug' | 'warn' | 'error' | 'info', msg: string, ...args: any[]): void;
 
-        static withPrefix(prefix: string): Logger & {
-            (msg: string, ...args: any[]): void;
-        };
+        static withPrefix(prefix: string): CallableLogger;
     }
+
+    export type CallableLogger = Logger & {
+        (msg: string, ...args: any[]): void;
+    };
 
     export function setDebugEnabled(debugEnabled: boolean): void;
     export function setTimestampEnabled(timestampEnabled: boolean): void;

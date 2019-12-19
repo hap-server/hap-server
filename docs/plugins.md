@@ -37,6 +37,27 @@ definitions - you don't need to install these if you aren't using TypeScript.
 
 Plugins can support both hap-server and Homebridge.
 
+hap-server also includes TypeScript definitions for Homebridge plugins. To use these include `@hap-server/hap-server`
+as a development depencency. You can use these even if your plugin only supports Homebridge.
+
+```ts
+import {InitFunction, API, AccessoryInstance, PlatformInstance} from '@hap-server/api/homebridge';
+
+const init: InitFunction = function init(homebridge: API) {
+    homebridge.registerPlatform('plugin', 'platform', Platform);
+};
+
+export default init;
+
+class Platform implements PlatformInstance {
+    constructor(readonly log: Logger, readonly config: any, readonly api: API) {}
+
+    accessories(callback: (accessories: AccessoryInstance[]) => void) {
+        //
+    }
+}
+```
+
 hap-server patches `Module._load` to allow plugins to load a virtual `@hap-server/api` module.
 
 ```js
