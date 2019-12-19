@@ -77,6 +77,7 @@ A lot.
             single home where everyone has permission to control all accessories. Also allows users to choose
             their own favourite accessories/scenes/colours and using multiple devices without an Apple ID.
     - [ ] Multiple pairings with a single bridge?
+    - [ ] Process isolation (e.g. using a separate process for each plugin)
 - [x] Scenes
     - Works with automations. (Scenes just run automation conditions to check if they're enabled and automation
         actions to activate/deactivate them.)
@@ -144,6 +145,10 @@ A lot.
         - Accessory configuration can be cached so the server can run immediately and have accessories load in the
             background.
 - [ ] Configuration reloading
+- Platform compatibility
+    - [x] macOS
+    - [x] Linux??
+    - [ ] Windows??
 - [x] Full compatibility with Homebridge
     - Run instead of Homebridge and use all Homebridge plugins with the web interface. Homebridge accessories appear
         and can be controlled in the web interface, by automations on the server and with hap-server's HAP bridges.
