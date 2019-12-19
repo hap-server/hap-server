@@ -10,7 +10,10 @@ import {
     AddAccessoryEvent, RemoveAccessoryEvent,
     CharacteristicUpdateEvent, UpdateAccessoryConfigurationEvent,
 } from '../events/server';
-import {BridgeConfiguration, AccessoryPlatformConfiguration} from '../cli/configuration';
+import {
+    BridgeConfiguration, AccessoryPlatformConfiguration,
+    HomebridgeBridgeConfiguration, HomebridgeAccessoryConfiguration, HomebridgePlatformConfiguration,
+} from '../cli/configuration';
 
 import {Accessory, Service, Characteristic} from '../hap-nodejs';
 import * as hap from '../hap-nodejs';
@@ -451,15 +454,16 @@ export default class AccessoryManager {
         }
     }
 
-    loadHomebridge() {
+    loadHomebridge(
+        bridge: HomebridgeBridgeConfiguration, accessories: HomebridgeAccessoryConfiguration[],
+        platforms: HomebridgePlatformConfiguration[]
+    ) {
         if (this.homebridge) return this.homebridge;
 
         // config.bridge, config.accessories and config.platforms are for Homebridge
         // If any of these exist, the user wants to run Homebridge as well
         (this as any).homebridge = new Homebridge(this.server, this.log.withPrefix('Homebridge'), {
-            bridge: this.server.config.bridge,
-            accessories: this.server.config.accessories,
-            platforms: this.server.config.platforms,
+            bridge, accessories, platforms,
         });
 
         this.bridges.push(this.homebridge!);
@@ -468,7 +472,7 @@ export default class AccessoryManager {
     }
 
     async loadHomebridgeAccessories() {
-        if (!this.homebridge) this.loadHomebridge();
+        if (!this.homebridge) throw new Error('Homebridge not loaded');
 
         for (const accessory of this.homebridge!.bridge.bridgedAccessories) {
             const plugin_accessory = new HomebridgeAccessory(this.server, accessory);

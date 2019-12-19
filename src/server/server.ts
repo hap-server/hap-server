@@ -32,7 +32,7 @@ import PluginManager, {ServerPlugin, DiscoveredAccessory} from './plugins';
 import Logger from '../common/logger';
 import {Accessory, Characteristic} from '../hap-nodejs';
 
-import Automations from '../automations';
+import Automations, {Automation} from '../automations';
 
 import {events} from '..';
 import History from '../history';
@@ -42,11 +42,13 @@ import {AccessoryDiscovery} from './plugins';
 import AutomationTrigger from '../automations/trigger';
 import AutomationCondition from '../automations/condition';
 import AutomationAction from '../automations/action';
+import {
+    BridgeConfiguration, AccessoryConfiguration, AccessoryPlatformConfiguration,
+    AutomationTriggerConfiguration, AutomationConditionConfiguration, AutomationActionConfiguration, AutomationConfiguration,
+} from '../cli/configuration';
 
 interface ServerOptions {
     data_path: string;
-    config_path: string;
-    config: any;
     cli_auth_token?: string;
     hostname?: string;
 
@@ -60,7 +62,6 @@ export default class Server extends Events {
     static instances = new Set<Server>();
 
     hostname?: string;
-    readonly config: any;
     readonly assets_path: string;
     readonly cli_auth_token?: string;
     setup_token?: string;
@@ -76,10 +77,6 @@ export default class Server extends Events {
 
     // readonly homebridge: Homebridge | null = null;
     readonly plugins!: Map<number, ServerPlugin>;
-
-    private readonly config_automation_triggers: {[key: string]: AutomationTrigger} | null = null;
-    private readonly config_automation_conditions: {[key: string]: AutomationCondition} | null = null;
-    private readonly config_automation_actions: {[key: string]: AutomationAction} | null = null;
 
     private accessory_discovery_counter!: number;
     private readonly accessory_discovery_handlers!: Set<AccessoryDiscovery>;
@@ -106,7 +103,6 @@ export default class Server extends Events {
      * @param {object} options
      * @param {string} options.data_path
      * @param {string} options.config_path
-     * @param {object} options.config
      * @param {string} options.cli_auth_token
      * @param {string} [options.hostname]
      * @param {persist} storage
@@ -118,7 +114,6 @@ export default class Server extends Events {
         this.parent_emitter = events;
 
         Object.defineProperty(this, 'hostname', {enumerable: true, writable: true, value: options.hostname || null});
-        Object.defineProperty(this, 'config', {enumerable: true, value: options.config || {}});
         Object.defineProperty(this, 'cli_auth_token', {value: options.cli_auth_token});
         Object.defineProperty(this, 'storage', {value: storage});
         Object.defineProperty(this, 'log', {value: log || new Logger()});
@@ -260,7 +255,6 @@ export default class Server extends Events {
      * @param {object} options
      * @param {string} options.data_path
      * @param {string} options.config_path
-     * @param {object} options.config
      * @param {string} options.cli_auth_token
      * @param {string} [options.hostname]
      * @return {Server}
@@ -359,10 +353,8 @@ export default class Server extends Events {
         return this.plugins.get(id as number) || null;
     }
 
-    loadBridgesFromConfig() {
-        if (!this.config.bridges) return Promise.resolve();
-
-        return Promise.all(this.config.bridges.map((bridge_config: any) => this.accessories.loadBridge(bridge_config)));
+    loadBridgesFromConfig(bridges: BridgeConfiguration[]) {
+        return Promise.all(bridges.map(bridge_config => this.accessories.loadBridge(bridge_config)));
     }
 
     async loadBridgesFromStorage(dont_throw = false) {
@@ -404,11 +396,11 @@ export default class Server extends Events {
         await this.storage.setItem('CachedAccessories', cached_accessories);
     }
 
-    async loadAccessoriesFromConfig() {
-        await this.loadAccessories(this.config.accessories2 || [], true);
+    async loadAccessoriesFromConfig(accessories: AccessoryConfiguration[]) {
+        await this.loadAccessories(accessories, true);
     }
 
-    async loadAccessories(accessories: any[], dont_throw = false) {
+    async loadAccessories(accessories: AccessoryConfiguration[], dont_throw = false) {
         await Promise.all(accessories.map(accessory_config =>
             this.accessories.loadAccessory(accessory_config).catch(err => {
                 if (!dont_throw) throw err;
@@ -418,11 +410,11 @@ export default class Server extends Events {
             })));
     }
 
-    async loadAccessoryPlatformsFromConfig() {
-        await this.loadAccessoryPlatforms(this.config.platforms2 || [], true);
+    async loadAccessoryPlatformsFromConfig(platforms: AccessoryPlatformConfiguration[]) {
+        await this.loadAccessoryPlatforms(platforms, true);
     }
 
-    async loadAccessoryPlatforms(accessories: any[], dont_throw = false) {
+    async loadAccessoryPlatforms(accessories: AccessoryPlatformConfiguration[], dont_throw = false) {
         await Promise.all(accessories.map(accessory_platform_config =>
             this.accessories.loadAccessoryPlatform(accessory_platform_config).catch(err => {
                 if (!dont_throw) throw err;
@@ -436,59 +428,60 @@ export default class Server extends Events {
         return Object.defineProperty(this, 'automations', {value: new Automations(this)}).automations;
     }
 
-    async loadAutomationTriggersFromConfig(dont_throw = false) {
-        if (this.config_automation_triggers) return this.config_automation_triggers;
+    async loadAutomationTriggersFromConfig(config: Record<string, AutomationTriggerConfiguration>, dont_throw = false) {
         const triggers: {[key: string]: AutomationTrigger} = {};
 
-        await Promise.all((Object.entries(this.config['automation-triggers'] || {}) as any)
-            .map(([key, config]: [string, any]) =>
-                this.automations.loadAutomationTrigger(config).then(t => triggers[key] = t).catch(err => {
-                    if (!dont_throw) throw err;
+        await Promise.all((Object.entries(config)).map(([key, config]: [string, any]) =>
+            this.automations.loadAutomationTrigger(config).then(t => triggers[key] = t).catch(err => {
+                if (!dont_throw) throw err;
 
-                    this.log.warn('Error loading automation trigger', config.plugin, config.trigger, err);
-                })));
+                this.log.warn('Error loading automation trigger', config.plugin, config.trigger, err);
+            })));
 
-        return (this as any).config_automation_triggers = triggers;
+        return triggers;
     }
 
-    async loadAutomationConditionsFromConfig(dont_throw = false) {
-        if (this.config_automation_conditions) return this.config_automation_conditions;
+    async loadAutomationConditionsFromConfig(
+        config: Record<string, AutomationConditionConfiguration>, dont_throw = false
+    ) {
         const conditions: {[key: string]: AutomationCondition} = {};
 
-        await Promise.all((Object.entries(this.config['automation-conditions'] || {}) as any)
-            .map(([key, config]: [string, any]) => this.automations.loadAutomationCondition(config)
-                .then(t => conditions[key] = t).catch(err => {
-                    if (!dont_throw) throw err;
+        await Promise.all((Object.entries(config)).map(([key, config]: [string, any]) =>
+            this.automations.loadAutomationCondition(config).then(t => conditions[key] = t).catch(err => {
+                if (!dont_throw) throw err;
 
-                    this.log.warn('Error loading automation condition', config.plugin, config.condition, err);
-                })));
+                this.log.warn('Error loading automation condition', config.plugin, config.condition, err);
+            })));
 
-        return (this as any).config_automation_conditions = conditions;
+        return conditions;
     }
 
-    async loadAutomationActionsFromConfig(dont_throw = false) {
-        if (this.config_automation_actions) return this.config_automation_actions;
+    async loadAutomationActionsFromConfig(config: Record<string, AutomationActionConfiguration>, dont_throw = false) {
         const actions: {[key: string]: AutomationAction} = {};
 
-        await Promise.all((Object.entries(this.config['automation-actions'] || {}) as any)
-            .map(([key, config]: [string, any]) =>
-                this.automations.loadAutomationAction(config).then(t => actions[key] = t).catch(err => {
-                    if (!dont_throw) throw err;
+        await Promise.all((Object.entries(config)).map(([key, config]: [string, any]) =>
+            this.automations.loadAutomationAction(config).then(t => actions[key] = t).catch(err => {
+                if (!dont_throw) throw err;
 
-                    this.log.warn('Error loading automation action', config.plugin, config.action, err);
-                })));
+                this.log.warn('Error loading automation action', config.plugin, config.action, err);
+            })));
 
-        return (this as any).config_automation_actions = actions;
+        return actions;
     }
 
-    async loadAutomationsFromConfig(dont_throw = false) {
+    async loadAutomationsFromConfig(config: {
+        automations: AutomationConfiguration[];
+        'automation-triggers': Record<string, AutomationTriggerConfiguration>;
+        'automation-conditions': Record<string, AutomationConditionConfiguration>;
+        'automation-actions': Record<string, AutomationActionConfiguration>;
+    }, dont_throw = false) {
         const [triggers, conditions, actions] = await Promise.all([
-            this.loadAutomationTriggersFromConfig(dont_throw),
-            this.loadAutomationConditionsFromConfig(dont_throw),
-            this.loadAutomationActionsFromConfig(dont_throw),
+            this.loadAutomationTriggersFromConfig(config['automation-triggers'], dont_throw),
+            this.loadAutomationConditionsFromConfig(config['automation-conditions'], dont_throw),
+            this.loadAutomationActionsFromConfig(config['automation-actions'], dont_throw),
         ]);
 
-        const automations = await Promise.all((this.config.automations || []).map((config: any) =>
+        const automations = await Promise.all(config.automations.map(config =>
             this.automations.loadAutomation(config).then(automation => {
                 automation.addTrigger(...(automation.config.triggers || []).map((key: string) => triggers[key]));
                 automation.addCondition(...(automation.config.conditions || []).map((key: string) => conditions[key]));
@@ -506,7 +499,7 @@ export default class Server extends Events {
         return {automations, triggers, conditions, actions};
     }
 
-    async loadAutomationsFromStorage() {
+    async loadAutomationsFromStorage(): Promise<Automation[]> {
         const automation_uuids: string[] = await this.storage.getItem('Automations') || [];
 
         return Promise.all(automation_uuids.map(async uuid => {

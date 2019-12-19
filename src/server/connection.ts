@@ -1660,8 +1660,7 @@ export default class Connection {
     }
 
     async getBridgeConfigurationPermissions(uuid: string) {
-        const is_from_config = this.server.config.bridges && this.server.config.bridges.find((c: any) =>
-            c.uuid ? c.uuid === uuid : hap.uuid.generate('hap-server:bridge:' + c.username) === uuid);
+        const is_from_config = !await this.server.storage.getItem('Bridge.' + uuid);
 
         const [get, set, del] = await Promise.all([
             this.permissions.checkCanGetBridgeConfiguration(uuid),
@@ -1687,9 +1686,7 @@ export default class Connection {
     async setBridgeConfiguration(uuid: string, data: any) {
         await this.permissions.assertCanSetBridgeConfiguration(uuid);
 
-        const is_from_config = (this.server.config.bridges && this.server.config.bridges.find((c: any) =>
-            c.uuid ? c.uuid === uuid : hap.uuid.generate('hap-server:bridge:' + c.username) === uuid)) ||
-            (this.server.accessories.homebridge && this.server.accessories.homebridge.uuid === uuid);
+        const is_from_config = !await this.server.storage.getItem('Bridge.' + uuid);
         if (is_from_config) throw new Error('Cannot update bridges not created in the web interface');
 
         if (!data.username || !data.username.toLowerCase().match(/^([0-9a-f]{2}:){5}[0-9a-f]{2}$/)) {
@@ -1758,9 +1755,7 @@ export default class Connection {
     async deleteBridge(uuid: string) {
         await this.permissions.assertCanDeleteBridge(uuid);
 
-        const is_from_config = (this.server.config.bridges && this.server.config.bridges .find((c: any) =>
-            c.uuid ? c.uuid === uuid : hap.uuid.generate('hap-server:bridge:' + c.username) === uuid)) ||
-            (this.server.accessories.homebridge && this.server.accessories.homebridge.uuid === uuid);
+        const is_from_config = !await this.server.storage.getItem('Bridge.' + uuid);
         if (is_from_config) throw new Error('Cannot delete bridges not created in the web interface');
 
         this.log.debug('Stopping bridge', uuid);

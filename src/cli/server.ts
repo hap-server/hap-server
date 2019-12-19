@@ -271,8 +271,6 @@ export async function handler(argv: Arguments) {
     const server = await Server.createServer({
         hostname: config.hostname,
         data_path,
-        config_path,
-        config,
         cli_auth_token,
 
         // @ts-ignore
@@ -592,7 +590,7 @@ export async function handler(argv: Arguments) {
         log.info('Not loading Homebridge as it was disabled on the command line');
     } else if (config.bridge || config.accessories || config.platforms) {
         log.info('Loading Homebridge');
-        server.accessories.loadHomebridge();
+        server.accessories.loadHomebridge(config.bridge || {}, config.accessories || [], config.platforms || []);
     }
 
     for (const bridge of server.accessories.bridges) {
@@ -604,14 +602,14 @@ export async function handler(argv: Arguments) {
 
     log.info('Loading accessories and accessory platforms');
     await Promise.all([
-        server.loadAccessoriesFromConfig(),
-        server.loadAccessoryPlatformsFromConfig(),
+        server.loadAccessoriesFromConfig(config.accessories2 || []),
+        server.loadAccessoryPlatformsFromConfig(config.platforms2 || []),
     ]);
 
     if (server.accessories.homebridge) {
         if (server.accessories.homebridge.homebridge._asyncCalls !== 0) {
             log.info('Waiting for Homebridge to finish loading');
-            await new Promise(rs => server.accessories.homebridge.bridge.once('listening', rs));
+            await new Promise<number>(rs => server.accessories.homebridge.bridge.once('listening', rs));
         }
 
         log.info('Loading accessories from Homebridge');
@@ -632,7 +630,12 @@ export async function handler(argv: Arguments) {
     server.on(RemoveAccessoryEvent, saveCachedAccessories);
 
     log.info('Starting automations');
-    await server.loadAutomationsFromConfig();
+    await server.loadAutomationsFromConfig({
+        automations: config.automations || [],
+        'automation-triggers': config['automation-triggers'] || {},
+        'automation-conditions': config['automation-conditions'] || {},
+        'automation-actions': config['automation-actions'] || {},
+    });
     await server.loadAutomationsFromStorage();
     await server.loadScenesFromStorage();
     await server.automations.start();
