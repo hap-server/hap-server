@@ -264,10 +264,10 @@ declare module 'hap-controller/lib/transport/ip/ip-discovery' {
         ci: number;
     }
 
-    type Events = {
+    interface Events {
         'serviceUp': [HapService];
         'serviceDown': [HapService];
-    };
+    }
 
     class IPDiscovery extends TypedEventEmitter<IPDiscovery, Events> {
         browser: unknown;

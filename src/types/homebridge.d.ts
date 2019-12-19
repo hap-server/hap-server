@@ -94,12 +94,12 @@ declare module 'homebridge/lib/api' {
         configurationRequestHandler?: unknown;
     }
 
-    type Events = {
+    interface Events {
         'publishExternalAccessories': [PlatformAccessory[]];
         'registerPlatformAccessories': [PlatformAccessory[]];
         'updatePlatformAccessories': [PlatformAccessory[]];
         'unregisterPlatformAccessories': [PlatformAccessory[]];
-    };
+    }
 
     export class API extends TypedEventEmitter<API, Events> {
         readonly _accessories: Record<string, AccessoryConstructor | undefined>;

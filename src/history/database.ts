@@ -10,13 +10,13 @@ import TypedEventEmitter from '../events/typed-eventemitter';
 
 const mkdirp = util.promisify(_mkdirp);
 
-type Events = {
+interface Events {
     'close': [];
 
     'assigned-characteristic-id': [number, [string, string, string | null, string]];
     'assigned-user-id': [number, UserType, string];
     'record': [Record];
-};
+}
 
 export default class HistoryDatabase extends TypedEventEmitter<HistoryDatabase, Events> {
     private readonly database: sqlite.Database;

@@ -49,7 +49,7 @@ declare module 'hap-nodejs/lib/HAPServer' {
 
     type ResourceRequestData = unknown;
 
-    type Events = {
+    interface Events {
         'listening': [/** port */ number];
         'session-close': [/** sessionID */ string, /** events */ object];
         'identify': [(err?: Error | null) => void];
@@ -80,7 +80,7 @@ declare module 'hap-nodejs/lib/HAPServer' {
             (err: Error, resource?: Buffer): void;
             (err: null, resource: Buffer): void;
         }];
-    };
+    }
 
     export class HAPServer extends TypedEventEmitter<HAPServer, Events> {
         static readonly handlers: typeof Handlers;
@@ -182,13 +182,13 @@ declare module 'hap-nodejs/lib/HAPServer' {
 declare module 'hap-nodejs/lib/util/eventedhttp' {
     import TypedEventEmitter from '@hap-server/types/typed-eventemitter';
 
-    type Events = {
+    interface Events {
         'listening': [number];
         'request': [import('http').IncomingMessage, import('http').ServerResponse, Session, object];
         'encrypt': [Buffer, {data: Buffer | null}, Session];
         'decrypt': [Buffer, {data: Buffer | null}, Session];
         'session-close': [/** sessionID */ string, /** events */ object];
-    };
+    }
 
     export class EventedHTTPServer extends TypedEventEmitter<EventedHTTPServer, Events> {
         readonly _tcpServer: import('net').Server;
@@ -212,12 +212,12 @@ declare module 'hap-nodejs/lib/util/eventedhttp' {
         sessionID: string;
     }
 
-    type ConnectionEvents = {
+    interface ConnectionEvents {
         'request': [import('http').IncomingMessage, import('http').ServerResponse, Session, object];
         'encrypt': [Buffer, {data: Buffer | null}, Session];
         'decrypt': [Buffer, {data: Buffer | null}, Session];
         'close': [/** events */ object];
-    };
+    }
 
     class EventedHTTPServerConnection extends TypedEventEmitter<EventedHTTPServerConnection, ConnectionEvents> {
         readonly sessionID: string;
@@ -404,12 +404,12 @@ declare module 'hap-nodejs/lib/Accessory' {
     import {AccessoryInfo} from 'hap-nodejs/lib/model/AccessoryInfo';
     import {IdentifierCache} from 'hap-nodejs/lib/model/IdentifierCache';
 
-    type Events = {
+    interface Events {
         'identify': [/** paired */ boolean, (err?: Error) => void];
         'service-configurationChange': [{accessory: Accessory; service: Service}];
         'service-characteristic-change': [never & {service: Service}];
         'listening': [/** port */ number];
-    };
+    }
 
     interface PublishInfo {
         username: string;
@@ -501,6 +501,10 @@ declare module 'hap-nodejs/lib/Accessory' {
         constructor: typeof Accessory;
     }
 
+    namespace Accessory {
+        type Categories = Category;
+    }
+
     enum Category {
         OTHER = 1,
         BRIDGE = 2,
@@ -549,7 +553,7 @@ declare module 'hap-nodejs/lib/Service' {
     import TypedEventEmitter from '@hap-server/types/typed-eventemitter';
     import {Characteristic, ToHapOptions, CharacteristicGetContext} from 'hap-nodejs/lib/Characteristic';
 
-    type Events<T = string | number | boolean> = {
+    interface Events<T = string | number | boolean> {
         'characteristic-change': [{
             oldValue: T | null;
             newValue: T;
@@ -557,7 +561,7 @@ declare module 'hap-nodejs/lib/Service' {
             characteristic: Characteristic<T>;
         }];
         'service-configurationChange': [{service: Service}];
-    };
+    }
 
     export class Service extends TypedEventEmitter<Service, Events> {
         readonly displayName: string | undefined;
@@ -622,7 +626,7 @@ declare module 'hap-nodejs/lib/Characteristic' {
     type CharacteristicUpdateCallback = () => void;
     type CharacteristicUpdateContext = object;
 
-    type Events<T = string | number | boolean> = {
+    interface Events<T = string | number | boolean> {
         'subscribe': [];
         'unsubscribe': [];
         'get': [{
@@ -631,7 +635,7 @@ declare module 'hap-nodejs/lib/Characteristic' {
         }, CharacteristicGetContext | undefined, string | undefined];
         'set': [T, (err?: Error) => void, CharacteristicGetContext | undefined, string | undefined];
         'change': [{oldValue: T | null; newValue: T; context: CharacteristicGetContext}];
-    };
+    }
 
     export interface CharacteristicProps {
         format: CharacteristicFormat;

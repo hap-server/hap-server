@@ -1,15 +1,20 @@
 import {EventEmitter} from 'events';
 
+type EventMap<E> = {
+    [K in keyof E]: E[K];
+};
 type EventListener<T extends EventEmitter, A extends any[]> = (this: T, ...args: A) => void;
 
 export default class TypedEventEmitter<
     T extends EventEmitter,
-    Events extends Record<string | symbol, any[]> = Record<string | symbol, any[]>
+    E extends any = Record<string | symbol, any[]>,
+    Events extends Record<string | symbol, any[]> = EventMap<E>
 > extends EventEmitter {}
 
 export default interface TypedEventEmitter<
     T extends EventEmitter,
-    Events extends Record<string | symbol, any[]>
+    E extends any = Record<string | symbol, any[]>,
+    Events extends Record<string | symbol, any[]> = EventMap<E>
 > {
     addListener<E extends keyof Events>(event: E, listener: EventListener<T, Events[E]>): this;
     on<E extends keyof Events>(event: E, listener: EventListener<T, Events[E]>): this;
