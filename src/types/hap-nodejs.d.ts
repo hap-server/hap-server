@@ -23,8 +23,8 @@ declare module 'hap-nodejs/lib/AccessoryLoader' {
 declare module 'hap-nodejs/lib/HAPServer' {
     import {
         AccessoryHap, CharacteristicHap,
-    } from '@hap-server/hap-server/common/types/hap';
-    import TypedEventEmitter from '@hap-server/hap-server/events/typed-eventemitter';
+    } from '@hap-server/types/hap';
+    import TypedEventEmitter from '@hap-server/types/typed-eventemitter';
     import {EventedHTTPServer} from 'hap-nodejs/lib/util/eventedhttp';
     import {AccessoryInfo} from 'hap-nodejs/lib/model/AccessoryInfo';
 
@@ -180,7 +180,7 @@ declare module 'hap-nodejs/lib/HAPServer' {
 }
 
 declare module 'hap-nodejs/lib/util/eventedhttp' {
-    import TypedEventEmitter from '@hap-server/hap-server/events/typed-eventemitter';
+    import TypedEventEmitter from '@hap-server/types/typed-eventemitter';
 
     type Events = {
         'listening': [number];
@@ -397,7 +397,7 @@ declare module 'hap-nodejs/lib/StreamController' {
 }
 
 declare module 'hap-nodejs/lib/Accessory' {
-    import TypedEventEmitter from '@hap-server/hap-server/events/typed-eventemitter';
+    import TypedEventEmitter from '@hap-server/types/typed-eventemitter';
     import {Service} from 'hap-nodejs/lib/Service';
     import {ToHapOptions} from 'hap-nodejs/lib/Characteristic';
     import {Camera} from 'hap-nodejs/lib/Camera';
@@ -546,7 +546,7 @@ declare module 'hap-nodejs/lib/Accessory' {
 }
 
 declare module 'hap-nodejs/lib/Service' {
-    import TypedEventEmitter from '@hap-server/hap-server/events/typed-eventemitter';
+    import TypedEventEmitter from '@hap-server/types/typed-eventemitter';
     import {Characteristic, ToHapOptions, CharacteristicGetContext} from 'hap-nodejs/lib/Characteristic';
 
     type Events<T = string | number | boolean> = {
@@ -610,10 +610,10 @@ declare module 'hap-nodejs/lib/Service' {
 }
 
 declare module 'hap-nodejs/lib/Characteristic' {
-    import TypedEventEmitter from '@hap-server/hap-server/events/typed-eventemitter';
+    import TypedEventEmitter from '@hap-server/types/typed-eventemitter';
     import {
         CharacteristicFormat, CharacteristicUnit, CharacteristicPerms,
-    } from '@hap-server/hap-server/common/types/hap';
+    } from '@hap-server/types/hap';
 
     type CharacteristicGetCallback<T> = (err: Error | null, value?: T | null) => void;
     type CharacteristicGetContext = object;

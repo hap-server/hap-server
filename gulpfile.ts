@@ -52,13 +52,13 @@ const README_BASE_URL =
 const README_IMAGE_BASE_URL =
     `https://gitlab.fancy.org.uk/hap-server/hap-server/raw/v${pkg.version}/README.md`;
 const API_TYPES_README_BASE_URL =
-    `https://gitlab.fancy.org.uk/hap-server/hap-server/blob/v${pkg.version}/src/types/api/README.md`;
+    `https://gitlab.fancy.org.uk/hap-server/hap-server/blob/v${pkg.version}/types/api/README.md`;
 const API_TYPES_README_IMAGE_BASE_URL =
-    `https://gitlab.fancy.org.uk/hap-server/hap-server/raw/v${pkg.version}/src/types/api/README.md`;
+    `https://gitlab.fancy.org.uk/hap-server/hap-server/raw/v${pkg.version}/types/api/README.md`;
 const UI_API_TYPES_README_BASE_URL =
-    `https://gitlab.fancy.org.uk/hap-server/hap-server/blob/v${pkg.version}/src/types/ui-api/README.md`;
+    `https://gitlab.fancy.org.uk/hap-server/hap-server/blob/v${pkg.version}/types/ui-api/README.md`;
 const UI_API_TYPES_README_IMAGE_BASE_URL =
-    `https://gitlab.fancy.org.uk/hap-server/hap-server/raw/v${pkg.version}/src/types/ui-api/README.md`;
+    `https://gitlab.fancy.org.uk/hap-server/hap-server/raw/v${pkg.version}/types/ui-api/README.md`;
 
 const webpack_config: import('webpack').Configuration = {
     context: __dirname,
@@ -202,13 +202,13 @@ gulp.task('build-backend-no-ts', function() {
     return pump([
         // merge([
         //     pump([
-        //         gulp.src(['src/**/*.js', '!src/public/**/*.js', '!src/types/node_modules/**/*']),
+        //         gulp.src(['src/**/*.js', '!src/public/**/*.js']),
         //         sourcemaps.init(),
         //         babel(),
         //         sourcemaps.write('.', {includeContent: false, destPath: 'dist'}),
         //     ]),
-            gulp.src(['src/**/*', '!src/public/**/*', '!src/types/**/*', '!src/**/*.js', '!src/**/*.ts']),
         // ] as any),
+        gulp.src(['src/**/*', '!src/public/**/*', '!src/**/*.js', '!src/**/*.ts']),
         gulp.dest('dist'),
     ]);
 });
@@ -219,7 +219,7 @@ gulp.task('build-backend', function() {
     return pump([
         merge([
             // pump([
-            //     gulp.src(['src/**/*.js', '!src/public/**/*.js', '!src/types/node_modules/**/*']),
+            //     gulp.src(['src/**/*.js', '!src/public/**/*.js']),
             //     sourcemaps.init(),
             //     babel(),
             //     sourcemaps.write('.', {includeContent: false, destPath: 'dist'}),
@@ -228,13 +228,12 @@ gulp.task('build-backend', function() {
                 gulp.src([
                     'src/**/*.ts',
                     '!src/public/**/*.ts', 'src/public/plugins.ts', 'src/public/mixins/**/*.ts',
-                    '!src/types/node_modules/**/*',
                 ], {base: 'src'}),
                 sourcemaps.init(),
                 tsProject(),
                 sourcemaps.write('.', {includeContent: false, destPath: 'dist'}),
             ]),
-            gulp.src(['src/**/*', '!src/public/**/*', '!src/types/**/*', '!src/**/*.js', '!src/**/*.ts']),
+            gulp.src(['src/**/*', '!src/public/**/*', '!src/**/*.js', '!src/**/*.ts']),
         ] as any),
         gulp.dest('dist'),
     ]);
@@ -264,12 +263,12 @@ gulp.task('build', gulp.parallel('build-backend', 'build-frontend', 'build-examp
 
 gulp.task('watch-backend-no-ts', function() {
     // return pump([
-    //     watch(['src/**/*.js', '!src/public/**/*.js', '!src/types/node_modules/**/*'], {verbose: true}),
+    //     watch(['src/**/*.js', '!src/public/**/*.js'], {verbose: true}),
     //     plumber(),
     //     sourcemaps.init(),
     //     babel(),
     //     sourcemaps.write('.', {includeContent: false, destPath: 'dist'}),
-    //     watch(['src/**/*', '!src/public/**/*', '!src/types/**/*', '!src/**/*.js', '!src/**/*.ts'], {verbose: true}),
+    //     watch(['src/**/*', '!src/public/**/*', '!src/**/*.js', '!src/**/*.ts'], {verbose: true}),
     //     gulp.dest('dist'),
     // ]);
     return Promise.resolve();
@@ -279,14 +278,12 @@ gulp.task('watch-backend', gulp.parallel('watch-backend-no-ts', function() {
     return gulp.watch([
         'src/**/*.ts',
         '!src/public/**/*.ts', 'src/public/plugins.ts', 'src/public/mixins/**/*.ts',
-        '!src/types/node_modules/**/*',
     // @ts-ignore
     ], {base: 'src'}, function() {
         return pump([
             gulp.src([
                 'src/**/*.ts',
                 '!src/public/**/*.ts', 'src/public/plugins.ts', 'src/public/mixins/**/*.ts',
-                '!src/types/node_modules/**/*',
             ], {base: 'src'}),
             sourcemaps.init(),
             tsProject(),
@@ -358,7 +355,7 @@ gulp.task('build-backend-release', function() {
     return pump([
         merge([
             // pump([
-            //     gulp.src(['src/**/*.js', '!src/public/**/*.js', '!src/types/node_modules/**/*']),
+            //     gulp.src(['src/**/*.js', '!src/public/**/*.js']),
             //     replace(/\bDEVELOPMENT\s*=\s*true\b/gi, 'DEVELOPMENT = false'),
             //     replace(/\bDEVELOPMENT(?!\s*=)\b/gi, 'false'),
             //     babel(),
@@ -368,7 +365,6 @@ gulp.task('build-backend-release', function() {
                 gulp.src([
                     'src/**/*.ts',
                     '!src/public/**/*.ts', 'src/public/plugins.ts', 'src/public/mixins/**/*.ts',
-                    '!src/types/node_modules/**/*',
                 ], {base: 'src'}),
                 replace(/\bDEVELOPMENT\s*=\s*true\b/gi, 'DEVELOPMENT = false'),
                 replace(/\bDEVELOPMENT(?!\s*=)\b/gi, 'false'),
@@ -381,8 +377,10 @@ gulp.task('build-backend-release', function() {
                 minify(release_minify_config),
             ]),
             gulp.src([
-                'src/**/*', '!src/public/**/*', '!src/**/*.js', '!src/**/*.ts',
-                'src/types/**/*.d.ts', '!src/types/node_modules', '!src/types/node_modules/**/*',
+                'src/**/*',
+                '!src/public/**/*',
+                '!src/**/*.js', '!src/**/*.ts',
+                'src/types/**/*.d.ts',
             ], {base: 'src'}),
         ] as any),
         gulp.dest('release/hap-server'),
@@ -476,13 +474,13 @@ function processApiTypesPackageJson(packagejson: any) {
 gulp.task('build-api-types', function() {
     return pump([
         merge([
-            gulp.src(['src/types/api/**/*', '!src/types/api/package.json', '!src/types/api/README.md']),
+            gulp.src(['types/api/**/*', '!types/api/package.json', '!types/api/README.md']),
             pump([
-                gulp.src('src/types/api/package.json'),
+                gulp.src('types/api/package.json'),
                 json(processApiTypesPackageJson),
             ]),
             pump([
-                gulp.src('src/types/api/README.md'),
+                gulp.src('types/api/README.md'),
                 replace(/^(.|\n)+$/, input => markdownlinks(input, (link, title) =>
                     url.resolve(title.match(/Screenshot/) ?
                         API_TYPES_README_IMAGE_BASE_URL : API_TYPES_README_BASE_URL, link))),
@@ -500,13 +498,13 @@ gulp.task('clean-api-types', gulp.series(function() {
 gulp.task('build-ui-api-types', function() {
     return pump([
         merge([
-            gulp.src(['src/types/ui-api/**/*', '!src/types/ui-api/package.json', '!src/types/ui-api/README.md']),
+            gulp.src(['types/ui-api/**/*', '!types/ui-api/package.json', '!types/ui-api/README.md']),
             pump([
-                gulp.src('src/types/ui-api/package.json'),
+                gulp.src('types/ui-api/package.json'),
                 json(processApiTypesPackageJson),
             ]),
             pump([
-                gulp.src('src/types/ui-api/README.md'),
+                gulp.src('types/ui-api/README.md'),
                 replace(/^(.|\n)+$/, input => markdownlinks(input, (link, title) =>
                     url.resolve(title.match(/Screenshot/) ?
                         UI_API_TYPES_README_IMAGE_BASE_URL : UI_API_TYPES_README_BASE_URL, link))),

@@ -1,14 +1,14 @@
 declare module 'gulp-minify' {
-	interface MinifyOptions {
-		ext?: {
-			src?: string;
-			min?: string;
-		};
-		exclude?: string[];
-		ignoreFiles?: string[];
-	}
+    interface MinifyOptions {
+        ext?: {
+            src?: string;
+            min?: string;
+        };
+        exclude?: string[];
+        ignoreFiles?: string[];
+    }
 
-	function minify(options?: MinifyOptions): import('stream').Duplex;
+    function minify(options?: MinifyOptions): import('stream').Duplex;
 
-	export = minify;
+    export = minify;
 }

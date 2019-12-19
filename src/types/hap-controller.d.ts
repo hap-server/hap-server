@@ -142,7 +142,7 @@ declare module 'hap-controller/lib/protocol/pairing-protocol-types' {
 declare module 'hap-controller/lib/transport/ip/http-client' {
     import EventEmitter from 'events';
 
-    import {AccessoryHap} from '@hap-server/hap-server/common/types/hap';
+    import {AccessoryHap} from '@hap-server/types/hap';
     import HttpConnection from 'hap-controller/lib/transport/ip/http-connection';
     import PairingProtocol from 'hap-controller/lib/protocol/pairing-protocol';
     import {PairingData, SessionKeys} from 'hap-controller/lib/protocol/pairing-protocol-types';
@@ -248,7 +248,7 @@ declare module 'hap-controller/lib/transport/ip/http-connection' {
 }
 
 declare module 'hap-controller/lib/transport/ip/ip-discovery' {
-    import TypedEventEmitter from '@hap-server/hap-server/events/typed-eventemitter';
+    import TypedEventEmitter from '@hap-server/types/typed-eventemitter';
 
     interface HapService {
         name: string;

@@ -4,7 +4,7 @@ declare module 'homebridge/lib/server' {
     import {API} from 'homebridge/lib/api';
     import {Plugin} from 'homebridge/lib/plugin';
     import {PlatformAccessory} from 'homebridge/lib/platformAccessory';
-    import {Accessory, Bridge, Service} from '@hap-server/hap-server/hap-nodejs';
+    import {Accessory, Bridge, Service} from '@hap-server/types/hap-nodejs';
 
     interface HomebridgeOptions {
         config?: unknown;
@@ -68,7 +68,7 @@ declare module 'homebridge/lib/api' {
     import {EventEmitter} from 'events';
     import {User} from 'homebridge/lib/user';
     import {PlatformAccessory} from 'homebridge/lib/platformAccessory';
-    import TypedEventEmitter from '@hap-server/hap-server/events/typed-eventemitter';
+    import TypedEventEmitter from '@hap-server/types/typed-eventemitter';
 
     type AccessoryConstructor = unknown;
     type ConfigurationRequestHandler = unknown;
@@ -92,7 +92,7 @@ declare module 'homebridge/lib/api' {
         readonly serverVersion: string;
 
         readonly user: typeof User;
-        readonly hap: typeof import('@hap-server/hap-server/hap-nodejs');
+        readonly hap: typeof import('@hap-server/types/hap-nodejs');
         readonly hapLegacyTypes: unknown;
         readonly platformAccessory: typeof PlatformAccessory;
 
@@ -111,8 +111,9 @@ declare module 'homebridge/lib/api' {
 }
 
 declare module 'homebridge/lib/platformAccessory' {
-    import {Service, Camera} from '@hap-server/hap-server/hap-nodejs';
     import {Accessory, Category} from 'hap-nodejs/lib/Accessory';
+    import {Service} from 'hap-nodejs/lib/Service';
+    import {Camera} from 'hap-nodejs/lib/Camera';
 
     export class PlatformAccessory {
         readonly displayName: string;

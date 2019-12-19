@@ -1,7 +1,6 @@
-import {PredefinedService} from 'hap-nodejs/lib/Service';
-import {PredefinedCharacteristic} from 'hap-nodejs/lib/Characteristic';
-
 declare module 'hap-nodejs/lib/Service' {
+    import {PredefinedService} from 'hap-nodejs/lib/Service';
+
     namespace Service {
         const AccessoryInformation: PredefinedService;
         const AirPurifier: PredefinedService;
@@ -64,6 +63,8 @@ declare module 'hap-nodejs/lib/Service' {
 }
 
 declare module 'hap-nodejs/lib/Characteristic' {
+    import {PredefinedCharacteristic} from 'hap-nodejs/lib/Characteristic';
+
     namespace Characteristic {
         const AccessoryFlags: PredefinedCharacteristic<number>;
         const Active: PredefinedCharacteristic<number, {

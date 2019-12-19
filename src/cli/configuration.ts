@@ -617,7 +617,7 @@ const default_data_paths: {
 
 export function getDefaultDataPaths(platform = process.platform, _default?: string[]) {
     if (DEVELOPMENT && !default_data_paths[platform] && _default) {
-        return [path.join(__dirname, '..', '..', 'data'), ..._default];
+        return [path.join(__dirname, '..', '..', 'data'), ..._default!];
     }
 
     if (!default_data_paths[platform] && _default) return _default;
