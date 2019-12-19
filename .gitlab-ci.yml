@@ -53,7 +53,7 @@ lint:
     stage: test
     script:
         # Run eslint for JS and Vue files separately
-        - npx eslint --ext .js --color src example-plugins/src ; JS_EXIT_CODE="$?"
+        - npx eslint --ext .js --color example-plugins/src ; JS_EXIT_CODE="$?"
         - npx eslint --ext .ts --color src ; TS_EXIT_CODE="$?"
         - npx eslint --ext .vue --color src ; VUE_EXIT_CODE="$?"
         - FORCE_COLOR=1 npx sass-lint -v ; SASS_EXIT_CODE="$?"

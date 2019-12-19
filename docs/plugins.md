@@ -37,7 +37,7 @@ definitions - you don't need to install these if you aren't using TypeScript.
 
 Plugins can support both hap-server and Homebridge.
 
-hap-server also includes TypeScript definitions for Homebridge plugins. To use these include `@hap-server/hap-server`
+hap-server also includes TypeScript definitions for Homebridge plugins. To use these include `@hap-server/api`
 as a development depencency. You can use these even if your plugin only supports Homebridge.
 
 ```ts
