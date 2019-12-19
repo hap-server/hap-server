@@ -1,10 +1,10 @@
-HomeKit Accessory Server
+Home Automation Server
 ===
 
-Home automation system based on HomeKit.
+Home automation system based on Homebridge.
 
-It includes a web interface for controlling accessories. Scenes, custom controls, configuring accessories in the web
-interface, storing historical data and configuring automations in the web interface are not supported yet.
+It includes a web interface for controlling accessories, activating and configuring scenes, automations and
+custom controls. Configuring accessories in the web interface and storing historical data is not supported yet.
 
 It includes a plugin system to add accessories, accessory configuration, authentication and options for automations.
 All Homebridge plugins are supported.
@@ -65,6 +65,9 @@ A lot.
     - Uses a local copy of the web interface instead of using the server's.
 - [ ] Historical data
     - [ ] Store changes to an accessory's state
+        - Enable with the `--experimental-history` flag. Currently only stores changes already visible to hap-server
+            (when plugins (usually incorrectly) update without any subscribed clients, when controlled in hap-server
+            or when a controller is subscribed to changes) and from all accessories.
     - [ ] Elgato Eve???
 - [ ] Security
     - [x] Web interface authentication
@@ -108,9 +111,23 @@ A lot.
         - [x] Set characteristic
             - [x] Increment/decrement
             - [ ] Transitions
+    - [ ] Automation history
 - [ ] Temporary scheduled actions
     - "Turn the lights off in 10 minutes."
-- [ ] Camera accessories
+- [ ] Cameras
+    - [x] Basic support (use with HomeKit)
+    - [ ] Snapshots in the web interface
+    - [ ] Live streaming in the web interface
+    - HomeKit Secure Video??
+    - Recording??
+- [ ] Routers
+    - [ ] Basic support (use with HomeKit)
+        - For routers and HomeKit Accessory Security: no support as the TLV format isn't known yet.
+        - For Wi-Fi extenders (or satellites as they are called internally) - these are very basic (only provides a
+            connected/not connected status): supported in hap-nodejs, but not yet in hap-server until Homebridge also
+            updates hap-nodejs.
+    - [ ] Visible in the web interface
+    - [ ] Controllable in the web interface
 - [ ] Merged accessories
     - Merge services from multiple accessories into a single accessory to add functionality with multiple plugins.
 - [x] Add HomeKit accessories
