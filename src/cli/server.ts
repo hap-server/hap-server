@@ -327,7 +327,7 @@ export async function handler(argv: Arguments) {
     }
 
     let bonjour_instance: import('bonjour').Bonjour | null = null;
-    let web_interface_address = null;
+    let web_interface_address: string | null = null;
 
     if (argv.advertiseWebInterface) {
         const {default: bonjour} = await import('bonjour');

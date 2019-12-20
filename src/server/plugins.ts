@@ -309,7 +309,18 @@ export class PluginManager extends Events {
 
     addPluginPath(path: string) {
         this.plugin_paths.unshift(path);
-        HomebridgePluginManager.addPluginPath(path);
+
+        try {
+            const stat = fs.statSync(path);
+            // eslint-disable-next-line no-throw-literal
+            if (!stat.isDirectory()) throw {code: 'ENOTDIR'};
+
+            HomebridgePluginManager.addPluginPath(path);
+        } catch (err) {
+            if (err.code !== 'ENOTDIR') throw err;
+
+            log.debug('Not adding "%s" as a plugin path for Homebridge as it\'s not a directory', path);
+        }
     }
 
     loadPlugins() {
