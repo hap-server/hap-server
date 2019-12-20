@@ -796,9 +796,15 @@ export class PluginAccessory<HasAccessory extends boolean = true> {
     }
 
     protected updateStatus(status: AccessoryStatus) {
+        // Check status is a valid status
         if (typeof AccessoryStatus[status] !== 'string') return;
+
+        // Disallow setting the status to WAITING and DESTROYED
         if (status === AccessoryStatus.WAITING) return;
         if (status === AccessoryStatus.DESTROYED) return;
+
+        // Don't allow updating the status if the accessory has been removed from the server
+        if (this.status === AccessoryStatus.DESTROYED) return;
 
         this._status = status;
 
@@ -1015,6 +1021,13 @@ export class PluginStandaloneAccessory<HasAccessory extends boolean = boolean> e
     }
 
     destroy() {
+        clearTimeout(this._initialiseTimeout!);
+        this._initialiseTimeout = null;
+
+        const err = new Error('Canceled');
+        if (this._initialiseCallbacks) for (const [rs, rj] of this._initialiseCallbacks) rj(err);
+        this._initialiseCallbacks = null;
+
         if (!this._initialising) return super.destroy();
 
         // If we're still initialising the accessory wait for it first
@@ -1028,6 +1041,9 @@ export class PluginStandaloneAccessory<HasAccessory extends boolean = boolean> e
         if (this.accessory) return Promise.resolve();
         if (this._initialising) return this._initialising;
 
+        clearTimeout(this._initialiseTimeout!);
+        this._initialiseTimeout = null;
+
         // Call the accessory handler
         const init = Promise.resolve().then(() =>
             accessory_handler.call(plugin, config, cached_accessory ? cached_accessory.accessory : undefined));
@@ -1035,8 +1051,11 @@ export class PluginStandaloneAccessory<HasAccessory extends boolean = boolean> e
         this.updateStatus(AccessoryStatus.WAITING);
 
         this._initialising = init.then(accessory => {
+            if (!(accessory instanceof Accessory)) throw new Error('Accessory handler didn\'t return an Accessory');
+
             // Set the accessory
             Object.defineProperty(this, 'accessory', {value: accessory});
+            Object.defineProperty(this.accessory, PluginAccessory.symbol, {value: this});
 
             server.accessories.registerAccessoryEventListeners(this as PluginStandaloneAccessory<true>);
             server.accessories.removeCachedAccessory(this.uuid);
@@ -1047,13 +1066,16 @@ export class PluginStandaloneAccessory<HasAccessory extends boolean = boolean> e
             this._initialising = null;
 
             this.server.emit(AddAccessoryEvent, this.server, this as PluginStandaloneAccessory<true>);
-        }, err => {
+        }).catch(err => {
             // Accessory handler threw
             // Set the status to ERROR
             this.updateStatus(AccessoryStatus.ERROR);
             this._initialising = null;
 
-            server.accessories.log.error('Error loading accessory %s:', uuid, err);
+            server.accessories.log.error('Error loading accessory %s (will try again in 30 seconds):', uuid, err);
+
+            this._initialiseTimeout = setTimeout(() =>
+                this.init(server, plugin, accessory_handler, cached_accessory, uuid, config), 30000);
         });
     }
 }
