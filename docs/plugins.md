@@ -107,7 +107,7 @@ lightbulb_service.getCharacteristic(Characteristics.On)
     });
 ```
 
-Camera and Television accessories should set the `external_groups` property so hap-server knows to publish the
+Television accessories should set the `external_groups` property so hap-server knows to publish the
 accessory separately. This should be the UUID of any services that require the accessory to be published separately.
 
 ```js
@@ -126,6 +126,8 @@ accessory should always be published separately set the `external` property.
 const accessory = new Accessory(config.name, config.uuid);
 accessory.external = true;
 
+// Cameras don't actually need to be published separately anymore
+// Since version 0.11.0 multiple cameras can be published on the same bridge
 const camera = new Camera(/* ... */);
 accessory.configureCameraSource(camera);
 

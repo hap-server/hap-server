@@ -451,8 +451,8 @@ export default class Server {
         const accessory = this.getAccessoryByID(aid, false);
 
         if (!accessory) {
-            this.log.debug('Tried to get a characteristic from an unknown/cached accessory with aid', aid,
-                'and iid', iid);
+            this.log.debug('Tried to get a characteristic from an unknown/cached accessory with aid %d and iid %d',
+                aid, iid);
 
             return {
                 aid, iid,
@@ -463,7 +463,7 @@ export default class Server {
         const characteristic = this.getCharacteristicByID(accessory, iid);
 
         if (!characteristic) {
-            this.log.warn('Could not find a characteristic with aid', aid, 'and iid', iid);
+            this.log.warn('Could not find a characteristic with aid %d and iid %d', aid, iid);
 
             return {
                 aid, iid,
@@ -483,11 +483,11 @@ export default class Server {
         const context = events;
 
         try {
+            // Set the value and wait for success
             const value = await new Promise((rs, rj) => characteristic.getValue((err: any, value: any) => {
                 err ? rj(err) : rs(value);
             }, context, connection_id));
 
-            // set the value and wait for success
             this.log.debug('Got characteristic "%s"', characteristic.displayName, value);
 
             // Compose the response and add it to the list
@@ -509,8 +509,8 @@ export default class Server {
 
     /**
      * Handle /characteristics requests.
-     * Called when an iOS client wishes to change the state of this accessory - like opening a door, or turning on a light.
-     * Or, to subscribe to change events for a particular Characteristic.
+     * Called when an iOS client wishes to change the state of this accessory - like opening a door, or turning
+     * on a light. Or, to subscribe to change events for a particular Characteristic.
      *
      * @param {object[]} data
      * @param {object} events
@@ -610,7 +610,7 @@ export default class Server {
             }
         }
 
-        // no value to set, so we're done (success)
+        // No value to set, so we're done (success)
         return {
             aid, iid,
             [status_key]: 0,
@@ -623,15 +623,25 @@ export default class Server {
      * @param {object} data
      * @return {Promise}
      */
-    async handleResource(data: any) {
-        if (data['resource-type'] === 'image' && this.camera_source) {
+    async handleResource(data: ResourceRequest) {
+        if (data['resource-type'] === ResourceTypes.IMAGE && this.camera_source && !data.aid) {
             return await new Promise((rs, rj) => this.camera_source!.handleSnapshotRequest({
                 width: data['image-width'],
                 height: data['image-height'],
             }, (err: any, data: any) => err ? rj(err) : rs(data)));
         }
 
-        throw new Error('resource not found');
+        if (data['resource-type'] === ResourceTypes.IMAGE && data.aid) {
+            const accessory = this.getAccessoryByID(data.aid);
+            if (!accessory || !accessory.cameraSource) throw new Error('Resource not found');
+
+            return await new Promise((rs, rj) => accessory.cameraSource!.handleSnapshotRequest({
+                width: data['image-width'],
+                height: data['image-height'],
+            }, (err: any, data: any) => err ? rj(err) : rs(data)));
+        }
+
+        throw new Error('Resource not found');
     }
 
     /**
@@ -644,6 +654,12 @@ export default class Server {
     async handleSessionClose(session_id: string, events: object) {
         if (this.camera_source && this.camera_source.handleCloseConnection) {
             this.camera_source.handleCloseConnection(session_id);
+        }
+
+        for (const accessory of this.accessories) {
+            if (accessory.cameraSource && accessory.cameraSource.handleCloseConnection) {
+                accessory.cameraSource.handleCloseConnection(session_id);
+            }
         }
 
         // this._unsubscribeEvents(events);
@@ -659,4 +675,15 @@ export default class Server {
             } catch (err) {}
         }
     }
+}
+
+interface ResourceRequest {
+    'aid'?: number;
+    'image-height': number;
+    'image-width': number;
+    'resource-type': ResourceTypes;
+}
+
+export enum ResourceTypes {
+    IMAGE = 'image',
 }
