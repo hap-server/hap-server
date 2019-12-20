@@ -38,3 +38,5 @@ export type Service = import('hap-nodejs/lib/Service').Service;
 export type Characteristic = import('hap-nodejs/lib/Characteristic').Characteristic;
 export type StreamController = import('hap-nodejs/lib/StreamController').StreamController;
 export type HAPServer = import('hap-nodejs/lib/HAPServer').HAPServer;
+
+require('./patches/hap-nodejs');

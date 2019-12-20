@@ -210,6 +210,24 @@ declare module 'hap-nodejs/lib/util/eventedhttp' {
 
     interface Session {
         sessionID: string;
+        encryption?: Encryption;
+    }
+
+    class Encryption {
+        clientPublicKey: Buffer;
+        secretKey: Buffer;
+        publicKey: Buffer;
+        sharedSec: Buffer;
+        hkdfPairEncKey: Buffer;
+        accessoryToControllerCount: {
+            value: number;
+        };
+        controllerToAccessoryCount: {
+            value: number;
+        };
+        accessoryToControllerKey: Buffer;
+        controllerToAccessoryKey: Buffer;
+        extraInfo: unknown;
     }
 
     interface ConnectionEvents {
@@ -803,4 +821,42 @@ declare module 'hap-nodejs/lib/util/uuid' {
     export function generate(data: import('crypto').BinaryLike): string;
     export function isValid(UUID: string): boolean;
     export function unparse(buf: Buffer, offset?: number): string;
+}
+
+declare module 'hap-nodejs/lib/util/tlv' {
+    export function encode(type: number, data: Buffer | number | string, ...args: (number | Buffer | string)[]): void;
+    export function decode(data: Buffer): Record<number, Buffer>;
+}
+
+declare module 'hap-nodejs/lib/util/encryption' {
+    import nacl from 'tweetnacl';
+
+    interface Counter {
+        value: number;
+    }
+
+    interface ExtraInfo {
+        leftoverData?: Buffer;
+    }
+
+    export function generateCurve25519KeyPair(): nacl.BoxKeyPair;
+    export function generateCurve25519SharedSecKey(privateKey: Uint8Array, publicKey: Uint8Array): Uint8Array;
+
+    export function layerEncrypt(data: Buffer, count: Counter, key: Buffer): Buffer;
+    export function layerDecrypt(data: Buffer, count: Counter, key: Buffer, extraInfo: ExtraInfo): void;
+
+    export function verifyAndDecrypt(
+        key: Buffer, nonce: Buffer, ciphertext: Buffer, mac: Buffer, additional_data: Buffer | null,
+        plaintext: Buffer
+    ): boolean;
+    export function encryptAndSeal(
+        key: Buffer, nonce: Buffer, plaintext: Buffer, additional_data: Buffer | null, ciphertext: Buffer,
+        mac: Buffer
+    ): void;
+}
+
+declare module 'hap-nodejs/lib/util/hkdf' {
+    import {BinaryLike} from 'crypto';
+
+    export function HKDF(hashAlg: string, salt: BinaryLike, ikm: BinaryLike, info: Buffer, size: number): Buffer;
 }
