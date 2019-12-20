@@ -17,6 +17,7 @@ import {
     AuthenticatedUser as BaseAuthenticatedUser,
     UserManagementHandler as BaseUserManagementHandler,
 } from '@hap-server/hap-server/server/plugins';
+import {AccessoryEvents, AccessoryStatus} from '@hap-server/hap-server/server/accessories';
 import AutomationTrigger from '@hap-server/hap-server/automations/trigger';
 import AutomationCondition from '@hap-server/hap-server/automations/condition';
 import AutomationAction from '@hap-server/hap-server/automations/action';
@@ -83,6 +84,9 @@ declare module '@hap-server/api' {
         EventListenerPromise,
         EventListeners,
         events,
+
+        AccessoryEvents,
+        AccessoryStatus,
     };
 
     export type Connection = import('@hap-server/hap-server/server/connection').default;

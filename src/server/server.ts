@@ -391,7 +391,8 @@ export default class Server extends Events {
      */
     async saveCachedAccessories() {
         const cached_accessories = await Promise.all(this.accessories.accessories
-            .concat(this.accessories.cached_accessories).map(accessory => accessory.cache()));
+            .concat(this.accessories.cached_accessories).map(accessory => accessory.cache())
+            .filter(a => a));
 
         await this.storage.setItem('CachedAccessories', cached_accessories);
     }

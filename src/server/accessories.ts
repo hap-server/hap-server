@@ -1,7 +1,10 @@
 /// <reference path="../types/homebridge.d.ts" />
 
 import Server from './server';
-import PluginManager, {Plugin, AccessoryPlatformHandler, DynamicAccessoryPlatformHandler} from './plugins';
+import PluginManager, {
+    Plugin,
+    AccessoryHandler, AccessoryPlatformHandler, DynamicAccessoryPlatformHandler,
+} from './plugins';
 import Bridge from './bridge';
 import Homebridge from './homebridge';
 
@@ -23,7 +26,7 @@ export default class AccessoryManager {
     readonly server: Server;
     readonly log: Logger;
 
-    readonly accessories: PluginAccessory[] = [];
+    readonly accessories: PluginAccessory<boolean>[] = [];
     readonly accessory_platforms: AccessoryPlatform[] = [];
     readonly cached_accessories: PluginAccessory[] = [];
 
@@ -155,11 +158,25 @@ export default class AccessoryManager {
      *
      * @param {PluginAccessory} plugin_accessory
      */
-    addAccessory(plugin_accessory: PluginAccessory) {
+    addAccessory(plugin_accessory: PluginAccessory<boolean>) {
         // eslint-disable-next-line curly
         if (this.accessories.find(a => a.uuid === plugin_accessory.uuid)) throw new Error('Already have an' +
             ' accessory with the UUID "' + plugin_accessory.uuid + '"');
 
+        if (plugin_accessory.accessory) {
+            this.registerAccessoryEventListeners(plugin_accessory);
+            this.removeCachedAccessory(plugin_accessory.uuid);
+        }
+
+        this.accessories.push(plugin_accessory);
+
+        if (plugin_accessory.accessory) {
+            this.addAccessoryToBridges(plugin_accessory);
+            this.server.emit(AddAccessoryEvent, this.server, plugin_accessory);
+        }
+    }
+
+    registerAccessoryEventListeners(plugin_accessory: PluginAccessory<true>) {
         // @ts-ignore
         plugin_accessory.accessory.bridged = true;
 
@@ -180,11 +197,9 @@ export default class AccessoryManager {
         const configuration_change_handler = this._handleConfigurationChange.bind(this, plugin_accessory.accessory);
         this.configuration_change_handlers.set(plugin_accessory.accessory, configuration_change_handler);
         plugin_accessory.accessory.on('service-configurationChange', configuration_change_handler);
+    }
 
-        this.removeCachedAccessory(plugin_accessory.uuid);
-
-        this.accessories.push(plugin_accessory);
-
+    addAccessoryToBridges(plugin_accessory: PluginAccessory<true>) {
         for (const bridge of this.bridges.filter(bridge => bridge.accessory_uuids.find(accessory_uuid =>
             accessory_uuid instanceof Array ? accessory_uuid[0] === (plugin_accessory.plugin ?
                 plugin_accessory.plugin.name : plugin_accessory instanceof HomebridgeAccessory ?
@@ -192,13 +207,11 @@ export default class AccessoryManager {
                 accessory_uuid[1] === (plugin_accessory instanceof PluginStandaloneAccessory ?
                     plugin_accessory.accessory_type : plugin_accessory instanceof PluginAccessoryPlatformAccessory ?
                         plugin_accessory.accessory_platform_name : null) &&
-                accessory_uuid[2] === plugin_accessory.accessory.displayName :
+                accessory_uuid[2] === plugin_accessory.accessory!.displayName :
                 accessory_uuid === plugin_accessory.uuid
         ))) {
             bridge.addAccessory(plugin_accessory.accessory);
         }
-
-        this.server.emit(AddAccessoryEvent, this.server, plugin_accessory);
     }
 
     /**
@@ -207,6 +220,9 @@ export default class AccessoryManager {
      * @param {PluginAccessory} plugin_accessory
      */
     removeAccessory(plugin_accessory: PluginAccessory) {
+        // Emit the destroy event on the accessory - this allows the plugin to disconnect from the accessory properly
+        plugin_accessory.destroy();
+
         const characteristic_change_handler = this.characteristic_change_handlers.get(plugin_accessory.accessory);
         if (characteristic_change_handler) {
             plugin_accessory.accessory.removeListener('service-characteristic-change',
@@ -233,35 +249,42 @@ export default class AccessoryManager {
         this.server.emit(RemoveAccessoryEvent, this.server, plugin_accessory);
     }
 
-    async loadAccessory(accessory_config: any) {
-        const {plugin: plugin_name, accessory: accessory_type, name} = accessory_config;
-
-        // eslint-disable-next-line curly
-        if (!accessory_type || !name) throw new Error('Invalid accessory configuration: accessories must have the' +
-            ' plugin, accessory and name properties');
+    getAccessoryHandler(config: {
+        plugin?: string;
+        accessory: string;
+    }): [Plugin | null, AccessoryHandler] {
+        const {plugin: plugin_name, accessory: accessory_type} = config;
 
         const {builtin_accessory_types}: typeof import('../accessories') = require('../accessories');
 
         const is_builtin = !plugin_name && builtin_accessory_types[accessory_type];
 
-        const plugin = is_builtin ? null : PluginManager.getPlugin(plugin_name);
+        const plugin = is_builtin || !plugin_name ? null : PluginManager.getPlugin(plugin_name);
         if (!plugin && !is_builtin) throw new Error('No plugin with the name "' + plugin_name + '"');
 
         const accessory_handler = is_builtin ? builtin_accessory_types[accessory_type] :
             plugin!.getAccessoryHandler(accessory_type);
         if (!accessory_handler) throw new Error('No accessory handler with the name "' + accessory_type + '"');
 
+        return [plugin, accessory_handler];
+    }
+
+    async loadAccessory(accessory_config: any, uuid?: string) {
+        const {plugin: plugin_name, accessory: accessory_type, name} = accessory_config;
+
         // eslint-disable-next-line curly
-        if (!accessory_config.uuid) accessory_config.uuid = hap.uuid.generate('accessory:' + plugin_name + ':' +
+        if (!accessory_type || !name) throw new Error('Invalid accessory configuration: accessories must have the' +
+            ' plugin, accessory and name properties');
+
+        const [plugin, accessory_handler] = this.getAccessoryHandler(accessory_config);
+
+        if (uuid) accessory_config.uuid = uuid;
+
+        // eslint-disable-next-line curly
+        if (!accessory_config.uuid) uuid = accessory_config.uuid = hap.uuid.generate('accessory:' + plugin_name + ':' +
             accessory_type + ':' + name);
 
-        const cached_accessory = this.getCachedAccessory(accessory_config.uuid);
-
-        const accessory = await accessory_handler.call(plugin, accessory_config,
-            cached_accessory ? cached_accessory.accessory : undefined);
-
-        const plugin_accessory = new PluginStandaloneAccessory(this.server, accessory, plugin, accessory_type,
-            accessory_config, accessory_config.uuid);
+        const plugin_accessory = PluginStandaloneAccessory.load(this.server, accessory_config, uuid!);
 
         this.addAccessory(plugin_accessory);
     }
@@ -333,12 +356,12 @@ export default class AccessoryManager {
      * @param {string} [accessory_type]
      * @return {PluginStandaloneAccessory}
      */
-    getCachedAccessory(uuid: string, plugin?: Plugin, accessory_type?: string) {
+    getCachedAccessory(uuid: string, plugin?: Plugin, accessory_type?: string): PluginStandaloneAccessory<true> | null {
         return this.cached_accessories.find(accessory => accessory instanceof PluginStandaloneAccessory &&
             accessory.uuid === uuid &&
             (!plugin || accessory.plugin === plugin) &&
             ((!plugin && !accessory_type) || accessory.accessory_type === accessory_type)
-        ) as PluginStandaloneAccessory;
+        ) as PluginStandaloneAccessory<true> || null;
     }
 
     /**
@@ -410,8 +433,8 @@ export default class AccessoryManager {
                     accessory_uuid[0] === (accessory.plugin ? accessory.plugin.name : null) &&
                     // @ts-ignore
                     accessory_uuid[1] === accessory.accessory_type &&
-                    accessory_uuid[2] === accessory.accessory.displayName);
-                if (accessory) bridge.addAccessory(accessory.accessory);
+                    accessory.accessory && accessory_uuid[2] === accessory.accessory.displayName);
+                if (accessory && accessory.accessory) bridge.addAccessory(accessory.accessory);
 
                 const cached_accessory = this.cached_accessories.find(accessory =>
                     accessory_uuid[0] === (accessory.plugin ? accessory.plugin.name : null) &&
@@ -421,7 +444,7 @@ export default class AccessoryManager {
                 if (cached_accessory) bridge.addCachedAccessory(cached_accessory.accessory);
             } else {
                 const accessory = this.accessories.find(accessory => accessory.uuid === accessory_uuid);
-                if (accessory) bridge.addAccessory(accessory.accessory);
+                if (accessory && accessory.accessory) bridge.addAccessory(accessory.accessory);
 
                 const cached_accessory = this.cached_accessories.find(accessory => accessory.uuid === accessory_uuid);
                 if (cached_accessory) bridge.addCachedAccessory(cached_accessory.accessory);
@@ -607,6 +630,10 @@ export default class AccessoryManager {
             // pairings: ...,
         });
     }
+
+    handleStatusChange(accessory: PluginAccessory, status: AccessoryStatus) {
+        //
+    }
 }
 
 export class AccessoryPlatform {
@@ -724,34 +751,62 @@ export class AccessoryPlatform {
     }
 }
 
-export class PluginAccessory {
+export class PluginAccessory<HasAccessory extends boolean = true> {
+    static readonly symbol = Symbol('PluginAccessory');
+
     readonly server!: Server;
-    readonly accessory!: Accessory;
+    readonly uuid!: string;
+    readonly accessory!: HasAccessory extends true ? Accessory : null;
     readonly plugin!: Plugin | null;
     readonly data: any;
     readonly cached_data: any;
 
-    constructor(server: Server, accessory: Accessory, plugin: Plugin | null, data?: any) {
+    private _status = AccessoryStatus.NOT_READY;
+
+    constructor(
+        server: Server, accessory: HasAccessory extends true ? Accessory : string, plugin: Plugin | null, data?: any
+    ) {
         Object.defineProperty(this, 'server', {value: server});
-        Object.defineProperty(this, 'accessory', {value: accessory});
+        Object.defineProperty(this, 'accessory', {configurable: true, value:
+            accessory instanceof Accessory ? accessory : null});
         Object.defineProperty(this, 'plugin', {value: plugin});
         this.data = data;
 
-        Object.defineProperty(this.accessory, 'plugin_accessory', {value: this});
+        if (this.accessory) {
+            Object.defineProperty(this, 'uuid', {value: this.accessory.UUID});
+            Object.defineProperty(this.accessory, PluginAccessory.symbol, {value: this});
+
+            this.accessory.on(AccessoryEvents.STATUS, this._handleUpdateStatus);
+        } else {
+            Object.defineProperty(this, 'uuid', {value: accessory});
+        }
     }
 
-    get uuid() {
-        return this.accessory.UUID;
+    get status() {
+        return this._status;
     }
 
     destroy() {
-        // @ts-ignore
-        if (this.accessory.listenerCount('destroy') <= 0) {
+        if (this.accessory!.listenerCount(AccessoryEvents.DESTROY) <= 0) {
             this.server.log.warn('Accessory %s doesn\'t have a destory handler', this.uuid);
         }
 
-        (this.accessory as any).emit('destroy');
+        this._status = AccessoryStatus.DESTROYED;
+        this.accessory!.emit(AccessoryEvents.DESTROY);
     }
+
+    protected updateStatus(status: AccessoryStatus) {
+        if (typeof AccessoryStatus[status] !== 'string') return;
+        if (status === AccessoryStatus.WAITING) return;
+        if (status === AccessoryStatus.DESTROYED) return;
+
+        this._status = status;
+
+        this.server.accessories.handleStatusChange(this as PluginAccessory<true>, status);
+    }
+
+    // eslint-disable-next-line no-invalid-this
+    private _handleUpdateStatus = this.updateStatus.bind(this);
 
     /**
      * Return an object that can be used to recreate this accessory.
@@ -759,6 +814,9 @@ export class PluginAccessory {
      * @return {object}
      */
     cache() {
+        // If the accessory hasn't been initialised yet use old cache data
+        if (!this.accessory) return this.cached_data;
+
         return {
             accessory: {
                 displayName: this.accessory.displayName,
@@ -795,10 +853,10 @@ export class PluginAccessory {
             accessory_platform: (this as any as PluginAccessoryPlatformAccessory).accessory_platform_name,
             data: this.data,
             bridge_uuids: this.server.accessories.bridges
-                .filter(b => b.accessory_uuids.includes(this.accessory.UUID)).map(b => b.uuid),
+                .filter(b => b.accessory_uuids.includes(this.accessory!.UUID)).map(b => b.uuid),
             bridge_uuids_external: this.server.accessories.bridges
-                .filter(b => b.accessory_uuids.includes(this.accessory.UUID) &&
-                    b.external_accessories.find(a => a.UUID === this.accessory.UUID)).map(b => b.uuid),
+                .filter(b => b.accessory_uuids.includes(this.accessory!.UUID) &&
+                    b.external_accessories.find(a => a.UUID === this.accessory!.UUID)).map(b => b.uuid),
         };
     }
 
@@ -809,7 +867,7 @@ export class PluginAccessory {
      * @param {object} cache The cached data returned from pluginaccessory.cache
      * @return {PluginAccessory}
      */
-    static restore(server: Server, cache: any) {
+    static restore(server: Server, cache: any): PluginAccessory<true> {
         const accessory = new Accessory(cache.accessory.displayName, cache.accessory.UUID);
 
         // @ts-ignore
@@ -867,7 +925,7 @@ export class PluginAccessory {
 
         const plugin_accessory = accessory_platform_handler ?
             new PluginAccessoryPlatformAccessory(server, accessory, plugin, cache.accessory_platform, cache.base_uuid) :
-            new PluginStandaloneAccessory(server, accessory, plugin, cache.accessory_type, null, cache.uuid);
+            new PluginStandaloneAccessory<true>(server, accessory, plugin, cache.accessory_type, null, cache.uuid);
 
         // @ts-ignore
         plugin_accessory.cached_data = cache;
@@ -876,24 +934,131 @@ export class PluginAccessory {
     }
 }
 
-export class PluginStandaloneAccessory extends PluginAccessory {
+const AccessoryEvents_destroy = Symbol('destroy');
+const AccessoryEvents_reload = Symbol('reload');
+const AccessoryEvents_status = Symbol('status');
+
+export const AccessoryEvents: {
+    readonly DESTROY: typeof AccessoryEvents_destroy;
+    readonly RELOAD: typeof AccessoryEvents_reload;
+    readonly STATUS: typeof AccessoryEvents_status;
+} = {
+    DESTROY: AccessoryEvents_destroy,
+    RELOAD: AccessoryEvents_reload,
+    STATUS: AccessoryEvents_status,
+};
+
+export type AccessoryEvents = typeof AccessoryEvents[keyof typeof AccessoryEvents];
+
+declare module 'hap-nodejs/lib/Accessory' {
+    interface Events {
+        [AccessoryEvents.DESTROY]: [];
+        [AccessoryEvents.RELOAD]: [any];
+        [AccessoryEvents.STATUS]: [AccessoryStatus];
+    }
+
+    export interface Accessory {
+        [PluginAccessory.symbol]?: PluginAccessory;
+    }
+}
+
+export enum AccessoryStatus {
+    /** Initial startup phase - can't be set by accessories */
+    WAITING,
+    READY,
+    NOT_READY,
+    CONNECTING,
+    DISCONNECTING,
+    /** Accessory handler throws - or accessory emits an error?? */
+    ERROR,
+    /** Accessory was removed from the server - can't be set by accessories */
+    DESTROYED,
+}
+
+export class PluginStandaloneAccessory<HasAccessory extends boolean = boolean> extends PluginAccessory<HasAccessory> {
     readonly config: any;
     readonly uuid!: string;
     readonly accessory_type!: string;
 
+    private _initialising: Promise<void> | null = null;
+    private _initialiseTimeout: NodeJS.Timeout | null = null;
+    private _initialiseCallbacks: [() => void, (reason: Error) => void][] | null = [];
+
     constructor(
-        server: Server, accessory: Accessory, plugin: Plugin | null, accessory_type: string,
-        config: any, uuid: string
+        server: Server, accessory: HasAccessory extends true ? Accessory : null,
+        plugin: Plugin | null, accessory_type: string, config: any, uuid: string
     ) {
-        super(server, accessory, plugin);
+        super(server, accessory ? accessory : uuid as any, plugin);
 
         Object.defineProperty(this, 'config', {value: config});
-        Object.defineProperty(this, 'uuid', {value: uuid || accessory.UUID});
         Object.defineProperty(this, 'accessory_type', {value: accessory_type});
+    }
+
+    get ready(): Promise<PluginStandaloneAccessory<true> & this> {
+        return this._initialiseCallbacks ? new Promise((rs, rj) =>
+            this._initialiseCallbacks?.push([() => rs(this as any), rj])) :
+            Promise.resolve(this as any);
+    }
+
+    static load(server: Server, config: any, uuid: string) {
+        const [plugin, accessory_handler] = server.accessories.getAccessoryHandler(config);
+        const type: string = config.accessory;
+
+        const plugin_accessory = new PluginStandaloneAccessory<false>(server, null, plugin, type, config, uuid);
+
+        const cached_accessory = server.accessories.getCachedAccessory(uuid);
+
+        // Try and initialise the accessory now
+        plugin_accessory.init(server, plugin, accessory_handler, cached_accessory, uuid, config);
+
+        return plugin_accessory;
+    }
+
+    destroy() {
+        if (!this._initialising) return super.destroy();
+
+        // If we're still initialising the accessory wait for it first
+        this._initialising.then(() => super.destroy());
+    }
+
+    private init(
+        server: Server, plugin: Plugin | null, accessory_handler: AccessoryHandler,
+        cached_accessory: PluginStandaloneAccessory<true> | null, uuid: string, config: any
+    ) {
+        if (this.accessory) return Promise.resolve();
+        if (this._initialising) return this._initialising;
+
+        // Call the accessory handler
+        const init = Promise.resolve().then(() =>
+            accessory_handler.call(plugin, config, cached_accessory ? cached_accessory.accessory : undefined));
+
+        this.updateStatus(AccessoryStatus.WAITING);
+
+        this._initialising = init.then(accessory => {
+            // Set the accessory
+            Object.defineProperty(this, 'accessory', {value: accessory});
+
+            server.accessories.registerAccessoryEventListeners(this as PluginStandaloneAccessory<true>);
+            server.accessories.removeCachedAccessory(this.uuid);
+            server.accessories.addAccessoryToBridges(this as PluginStandaloneAccessory<true>);
+
+            if (this.status === AccessoryStatus.WAITING) this.updateStatus(AccessoryStatus.READY);
+
+            this._initialising = null;
+
+            this.server.emit(AddAccessoryEvent, this.server, this as PluginStandaloneAccessory<true>);
+        }, err => {
+            // Accessory handler threw
+            // Set the status to ERROR
+            this.updateStatus(AccessoryStatus.ERROR);
+            this._initialising = null;
+
+            server.accessories.log.error('Error loading accessory %s:', uuid, err);
+        });
     }
 }
 
-export class PluginAccessoryPlatformAccessory extends PluginAccessory {
+export class PluginAccessoryPlatformAccessory extends PluginAccessory<true> {
     readonly base_uuid!: string;
     readonly accessory_platform_name!: string;
 
@@ -905,15 +1070,19 @@ export class PluginAccessoryPlatformAccessory extends PluginAccessory {
 
         Object.defineProperty(this, 'base_uuid', {value: base_uuid});
         Object.defineProperty(this, 'accessory_platform_name', {value: accessory_platform_name});
+
+        this.updateStatus(AccessoryStatus.READY);
     }
 }
 
-export class HomebridgeAccessory extends PluginAccessory {
+export class HomebridgeAccessory extends PluginAccessory<true> {
     readonly platform_accessory!: PlatformAccessory;
 
     constructor(server: Server, accessory: Accessory, platform_accessory?: PlatformAccessory) {
         super(server, accessory, null);
 
         Object.defineProperty(this, 'platform_accessory', {value: platform_accessory});
+
+        this.updateStatus(AccessoryStatus.READY);
     }
 }

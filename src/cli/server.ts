@@ -583,7 +583,7 @@ export async function handler(argv: Arguments) {
     await server.loadCachedAccessories();
 
     log.info('Loading HAP bridges');
-    await server.loadBridgesFromConfig();
+    await server.loadBridgesFromConfig(config.bridges || []);
     await server.loadBridgesFromStorage();
 
     if (!argv.enableHomebridge) {
