@@ -21,6 +21,7 @@ import {
 import {Accessory, Service, Characteristic} from '../hap-nodejs';
 import * as hap from '../hap-nodejs';
 import {PlatformAccessory} from 'homebridge/lib/platformAccessory';
+import * as util from '../util';
 
 export default class AccessoryManager {
     readonly server: Server;
@@ -276,8 +277,6 @@ export default class AccessoryManager {
         if (!accessory_type || !name) throw new Error('Invalid accessory configuration: accessories must have the' +
             ' plugin, accessory and name properties');
 
-        const [plugin, accessory_handler] = this.getAccessoryHandler(accessory_config);
-
         if (uuid) accessory_config.uuid = uuid;
 
         // eslint-disable-next-line curly
@@ -289,24 +288,17 @@ export default class AccessoryManager {
         this.addAccessory(plugin_accessory);
     }
 
-    /**
-     * Loads an accessory platform.
-     *
-     * @param {object} config
-     * @return {Promise}
-     */
-    async loadAccessoryPlatform(config: any) {
-        const {plugin: plugin_name, platform: accessory_platform_name, name} = config;
-
-        // eslint-disable-next-line curly
-        if (!accessory_platform_name || !name) throw new Error('Invalid accessory platform configuration: accessory' +
-            ' platforms must have the plugin, platform and name properties');
+    getAccessoryPlatformHandler(config: {
+        plugin?: string;
+        platform: string;
+    }): [Plugin | null, typeof AccessoryPlatform] {
+        const {plugin: plugin_name, platform: accessory_platform_name} = config;
 
         const {builtin_accessory_platforms}: typeof import('../accessories') = require('../accessories');
 
         const is_builtin = !plugin_name && builtin_accessory_platforms[accessory_platform_name];
 
-        const plugin = is_builtin ? null : PluginManager.getPlugin(plugin_name);
+        const plugin = is_builtin ? null : PluginManager.getPlugin(plugin_name!);
         if (!plugin && !is_builtin) throw new Error('No plugin with the name "' + plugin_name + '"');
 
         const AccessoryPlatformHandler = is_builtin ? builtin_accessory_platforms[accessory_platform_name] :
@@ -314,7 +306,30 @@ export default class AccessoryManager {
         if (!AccessoryPlatformHandler) throw new Error('No accessory platform handler with the name "' + // eslint-disable-line curly
             accessory_platform_name + '"');
 
-        if (!config.uuid) config.uuid = 'accessoryplatform:' + plugin_name + ':' + accessory_platform_name + ':' + name;
+        return [plugin, AccessoryPlatformHandler];
+    }
+
+    /**
+     * Loads an accessory platform.
+     *
+     * @param {object} config
+     * @param {string} [uuid]
+     * @return {Promise}
+     */
+    async loadAccessoryPlatform(config: any, uuid?: string) {
+        const {plugin: plugin_name, platform: accessory_platform_name, name} = config;
+
+        // eslint-disable-next-line curly
+        if (!accessory_platform_name || !name) throw new Error('Invalid accessory platform configuration: accessory' +
+            ' platforms must have the plugin, platform and name properties');
+
+        const [plugin, AccessoryPlatformHandler] = this.getAccessoryPlatformHandler(config);
+
+        if (uuid) config.uuid = uuid + ':';
+        if (!config.uuid) {
+            uuid = config.uuid = 'accessoryplatform:' + plugin_name + ':' + accessory_platform_name + ':' + name;
+        }
+        if (!util.uuid.validate(uuid!)) uuid = util.uuid.fromString(uuid!);
 
         // eslint-disable-next-line curly
         if (this.accessory_platforms.find(p => p.config.uuid === config.uuid)) throw new Error('Already have an' +
@@ -323,10 +338,10 @@ export default class AccessoryManager {
         const cached_accessories = this.getCachedAccessoryPlatformAccessories(config.uuid, plugin,
             accessory_platform_name).map(plugin_accessory => plugin_accessory.accessory);
 
-        const accessory_platform = new AccessoryPlatformHandler(plugin!, this.server, config, cached_accessories);
-        await accessory_platform.init(cached_accessories);
-
+        const accessory_platform = new AccessoryPlatformHandler(plugin!, this.server, uuid, config, cached_accessories);
         this.accessory_platforms.push(accessory_platform);
+
+        accessory_platform._init();
 
         return accessory_platform;
     }
@@ -639,29 +654,42 @@ export default class AccessoryManager {
 export class AccessoryPlatform {
     readonly plugin!: Plugin;
     readonly server!: Server;
+    readonly uuid!: string;
     readonly config!: AccessoryPlatformConfiguration;
     readonly accessories!: PluginAccessoryPlatformAccessory[];
     readonly cached_accessories!: Accessory[];
+
+    private _initialising: Promise<void> | null = null;
+    private _initialiseTimeout: NodeJS.Timeout | null = null;
+    private _initialiseCallbacks: [() => void, (reason: Error) => void][] | null = [];
+    private _reloading: Promise<void> | null = null;
+    private _nextConfiguration: any = null;
+    private _reloadTimeout: NodeJS.Timeout | null = null;
+    private _reloadCallbacks: [() => void, (reason: Error) => void][] | null = null;
+    private _destroyed = false;
 
     /**
      * Creates an AccessoryPlatform.
      *
      * @param {Plugin} plugin
      * @param {Server} server
+     * @param {string} uuid
      * @param {object} config
      * @param {Array} cached_accessories
      */
     constructor(
-        plugin: Plugin, server: Server, config: AccessoryPlatformConfiguration, cached_accessories: Accessory[]
+        plugin: Plugin, server: Server, uuid: string, config: AccessoryPlatformConfiguration,
+        cached_accessories: Accessory[]
     ) {
         Object.defineProperty(this, 'plugin', {value: plugin});
         Object.defineProperty(this, 'server', {value: server});
-        Object.defineProperty(this, 'config', {value: Object.freeze(config)});
+        Object.defineProperty(this, 'uuid', {value: uuid});
+        Object.defineProperty(this, 'config', {configurable: true, value: Object.freeze(config)});
         Object.defineProperty(this, 'accessories', {value: []});
         Object.defineProperty(this, 'cached_accessories', {value: cached_accessories});
     }
 
-    static withHandler(handler: AccessoryPlatformHandler) {
+    static withHandler(handler: AccessoryPlatformHandler): typeof AccessoryPlatform {
         return class extends AccessoryPlatform {
             async init(cached_accessories: Accessory[]) {
                 const accessories = await handler.call(this.plugin, this.config, cached_accessories);
@@ -672,7 +700,7 @@ export class AccessoryPlatform {
         };
     }
 
-    static withDynamicHandler(handler: DynamicAccessoryPlatformHandler) {
+    static withDynamicHandler(handler: DynamicAccessoryPlatformHandler): typeof AccessoryPlatform {
         return class extends AccessoryPlatform {
             async init(cached_accessories: Accessory[]) {
                 const accessories = await handler.call(this.plugin, this, this.config, cached_accessories);
@@ -694,6 +722,124 @@ export class AccessoryPlatform {
     }
 
     /**
+     * Internal method to initialise the accessory platform.
+     *
+     * @return {Promise<void>}
+     */
+    _init() {
+        if (!this._initialiseCallbacks || this._destroyed) return Promise.resolve();
+        if (this._initialising) return this._initialising;
+
+        clearTimeout(this._initialiseTimeout!);
+        this._initialiseTimeout = null;
+
+        // Call the accessory handler
+        const init = Promise.resolve().then(() => this.init(this.cached_accessories));
+
+        return this._initialising = init.then(() => {
+            if (this._initialiseCallbacks) for (const [callback] of this._initialiseCallbacks) callback();
+
+            this._initialising = null;
+            this._initialiseCallbacks = null;
+        }).catch(err => {
+            // Accessory platform handler threw
+            this._initialising = null;
+
+            this.server.accessories.log.error('Error loading accessory platform %s (will try again in 30 seconds):',
+                this.config.uuid, err);
+
+            this._initialiseTimeout = setTimeout(() => this._init(), 30000);
+        });
+    }
+
+    /**
+     * Called when the accessory platform is removed from the server.
+     * At this point all accessories from this accessory platform have already been removed from the server.
+     * Plugins should override this method.
+     *
+     * @param {any} config
+     */
+    onreload(config: any) {
+        throw new Error('Accessory platform didn\'t handle reload event');
+    }
+
+    /**
+     * Internal method to reload the accessory platform's configuration.
+     *
+     * @param {any} config
+     * @return {Promise<void>}
+     */
+    reload(config: any) {
+        if (this._destroyed) return Promise.reject(new Error('Canceled'));
+        if (this._reloading && this._nextConfiguration === config) return this._reloading;
+
+        if (!this._reloadCallbacks) this._reloadCallbacks = [];
+
+        const reloading = this._reloading = (
+            this._reloading?.catch(err => {}) ||
+            this._initialising?.catch(err => {}) ||
+            Promise.resolve()
+        ).then(() => {
+            if (this._nextConfiguration !== config) return;
+            this._reloading = reloading;
+
+            const reload = Promise.resolve().then(() => this.onreload(config));
+
+            return reload.then(() => {
+                if (this._nextConfiguration !== config) return;
+
+                if (this._reloadCallbacks) for (const [callback] of this._reloadCallbacks) callback();
+
+                this._reloading = null;
+                this._reloadCallbacks = null;
+            }).catch(err => {
+                this.server.accessories.log.error('Error reloading accessory platform %s configuration' +
+                    ' (will try again in 30 seconds):', this.config.uuid, err);
+
+                if (this._nextConfiguration !== config) return;
+
+                this._reloadTimeout = setTimeout(() => this.reload(config), 30000);
+            });
+        });
+
+        return reloading;
+    }
+
+    /**
+     * Called when the accessory platform is removed from the server.
+     * At this point all accessories from this accessory platform have already been removed from the server.
+     */
+    async ondestroy() {
+        throw new Error('Accessory platform didn\'t handle destroy event');
+    }
+
+    /**
+     * Internal method called when the accessory platform's configuration.
+     *
+     * @return {Promise}
+     */
+    private destroy() {
+        this._destroyed = true;
+
+        clearTimeout(this._initialiseTimeout!);
+        this._initialiseTimeout = null;
+        clearTimeout(this._reloadTimeout!);
+        this._reloadTimeout = null;
+
+        const err = new Error('Canceled');
+        if (this._initialiseCallbacks) for (const [rs, rj] of this._initialiseCallbacks) rj(err);
+        this._initialiseCallbacks = null;
+        if (this._reloadCallbacks) for (const [rs, rj] of this._reloadCallbacks) rj(err);
+        this._reloadCallbacks = null;
+        this._nextConfiguration = null;
+
+        if (!this._initialising) return this.ondestroy();
+
+        // If we're still initialising the accessory platform wait for it first
+        return this._initialising.catch(err => {}).then(() => this.ondestroy());
+    }
+
+    /**
      * Adds an accessory.
      * This will automatically remove it from the cached accessories.
      *
@@ -702,7 +848,7 @@ export class AccessoryPlatform {
     addAccessory(...accessories: Accessory[]) {
         for (const accessory of accessories) {
             const plugin_accessory = new PluginAccessoryPlatformAccessory(this.server, accessory, this.plugin,
-                this.constructor.name, this.config.uuid!);
+                this, this.config.uuid!);
 
             this.server.accessories.addAccessory(plugin_accessory);
             this.removeCachedAccessory(accessory.UUID);
@@ -1022,6 +1168,23 @@ export class PluginStandaloneAccessory<HasAccessory extends boolean = boolean> e
         return plugin_accessory;
     }
 
+    /**
+     * Reload the accessory's configuration.
+     * This does not provide the same safety as accessory platforms, where the reload handler will only be called once
+     * at a time.
+     *
+     * @param {any} config
+     */
+    reload(config: any) {
+        if (!this._initialising) {
+            this.accessory!.emit(AccessoryEvents.RELOAD, config);
+            return;
+        }
+
+        // If we're still initialising the accessory wait for it first
+        this._initialising.catch(err => {}).then(() => this.accessory!.emit(AccessoryEvents.RELOAD, config));
+    }
+
     destroy() {
         clearTimeout(this._initialiseTimeout!);
         this._initialiseTimeout = null;
@@ -1033,7 +1196,7 @@ export class PluginStandaloneAccessory<HasAccessory extends boolean = boolean> e
         if (!this._initialising) return super.destroy();
 
         // If we're still initialising the accessory wait for it first
-        this._initialising.then(() => super.destroy());
+        this._initialising.catch(err => {}).then(() => super.destroy());
     }
 
     private init(
@@ -1065,7 +1228,9 @@ export class PluginStandaloneAccessory<HasAccessory extends boolean = boolean> e
 
             if (this.status === AccessoryStatus.WAITING) this.updateStatus(AccessoryStatus.READY);
 
+            if (this._initialiseCallbacks) for (const [callback] of this._initialiseCallbacks) callback();
             this._initialising = null;
+            this._initialiseCallbacks = null;
 
             this.server.emit(AddAccessoryEvent, this.server, this as PluginStandaloneAccessory<true>);
         }).catch(err => {
@@ -1084,16 +1249,19 @@ export class PluginStandaloneAccessory<HasAccessory extends boolean = boolean> e
 
 export class PluginAccessoryPlatformAccessory extends PluginAccessory<true> {
     readonly base_uuid!: string;
+    readonly accessory_platform!: AccessoryPlatform | null;
     readonly accessory_platform_name!: string;
 
     constructor(
-        server: Server, accessory: Accessory, plugin: Plugin | null, accessory_platform_name: string,
+        server: Server, accessory: Accessory, plugin: Plugin | null, accessory_platform: AccessoryPlatform | string,
         base_uuid: string
     ) {
         super(server, accessory, plugin);
 
         Object.defineProperty(this, 'base_uuid', {value: base_uuid});
-        Object.defineProperty(this, 'accessory_platform_name', {value: accessory_platform_name});
+        Object.defineProperty(this, 'accessory_platform', {value: accessory_platform});
+        Object.defineProperty(this, 'accessory_platform_name', {value: accessory_platform instanceof AccessoryPlatform ?
+            accessory_platform.constructor.name : accessory_platform});
 
         this.updateStatus(AccessoryStatus.READY);
     }
