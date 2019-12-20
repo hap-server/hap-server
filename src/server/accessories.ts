@@ -332,13 +332,14 @@ export default class AccessoryManager {
         if (!util.uuid.validate(uuid!)) uuid = util.uuid.fromString(uuid!);
 
         // eslint-disable-next-line curly
-        if (this.accessory_platforms.find(p => p.config.uuid === config.uuid)) throw new Error('Already have an' +
-            ' accessory platform with the UUID base "' + config.uuid + '"');
+        if (this.accessory_platforms.find(p => p.uuid === uuid)) throw new Error('Already have an' +
+            ' accessory platform with the UUID "' + uuid + '"');
 
         const cached_accessories = this.getCachedAccessoryPlatformAccessories(config.uuid, plugin,
             accessory_platform_name).map(plugin_accessory => plugin_accessory.accessory);
 
-        const accessory_platform = new AccessoryPlatformHandler(plugin!, this.server, uuid, config, cached_accessories);
+        const accessory_platform =
+            new AccessoryPlatformHandler(plugin!, this.server, uuid!, config, cached_accessories);
         this.accessory_platforms.push(accessory_platform);
 
         accessory_platform._init();
@@ -746,7 +747,7 @@ export class AccessoryPlatform {
             this._initialising = null;
 
             this.server.accessories.log.error('Error loading accessory platform %s (will try again in 30 seconds):',
-                this.config.uuid, err);
+                this.uuid, err);
 
             this._initialiseTimeout = setTimeout(() => this._init(), 30000);
         });
@@ -794,7 +795,7 @@ export class AccessoryPlatform {
                 this._reloadCallbacks = null;
             }).catch(err => {
                 this.server.accessories.log.error('Error reloading accessory platform %s configuration' +
-                    ' (will try again in 30 seconds):', this.config.uuid, err);
+                    ' (will try again in 30 seconds):', this.uuid, err);
 
                 if (this._nextConfiguration !== config) return;
 

@@ -160,18 +160,60 @@ hapserver.registerAccessory('AccessoryType', config => {
 });
 ```
 
+hap-server will handle errors thrown from the accessory handler function by retrying every few seconds and will wait
+for it to return during startup, so you can throw timeout errors and should over trying again. Plugins should report
+the it's status and automatically reconnect if it disconnects after the accessory handler has returned.
+
+```js
+hapserver.registerAccessory('AccessoryType', async config => {
+    // Light.connect throws if it can't connect after the specified timeout (30 seconds)
+    const light = await Light.connect(config.host, config.port, 30);
+});
+```
+
 In future versions plugins should listen to the `reload` and `destroy` events to reload the accessory's configuration
 and disconnect from the accessory if it's removed from the server.
 
 ```js
-accessory.on('reload', config => {
-    // ...
-});
+import {AccessoryEvents} from '@hap-server/api';
 
-accessory.on('destroy', () => {
+accessory.on(AccessoryEvents.DESTROY, () => {
+    // The accessory has already been removed from the server
+    light.disconnect();
+});
+```
+
+In future versions plugins should listen to the `reload` event to reload the accessory's configuration.
+
+```js
+accessory.on(AccessoryEvents.RELOAD, config => {
     // ...
 });
 ```
+
+You can report an accessory's status by emitting `status` events. By default this is set to `READY`. Characteristic
+get/set handlers are only called if the status is `READY`, if it isn't the server will respond to requests for that
+accessory as unavailable.
+
+```js
+import {AccessoryEvents, AccessoryStatus} from '@hap-server/api';
+
+accessory.emit(AccessoryEvents.STATUS, AccessoryStatus.DISCONNECTED);
+```
+
+Supported statuses are:
+
+- `WAITING`
+- `READY`
+- `NOT_READY`
+- `CONNECTING`
+- `DISCONNECTING`
+- `ERROR`
+- `DESTROYED`
+
+`WAITING` is set when the accessory is first created - before the accessory handler returns. Once the accessory
+handler returns the status is set to `READY`. If the accessory handler throws an error the error is logged to the
+console and the status is set to `ERROR`.
 
 #### `hapserver.registerAccessoryPlatform`
 
@@ -245,14 +287,14 @@ class AccessoryBridge extends AccessoryPlatform {
 hapserver.registerAccessoryPlatform(AccessoryBridge);
 ```
 
-In future versions plugins should define `reload` and `destroy` handlers to reload the accessory platform's
-configuration and disconnect from the accessories if it's removed from the server.
+Plugins should define `onreload` and `ondestroy` handlers to reload the accessory platform's configuration and
+disconnect from the accessories if it's removed from the server.
 
 ```js
 class AccessoryBridge extends AccessoryPlatform {
     // ...
 
-    async reload(config) {
+    async onreload(config) {
         if (this.config.host !== config.host) {
             await this.bridge.disconnect();
             this.bridge.host = config.host;
@@ -261,11 +303,16 @@ class AccessoryBridge extends AccessoryPlatform {
         }
     }
 
-    async destroy() {
+    async ondestroy() {
+        // Accessories will already have been removed from the server
         await this.bridge.disconnect();
     }
 }
 ```
+
+The `destroy` event will be emitted on all accessories when they are removed from the server (either because the
+accessory platform was removed or because the accessory platform removed that accessory), but the `reload` event
+won't be emitted on accessories. [See `hapserver.registerAccessory`.](#hapserver-registeraccessory)
 
 #### `hapserver.registerDynamicAccessoryPlatform`
 
@@ -301,6 +348,13 @@ hapserver.registerDynamicAccessoryPlatform('AccessoryBridge', async (accessory_p
         accessory_platform.removeAccessory(light_accessories.get(light));
         light_accessories.delete(light);
     });
+
+    accessory_platform.onreload = config => {
+        // ...
+    };
+    accessory_platform.ondestroy = () => {
+        // ...
+    };
 
     return Promise.all(lights.map(createAccessoryFromLight.bind(null, accessory_platform, config, bridge)));
 });
