@@ -998,7 +998,7 @@ export class PluginAccessory<HasAccessory extends boolean = true> {
                 external_groups: this instanceof HomebridgeAccessory ? undefined :
                     (this.accessory as any).external_groups,
             },
-            plugin: this.plugin ? this.plugin.name : null,
+            plugin: this.plugin ? this.plugin.name || this.plugin.path : null,
             uuid: this.uuid,
             is_homebridge: this instanceof HomebridgeAccessory,
             accessory_type: (this as any as PluginStandaloneAccessory).accessory_type,

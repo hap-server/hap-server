@@ -580,7 +580,7 @@ export async function handler(argv: Arguments) {
     }
 
     log.info('Loading cached accessories');
-    await server.loadCachedAccessories();
+    await server.loadCachedAccessories(true);
 
     log.info('Loading HAP bridges');
     await server.loadBridgesFromConfig(config.bridges || []);
