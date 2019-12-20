@@ -171,7 +171,7 @@ declare module 'hap-controller/lib/transport/ip/http-client' {
     class HttpClient extends EventEmitter {
         deviceId: string;
         address: string;
-        port: string;
+        port: number;
         pairingProtocol: PairingProtocol;
 
         constructor(deviceId: string, address: string, port: number, pairingData: any)

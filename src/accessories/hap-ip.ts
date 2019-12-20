@@ -11,6 +11,12 @@ const HttpClient: typeof import('hap-controller').HttpClient | undefined = (() =
     } catch (err) {}
 })();
 type HttpClient = import('hap-controller').HttpClient;
+const HttpConnection: typeof import('hap-controller/lib/transport/ip/http-connection') | undefined = (() => {
+    try {
+        return require('hap-controller/lib/transport/http-connection');
+    } catch (err) {}
+})();
+type HttpConnection = import('hap-controller/lib/transport/ip/http-connection');
 
 const log = new Logger('HAP IP Accessory');
 const IID = Symbol('IID');
@@ -24,7 +30,7 @@ import {
     CharacteristicHap,
 } from '../common/types/hap';
 
-interface HAPAccessories {
+interface AccessoriesHap {
     accessories: AccessoryHap[];
 }
 
@@ -68,7 +74,7 @@ export default class HAPIP extends AccessoryPlatform {
     };
 
     client: HttpClient | null = null;
-    events_connection: any;
+    events_connection: HttpConnection | null = null;
     subscribed_characteristics: string[] = [];
 
     private get_queue: [
@@ -110,7 +116,7 @@ export default class HAPIP extends AccessoryPlatform {
             }
         });
 
-        const {accessories} = await this.client.getAccessories();
+        const {accessories} = await this.getAccessoryDatabase();
         const subscribe_characteristics: string[] = [];
 
         for (const hap_accessory of accessories) {
@@ -135,6 +141,17 @@ export default class HAPIP extends AccessoryPlatform {
 
         // Once we've registered all accessories from the bridge we can clear any remaining cached accessories
         this.removeAllCachedAccessories();
+    }
+
+    async getAccessoryDatabase(): Promise<AccessoriesHap> {
+        try {
+            return await this.client!.getAccessories();
+        } catch (err) {
+            log.error('Error getting accessory database', err);
+
+            // @ts-ignore
+            throw new Error('Error getting accessory database', err);
+        }
     }
 
     createAccessoryFromHAP(hap_accessory: AccessoryHap, subscribe_characteristics: string[]) {
@@ -245,7 +262,7 @@ export default class HAPIP extends AccessoryPlatform {
     }
 
     async updateAccessories() {
-        const {accessories} = await this.client!.getAccessories();
+        const {accessories} = await this.getAccessoryDatabase();
 
         await this.patchAccessories(accessories);
     }
@@ -663,7 +680,15 @@ export default class HAPIP extends AccessoryPlatform {
             });
         }
 
-        const response = await this.events_connection
+        if (!this.events_connection) {
+            this.events_connection = new HttpConnection!(this.client!.address, this.client!.port);
+
+            // @ts-ignore
+            const keys = await this.client!._pairVerify(this.events_connection);
+            this.events_connection!.setSessionKeys(keys);
+        }
+
+        const response = await this.events_connection!
             .put('/characteristics', Buffer.from(JSON.stringify(data)), undefined, true);
 
         if (response.statusCode !== 204 && response.statusCode !== 207) {
