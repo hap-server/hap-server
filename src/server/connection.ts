@@ -14,15 +14,30 @@ import child_process from 'child_process';
 import genuuid from 'uuid/v4';
 import mkdirp from 'mkdirp';
 import chalk from 'chalk';
+import WebSocket from 'ws';
+import http from 'http';
+import persist from 'node-persist';
 
 import * as hap from '../hap-nodejs';
+import {Accessory, HAPServer} from '../hap-nodejs';
 
 import isEqual from 'lodash.isequal';
 
+import Server from './server';
 import PluginManager, {AuthenticatedUser} from './plugins';
 import Homebridge from './homebridge';
 import Permissions from './permissions';
 import {hapStatus} from './hap-server';
+import {PluginAccessory, AccessoryStatus} from './accessories';
+
+import Logger from '../common/logger';
+
+import {
+    RequestMessages, RequestMessage, ProgressMessage, ResponseMessage,
+    AuthenticateRequestMessage, UserManagementRequestMessage,
+} from '../common/types/messages';
+import {BroadcastMessage} from '../common/types/broadcast-messages';
+import {AccessoryHap, CharacteristicHap} from '../common/types/hap';
 
 const randomBytes = util.promisify(crypto.randomBytes);
 
@@ -110,20 +125,6 @@ function messagehandler2<T extends string, M extends string, A extends Array<any
 const ws_map = new WeakMap<WebSocket, Connection>();
 
 const DEVELOPMENT = true;
-
-import Server from './server';
-import Logger from '../common/logger';
-import WebSocket from 'ws';
-import http from 'http';
-import persist from 'node-persist';
-import {Accessory} from '../hap-nodejs';
-
-import {
-    RequestMessages, RequestMessage, ProgressMessage, ResponseMessage,
-    AuthenticateRequestMessage, UserManagementRequestMessage,
-} from '../common/types/messages';
-import {BroadcastMessage} from '../common/types/broadcast-messages';
-import {AccessoryHap, CharacteristicHap} from '../common/types/hap';
 
 export default class Connection {
     readonly server!: Server;
@@ -471,6 +472,9 @@ export default class Connection {
     async getCharacteristic(accessory_uuid: string, service_uuid: string, characteristic_uuid: string) {
         await this.permissions.assertCanGetAccessory(accessory_uuid);
 
+        const accessory = this.server.getAccessory(accessory_uuid);
+        if (!accessory) return;
+
         const characteristic = this.server.getCharacteristic(accessory_uuid, service_uuid, characteristic_uuid);
         if (!characteristic) return;
 
@@ -478,6 +482,11 @@ export default class Connection {
         const hap = characteristic.toHAP() as CharacteristicHap;
 
         try {
+            if (accessory[PluginAccessory.symbol]?.status !== AccessoryStatus.READY) {
+                // @ts-ignore
+                throw new Error(HAPServer.Status.SERVICE_COMMUNICATION_FAILURE);
+            }
+
             hap.value = await this.server.getCharacteristicValue(characteristic);
         } catch (err) {
             hap.status = hapStatus(err);
@@ -497,6 +506,9 @@ export default class Connection {
     async setCharacteristic(accessory_uuid: string, service_uuid: string, characteristic_uuid: string, value: any) {
         await this.permissions.assertCanSetCharacteristic(accessory_uuid, service_uuid, characteristic_uuid, value);
 
+        const accessory = this.server.getAccessory(accessory_uuid);
+        if (!accessory) return;
+
         const characteristic = this.server.getCharacteristic(accessory_uuid, service_uuid, characteristic_uuid);
         if (!characteristic) {
             this.log.warn('Unknown characteristic %s, %s, %s',
@@ -504,9 +516,22 @@ export default class Connection {
             return;
         }
 
-        await this.server.setCharacteristicValue(characteristic, value, {
-            [ConnectionSymbol]: this,
-        });
+        try {
+            if (accessory[PluginAccessory.symbol]?.status !== AccessoryStatus.READY) {
+                // @ts-ignore
+                throw new Error(HAPServer.Status.SERVICE_COMMUNICATION_FAILURE);
+            }
+
+            return {
+                value: await this.server.setCharacteristicValue(characteristic, value, {
+                    [ConnectionSymbol]: this,
+                }),
+            };
+        } catch (err) {
+            return {
+                status: hapStatus(err),
+            };
+        }
     }
 
     /**

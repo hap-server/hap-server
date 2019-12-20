@@ -8,6 +8,7 @@ import {IdentifierCache} from 'hap-nodejs/lib/model/IdentifierCache';
 import {Camera as CameraSource} from 'hap-nodejs/lib/Camera';
 
 import Logger from '../common/logger';
+import {PluginAccessory, AccessoryStatus} from './accessories';
 
 export function hapStatus(err: any): number {
     let value = 0;
@@ -391,7 +392,8 @@ export default class Server {
             // Array of Accessory HAP
             // _handleGetCharacteristics will return SERVICE_COMMUNICATION_FAILURE for cached characteristics
             accessories: [this.bridge].concat(this.accessories)
-                .map(accessory => this.accessoryToHAP(accessory, options))
+                .map(accessory => this.accessoryToHAP(accessory, options,
+                    accessory[PluginAccessory.symbol]?.status !== AccessoryStatus.READY))
                 .concat(this.cached_accessories
                     .map(accessory => this.accessoryToHAP(accessory, options, true))),
         };
@@ -402,10 +404,10 @@ export default class Server {
      *
      * @param {Accessory} accessory
      * @param {object} [options]
-     * @param {boolean} [is_cached]
+     * @param {boolean} [is_unavailable]
      * @return {object}
      */
-    accessoryToHAP(accessory: Accessory, options?: any, is_cached = false) {
+    accessoryToHAP(accessory: Accessory, options?: any, is_unavailable = false) {
         return {
             aid: this.getAccessoryID(accessory),
             services: accessory.services.map(service => ({
@@ -414,7 +416,7 @@ export default class Server {
                 characteristics: service.characteristics
                     .map(characteristic => Object.assign(characteristic.toHAP(options), {
                         iid: this.getCharacteristicID(accessory, service, characteristic),
-                    }, is_cached ? {
+                    }, is_unavailable ? {
                         status: HAPServer.Status.SERVICE_COMMUNICATION_FAILURE,
                     } : {})),
 
@@ -450,7 +452,7 @@ export default class Server {
         const {aid, iid, e: include_event} = data;
         const accessory = this.getAccessoryByID(aid, false);
 
-        if (!accessory) {
+        if (!accessory || accessory[PluginAccessory.symbol]?.status !== AccessoryStatus.READY) {
             this.log.debug('Tried to get a characteristic from an unknown/cached accessory with aid %d and iid %d',
                 aid, iid);
 
@@ -537,9 +539,9 @@ export default class Server {
         const {aid, iid} = data;
         const accessory = this.getAccessoryByID(aid, false);
 
-        if (!accessory) {
-            this.log.debug('Tried to get a characteristic from an unknown/cached accessory with aid', aid,
-                'and iid', iid);
+        if (!accessory || accessory[PluginAccessory.symbol]?.status !== AccessoryStatus.READY) {
+            this.log.debug('Tried to get a characteristic from an unknown/cached accessory with aid %d and iid %d',
+                aid, iid);
 
             return {
                 aid, iid,
