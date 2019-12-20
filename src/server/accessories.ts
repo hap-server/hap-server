@@ -1013,6 +1013,8 @@ export class PluginStandaloneAccessory<HasAccessory extends boolean = boolean> e
         const plugin_accessory = new PluginStandaloneAccessory<false>(server, null, plugin, type, config, uuid);
 
         const cached_accessory = server.accessories.getCachedAccessory(uuid);
+        // @ts-ignore
+        if (cached_accessory) plugin_accessory.cached_data = cached_accessory.cached_data;
 
         // Try and initialise the accessory now
         plugin_accessory.init(server, plugin, accessory_handler, cached_accessory, uuid, config);
