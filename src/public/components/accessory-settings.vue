@@ -271,7 +271,7 @@
 
                 tab: 'general',
                 tabs: {
-                    general: {label: () => this.$t('accessory_settings.pairings_info')},
+                    general: {label: () => this.$t('accessory_settings.general')},
                     config: {label: () => this.$t('accessory_settings.configuration'), if: () => this.config},
                     accessories: {label: () => this.$t('accessory_settings.accessories')},
                     pairings: {label: () => this.$t('accessory_settings.pairings')},
