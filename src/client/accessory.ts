@@ -382,6 +382,8 @@ class Accessory extends EventEmitter {
     _setPermissions(permissions: GetAccessoriesPermissionsResponseMessage[0]) {
         permissions.get = !!permissions.get;
         permissions.set = !!permissions.set;
+        permissions.get_config = !!permissions.get_config;
+        permissions.set_config = !!permissions.set_config;
         permissions.set_characteristics = permissions.set_characteristics || {};
 
         this._permissions = Object.freeze(permissions);
@@ -399,6 +401,23 @@ class Accessory extends EventEmitter {
 
     get can_set(): boolean {
         return this._permissions.set;
+    }
+
+    get can_get_configuration(): boolean {
+        return this._permissions.get_config;
+    }
+
+    get can_set_configuration(): boolean {
+        return this._permissions.set_config;
+    }
+
+    async getConfiguration() {
+        const [config] = await this.connection.getAccessoriesConfiguration(this.uuid);
+        return config;
+    }
+
+    async setConfiguration(config: any) {
+        const [response] = await this.connection.setAccessoriesConfiguration([this.uuid, config]);
     }
 
     findService(callback: (service: Service) => boolean, include_display_services = false) {

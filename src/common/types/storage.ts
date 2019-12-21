@@ -197,6 +197,12 @@ export interface Permissions {
     readonly scenes?: {readonly [key: string]: ScenePermissions};
 }
 
+export enum AccessoryType {
+    ACCESSORY = 'accessory',
+    ACCESSORY_PLATFORM = 'accessory-platform',
+    MERGED_ACCESSORY = 'merged-accessory',
+}
+
 export default interface StorageTypes {
     TLSCertificateUUID: TLSCertificateUUID;
     HasCompletedSetup: HasCompletedSetup;

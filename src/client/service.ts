@@ -376,7 +376,7 @@ export class UnavailableService extends Service {
         if (!accessories) accessories = {};
         const accessory = accessories[accessory_uuid] ||
             new Accessory(connection, accessory_uuid, {aid: 0, services: []}, {},
-                {get: false, set: false, set_characteristics: {}});
+                {get: false, set: false, get_config: false, set_config: false, set_characteristics: {}});
 
         const service = new this(accessory, service_uuid);
 

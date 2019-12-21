@@ -234,6 +234,20 @@ class Connection extends EventEmitter {
         });
     }
 
+    getAccessoriesConfiguration(...id: string[]): Promise<any[]> {
+        return this.send({
+            type: 'get-accessories-configuration',
+            id,
+        });
+    }
+
+    setAccessoriesConfiguration(...id_data: [string, any][]): Promise<any[]> {
+        return this.send({
+            type: 'set-accessories-configuration',
+            id_data,
+        });
+    }
+
     getAccessoriesPermissions(...id: string[]): Promise<any[]> {
         return this.send({
             type: 'get-accessories-permissions',

@@ -28,7 +28,10 @@ import PluginManager, {AuthenticatedUser} from './plugins';
 import Homebridge from './homebridge';
 import Permissions from './permissions';
 import {hapStatus} from './hap-server';
-import {PluginAccessory, AccessoryStatus} from './accessories';
+import {
+    PluginAccessory, PluginStandaloneAccessory, PluginAccessoryPlatformAccessory, HomebridgeAccessory,
+    AccessoryStatus,
+} from './accessories';
 
 import Logger from '../common/logger';
 
@@ -38,6 +41,7 @@ import {
 } from '../common/types/messages';
 import {BroadcastMessage} from '../common/types/broadcast-messages';
 import {AccessoryHap, CharacteristicHap} from '../common/types/hap';
+import {AccessoryType} from '../common/types/storage';
 
 const randomBytes = util.promisify(crypto.randomBytes);
 
@@ -417,6 +421,70 @@ export default class Connection {
     }
 
     /**
+     * Gets accessory configuration.
+     */
+    @messagehandler('get-accessories-configuration', data => data.id)
+    getAccessoriesConfiguration(...id: string[]) {
+        return Promise.all(id.map(id => this.getAccessoryConfiguration(id)));
+    }
+
+    async getAccessoryConfiguration(uuid: string) {
+        await this.permissions.assertCanGetAccessoryConfig(uuid);
+
+        const plugin_accessory = this.server.getPluginAccessory(uuid);
+        if (!plugin_accessory) return;
+
+        // eslint-disable-next-line curly
+        if (plugin_accessory instanceof HomebridgeAccessory) return {
+            is_writable: false,
+            is_homebridge: true,
+        };
+
+        // eslint-disable-next-line curly
+        if (plugin_accessory instanceof PluginAccessoryPlatformAccessory &&
+            plugin_accessory.accessory_platform
+        ) return {
+            is_writable: false,
+            type: AccessoryType.ACCESSORY_PLATFORM,
+            accessory_platform: plugin_accessory.accessory_platform.uuid,
+            plugin_name: plugin_accessory.plugin?.name,
+            platform_name: plugin_accessory.accessory_platform_name,
+            config: plugin_accessory.accessory_platform.config,
+            accessories: plugin_accessory.accessory_platform.accessories.map(a => a.uuid),
+        };
+
+        // eslint-disable-next-line curly
+        if (plugin_accessory instanceof PluginStandaloneAccessory) return {
+            is_writable: !!await this.server.storage.getItem('Accessory.' + uuid),
+            type: AccessoryType.ACCESSORY,
+            plugin: plugin_accessory.plugin?.name,
+            accessory: plugin_accessory.accessory_type,
+            config: plugin_accessory.config,
+        };
+
+        return {
+            is_writable: false,
+        };
+    }
+
+    /**
+     * Sets accessory configuration.
+     */
+    @messagehandler('set-accessories-configuration', data => data.id_data)
+    setAccessoriesConfiguration(...id_data: [string, any][]) {
+        return Promise.all(id_data.map(([id, data]) => this.setAccessoryConfiguration(id, data)));
+    }
+
+    async setAccessoryConfiguration(uuid: string, config: any) {
+        await this.permissions.assertCanSetAccessoryConfig(uuid);
+
+        const plugin_accessory = this.server.getPluginAccessory(uuid);
+        if (!plugin_accessory) return;
+
+        //
+    }
+
+    /**
      * Gets the user's permissions for accessories.
      */
     @messagehandler('get-accessories-permissions', data => data.id)
@@ -429,14 +497,18 @@ export default class Connection {
 
         if (!accessory) return;
 
-        const [get, set, set_characteristics] = await Promise.all([
+        const [get, set, get_config, set_config, set_characteristics] = await Promise.all([
             this.permissions.checkCanGetAccessory(uuid),
             this.permissions.checkCanSetAccessoryData(uuid),
+            this.permissions.checkCanGetAccessoryConfig(uuid),
+            this.permissions.checkCanSetAccessoryConfig(uuid),
 
             this.getCharacteristicsWithSetPermission(accessory),
         ]);
 
-        return {get, set, set_characteristics};
+        const is_config_writable = false;
+
+        return {get, set, get_config, set_config: set_config && is_config_writable, set_characteristics};
     }
 
     async getCharacteristicsWithSetPermission(accessory: Accessory) {

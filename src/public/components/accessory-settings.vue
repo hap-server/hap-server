@@ -2,9 +2,11 @@
     <panel ref="panel" class="accessory-settings" @close="$emit('close')">
         <p v-if="deleteBridge">{{ $t('accessory_settings.delete_bridge_info') }}</p>
 
-        <panel-tabs v-if="!createBridge && !deleteBridge && is_bridge" v-model="tab" :tabs="tabs" />
+        <panel-tabs v-if="!createBridge && !deleteBridge && (is_bridge || config)" v-model="tab" :tabs="tabs" />
 
-        <form v-if="!createBridge && !deleteBridge && (!is_bridge || tab === 'general')" @submit="save(true)">
+        <form v-if="!createBridge && !deleteBridge && ((!is_bridge && !config) || tab === 'general')"
+            @submit="save(true)"
+        >
             <div class="form-group row">
                 <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-name'">
                     {{ $t('accessory_settings.name') }}
@@ -67,14 +69,23 @@
             </dl>
         </form>
 
-        <form v-if="!deleteBridge && (createBridge || tab === 'config') && config" @submit.prevent="saveConfig(true)">
+        <div v-if="tab === 'config' && config">
+            <keep-alive>
+                <accessory-configuration v-model="config" :accessory="accessory" :saving="saving_config"
+                    @is-config-valid="valid => is_new_config_valid = valid" />
+            </keep-alive>
+        </div>
+
+        <form v-if="!deleteBridge && (createBridge || tab === 'bridge_config') && bridge_config"
+            @submit.prevent="saveBridgeConfig(true)"
+        >
             <div class="form-group row">
                 <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-config-name'">
                     {{ $t('accessory_settings.name') }}
                 </label>
                 <div class="col-sm-9">
-                    <input :id="_uid + '-config-name'" v-model="config.name" type="text"
-                        class="form-control form-control-sm" :disabled="saving || !can_set_config" />
+                    <input :id="_uid + '-config-name'" v-model="bridge_config.name" type="text"
+                        class="form-control form-control-sm" :disabled="saving || !can_set_bridge_config" />
                 </div>
             </div>
 
@@ -83,9 +94,10 @@
                     {{ $t('accessory_settings.username') }}
                 </label>
                 <div class="col-sm-9">
-                    <input :id="_uid + '-config-username'" v-model="config.username" type="text"
+                    <input :id="_uid + '-config-username'" v-model="bridge_config.username" type="text"
                         class="form-control form-control-sm" pattern="^[0-9a-f]{2}:){5}[0-9a-f]$"
-                        :placeholder="$t('accessory_settings.username_info')" :disabled="saving || !can_set_config" />
+                        :placeholder="$t('accessory_settings.username_info')"
+                        :disabled="saving || !can_set_bridge_config" />
                 </div>
             </div>
 
@@ -94,9 +106,9 @@
                     {{ $t('accessory_settings.setup_code') }}
                 </label>
                 <div class="col-sm-9">
-                    <input :id="_uid + '-config-pincode'" v-model="config.pincode" type="text"
+                    <input :id="_uid + '-config-pincode'" v-model="bridge_config.pincode" type="text"
                         class="form-control form-control-sm" pattern="^[0-9]{3}-[0-9]{2}-[0-9]{3}$"
-                        placeholder="031-45-154" :disabled="saving || !can_set_config" />
+                        placeholder="031-45-154" :disabled="saving || !can_set_bridge_config" />
                 </div>
             </div>
 
@@ -105,20 +117,21 @@
                     {{ $t('accessory_settings.port') }}
                 </label>
                 <div class="col-sm-9">
-                    <input :id="_uid + '-config-port'" v-model="config.port" type="number"
+                    <input :id="_uid + '-config-port'" v-model="bridge_config.port" type="number"
                         class="form-control form-control-sm" :placeholder="$t('accessory_settings.port_info')"
-                        :disabled="saving || !can_set_config" />
+                        :disabled="saving || !can_set_bridge_config" />
                 </div>
             </div>
         </form>
 
         <div v-if="!createBridge && !deleteBridge && tab === 'accessories'" class="list-group-group">
-            <div v-if="config && can_set_config" class="list-group-group-item">
+            <div v-if="bridge_config && can_set_bridge_config" class="list-group-group-item">
                 <list-group>
-                    <draggable class="draggable" :list="config.accessories || $set(config, 'accessories', [])"
+                    <draggable class="draggable"
+                        :list="bridge_config.accessories || $set(bridge_config, 'accessories', [])"
                         :group="_uid + '-accessories-draggable-group'"
                     >
-                        <list-item v-for="[uuid, accessory] in config.accessories.map(uuid => [uuid, accessories[uuid]])"
+                        <list-item v-for="[uuid, accessory] in bridge_config.accessories.map(uuid => [uuid, accessories[uuid]])"
                             :key="uuid" @click="$emit('show-accessory-settings', accessory)"
                         >
                             {{ accessory ? accessory.name : uuid }}
@@ -128,7 +141,7 @@
                 </list-group>
             </div>
 
-            <div v-if="config && can_set_config" class="list-group-group-item">
+            <div v-if="bridge_config && can_set_bridge_config" class="list-group-group-item">
                 <h4>{{ $t('accessory_settings.other_accessories') }}</h4>
 
                 <list-group>
@@ -180,7 +193,7 @@
         </template>
 
         <div class="d-flex">
-            <div v-if="is_bridge && can_delete && !deleteBridge">
+            <div v-if="is_bridge && can_delete_bridge && !deleteBridge">
                 <button class="btn btn-danger btn-sm" type="button"
                     @click="() => ($emit('close'), $emit('modal', {type: 'delete-bridge', accessory}))"
                 >{{ $t('accessory_settings.delete') }}</button>&nbsp;
@@ -190,42 +203,60 @@
                     @click="resetPairings">{{ $t('accessory_settings.reset_pairings') }}</button>
             </div>
 
-            <div v-if="loading || loading_config || loading_pairings">{{ $t('accessory_settings.loading') }}</div>
+            <div v-if="loading || loading_config || loading_bridge_config || loading_pairings">
+                {{ $t('accessory_settings.loading') }}
+            </div>
             <div v-else-if="saving">{{ $t('accessory_settings.saving') }}</div>
             <div class="flex-fill"></div>
             <button v-if="identify && !deleteBridge" class="btn btn-default btn-sm" type="button"
                 :disabled="identify_saving" @click="setIdentify">{{ $t('accessory_settings.identify') }}</button>
             <template v-if="deleteBridge">
-                <button class="btn btn-default btn-sm" type="button" :disabled="saving || saving_config"
+                <button class="btn btn-default btn-sm" type="button" :disabled="saving || saving_bridge_config"
                     @click="() => $refs.panel.close()">{{ $t('accessory_settings.cancel') }}</button>&nbsp;
-                <button key="primary" class="btn btn-danger btn-sm" type="button" :disabled="saving || saving_config"
+                <button key="primary" class="btn btn-danger btn-sm" type="button"
+                    :disabled="saving || saving_bridge_config"
                     @click="save(true)">{{ $t('accessory_settings.save') }}</button>
             </template>
-            <template v-else-if="createBridge || (tab === 'config' && config_changed) ||
-                (config && can_set_config && tab === 'accessories' && accessories_changed)"
+            <template v-else-if="createBridge || (tab === 'bridge_config' && bridge_config_changed) ||
+                (config && can_set_bridge_config && tab === 'accessories' && accessories_changed)"
             >
-                <button class="btn btn-default btn-sm" type="button" :disabled="changed || saving || saving_config"
+                <button class="btn btn-default btn-sm" type="button"
+                    :disabled="changed || saving || saving_bridge_config"
                     @click="() => $refs.panel.close()">{{ $t('accessory_settings.cancel') }}</button>&nbsp;
                 <button key="primary" class="btn btn-primary btn-sm" type="button"
-                    :disabled="loading || saving || saving_config || !can_set_config"
-                    @click="saveConfig(!changed)">{{ $t('accessory_settings.' + (createBridge ? 'create' : 'save')) }}</button>
+                    :disabled="loading || saving || saving_bridge_config || !can_set_bridge_config"
+                    @click="saveBridgeConfig(!changed && !config_changed && !bridge_config_changed)"
+                >{{ $t('accessory_settings.' + (createBridge ? 'create' : 'save')) }}</button>
             </template>
             <template v-else-if="(!is_bridge || tab === 'general') && changed">
                 <button class="btn btn-default btn-sm" type="button"
-                    :disabled="config_changed || accessories_changed || saving || saving_config"
+                    :disabled="config_changed || bridge_config_changed || accessories_changed || saving ||
+                        saving_bridge_config"
                     @click="() => $refs.panel.close()">{{ $t('accessory_settings.cancel') }}</button>&nbsp;
                 <button key="primary" class="btn btn-primary btn-sm" type="button"
-                    :disabled="loading || saving || saving_config"
-                    @click="save(!config_changed && !accessories_changed)">{{ $t('accessory_settings.save') }}</button>
+                    :disabled="loading || saving || saving_bridge_config"
+                    @click="save(!config_changed && !bridge_config_changed && !accessories_changed)"
+                >{{ $t('accessory_settings.save') }}</button>
+            </template>
+            <template v-else-if="tab === 'config' && config_changed">
+                <button class="btn btn-default btn-sm" type="button"
+                    :disabled="changed || saving || saving_config || saving_bridge_config"
+                    @click="() => $refs.panel.close()">{{ $t('accessory_settings.cancel') }}</button>&nbsp;
+                <button key="primary" class="btn btn-primary btn-sm" type="button"
+                    :disabled="loading_config || saving_config || !can_set_config || !is_new_config_valid"
+                    @click="saveConfig(!changed && !config_changed && !bridge_config_changed)"
+                >{{ $t('accessory_settings.save') }}</button>
             </template>
             <template v-else>
-                <button v-if="changed || config_changed || accessories_changed" class="btn btn-default btn-sm"
-                    type="button" :disabled="saving || saving_config"
+                <button v-if="changed || config_changed || bridge_config_changed || accessories_changed" class="btn btn-default btn-sm"
+                    type="button" :disabled="saving || saving_bridge_config"
                     @click="() => $refs.panel.close()">{{ $t('accessory_settings.cancel') }}</button>&nbsp;
                 <button key="primary" class="btn btn-primary btn-sm" type="button"
-                    :disabled="changed || config_changed || accessories_changed || loading || saving || saving_config"
-                    :title="loading || saving || saving_config ? null : changed || config_changed ||
-                        accessories_changed ? $t('accessory_settings.unsaved_in_other_tab') : null"
+                    :disabled="changed || config_changed || bridge_config_changed || accessories_changed || loading ||
+                        saving || saving_bridge_config"
+                    :title="loading || saving || saving_bridge_config ? null : changed || config_changed ||
+                        bridge_config_changed || accessories_changed ?
+                            $t('accessory_settings.unsaved_in_other_tab') : null"
                     @click="() => $refs.panel.close()">{{ $t('accessory_settings.done') }}</button>
             </template>
         </div>
@@ -235,11 +266,13 @@
 <script>
     import Connection from '../../client/connection';
     import Accessory from '../../client/accessory';
+    import isEqual from 'lodash.isequal';
 
     import Panel from './panel.vue';
     import PanelTabs from './panel-tabs.vue';
     import ListGroup from './list-group.vue';
     import ListItem from './list-item.vue';
+    import AccessoryConfiguration from './accessory-configuration.vue';
 
     export default {
         components: {
@@ -247,6 +280,7 @@
             PanelTabs,
             ListGroup,
             ListItem,
+            AccessoryConfiguration,
             QrCode: () => import(/* webpackChunkName: 'qrcode' */ './qrcode.vue'),
             Draggable: () => import(/* webpackChunkName: 'layout-editor' */ 'vuedraggable'),
         },
@@ -261,26 +295,34 @@
         },
         data() {
             return {
-                loading: false,
                 loading_config: false,
+                loading: false,
+                loading_bridge_config: false,
                 loading_pairings: false,
                 loading_permissions: false,
                 saving: false,
                 saving_config: false,
+                saving_bridge_config: false,
                 resetting_pairings: false,
 
                 tab: 'general',
                 tabs: {
                     general: {label: () => this.$t('accessory_settings.general')},
                     config: {label: () => this.$t('accessory_settings.configuration'), if: () => this.config},
-                    accessories: {label: () => this.$t('accessory_settings.accessories')},
-                    pairings: {label: () => this.$t('accessory_settings.pairings')},
+                    bridge_config: {label: () => this.$t('accessory_settings.configuration'),
+                        if: () => this.bridge_config},
+                    accessories: {label: () => this.$t('accessory_settings.accessories'), if: () => this.is_bridge},
+                    pairings: {label: () => this.$t('accessory_settings.pairings'), if: () => this.is_bridge},
                 },
 
                 config: null,
                 saved_config: null,
-                can_set_config: false,
-                can_delete: false,
+                is_new_config_valid: false,
+
+                bridge_config: null,
+                saved_bridge_config: null,
+                can_set_bridge_config: false,
+                can_delete_bridge: false,
 
                 name: null,
                 room_name: null,
@@ -303,16 +345,21 @@
             config_changed() {
                 if (!this.config || !this.saved_config) return false;
 
-                return this.config.name !== this.saved_config.name ||
-                    this.config.username !== this.saved_config.username ||
-                    this.config.pincode !== this.saved_config.pincode ||
-                    this.config.port !== this.saved_config.port;
+                return !isEqual(this.saved_config, this.config);
+            },
+            bridge_config_changed() {
+                if (!this.bridge_config || !this.saved_bridge_config) return false;
+
+                return this.bridge_config.name !== this.saved_bridge_config.name ||
+                    this.bridge_config.username !== this.saved_bridge_config.username ||
+                    this.bridge_config.pincode !== this.saved_bridge_config.pincode ||
+                    this.bridge_config.port !== this.saved_bridge_config.port;
             },
             accessories_changed() {
-                if (!this.config || !this.saved_config) return false;
+                if (!this.bridge_config || !this.saved_bridge_config) return false;
 
-                return JSON.stringify(this.config.accessories) !==
-                    JSON.stringify(this.saved_config.accessories);
+                return JSON.stringify(this.bridge_config.accessories) !==
+                    JSON.stringify(this.saved_bridge_config.accessories);
             },
 
             accessory_information() {
@@ -354,13 +401,13 @@
             },
             accessories_available_to_bridge() {
                 return Object.keys(this.accessories)
-                    .filter(uuid => !this.bridgeUuids.includes(uuid) && (!this.config || !this.config.accessories ||
-                        !this.config.accessories.includes(uuid)));
+                    .filter(uuid => !this.bridgeUuids.includes(uuid) && (!this.bridge_config ||
+                        !this.bridge_config.accessories || !this.bridge_config.accessories.includes(uuid)));
             },
             close_with_escape_key() {
                 if (this.deleteBridge) return !this.saving;
-                if (this.createBridge || this.tab === 'config' || (this.config && this.can_set_config &&
-                    this.tab === 'accessories')) return !this.saving;
+                if (this.createBridge || this.tab === 'bridge_config' || (this.bridge_config &&
+                    this.can_set_bridge_config && this.tab === 'accessories')) return !this.saving;
                 if (!this.is_bridge || this.tab === 'general') return !this.saving;
                 return !this.loading && !this.saving;
             },
@@ -380,6 +427,9 @@
             saved_config(config) {
                 this.config = JSON.parse(JSON.stringify(config));
             },
+            saved_bridge_config(bridge_config) {
+                this.bridge_config = JSON.parse(JSON.stringify(bridge_config));
+            },
         },
         async created() {
             if (this.connection) {
@@ -388,15 +438,17 @@
             }
 
             if (this.createBridge) {
-                this.config = {};
-                this.can_set_config = true;
+                this.bridge_config = {};
+                this.can_set_bridge_config = true;
             } else if (!this.deleteBridge) {
                 this.name = this.accessory.configured_name;
                 this.room_name = this.accessory.data.room_name;
 
                 await Promise.all([
-                    this.loadBridge(),
                     this.loadConfig(),
+
+                    this.loadBridge(),
+                    this.loadBridgeConfig(),
                     this.loadPairings(),
                     this.loadPermissions(),
                 ]);
@@ -409,6 +461,16 @@
             }
         },
         methods: {
+            async loadConfig() {
+                if (this.loading_config) throw new Error('Already loading configuration');
+                this.loading_config = true;
+
+                try {
+                    this.saved_config = (await this.connection.getAccessoriesConfiguration(this.accessory.uuid))[0];
+                } finally {
+                    this.loading_config = false;
+                }
+            },
             async loadBridge() {
                 if (this.loading) throw new Error('Already loading');
                 this.loading = true;
@@ -422,14 +484,14 @@
                     this.loading = false;
                 }
             },
-            async loadConfig() {
-                if (this.loading_config) throw new Error('Already loading configuration');
-                this.loading_config = true;
+            async loadBridgeConfig() {
+                if (this.loading_bridge_config) throw new Error('Already loading configuration');
+                this.loading_bridge_config = true;
 
                 try {
-                    this.saved_config = (await this.connection.getBridgesConfiguration(this.accessory.uuid))[0];
+                    this.saved_bridge_config = (await this.connection.getBridgesConfiguration(this.accessory.uuid))[0];
                 } finally {
-                    this.loading_config = false;
+                    this.loading_bridge_config = false;
                 }
             },
             async loadPairings() {
@@ -464,8 +526,8 @@
                 try {
                     const [permissions] = await this.connection.getBridgesConfigurationPermissions(this.accessory.uuid);
 
-                    this.can_set_config = permissions.set && !permissions.is_from_config;
-                    this.can_delete = permissions.delete && !permissions.is_from_config;
+                    this.can_set_bridge_config = permissions.set && !permissions.is_from_config;
+                    this.can_delete_bridge = permissions.delete && !permissions.is_from_config;
                 } finally {
                     this.loading_permissions = false;
                 }
@@ -512,6 +574,32 @@
                         ]);
 
                         const accessory = new Accessory(this.connection, uuid, details, this.config, permissions);
+
+                        this.$emit('accessory', accessory);
+                    }
+
+                    if (close) this.$emit('close');
+                } finally {
+                    this.saving = false;
+                }
+            },
+            async saveBridgeConfig(close) {
+                if (this.saving) throw new Error('Already saving configuration');
+                this.saving = true;
+
+                try {
+                    if (!this.createBridge) {
+                        await this.connection.setBridgeConfiguration(this.accessory.uuid, this.bridge_config);
+                    } else {
+                        const [uuid] = await this.connection.createBridges(this.bridge_config);
+
+                        const [[details], [permissions]] = await Promise.all([
+                            this.connection.getAccessories(uuid),
+                            this.connection.getAccessoriesPermissions(uuid),
+                        ]);
+
+                        const accessory =
+                            new Accessory(this.connection, uuid, details, this.bridge_config, permissions);
 
                         this.$emit('accessory', accessory);
                     }

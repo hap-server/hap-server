@@ -28,6 +28,8 @@ export interface GetAccessoriesPermissionsRequestMessage {
 export type GetAccessoriesPermissionsResponseMessage = {
     get: boolean;
     set: boolean;
+    get_config: boolean;
+    set_config: boolean;
     set_characteristics: {
         [service_id: string]: string[];
     };
