@@ -387,6 +387,10 @@ export default {
 
         name: 'Name',
         room: 'Room',
+        configuration_unavailable_homebridge:
+            'Configuration is not available for this accessory as it is provided by Homebridge.',
+        accessory_platform_configuration_info: 'This accessory is provided by an accessory platform.',
+        accessory_platform_configuration: 'Configure',
         services: 'Services',
         other_accessories: 'Other accessories',
 

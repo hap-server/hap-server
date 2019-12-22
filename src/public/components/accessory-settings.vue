@@ -2,7 +2,8 @@
     <panel ref="panel" class="accessory-settings" @close="$emit('close')">
         <p v-if="deleteBridge">{{ $t('accessory_settings.delete_bridge_info') }}</p>
 
-        <panel-tabs v-if="!createBridge && !deleteBridge && (is_bridge || config)" v-model="tab" :tabs="tabs" />
+        <panel-tabs v-if="!createBridge && !deleteBridge && (is_bridge || (config && !config.is_homebridge &&
+            !config.type !== 'accessory-platform'))" v-model="tab" :tabs="tabs" />
 
         <form v-if="!createBridge && !deleteBridge && ((!is_bridge && !config) || tab === 'general')"
             @submit="save(true)"
@@ -25,6 +26,17 @@
                     <input :id="_uid + '-room-name'" v-model="room_name" type="text"
                         class="form-control form-control-sm" :disabled="saving" />
                 </div>
+            </div>
+
+            <template v-if="config && config.is_homebridge">
+                <p>{{ $t('accessory_settings.configuration_unavailable_homebridge') }}</p>
+            </template>
+
+            <div v-if="config && config.type === 'accessory-platform'" class="d-flex mb-3">
+                <p class="mb-0 flex-fill">{{ $t('accessory_settings.accessory_platform_configuration_info') }}</p>
+                <a class="btn btn-default btn-sm ml-3" href="#" @click.prevent>
+                    {{ $t('accessory_settings.accessory_platform_configuration') }}
+                </a>
             </div>
 
             <h5 v-if="accessory.findService(s => !s.is_system_service && !s.collapse_to, true)">
@@ -308,7 +320,9 @@
                 tab: 'general',
                 tabs: {
                     general: {label: () => this.$t('accessory_settings.general')},
-                    config: {label: () => this.$t('accessory_settings.configuration'), if: () => this.config},
+                    config: {label: () => this.$t('accessory_settings.configuration'),
+                        if: () => this.config && !this.config.is_homebridge &&
+                            !this.config.type !== 'accessory-platform'},
                     bridge_config: {label: () => this.$t('accessory_settings.configuration'),
                         if: () => this.bridge_config},
                     accessories: {label: () => this.$t('accessory_settings.accessories'), if: () => this.is_bridge},
