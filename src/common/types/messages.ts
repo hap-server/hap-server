@@ -1,7 +1,8 @@
 import {AccessoryHap, CharacteristicHap} from './hap';
 import {
-    AccessoryData, Home, Layout, LayoutSection, Automation, Scene, Bridge, Pairing, Permissions,
+    AccessoryData, Home, Layout, LayoutSection, Automation, Scene, Bridge, Pairing, Permissions, AccessoryType,
 } from './storage';
+import {Record} from '../../history';
 
 export interface ErrorResponse {
     reject: true;
@@ -20,6 +21,40 @@ export interface GetAccessoriesRequestMessage {
     id: string[];
 }
 export type GetAccessoriesResponseMessage = AccessoryHap[];
+
+export interface GetAccessoriesConfigurationRequestMessage {
+    type: 'get-accessories-configuration';
+    id: string[];
+}
+export interface HomebridgeAccessoryConfigurationResponse {
+    is_writable: boolean;
+    is_homebridge: true;
+}
+export interface AccessoryPlatformAccessoryConfigurationResponse {
+    is_writable: boolean;
+    type: AccessoryType.ACCESSORY_PLATFORM;
+    accessory_platform: string;
+    plugin_name: string | undefined;
+    platform_name: string;
+    config: any;
+    accessories: string[];
+}
+export interface StandaloneAccessoryConfigurationResponse {
+    is_writable: boolean;
+    type: AccessoryType.ACCESSORY;
+    plugin: string | undefined;
+    accessory: string;
+    config: any;
+}
+export type GetAccessoriesConfigurationResponseMessage =
+    (HomebridgeAccessoryConfigurationResponse | AccessoryPlatformAccessoryConfigurationResponse |
+    StandaloneAccessoryConfigurationResponse | {is_writable: false})[];
+
+export interface SetAccessoriesConfigurationRequestMessage {
+    type: 'set-accessories-configuration';
+    id_data: [string, unknown][];
+}
+export type SetAccessoriesConfigurationResponseMessage = unknown[];
 
 export interface GetAccessoriesPermissionsRequestMessage {
     type: 'get-accessories-permissions';
@@ -45,7 +80,7 @@ export interface SetCharacteristicsRequestMessage {
     type: 'set-characteristics';
     ids_data: [string, string, string, any][];
 }
-export type SetCharacteristicsResponseMessage = void[];
+export type SetCharacteristicsResponseMessage = (void | {status: number})[];
 
 export interface SubscribeCharacteristicsRequestMessage {
     type: 'subscribe-characteristics';
@@ -58,6 +93,12 @@ export interface UnsubscribeCharacteristicsRequestMessage {
     ids: [string, string, string][];
 }
 export type UnsubscribeCharacteristicsResponseMessage = void[];
+
+export interface GetHistoryRecordsRequestMessage {
+    type: 'get-history-records';
+    ids_date_range: [string, string, string, string, string][];
+}
+export type GetHistoryRecordsResponseMessage = Record[][];
 
 export interface GetAccessoriesDataRequestMessage {
     type: 'get-accessories-data';
@@ -80,7 +121,7 @@ export interface GetDiscoveredAccessoriesRequestMessage {
     type: 'get-discovered-accessories';
 }
 export type GetDiscoveredAccessoriesResponseMessage = {
-    plugin: string;
+    plugin: string | null;
     accessory_discovery: number;
     id: number;
     data: any;
@@ -492,9 +533,15 @@ export interface ConsoleInputRequestMessage {
 }
 export type ConsoleInputResponseMessage = void;
 
-type DefinedRequestResponseMessages = {
+interface DefinedRequestResponseMessages {
     'list-accessories': [ListAccessoriesRequestMessage, ListAccessoriesResponseMessage];
     'get-accessories': [GetAccessoriesRequestMessage, GetAccessoriesResponseMessage];
+    'get-accessories-configuration': [
+        GetAccessoriesConfigurationRequestMessage, GetAccessoriesConfigurationResponseMessage,
+    ];
+    'set-accessories-configuration': [
+        SetAccessoriesConfigurationRequestMessage, SetAccessoriesConfigurationResponseMessage,
+    ];
     'get-accessories-permissions': [GetAccessoriesPermissionsRequestMessage, GetAccessoriesPermissionsResponseMessage];
     'get-characteristics': [GetCharacteristicsRequestMessage, GetCharacteristicsResponseMessage];
     'set-characteristics': [SetCharacteristicsRequestMessage, SetCharacteristicsResponseMessage];
@@ -502,6 +549,7 @@ type DefinedRequestResponseMessages = {
     'unsubscribe-characteristics': [
         UnsubscribeCharacteristicsRequestMessage, UnsubscribeCharacteristicsResponseMessage,
     ];
+    'get-history-records': [GetHistoryRecordsRequestMessage, GetHistoryRecordsResponseMessage];
     'get-accessories-data': [GetAccessoriesDataRequestMessage, GetAccessoriesDataResponseMessage];
     'set-accessories-data': [SetAccessoriesDataRequestMessage, SetAccessoriesDataResponseMessage];
 
@@ -524,6 +572,7 @@ type DefinedRequestResponseMessages = {
     'create-layout-sections': [CreateLayoutSectionsRequestMessage, CreateLayoutSectionsResponseMessage];
     'get-layout-sections': [GetLayoutSectionsRequestMessage, GetLayoutSectionsResponseMessage];
     'set-layout-sections': [SetLayoutSectionsRequestMessage, SetLayoutSectionsResponseMessage];
+    'delete-layout-sections': [DeleteLayoutSectionsRequestMessage, DeleteLayoutSectionsResponseMessage];
 
     'list-automations': [ListAutomationsRequestMessage, ListAutomationsResponseMessage];
     'create-automations': [CreateAutomationsRequestMessage, CreateAutomationsResponseMessage];
@@ -572,28 +621,27 @@ type DefinedRequestResponseMessages = {
     'open-console': [OpenConsoleRequestMessage, OpenConsoleResponseMessage];
     'close-console': [CloseConsoleRequestMessage, CloseConsoleResponseMessage];
     'console-input': [ConsoleInputRequestMessage, ConsoleInputResponseMessage];
-};
+}
 
 export type MessageTypes = keyof DefinedRequestResponseMessages;
 
-export type RequestResponseMessages = {
-    [type: string]: [any, any];
-} & DefinedRequestResponseMessages;
+export type RequestResponseMessages = DefinedRequestResponseMessages;
 
 export type DefinedRequestMessages = {
     [T in keyof DefinedRequestResponseMessages]: DefinedRequestResponseMessages[T][0];
 };
-export type RequestMessages = {
-    [type: string]: any;
-} & DefinedRequestMessages;
+export type RequestMessages = DefinedRequestMessages;
 
 export type DefinedResponseMessages = {
     [T in keyof DefinedRequestResponseMessages]: DefinedRequestResponseMessages[T][1];
 };
-export type ResponseMessages = {
-    [type: string]: any;
-} & DefinedResponseMessages;
+export type ResponseMessages = DefinedResponseMessages;
 
 export type RequestMessage = DefinedRequestMessages[keyof DefinedRequestMessages];
 export type ProgressMessage = never;
 export type ResponseMessage = DefinedResponseMessages[keyof DefinedResponseMessages];
+
+export type OptionalDataRequestMessages = {
+    [T in MessageTypes]: {type: T; [key: string]: T | never} extends RequestMessages[T] ? RequestMessages[T] : never;
+}[MessageTypes];
+export type OptionalDataMessageTypes = OptionalDataRequestMessages['type'];

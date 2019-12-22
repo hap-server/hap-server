@@ -36,7 +36,7 @@ import {
 import Logger from '../common/logger';
 
 import {
-    RequestMessages, RequestMessage, ProgressMessage, ResponseMessage,
+    RequestMessages, RequestMessage, ProgressMessage, ResponseMessages, ResponseMessage,
     AuthenticateRequestMessage, UserManagementRequestMessage,
 } from '../common/types/messages';
 import {BroadcastMessage} from '../common/types/broadcast-messages';
@@ -103,13 +103,13 @@ const hide_authentication_keys = [
     'password', 'token',
 ];
 
-function messagehandler<T extends string>(
+function messagehandler<T extends keyof RequestMessages>(
     type: T, handler?: (data: RequestMessages[T]) => void
 ): (target: Connection, method: string) => void {
     // @ts-ignore
     return messagehandler2.bind(null, type, handler);
 }
-function messagehandler2<T extends string, M extends string, A extends Array<any>>(
+function messagehandler2<T extends keyof RequestMessages, M extends string, A extends Array<any>>(
     type: T, handler: (data: RequestMessages[T]) => A, target: Connection & {
         // [M]: (...args: A) => Promise<ResponseMessages[T]> | ResponseMessages[T]
     }, method: M
@@ -281,7 +281,7 @@ export default class Connection {
 
     serialiseError(err: any) {
         return {
-            reject: true,
+            reject: true as true,
             error: err instanceof Error,
             constructor: err.constructor.name,
             data: err ? Object.assign({message: err.message, code: err.code, stack: err.stack}, err) : err,
@@ -355,7 +355,7 @@ export default class Connection {
      * Gets the UUID of every accessory.
      */
     @messagehandler('list-accessories')
-    async listAccessories() {
+    async listAccessories(): Promise<ResponseMessages['list-accessories']> {
         const uuids = [];
 
         for (const bridge of this.server.accessories.bridges) {
@@ -387,7 +387,7 @@ export default class Connection {
      * This is what the accessory exposes.
      */
     @messagehandler('get-accessories', data => data.id)
-    getAccessories(...id: string[]) {
+    getAccessories(...id: string[]): Promise<ResponseMessages['get-accessories']> {
         return Promise.all(id.map(id => this.getAccessory(id)));
     }
 
@@ -395,8 +395,7 @@ export default class Connection {
         await this.permissions.assertCanGetAccessory(uuid);
 
         const accessory = this.server.getAccessory(uuid);
-
-        if (!accessory) return null;
+        if (!accessory) return null!;
 
         // @ts-ignore
         const hap = accessory.toHAP()[0] as AccessoryHap;
@@ -424,15 +423,15 @@ export default class Connection {
      * Gets accessory configuration.
      */
     @messagehandler('get-accessories-configuration', data => data.id)
-    getAccessoriesConfiguration(...id: string[]) {
+    getAccessoriesConfiguration(...id: string[]): Promise<ResponseMessages['get-accessories-configuration']> {
         return Promise.all(id.map(id => this.getAccessoryConfiguration(id)));
     }
 
-    async getAccessoryConfiguration(uuid: string) {
+    async getAccessoryConfiguration(uuid: string): Promise<ResponseMessages['get-accessories-configuration'][0]> {
         await this.permissions.assertCanGetAccessoryConfig(uuid);
 
         const plugin_accessory = this.server.getPluginAccessory(uuid);
-        if (!plugin_accessory) return;
+        if (!plugin_accessory) return null!;
 
         // eslint-disable-next-line curly
         if (plugin_accessory instanceof HomebridgeAccessory) return {
@@ -471,7 +470,9 @@ export default class Connection {
      * Sets accessory configuration.
      */
     @messagehandler('set-accessories-configuration', data => data.id_data)
-    setAccessoriesConfiguration(...id_data: [string, any][]) {
+    setAccessoriesConfiguration(
+        ...id_data: [string, any][]
+    ): Promise<ResponseMessages['set-accessories-configuration']> {
         return Promise.all(id_data.map(([id, data]) => this.setAccessoryConfiguration(id, data)));
     }
 
@@ -479,7 +480,7 @@ export default class Connection {
         await this.permissions.assertCanSetAccessoryConfig(uuid);
 
         const plugin_accessory = this.server.getPluginAccessory(uuid);
-        if (!plugin_accessory) return;
+        if (!plugin_accessory) return null!;
 
         //
     }
@@ -488,14 +489,13 @@ export default class Connection {
      * Gets the user's permissions for accessories.
      */
     @messagehandler('get-accessories-permissions', data => data.id)
-    getAccessoriesPermissions(...id: string[]) {
+    getAccessoriesPermissions(...id: string[]): Promise<ResponseMessages['get-accessories-permissions']> {
         return Promise.all(id.map(id => this.getAccessoryPermissions(id)));
     }
 
     async getAccessoryPermissions(uuid: string) {
         const accessory = this.server.getAccessory(uuid);
-
-        if (!accessory) return;
+        if (!accessory) return null!;
 
         const [get, set, get_config, set_config, set_characteristics] = await Promise.all([
             this.permissions.checkCanGetAccessory(uuid),
@@ -537,7 +537,7 @@ export default class Connection {
      * Gets the value of a characteristic.
      */
     @messagehandler('get-characteristics', data => data.ids)
-    getCharacteristics(...ids: [string, string, string][]) {
+    getCharacteristics(...ids: [string, string, string][]): Promise<ResponseMessages['get-characteristics']> {
         return Promise.all(ids.map(ids => this.getCharacteristic(ids[0], ids[1], ids[2])));
     }
 
@@ -545,10 +545,10 @@ export default class Connection {
         await this.permissions.assertCanGetAccessory(accessory_uuid);
 
         const accessory = this.server.getAccessory(accessory_uuid);
-        if (!accessory) return;
+        if (!accessory) return null!;
 
         const characteristic = this.server.getCharacteristic(accessory_uuid, service_uuid, characteristic_uuid);
-        if (!characteristic) return;
+        if (!characteristic) return null!;
 
         // @ts-ignore
         const hap = characteristic.toHAP() as CharacteristicHap;
@@ -571,7 +571,7 @@ export default class Connection {
      * Sets the value of a characteristic.
      */
     @messagehandler('set-characteristics', data => data.ids_data)
-    setCharacteristics(...ids: [string, string, string, any][]) {
+    setCharacteristics(...ids: [string, string, string, any][]): Promise<ResponseMessages['set-characteristics']> {
         return Promise.all(ids.map(ids => this.setCharacteristic(ids[0], ids[1], ids[2], ids[3])));
     }
 
@@ -579,13 +579,13 @@ export default class Connection {
         await this.permissions.assertCanSetCharacteristic(accessory_uuid, service_uuid, characteristic_uuid, value);
 
         const accessory = this.server.getAccessory(accessory_uuid);
-        if (!accessory) return;
+        if (!accessory) return null!;
 
         const characteristic = this.server.getCharacteristic(accessory_uuid, service_uuid, characteristic_uuid);
         if (!characteristic) {
             this.log.warn('Unknown characteristic %s, %s, %s',
                 accessory_uuid, service_uuid, characteristic_uuid);
-            return;
+            return null!;
         }
 
         try {
@@ -594,11 +594,9 @@ export default class Connection {
                 throw new Error(HAPServer.Status.SERVICE_COMMUNICATION_FAILURE);
             }
 
-            return {
-                value: await this.server.setCharacteristicValue(characteristic, value, {
-                    [ConnectionSymbol]: this,
-                }),
-            };
+            await this.server.setCharacteristicValue(characteristic, value, {
+                [ConnectionSymbol]: this,
+            });
         } catch (err) {
             return {
                 status: hapStatus(err),
@@ -610,7 +608,9 @@ export default class Connection {
      * Subscribes to characteristic updates.
      */
     @messagehandler('subscribe-characteristics', data => data.ids)
-    subscribeCharacteristics(...ids: [string, string, string][]) {
+    subscribeCharacteristics(
+        ...ids: [string, string, string][]
+    ): Promise<ResponseMessages['subscribe-characteristics']> {
         return Promise.all(ids.map(ids => this.subscribeCharacteristic(ids[0], ids[1], ids[2])));
     }
 
@@ -648,7 +648,9 @@ export default class Connection {
      * Unsubscribes from characteristic updates.
      */
     @messagehandler('unsubscribe-characteristics', data => data.ids)
-    unsubscribeCharacteristics(...ids: [string, string, string][]) {
+    unsubscribeCharacteristics(
+        ...ids: [string, string, string][]
+    ): Promise<ResponseMessages['unsubscribe-characteristics']> {
         return Promise.all(ids.map(ids => this.unsubscribeCharacteristic(ids[0], ids[1], ids[2])));
     }
 
@@ -686,21 +688,21 @@ export default class Connection {
      * Gets history records.
      */
     @messagehandler('get-history-records', data => data.ids_date_range)
-    getCharacteristicsHistoryRecords(...ids: string[]) {
+    getCharacteristicsHistoryRecords(...ids: string[]): Promise<ResponseMessages['get-history-records']> {
         return Promise.all(ids.map(ids =>
             this.getHistoryRecords(ids[1], ids[1], ids[2], new Date(ids[3]), new Date(ids[4]))));
     }
 
     async getHistoryRecords(
         accessory_uuid: string, service_id: string, characteristic_uuid: string, from: Date, to: Date
-    ) {
+    ): Promise<ResponseMessages['get-history-records'][0]> {
         await this.permissions.assertCanGetCharacteristicHistory(accessory_uuid, service_id, characteristic_uuid);
 
         const accessory = this.server.getAccessory(accessory_uuid);
         const service = this.server.getService(accessory_uuid, service_id);
         const characteristic = this.server.getCharacteristic(accessory_uuid, service_id, characteristic_uuid);
 
-        if (!accessory || !service || !characteristic) return;
+        if (!accessory || !service || !characteristic) return null!;
 
         const records = this.server.history!.findRecords(accessory, service, characteristic, from, to);
 
@@ -712,7 +714,7 @@ export default class Connection {
      * This is stored by the web UI.
      */
     @messagehandler('get-accessories-data', data => data.id)
-    getAccessoriesData(...id: string[]) {
+    getAccessoriesData(...id: string[]): Promise<ResponseMessages['get-accessories-data']> {
         return Promise.all(id.map(id => this.getAccessoryData(id)));
     }
 
@@ -730,7 +732,7 @@ export default class Connection {
      * This is stored by the web UI.
      */
     @messagehandler('set-accessories-data', data => data.id_data)
-    setAccessoriesData(...id_data: [string, any][]) {
+    setAccessoriesData(...id_data: [string, any][]): Promise<ResponseMessages['set-accessories-data']> {
         return Promise.all(id_data.map(([id, data]) => this.setAccessoryData(id, data)));
     }
 
@@ -753,7 +755,7 @@ export default class Connection {
      * Starts accessory discovery.
      */
     @messagehandler('start-accessory-discovery')
-    async startAccessoryDiscovery() {
+    async startAccessoryDiscovery(): Promise<ResponseMessages['start-accessory-discovery']> {
         await this.permissions.assertCanCreateAccessories();
 
         if (!this.enable_accessory_discovery) {
@@ -761,14 +763,14 @@ export default class Connection {
             this.server.incrementAccessoryDiscoveryCounter();
         }
 
-        return this.getDiscoveredAccessories();
+        // return this.getDiscoveredAccessories();
     }
 
     /**
      * Gets discovered accessories.
      */
     @messagehandler('get-discovered-accessories')
-    async getDiscoveredAccessories() {
+    async getDiscoveredAccessories(): Promise<ResponseMessages['get-discovered-accessories']> {
         await this.permissions.assertCanCreateAccessories();
 
         return this.server.getDiscoveredAccessories().map(discovered_accessory => ({
@@ -784,7 +786,7 @@ export default class Connection {
      * Stops accessory discovery.
      */
     @messagehandler('stop-accessory-discovery')
-    async stopAccessoryDiscovery() {
+    async stopAccessoryDiscovery(): Promise<ResponseMessages['stop-accessory-discovery']> {
         await this.permissions.assertCanCreateAccessories();
 
         if (!this.enable_accessory_discovery) return;
@@ -797,7 +799,7 @@ export default class Connection {
      * Gets global settings.
      */
     @messagehandler('get-home-settings')
-    async getHomeSettings() {
+    async getHomeSettings(): Promise<ResponseMessages['get-home-settings']> {
         await this.permissions.assertCanGetHomeSettings();
 
         this.log.debug('Getting global settings');
@@ -809,7 +811,7 @@ export default class Connection {
      * Gets the user's global permissions.
      */
     @messagehandler('get-home-permissions')
-    async getHomePermissions() {
+    async getHomePermissions(): Promise<ResponseMessages['get-home-permissions']> {
         const [
             get, set, add_accessories, create_layouts, has_automations, create_automations, create_bridges,
             server, users, permissions, console,
@@ -837,7 +839,7 @@ export default class Connection {
      * Sets global settings.
      */
     @messagehandler('set-home-settings', data => [data.data])
-    async setHomeSettings(data: any) {
+    async setHomeSettings(data: any): Promise<ResponseMessages['set-home-settings']> {
         await this.permissions.assertCanSetHomeSettings();
 
         if (data.background_url && data.background_url.indexOf(path.sep) > -1) {
@@ -877,7 +879,7 @@ export default class Connection {
      * Gets the UUID of every layout.
      */
     @messagehandler('list-layouts')
-    async listLayouts() {
+    async listLayouts(): Promise<ResponseMessages['list-layouts']> {
         const uuids: string[] = [].concat(await this.server.storage.getItem('Layouts'));
 
         if (this.authenticated_user && !uuids.includes('Overview.' + this.authenticated_user.id)) {
@@ -892,7 +894,7 @@ export default class Connection {
      * Creates layouts.
      */
     @messagehandler('create-layouts', data => data.data)
-    createLayouts(...data: any[]) {
+    createLayouts(...data: any[]): Promise<ResponseMessages['create-layouts']> {
         return Promise.all(data.map(data => this.createLayout(data)));
     }
 
@@ -932,7 +934,7 @@ export default class Connection {
      * Gets data of layouts.
      */
     @messagehandler('get-layouts', data => data.id)
-    getLayouts(...id: string[]) {
+    getLayouts(...id: string[]): Promise<ResponseMessages['get-layouts']> {
         return Promise.all(id.map(id => this.getLayout(id)));
     }
 
@@ -948,7 +950,7 @@ export default class Connection {
      * Gets the user's permissions for layouts.
      */
     @messagehandler('get-layouts-permissions', data => data.id)
-    getLayoutsPermissions(...id: string[]) {
+    getLayoutsPermissions(...id: string[]): Promise<ResponseMessages['get-layouts-permissions']> {
         return Promise.all(id.map(id => this.getLayoutPermissions(id)));
     }
 
@@ -966,7 +968,7 @@ export default class Connection {
      * Sets data of layouts.
      */
     @messagehandler('set-layouts', data => data.id_data)
-    setLayouts(...id_data: [string, any][]) {
+    setLayouts(...id_data: [string, any][]): Promise<ResponseMessages['set-layouts']> {
         return Promise.all(id_data.map(([id, data]) => this.setLayout(id, data)));
     }
 
@@ -1099,7 +1101,7 @@ export default class Connection {
      * Deletes layouts.
      */
     @messagehandler('delete-layouts', data => data.id)
-    deleteLayouts(...id: string[]) {
+    deleteLayouts(...id: string[]): Promise<ResponseMessages['delete-layouts']> {
         return Promise.all(id.map(id => this.deleteLayout(id)));
     }
 
@@ -1151,7 +1153,7 @@ export default class Connection {
      * Gets the UUID of every layout section.
      */
     @messagehandler('list-layout-sections', data => data.id)
-    listAllLayoutSections(...id: string[]) {
+    listAllLayoutSections(...id: string[]): Promise<ResponseMessages['list-layout-sections']> {
         return Promise.all(id.map(id => this.listLayoutSections(id)));
     }
 
@@ -1165,7 +1167,7 @@ export default class Connection {
      * Creates layout sections.
      */
     @messagehandler('create-layout-sections', data => data.id_data)
-    createLayoutSections(...id_data: [string, any][]) {
+    createLayoutSections(...id_data: [string, any][]): Promise<ResponseMessages['create-layout-sections']> {
         return Promise.all(id_data.map(([layout_uuid, data]) => this.createLayoutSection(layout_uuid, data)));
     }
 
@@ -1197,7 +1199,7 @@ export default class Connection {
      * Gets data of layouts.
      */
     @messagehandler('get-layout-sections', data => data.ids)
-    getLayoutSections(...ids: [string, string][]) {
+    getLayoutSections(...ids: [string, string][]): Promise<ResponseMessages['get-layout-sections']> {
         return Promise.all(ids.map(([layout_uuid, id]) => this.getLayoutSection(layout_uuid, id)));
     }
 
@@ -1213,7 +1215,7 @@ export default class Connection {
      * Sets data of layout sections.
      */
     @messagehandler('set-layout-sections', data => data.ids_data)
-    setLayoutSections(...ids_data: [string, string, any][]) {
+    setLayoutSections(...ids_data: [string, string, any][]): Promise<ResponseMessages['set-layout-sections']> {
         return Promise.all(ids_data.map(([layout_uuid, id, data]) => this.setLayoutSection(layout_uuid, id, data)));
     }
 
@@ -1242,7 +1244,7 @@ export default class Connection {
      * Deletes layout sections.
      */
     @messagehandler('delete-layout-sections', data => data.ids)
-    deleteLayoutSections(...ids: [string, string][]) {
+    deleteLayoutSections(...ids: [string, string][]): Promise<ResponseMessages['delete-layout-sections']> {
         return Promise.all(ids.map(([layout_uuid, id]) => this.deleteLayoutSection(layout_uuid, id)));
     }
 
@@ -1271,7 +1273,7 @@ export default class Connection {
      * Gets the UUID of every automation.
      */
     @messagehandler('list-automations')
-    async listAutomations() {
+    async listAutomations(): Promise<ResponseMessages['list-automations']> {
         const uuids: string[] = await this.server.storage.getItem('Automations') || [];
 
         const authorised_uuids = await this.permissions.getAuthorisedAutomationUUIDs();
@@ -1282,7 +1284,7 @@ export default class Connection {
      * Creates automations.
      */
     @messagehandler('create-automations', data => data.data)
-    createAutomations(...data: any[]) {
+    createAutomations(...data: any[]): Promise<ResponseMessages['create-automations']> {
         return Promise.all(data.map(data => this.createAutomation(data)));
     }
 
@@ -1317,7 +1319,7 @@ export default class Connection {
      * Gets data of automations.
      */
     @messagehandler('get-automations', data => data.id)
-    getAutomations(...id: any[]) {
+    getAutomations(...id: any[]): Promise<ResponseMessages['get-automations']> {
         return Promise.all(id.map(id => this.getAutomation(id)));
     }
 
@@ -1333,7 +1335,7 @@ export default class Connection {
      * Gets the user's permissions for automations.
      */
     @messagehandler('get-automations-permissions', data => data.id)
-    getAutomationsPermissions(...id: string[]) {
+    getAutomationsPermissions(...id: string[]): Promise<ResponseMessages['get-automations-permissions']> {
         return Promise.all(id.map(id => this.getAutomationPermissions(id)));
     }
 
@@ -1351,7 +1353,7 @@ export default class Connection {
      * Sets data of automations.
      */
     @messagehandler('set-automations', data => data.id_data)
-    setAutomations(...id_data: [string, any][]) {
+    setAutomations(...id_data: [string, any][]): Promise<ResponseMessages['set-automations']> {
         return Promise.all(id_data.map(([id, data]) => this.setAutomation(id, data)));
     }
 
@@ -1383,7 +1385,7 @@ export default class Connection {
      * Deletes automations.
      */
     @messagehandler('delete-automations', data => data.id)
-    deleteAutomations(...id: string[]) {
+    deleteAutomations(...id: string[]): Promise<ResponseMessages['delete-automations']> {
         return Promise.all(id.map(id => this.deleteAutomation(id)));
     }
 
@@ -1416,7 +1418,7 @@ export default class Connection {
      * Gets the UUID of every scene.
      */
     @messagehandler('list-scenes')
-    async listScenes() {
+    async listScenes(): Promise<ResponseMessages['list-scenes']> {
         const uuids: string[] = await this.server.storage.getItem('Scenes') || [];
 
         const authorised_uuids = await this.permissions.getAuthorisedSceneUUIDs();
@@ -1427,7 +1429,7 @@ export default class Connection {
      * Creates scenes.
      */
     @messagehandler('create-scenes', data => data.data)
-    createScenes(...data: any[]) {
+    createScenes(...data: any[]): Promise<ResponseMessages['create-scenes']> {
         return Promise.all(data.map(data => this.createScene(data)));
     }
 
@@ -1462,7 +1464,7 @@ export default class Connection {
      * Gets data of scenes.
      */
     @messagehandler('get-scenes', data => data.id)
-    getScenes(...id: string[]) {
+    getScenes(...id: string[]): Promise<ResponseMessages['get-scenes']> {
         return Promise.all(id.map(id => this.getScene(id)));
     }
 
@@ -1478,7 +1480,7 @@ export default class Connection {
      * Gets the user's permissions for scenes.
      */
     @messagehandler('get-scenes-permissions', data => data.id)
-    getScenesPermissions(...id: string[]) {
+    getScenesPermissions(...id: string[]): Promise<ResponseMessages['get-scenes-permissions']> {
         return Promise.all(id.map(id => this.getScenePermissions(id)));
     }
 
@@ -1497,7 +1499,7 @@ export default class Connection {
      * Sets data of scenes.
      */
     @messagehandler('set-scenes', data => data.id_data)
-    setScenes(...id_data: [string, any][]) {
+    setScenes(...id_data: [string, any][]): Promise<ResponseMessages['set-scenes']> {
         return Promise.all(id_data.map(([id, data]) => this.setScene(id, data)));
     }
 
@@ -1529,7 +1531,7 @@ export default class Connection {
      * Checks if scenes are active.
      */
     @messagehandler('check-scenes-active', data => data.id)
-    checkScenesActive(...id: string[]) {
+    checkScenesActive(...id: string[]): Promise<ResponseMessages['check-scenes-active']> {
         return Promise.all(id.map(id => this.checkSceneActive(id)));
     }
 
@@ -1552,7 +1554,7 @@ export default class Connection {
      * Activates scenes.
      */
     @messagehandler('activate-scenes', data => data.id_data)
-    activateScenes(...id_data: [string, any][]) {
+    activateScenes(...id_data: [string, any][]): Promise<ResponseMessages['activate-scenes']> {
         return Promise.all(id_data.map(([id, data]) => this.activateScene(id, data)));
     }
 
@@ -1572,7 +1574,7 @@ export default class Connection {
      * Deactivates scenes.
      */
     @messagehandler('deactivate-scenes', data => data.id_data)
-    deactivateScenes(...id_data: [string, any][]) {
+    deactivateScenes(...id_data: [string, any][]): Promise<ResponseMessages['deactivate-scenes']> {
         return Promise.all(id_data.map(([id, data]) => this.deactivateScene(id, data)));
     }
 
@@ -1592,7 +1594,7 @@ export default class Connection {
      * Deletes scenes.
      */
     @messagehandler('delete-scenes', data => data.id)
-    deleteScenes(...id: string[]) {
+    deleteScenes(...id: string[]): Promise<ResponseMessages['delete-scenes']> {
         return Promise.all(id.map(id => this.deleteScene(id)));
     }
 
@@ -1622,7 +1624,7 @@ export default class Connection {
     }
 
     @messagehandler('get-command-line-flags')
-    async getCommandLineFlags() {
+    async getCommandLineFlags(): Promise<ResponseMessages['get-command-line-flags']> {
         await this.permissions.assertCanAccessServerRuntimeInfo();
 
         this.log.info('Getting command line flags for', this.id);
@@ -1631,7 +1633,7 @@ export default class Connection {
     }
 
     @messagehandler('enable-proxy-stdout')
-    async enableProxyStdout() {
+    async enableProxyStdout(): Promise<ResponseMessages['enable-proxy-stdout']> {
         await this.permissions.assertCanAccessServerRuntimeInfo();
 
         this.log.info('Enabling stdout proxy for', this.id);
@@ -1641,7 +1643,7 @@ export default class Connection {
     }
 
     @messagehandler('disable-proxy-stdout')
-    async disableProxyStdout() {
+    async disableProxyStdout(): Promise<ResponseMessages['disable-proxy-stdout']> {
         await this.permissions.assertCanAccessServerRuntimeInfo();
 
         this.log.info('Disabling stdout proxy for', this.id);
@@ -1652,7 +1654,7 @@ export default class Connection {
      * Gets the UUID of every bridge.
      */
     @messagehandler('list-bridges', data => [data.include_homebridge])
-    async listBridges(include_homebridge = false) {
+    async listBridges(include_homebridge = false): Promise<ResponseMessages['list-bridges']> {
         const uuids = [];
 
         for (const bridge of this.server.accessories.bridges) {
@@ -1666,7 +1668,7 @@ export default class Connection {
     }
 
     @messagehandler('create-bridges', data => data.data)
-    createBridges(...data: any[]) {
+    createBridges(...data: any[]): Promise<ResponseMessages['create-bridges']> {
         return Promise.all(data.map(data => this.createBridge(data)));
     }
 
@@ -1703,7 +1705,7 @@ export default class Connection {
      * Gets the details of a bridge.
      */
     @messagehandler('get-bridges', data => data.uuid)
-    getBridges(...uuid: string[]) {
+    getBridges(...uuid: string[]): Promise<ResponseMessages['get-bridges']> {
         return Promise.all(uuid.map(uuid => this.getBridge(uuid)));
     }
 
@@ -1713,7 +1715,7 @@ export default class Connection {
 
         const bridge = this.server.accessories.bridges.find(bridge => bridge.uuid === uuid);
         this.log.debug('Getting bridge info', uuid);
-        if (!bridge) return;
+        if (!bridge) return null!;
 
         const bridge_details = {
             uuid,
@@ -1732,7 +1734,7 @@ export default class Connection {
      * Gets the configuration of a bridge.
      */
     @messagehandler('get-bridges-configuration', data => data.uuid)
-    getBridgesConfiguration(...uuid: string[]) {
+    getBridgesConfiguration(...uuid: string[]): Promise<ResponseMessages['get-bridges-configuration']> {
         return Promise.all(uuid.map(uuid => this.getBridgeConfiguration(uuid)));
     }
 
@@ -1752,11 +1754,11 @@ export default class Connection {
      * Gets the user's permissions for a bridge.
      */
     @messagehandler('get-bridges-permissions', data => data.uuid)
-    getBridgesConfigurationPermissions(...uuid: string[]) {
+    getBridgesConfigurationPermissions(...uuid: string[]): Promise<ResponseMessages['get-bridges-permissions']> {
         return Promise.all(uuid.map(uuid => this.getBridgeConfigurationPermissions(uuid)));
     }
 
-    async getBridgeConfigurationPermissions(uuid: string) {
+    async getBridgeConfigurationPermissions(uuid: string): Promise<ResponseMessages['get-bridges-permissions'][0]> {
         const is_from_config = !await this.server.storage.getItem('Bridge.' + uuid);
 
         const [get, set, del] = await Promise.all([
@@ -1766,9 +1768,9 @@ export default class Connection {
         ]);
 
         return {
-            get, set, delete: del,
+            get: get!, set: set!, delete: del!,
             is_from_config: is_from_config ||
-                (this.server.accessories.homebridge && this.server.accessories.homebridge.uuid === uuid),
+                (this.server.accessories.homebridge && this.server.accessories.homebridge.uuid === uuid)!,
         };
     }
 
@@ -1776,7 +1778,7 @@ export default class Connection {
      * Sets the configuration of a bridge.
      */
     @messagehandler('set-bridges-configuration', data => data.uuid_data)
-    setBridgesConfiguration(...uuid_data: [string, any][]) {
+    setBridgesConfiguration(...uuid_data: [string, any][]): Promise<ResponseMessages['set-bridges-configuration']> {
         return Promise.all(uuid_data.map(([uuid, data]) => this.setBridgeConfiguration(uuid, data)));
     }
 
@@ -1845,7 +1847,7 @@ export default class Connection {
      * Deletes a bridge.
      */
     @messagehandler('delete-bridges', data => data.uuid)
-    deleteBridges(...uuid: string[]) {
+    deleteBridges(...uuid: string[]): Promise<ResponseMessages['delete-bridges']> {
         return Promise.all(uuid.map(uuid => this.deleteBridge(uuid)));
     }
 
@@ -1878,7 +1880,7 @@ export default class Connection {
      * Get bridges pairing details.
      */
     @messagehandler('get-bridges-pairing-details', data => [data.bridge_uuid])
-    getBridgesPairingDetails(...bridge_uuid: string[]) {
+    getBridgesPairingDetails(...bridge_uuid: string[]): Promise<ResponseMessages['get-bridges-pairing-details']> {
         return Promise.all(bridge_uuid.map(bridge_uuid => this.getBridgePairingDetails(bridge_uuid)));
     }
 
@@ -1887,7 +1889,7 @@ export default class Connection {
         // await this.permissions.assertCanAccessServerRuntimeInfo();
 
         const bridge = this.server.accessories.bridges.find(bridge => bridge.uuid === bridge_uuid);
-        if (!bridge) return;
+        if (!bridge) return null!;
 
         return {
             username: bridge.username,
@@ -1900,7 +1902,7 @@ export default class Connection {
      * Reset bridge pairings.
      */
     @messagehandler('reset-bridges-pairings', data => [data.bridge_uuid])
-    resetBridgesPairings(...bridge_uuid: string[]) {
+    resetBridgesPairings(...bridge_uuid: string[]): Promise<ResponseMessages['reset-bridges-pairings']> {
         return Promise.all(bridge_uuid.map(bridge_uuid => this.resetBridgePairings(bridge_uuid)));
     }
 
@@ -1923,12 +1925,12 @@ export default class Connection {
      * Lists pairings.
      */
     @messagehandler('list-pairings', data => [data.bridge_uuid])
-    async listPairings(bridge_uuid: string) {
+    async listPairings(bridge_uuid: string): Promise<ResponseMessages['list-pairings']> {
         await this.permissions.assertCanGetAccessory(bridge_uuid);
         // await this.permissions.assertCanAccessServerRuntimeInfo();
 
         const bridge = this.server.accessories.bridges.find(bridge => bridge.uuid === bridge_uuid);
-        if (!bridge) return null;
+        if (!bridge) return null!;
 
         const ids = [];
 
@@ -1943,7 +1945,7 @@ export default class Connection {
      * Gets the details of pairings.
      */
     @messagehandler('get-pairings', data => data.ids)
-    getPairings(...id: [string, string][]) {
+    getPairings(...id: [string, string][]): Promise<ResponseMessages['get-pairings']> {
         return Promise.all(id.map(([bridge_uuid, id]) => this.getPairing(bridge_uuid, id)));
     }
 
@@ -1952,15 +1954,16 @@ export default class Connection {
         // await this.permissions.assertCanAccessServerRuntimeInfo();
 
         const bridge = this.server.accessories.bridges.find(bridge => bridge.uuid === bridge_uuid);
-        if (!bridge) return null;
+        if (!bridge) return null!;
 
         const public_key = bridge.accessory_info.pairedClients[id];
+        if (!public_key) return null!;
 
-        return public_key ? {
+        return {
             bridge_uuid,
             id,
             public_key: public_key.toString('hex'),
-        } : null;
+        };
     }
 
     /**
@@ -1968,7 +1971,7 @@ export default class Connection {
      * This is stored by the web interface.
      */
     @messagehandler('get-pairings-data', data => data.id)
-    getPairingsData(...id: string[]) {
+    getPairingsData(...id: string[]): Promise<ResponseMessages['get-pairings-data']> {
         return Promise.all(id.map(id => this.getPairingData(id)));
     }
 
@@ -1986,7 +1989,7 @@ export default class Connection {
      * This is stored by the web interface.
      */
     @messagehandler('get-pairings-permissions', data => data.id)
-    getPairingsPermissions(...id: string[]) {
+    getPairingsPermissions(...id: string[]): Promise<ResponseMessages['get-pairings-permissions']> {
         return Promise.all(id.map(id => this.getPairingPermissions(id)));
     }
 
@@ -2009,7 +2012,7 @@ export default class Connection {
      * This is stored by the web interface.
      */
     @messagehandler('set-pairings-data', data => data.id_data)
-    setPairingsData(...id_data: [string, any][]) {
+    setPairingsData(...id_data: [string, any][]): Promise<ResponseMessages['set-pairings-data']> {
         return Promise.all(id_data.map(([id, data]) => this.setPairingData(id, data)));
     }
 
@@ -2032,7 +2035,7 @@ export default class Connection {
      * Gets web interface plugins.
      */
     @messagehandler('get-web-interface-plugins')
-    getWebInterfacePlugins() {
+    async getWebInterfacePlugins(): Promise<ResponseMessages['get-web-interface-plugins']> {
         return PluginManager.getWebInterfacePlugins().map(ui_plugin => {
             const plugin_authentication_handlers: {[localid: string]: number} = {};
             for (const [localid, authentication_handler] of ui_plugin.plugin.authentication_handlers.entries()) {
@@ -2172,7 +2175,7 @@ export default class Connection {
         }
     }
 
-    async sendAuthenticateResponse(messageid: number, response: any) {
+    async sendAuthenticateResponse(messageid: number, response: AuthenticatedUser | ResponseMessages['authenticate']) {
         if (response instanceof AuthenticatedUser) {
             if (response.token) {
                 // Save the authenticated user to the session
@@ -2241,7 +2244,7 @@ export default class Connection {
      * Gets user permissions.
      */
     @messagehandler('get-users-permissions', data => data.id)
-    async getUsersPermissions(...id: string[]) {
+    async getUsersPermissions(...id: string[]): Promise<ResponseMessages['get-users-permissions']> {
         return Promise.all(id.map(id => this.getUserPermissions(id)));
     }
 
@@ -2256,7 +2259,7 @@ export default class Connection {
      * Sets user permissions.
      */
     @messagehandler('set-users-permissions', data => data.id_data)
-    async setUsersPermissions(...id_data: [string, any][]) {
+    async setUsersPermissions(...id_data: [string, any][]): Promise<ResponseMessages['set-users-permissions']> {
         return Promise.all(id_data.map(([id, data]) => this.setUserPermissions(id, data)));
     }
 
@@ -2312,7 +2315,7 @@ export default class Connection {
     }
 
     @messagehandler('open-console')
-    async openConsole() {
+    async openConsole(): Promise<ResponseMessages['open-console']> {
         await this.permissions.assertCanOpenWebConsole();
 
         const id = this.console_id++;
@@ -2392,7 +2395,7 @@ export default class Connection {
     }
 
     @messagehandler('close-console', data => [data.id])
-    async closeConsole(id: number) {
+    async closeConsole(id: number): Promise<ResponseMessages['close-console']> {
         const {repl_server, subprocesses} = this.open_consoles.get(id) || {};
         if (!repl_server) throw new Error('Unknown console with ID "' + id + '"');
 
@@ -2405,7 +2408,7 @@ export default class Connection {
     }
 
     @messagehandler('console-input', data => [data.id, data.data])
-    async handleConsoleInput(id: number, data: string) {
+    async handleConsoleInput(id: number, data: string): Promise<ResponseMessages['console-input']> {
         const {repl_server, input} = this.open_consoles.get(id) || {};
         if (!repl_server) throw new Error('Unknown console with ID "' + id + '"');
 

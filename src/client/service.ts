@@ -229,13 +229,13 @@ class Service extends EventEmitter {
         return this.setCharacteristic(characteristic_type_uuids[name], value);
     }
 
-    setCharacteristics(values: {[uuid: string]: any}) {
-        return this.accessory.connection.setCharacteristics(...Object.keys(values)
+    async setCharacteristics(values: {[uuid: string]: any}) {
+        await this.accessory.connection.setCharacteristics(...Object.keys(values)
             .map(uuid => [this.accessory.uuid, this.uuid, uuid, values[uuid]] as [string, string, string, any]));
     }
 
-    setCharacteristicsByNames(values: {[name: string]: any}) {
-        return this.accessory.connection.setCharacteristics(...Object.keys(values)
+    async setCharacteristicsByNames(values: {[name: string]: any}) {
+        await this.accessory.connection.setCharacteristics(...Object.keys(values)
             .map(name => [this.accessory.uuid, this.uuid, characteristic_type_uuids[name], values[name]]) as
                 [string, string, string, any][]);
     }

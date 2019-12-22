@@ -232,9 +232,9 @@ class Accessory extends EventEmitter {
 
             if (collapsed_service_type) {
                 let collapsed_service = added_display_services.find(service => service instanceof CollapsedService &&
-                    service.collapsed_service_type === collapsed_service_type) as CollapsedService ||
+                    service.collapsed_service_type === collapsed_service_type) as unknown as CollapsedService ||
                     this.display_services.find(service => service instanceof CollapsedService &&
-                        service.collapsed_service_type === collapsed_service_type) as CollapsedService;
+                        service.collapsed_service_type === collapsed_service_type) as unknown as CollapsedService;
                 if (!collapsed_service) {
                     collapsed_service = new CollapsedService(this, collapsed_service_type, collapsed_service_type,
                         this.data['CollapsedService.' + collapsed_service_type] as ServiceData);

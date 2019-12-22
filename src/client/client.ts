@@ -225,13 +225,15 @@ class Client extends EventEmitter {
 
             const scene_uuids = Object.values(this.scenes || {}).map(s => s.uuid);
             if (scene_uuids.length) {
-                this.connection!.getLayoutsPermissions(...scene_uuids).then(scenes_permissions => {
+                this.connection!.getScenesPermissions(...scene_uuids).then(scenes_permissions => {
                     for (const index in scene_uuids) { // eslint-disable-line guard-for-in
                         const uuid = scene_uuids[index];
                         const scene = this.scenes![uuid];
                         const permissions = scenes_permissions[index];
 
-                        scene._setPermissions(permissions || {});
+                        scene._setPermissions(permissions || {
+                            get: false, activate: false, set: false, delete: false,
+                        });
                     }
                 });
             }
@@ -250,7 +252,7 @@ class Client extends EventEmitter {
             const accessory_uuids = data.ids.filter(uuid => !this.accessories![uuid]);
             if (!accessory_uuids.length) return;
 
-            const [[accessory_details], [accessory_data], [accessory_permissions]] = await Promise.all([
+            const [accessory_details, accessory_data, accessory_permissions] = await Promise.all([
                 this.connection!.getAccessories(...accessory_uuids),
                 this.connection!.getAccessoriesData(...accessory_uuids),
                 this.connection!.getAccessoriesPermissions(...accessory_uuids),

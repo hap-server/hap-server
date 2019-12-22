@@ -77,14 +77,14 @@ class CollapsedService extends Service {
         return characteristics;
     }
 
-    setCharacteristics(values: {[uuid: string]: any}) {
+    async setCharacteristics(values: {[uuid: string]: any}) {
         // TODO: send in one message
-        return Promise.all(this.services.map(service => service.setCharacteristics(values)));
+        await Promise.all(this.services.map(service => service.setCharacteristics(values)));
     }
 
-    setCharacteristicsByNames(values: {[name: string]: any}) {
+    async setCharacteristicsByNames(values: {[name: string]: any}) {
         // TODO: send in one message
-        return Promise.all(this.services.map(service => service.setCharacteristicsByNames(values)));
+        await Promise.all(this.services.map(service => service.setCharacteristicsByNames(values)));
     }
 }
 

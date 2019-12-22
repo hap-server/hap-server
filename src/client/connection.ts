@@ -2,7 +2,9 @@ import EventEmitter from 'events';
 import Characteristic from './characteristic';
 
 // Types
-import {MessageTypes, DefinedRequestMessages, DefinedResponseMessages, UIPlugin} from '../common/types/messages';
+import {
+    MessageTypes, OptionalDataMessageTypes, DefinedRequestMessages, DefinedResponseMessages, UIPlugin, RequestMessages,
+} from '../common/types/messages';
 import {
     BroadcastMessage,
     AddAccessoriesMessage, RemoveAccessoriesMessage, UpdateAccessoryMessage, UpdateCharacteristicMessage,
@@ -175,11 +177,27 @@ class Connection extends EventEmitter {
         }
     }
 
+    send<T extends MessageTypes, R = DefinedRequestMessages[T]>(
+        type: T, data: {
+            [K in keyof R]: K extends 'type' ? T | undefined : R[K];
+        }, progress?: () => void
+    ): Promise<DefinedResponseMessages[T]>
+    send<T extends OptionalDataMessageTypes>(type: T, progress?: () => void): Promise<DefinedResponseMessages[T]>
     send<T extends MessageTypes>(
         data: DefinedRequestMessages[T], progress?: () => void
     ): Promise<DefinedResponseMessages[T]>
-    send(data: any, progress?: () => void): Promise<any>
-    send(data: any, progress?: () => void): Promise<any> {
+    send(data: DefinedRequestMessages[MessageTypes], progress?: () => void): Promise<any>
+    send(
+        type: MessageTypes | DefinedRequestMessages[MessageTypes], data?: any | (() => void), progress?: () => void
+    ): Promise<any> {
+        if (typeof type === 'string') {
+            if (typeof data === 'function') [data, progress] = [{type}, data];
+            if (!data) data = {type};
+            data.type = type;
+        } else {
+            [data, progress] = [type, data, progress];
+        }
+
         return new Promise((resolve, reject) => {
             const messageid = this.messageid++;
 
@@ -191,13 +209,12 @@ class Connection extends EventEmitter {
 
     async authenticateWithCliToken(cli_token: string) {
         try {
-            const response = await this.send({
-                type: 'authenticate',
+            const response = await this.send('authenticate', {
                 cli_token,
             });
 
             if (response.success) {
-                const authenticated_user = new AuthenticatedUser(response.authentication_handler_id, response.user_id);
+                const authenticated_user = new AuthenticatedUser(response.authentication_handler_id!, response.user_id);
 
                 Object.defineProperty(authenticated_user, 'token', {value: response.token});
                 Object.defineProperty(authenticated_user, 'asset_token', {value: response.asset_token});
@@ -221,96 +238,64 @@ class Connection extends EventEmitter {
         }
     }
 
-    listAccessories(): Promise<string[]> {
-        return this.send({
-            type: 'list-accessories',
-        });
+    listAccessories() {
+        return this.send('list-accessories');
     }
 
-    getAccessories(...id: string[]): Promise<any[]> {
-        return this.send({
-            type: 'get-accessories',
-            id,
-        });
+    getAccessories(...id: string[]) {
+        return this.send('get-accessories', {id});
     }
 
-    getAccessoriesConfiguration(...id: string[]): Promise<any[]> {
-        return this.send({
-            type: 'get-accessories-configuration',
-            id,
-        });
+    getAccessoriesConfiguration(...id: string[]) {
+        return this.send('get-accessories-configuration', {id});
     }
 
-    setAccessoriesConfiguration(...id_data: [string, any][]): Promise<any[]> {
-        return this.send({
-            type: 'set-accessories-configuration',
-            id_data,
-        });
+    setAccessoriesConfiguration(...id_data: [string, any][]) {
+        return this.send('set-accessories-configuration', {id_data});
     }
 
-    getAccessoriesPermissions(...id: string[]): Promise<any[]> {
-        return this.send({
-            type: 'get-accessories-permissions',
-            id,
-        });
+    getAccessoriesPermissions(...id: string[]) {
+        return this.send('get-accessories-permissions', {id});
     }
 
-    getCharacteristics(...ids: [string, string, string][]): Promise<any[]> {
-        return this.send({
-            type: 'get-characteristics',
-            ids,
-        });
+    getCharacteristics(...ids: [string, string, string][]) {
+        return this.send('get-characteristics', {ids});
     }
 
     getCharacteristic(accessory_uuid: string, service_id: string, characteristic_uuid: string) {
         return this.getCharacteristics([accessory_uuid, service_id, characteristic_uuid]);
     }
 
-    setCharacteristics(...ids_data: [string, string, string, any][]): Promise<any[]> {
-        return this.send({
-            type: 'set-characteristics',
-            ids_data,
-        });
+    setCharacteristics(...ids_data: [string, string, string, any][]) {
+        return this.send('set-characteristics', {ids_data});
     }
 
     setCharacteristic(accessory_uuid: string, service_id: string, characteristic_id: string, value: any) {
         return this.setCharacteristics([accessory_uuid, service_id, characteristic_id, value]);
     }
 
-    subscribeCharacteristics(...ids: [string, string, string][]): Promise<any[]> {
-        return this.send({
-            type: 'subscribe-characteristics',
-            ids,
-        });
+    subscribeCharacteristics(...ids: [string, string, string][]) {
+        return this.send('subscribe-characteristics', {ids});
     }
 
     subscribeCharacteristic(accessory_uuid: string, service_id: string, characteristic_id: string) {
         return this.subscribeCharacteristics([accessory_uuid, service_id, characteristic_id]);
     }
 
-    unsubscribeCharacteristics(...ids: [string, string, string][]): Promise<any[]> {
-        return this.send({
-            type: 'unsubscribe-characteristics',
-            ids,
-        });
+    unsubscribeCharacteristics(...ids: [string, string, string][]) {
+        return this.send('unsubscribe-characteristics', {ids});
     }
 
     unsubscribeCharacteristic(accessory_uuid: string, service_id: string, characteristic_id: string) {
         return this.unsubscribeCharacteristics([accessory_uuid, service_id, characteristic_id]);
     }
 
-    getAccessoriesData(...id: string[]): Promise<any[]> {
-        return this.send({
-            type: 'get-accessories-data',
-            id,
-        });
+    getAccessoriesData(...id: string[]) {
+        return this.send('get-accessories-data', {id});
     }
 
-    setAccessoriesData(...id_data: [string, any][]): Promise<any[]> {
-        return this.send({
-            type: 'set-accessories-data',
-            id_data,
-        });
+    setAccessoriesData(...id_data: [string, any][]) {
+        return this.send('set-accessories-data', {id_data});
     }
 
     setAccessoryData(id: string, data: any) {
@@ -318,74 +303,47 @@ class Connection extends EventEmitter {
     }
 
     startAccessoryDiscovery() {
-        return this.send({
-            type: 'start-accessory-discovery',
-        });
+        return this.send('start-accessory-discovery');
     }
 
-    getDiscoveredAccessories(): Promise<any[]> {
-        return this.send({
-            type: 'get-discovered-accessories',
-        });
+    getDiscoveredAccessories() {
+        return this.send('get-discovered-accessories');
     }
 
     stopAccessoryDiscovery() {
-        return this.send({
-            type: 'stop-accessory-discovery',
-        });
+        return this.send('stop-accessory-discovery');
     }
 
     getHomeSettings() {
-        return this.send({
-            type: 'get-home-settings',
-        });
+        return this.send('get-home-settings');
     }
 
     getHomePermissions() {
-        return this.send({
-            type: 'get-home-permissions',
-        });
+        return this.send('get-home-permissions');
     }
 
     setHomeSettings(data: Home) {
-        return this.send({
-            type: 'set-home-settings',
-            data,
-        });
+        return this.send('set-home-settings', {data});
     }
 
-    listLayouts(): Promise<string[]> {
-        return this.send({
-            type: 'list-layouts',
-        });
+    listLayouts() {
+        return this.send('list-layouts');
     }
 
-    createLayouts(...data: any[]): Promise<string[]> {
-        return this.send({
-            type: 'create-layouts',
-            data,
-        });
+    createLayouts(...data: any[]) {
+        return this.send('create-layouts', {data});
     }
 
-    getLayouts(...id: string[]): Promise<any[]> {
-        return this.send({
-            type: 'get-layouts',
-            id,
-        });
+    getLayouts(...id: string[]) {
+        return this.send('get-layouts', {id});
     }
 
-    getLayoutsPermissions(...id: string[]): Promise<any[]> {
-        return this.send({
-            type: 'get-layouts-permissions',
-            id,
-        });
+    getLayoutsPermissions(...id: string[]) {
+        return this.send('get-layouts-permissions', {id});
     }
 
-    setLayouts(...id_data: [string, any][]): Promise<any[]> {
-        return this.send({
-            type: 'set-layouts',
-            id_data,
-        });
+    setLayouts(...id_data: [string, any][]) {
+        return this.send('set-layouts', {id_data});
     }
 
     setLayout(id: string, data: any) {
@@ -393,24 +351,15 @@ class Connection extends EventEmitter {
     }
 
     deleteLayouts(...id: string[]) {
-        return this.send({
-            type: 'delete-layouts',
-            id,
-        });
+        return this.send('delete-layouts', {id});
     }
 
-    listLayoutSections(...id: string[]): Promise<string[][]> {
-        return this.send({
-            type: 'list-layout-sections',
-            id,
-        });
+    listLayoutSections(...id: string[]) {
+        return this.send('list-layout-sections', {id});
     }
 
-    createLayoutSections(...id_data: [string, any][]): Promise<string[]> {
-        return this.send({
-            type: 'create-layout-sections',
-            id_data,
-        });
+    createLayoutSections(...id_data: [string, any][]) {
+        return this.send('create-layout-sections', {id_data});
     }
 
     createLayoutSection(layout_uuid: string, data: any) {
@@ -422,22 +371,16 @@ class Connection extends EventEmitter {
         string,
         /** Layout Section UUID */
         string,
-    ][]): Promise<any[]> {
-        return this.send({
-            type: 'get-layout-sections',
-            ids,
-        });
+    ][]) {
+        return this.send('get-layout-sections', {ids});
     }
 
     getLayoutSection(layout_uuid: string, section_uuid: string) {
         return this.getLayoutSections([layout_uuid, section_uuid]);
     }
 
-    setLayoutSections(...ids_data: [string, string, any][]): Promise<any[]> {
-        return this.send({
-            type: 'set-layout-sections',
-            ids_data,
-        });
+    setLayoutSections(...ids_data: [string, string, any][]) {
+        return this.send('set-layout-sections', {ids_data});
     }
 
     setLayoutSection(layout_uuid: string, section_uuid: string, data: any) {
@@ -445,48 +388,31 @@ class Connection extends EventEmitter {
     }
 
     deleteLayoutSections(...ids: [string, string][]) {
-        return this.send({
-            type: 'delete-layout-sections',
-            ids,
-        });
+        return this.send('delete-layout-sections', {ids});
     }
 
     deleteLayoutSection(layout_uuid: string, section_id: string) {
         return this.deleteLayoutSections([layout_uuid, section_id]);
     }
 
-    listAutomations(): Promise<string[]> {
-        return this.send({
-            type: 'list-automations',
-        });
+    listAutomations() {
+        return this.send('list-automations');
     }
 
-    createAutomations(...data: any[]): Promise<string[]> {
-        return this.send({
-            type: 'create-automations',
-            data,
-        });
+    createAutomations(...data: any[]) {
+        return this.send('create-automations', {data});
     }
 
-    getAutomations(...id: string[]): Promise<any[]> {
-        return this.send({
-            type: 'get-automations',
-            id,
-        });
+    getAutomations(...id: string[]) {
+        return this.send('get-automations', {id});
     }
 
-    getAutomationsPermissions(...id: string[]): Promise<any[]> {
-        return this.send({
-            type: 'get-automations-permissions',
-            id,
-        });
+    getAutomationsPermissions(...id: string[]) {
+        return this.send('get-automations-permissions', {id});
     }
 
-    setAutomations(...id_data: [string, any][]): Promise<any[]> {
-        return this.send({
-            type: 'set-automations',
-            id_data,
-        });
+    setAutomations(...id_data: [string, any][]) {
+        return this.send('set-automations', {id_data});
     }
 
     setAutomation(uuid: string, data: any) {
@@ -494,73 +420,49 @@ class Connection extends EventEmitter {
     }
 
     deleteAutomations(...id: string[]) {
-        return this.send({
-            type: 'delete-automations',
-            id,
-        });
+        return this.send('delete-automations', {id});
     }
 
-    listScenes(): Promise<string[]> {
-        return this.send({
-            type: 'list-scenes',
-        });
+    listScenes() {
+        return this.send('list-scenes');
     }
 
-    createScenes(...data: Scene[]): Promise<string[]> {
-        return this.send({
-            type: 'create-scenes',
-            data,
-        });
+    createScenes(...data: Scene[]) {
+        return this.send('create-scenes', {data});
     }
 
-    getScenes(...id: string[]): Promise<any[]> {
-        return this.send({
-            type: 'get-scenes',
-            id,
-        });
+    getScenes(...id: string[]) {
+        return this.send('get-scenes', {id});
     }
 
-    getScenesPermissions(...id: string[]): Promise<any[]> {
-        return this.send({
-            type: 'get-scenes-permissions',
-            id,
-        });
+    getScenesPermissions(...id: string[]) {
+        return this.send('get-scenes-permissions', {id});
     }
 
-    setScenes(...id_data: [string, any][]): Promise<any[]> {
-        return this.send({
-            type: 'set-scenes',
-            id_data,
-        });
+    setScenes(...id_data: [string, any][]) {
+        return this.send('set-scenes', {id_data});
     }
 
     setScene(uuid: string, data: any) {
         return this.setScenes([uuid, data]);
     }
 
-    checkScenesActive(...id: string[]): Promise<boolean[]> {
-        return this.send({
-            type: 'check-scenes-active',
+    checkScenesActive(...id: string[]) {
+        return this.send('check-scenes-active', {
             id,
         });
     }
 
-    activateScenes(...id_data: [string, any][]): Promise<any[]> {
-        return this.send({
-            type: 'activate-scenes',
-            id_data,
-        });
+    activateScenes(...id_data: [string, any][]) {
+        return this.send('activate-scenes', {id_data});
     }
 
     activateScene(uuid: string, context?: any) {
         return this.activateScenes([uuid, context]);
     }
 
-    deactivateScenes(...id_data: [string, any][]): Promise<any[]> {
-        return this.send({
-            type: 'deactivate-scenes',
-            id_data,
-        });
+    deactivateScenes(...id_data: [string, any][]) {
+        return this.send('deactivate-scenes', {id_data});
     }
 
     deactivateScene(uuid: string, context?: any) {
@@ -568,70 +470,43 @@ class Connection extends EventEmitter {
     }
 
     deleteScenes(...id: string[]) {
-        return this.send({
-            type: 'delete-scenes',
-            id,
-        });
+        return this.send('delete-scenes', {id});
     }
 
-    getCommandLineFlags(): Promise<string[]> {
-        return this.send({
-            type: 'get-command-line-flags',
-        });
+    getCommandLineFlags() {
+        return this.send('get-command-line-flags');
     }
 
     enableProxyStdout() {
-        return this.send({
-            type: 'enable-proxy-stdout',
-        });
+        return this.send('enable-proxy-stdout');
     }
 
     disableProxyStdout() {
-        return this.send({
-            type: 'disable-proxy-stdout',
-        });
+        return this.send('disable-proxy-stdout');
     }
 
-    listBridges(include_homebridge = false): Promise<string[]> {
-        return this.send({
-            type: 'list-bridges',
-            include_homebridge,
-        });
+    listBridges(include_homebridge = false) {
+        return this.send('list-bridges', {include_homebridge});
     }
 
-    createBridges(...data: any[]): Promise<string[]> {
-        return this.send({
-            type: 'create-bridges',
-            data,
-        });
+    createBridges(...data: any[]) {
+        return this.send('create-bridges', {data});
     }
 
-    getBridges(...uuid: string[]): Promise<any[]> {
-        return this.send({
-            type: 'get-bridges',
-            uuid,
-        });
+    getBridges(...uuid: string[]) {
+        return this.send('get-bridges', {uuid});
     }
 
-    getBridgesConfiguration(...uuid: string[]): Promise<any[]> {
-        return this.send({
-            type: 'get-bridges-configuration',
-            uuid,
-        });
+    getBridgesConfiguration(...uuid: string[]) {
+        return this.send('get-bridges-configuration', {uuid});
     }
 
-    getBridgesConfigurationPermissions(...uuid: string[]): Promise<any[]> {
-        return this.send({
-            type: 'get-bridges-permissions',
-            uuid,
-        });
+    getBridgesConfigurationPermissions(...uuid: string[]) {
+        return this.send('get-bridges-permissions', {uuid});
     }
 
-    setBridgesConfiguration(...uuid_data: [string, any][]): Promise<any[]> {
-        return this.send({
-            type: 'set-bridges-configuration',
-            uuid_data,
-        });
+    setBridgesConfiguration(...uuid_data: [string, any][]) {
+        return this.send('set-bridges-configuration', {uuid_data});
     }
 
     setBridgeConfiguration(uuid: string, data: any) {
@@ -639,63 +514,39 @@ class Connection extends EventEmitter {
     }
 
     deleteBridges(...uuid: string[]) {
-        return this.send({
-            type: 'delete-bridges',
-            uuid,
-        });
+        return this.send('delete-bridges', {uuid});
     }
 
-    getBridgesPairingDetails(...bridge_uuid: string[]) {
-        return this.send({
-            type: 'get-bridges-pairing-details',
-            bridge_uuid,
-        });
+    getBridgesPairingDetails(bridge_uuid: string) {
+        return this.send('get-bridges-pairing-details', {bridge_uuid});
     }
 
-    resetBridgesPairings(...bridge_uuid: string[]) {
-        return this.send({
-            type: 'reset-bridges-pairings',
-            bridge_uuid,
-        });
+    resetBridgesPairings(bridge_uuid: string) {
+        return this.send('reset-bridges-pairings', {bridge_uuid});
     }
 
-    listPairings(bridge_uuid: string): Promise<string[]> {
-        return this.send({
-            type: 'list-pairings',
-            bridge_uuid,
-        });
+    listPairings(bridge_uuid: string) {
+        return this.send('list-pairings', {bridge_uuid});
     }
 
-    getPairings(...ids: [string, string][]): Promise<any[]> {
-        return this.send({
-            type: 'get-pairings',
-            ids,
-        });
+    getPairings(...ids: [string, string][]) {
+        return this.send('get-pairings', {ids});
     }
 
     getPairing(bridge_uuid: string, pairing_id: string) {
         return this.getPairings([bridge_uuid, pairing_id]);
     }
 
-    getPairingsData(...id: string[]): Promise<any[]> {
-        return this.send({
-            type: 'get-pairings-data',
-            id,
-        });
+    getPairingsData(...id: string[]) {
+        return this.send('get-pairings-data', {id});
     }
 
-    getPairingsPermissions(...id: string[]): Promise<any[]> {
-        return this.send({
-            type: 'get-pairings-permissions',
-            id,
-        });
+    getPairingsPermissions(...id: string[]) {
+        return this.send('get-pairings-permissions', {id});
     }
 
-    setPairingsData(...id_data: [string, any][]): Promise<any[]> {
-        return this.send({
-            type: 'set-pairings-data',
-            id_data,
-        });
+    setPairingsData(...id_data: [string, any][]) {
+        return this.send('set-pairings-data', {id_data});
     }
 
     setPairingData(pairing_id: string, data: any) {
@@ -703,27 +554,19 @@ class Connection extends EventEmitter {
     }
 
     getWebInterfacePlugins(): Promise<UIPlugin[]> {
-        return this.send({
-            type: 'get-web-interface-plugins',
-        });
+        return this.send('get-web-interface-plugins');
     }
 
     getAccessoryUIs() {
         return this.getWebInterfacePlugins();
     }
 
-    getUsersPermissions(...id: string[]): Promise<any[]> {
-        return this.send({
-            type: 'get-users-permissions',
-            id,
-        });
+    getUsersPermissions(...id: string[]) {
+        return this.send('get-users-permissions', {id});
     }
 
-    setUsersPermissions(...id_data: [string, any][]): Promise<any[]> {
-        return this.send({
-            type: 'set-users-permissions',
-            id_data,
-        });
+    setUsersPermissions(...id_data: [string, any][]) {
+        return this.send('set-users-permissions', {id_data});
     }
 
     setUserPermissions(id: string, data: any) {
@@ -731,24 +574,15 @@ class Connection extends EventEmitter {
     }
 
     openConsole(): Promise<number> {
-        return this.send({
-            type: 'open-console',
-        });
+        return this.send('open-console');
     }
 
     closeConsole(id: number) {
-        return this.send({
-            type: 'close-console',
-            id,
-        });
+        return this.send('close-console', {id});
     }
 
     sendConsoleInput(id: number, data: string) {
-        return this.send({
-            type: 'console-input',
-            id,
-            data,
-        });
+        return this.send('console-input', {id, data});
     }
 
     protected handleBroadcastMessage(data: BroadcastMessage) {

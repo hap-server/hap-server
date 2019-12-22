@@ -34,6 +34,7 @@ export async function handler(argv: Arguments) {
 
     const permissions = (await connection.getUsersPermissions(argv.user))[0] || {};
 
+    // @ts-ignore
     permissions['*'] = true;
 
     await connection.setUserPermissions(argv.user, permissions);
