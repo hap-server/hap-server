@@ -23,7 +23,11 @@ import {
     AddAccessoryEvent, RemoveAccessoryEvent, UpdateAccessoryConfigurationEvent,
 } from '../events/server';
 import {getConfig, log, GlobalArguments} from '.';
-import {getDefaultConfigPath} from './configuration';
+import ConfigurationFile, {
+    getDefaultConfigPath,
+    BridgeConfiguration, AccessoryConfiguration, AccessoryPlatformConfiguration,
+} from './configuration';
+import {PluginStandaloneAccessory} from '../server/accessories';
 
 const randomBytes = util.promisify(crypto.randomBytes);
 const readFile = util.promisify(fs.readFile);
@@ -593,10 +597,10 @@ export async function handler(argv: Arguments) {
 }
 
 async function reloadConfig(server: Server, old_options: {
-    config;
+    config: ConfigurationFile;
     config_path: string;
     data_path: string;
-}, argv) {
+}, argv: Arguments) {
     const log = new Logger('Reload');
     log('Reloading configuration');
 
@@ -607,9 +611,13 @@ async function reloadConfig(server: Server, old_options: {
     if (data_path !== old_options.data_path) throw new Error('Cannot change data path while running');
     if (!isEqual(config['plugin-path'], old_options.config['plugin-path'])) throw new Error('Cannot change plugin paths while running');
 
-    const nullchildren = {
-        hostname: null,
-    };
+    const nullchildren = [
+        // List configuration keys that can be changed
+        'hostname',
+        'bridges',
+        'accessories2',
+        'platforms2',
+    ].reduce((acc, cur) => (acc[cur] = null, acc), {} as Record<string, null>);
 
     if (!isEqual(
         Object.assign({}, nullchildren, old_options.config, nullchildren),
@@ -619,12 +627,215 @@ async function reloadConfig(server: Server, old_options: {
             'until hap-server is restarted.');
     }
 
-    if (!argv.advertiseWebInterface && old_options.config.hostname !== config.hostname) {
-        log.info('Changing hostname from %s to %s', old_options.config.hostname, config.hostname);
+    if (old_options.config.hostname !== config.hostname) {
+        if (argv.advertiseWebInterface) {
+            log.warn('Cannot change hostname when using an automatically generated and advertised hostname');
+        } else if (!config.hostname) {
+            log.warn('Cannot remove hostname');
+        } else {
+            log.info('Changing hostname from %s to %s', old_options.config.hostname, config.hostname);
 
-        old_options.config.hostname = config.hostname;
-        server.setHostname(config.hostname);
+            server.setHostname(config.hostname);
+            old_options.config.hostname = config.hostname;
+        }
     }
+
+    //
+    // Calculate bridge configuration changes
+    //
+
+    const added_bridges: Record<string, BridgeConfiguration> = {};
+    const updated_bridges: Record<string, [BridgeConfiguration, BridgeConfiguration]> = {};
+    const remaining_bridges: Record<string, BridgeConfiguration> = {};
+    const removed_bridges: Record<string, BridgeConfiguration> = {};
+
+    for (const bridge_config of config.bridges || []) {
+        const uuid = bridge_config.uuid || hap.uuid.generate('hap-server:bridge:' + bridge_config.username);
+
+        const old_bridge_config = (old_options.config.bridges || []).find(bridge_config => {
+            return uuid === bridge_config.uuid || hap.uuid.generate('hap-server:bridge:' + bridge_config.username);
+        });
+
+        if (!old_bridge_config) {
+            // Bridge was added
+            added_bridges[uuid] = bridge_config;
+        } else if (!isEqual(bridge_config, old_bridge_config)) {
+            // Bridge configuration was updated
+            updated_bridges[uuid] = [old_bridge_config, bridge_config];
+        } else {
+            // Bridge configuration wasn't changed
+            remaining_bridges[uuid] = bridge_config;
+        }
+    }
+
+    for (const old_bridge_config of old_options.config.bridges || []) {
+        const uuid = old_bridge_config.uuid || hap.uuid.generate('hap-server:bridge:' + old_bridge_config.username);
+
+        const bridge_config = added_bridges[uuid] || updated_bridges[uuid] || remaining_bridges[uuid];
+
+        if (!bridge_config) {
+            // Bridge was removed
+            removed_bridges[uuid] = old_bridge_config;
+        }
+    }
+
+    //
+    // Calculate accessory configuration changes
+    //
+
+    const added_accessories: Record<string, AccessoryConfiguration> = {};
+    const updated_accessories: Record<string, [AccessoryConfiguration, AccessoryConfiguration]> = {};
+    const remaining_accessories: Record<string, AccessoryConfiguration> = {};
+    const removed_accessories: Record<string, AccessoryConfiguration> = {};
+
+    for (const accessory_config of config.accessories2 || []) {
+        const uuid = accessory_config.uuid || hap.uuid.generate('accessory:' + accessory_config.plugin + ':' +
+            accessory_config.accessory + ':' + accessory_config.name);
+
+        accessory_config.uuid = uuid;
+
+        const old_accessory_config = (old_options.config.accessories2 || []).find(accessory_config => {
+            return uuid === accessory_config.uuid || hap.uuid.generate('accessory:' + accessory_config.plugin + ':' +
+                accessory_config.accessory + ':' + accessory_config.name);
+        });
+
+        if (!old_accessory_config || !server.accessories.getPluginAccessory(uuid)) {
+            // Accessory was added (or it wasn't loaded at startup/last reload)
+            added_accessories[uuid] = accessory_config;
+        } else if (!isEqual(accessory_config, old_accessory_config)) {
+            // Accessory configuration was updated
+            updated_accessories[uuid] = [old_accessory_config, accessory_config];
+        } else {
+            // Accessory configuration wasn't changed
+            remaining_accessories[uuid] = accessory_config;
+        }
+    }
+
+    for (const old_accessory_config of old_options.config.accessories2 || []) {
+        const uuid = old_accessory_config.uuid || hap.uuid.generate('accessory:' + old_accessory_config.plugin + ':' +
+            old_accessory_config.accessory + ':' + old_accessory_config.name);
+
+        const accessory_config = added_accessories[uuid] || updated_accessories[uuid] || remaining_accessories[uuid];
+
+        if (!accessory_config) {
+            // Accessory was removed
+            removed_accessories[uuid] = old_accessory_config;
+        }
+    }
+
+    //
+    // Calculate accessory platform configuration changes
+    //
+
+    const added_accessory_platforms: Record<string, AccessoryPlatformConfiguration> = {};
+    const updated_accessory_platforms: // eslint-disable-next-line @typescript-eslint/indent
+        Record<string, [AccessoryPlatformConfiguration, AccessoryPlatformConfiguration]> = {};
+    const remaining_accessory_platforms: Record<string, AccessoryPlatformConfiguration> = {};
+    const removed_accessory_platforms: Record<string, AccessoryPlatformConfiguration> = {};
+
+    for (const platform_config of config.platforms2 || []) {
+        const base_uuid = platform_config.uuid || 'accessoryplatform:' + platform_config.plugin + ':' +
+            platform_config.platform + ':' + platform_config.name;
+        const uuid = hap.uuid.isValid(base_uuid) ? base_uuid : hap.uuid.generate(base_uuid);
+
+        platform_config.uuid = base_uuid;
+
+        const old_platform_config = (old_options.config.platforms2 || []).find(platform_config => {
+            const base_uuid = platform_config.uuid || 'accessoryplatform:' + platform_config.plugin + ':' +
+                platform_config.platform + ':' + platform_config.name;
+            return uuid === (hap.uuid.isValid(base_uuid) ? base_uuid : hap.uuid.generate(base_uuid));
+        });
+
+        if (!old_platform_config) {
+            // Accessory platform was added
+            added_accessory_platforms[uuid] = platform_config;
+        } else if (!isEqual(platform_config, old_platform_config)) {
+            // Accessory platform configuration was updated
+            updated_accessory_platforms[uuid] = [old_platform_config, platform_config];
+        } else {
+            // Accessory platform configuration wasn't changed
+            remaining_accessory_platforms[uuid] = platform_config;
+        }
+    }
+
+    for (const old_platform_config of old_options.config.platforms2 || []) {
+        const base_uuid = old_platform_config.uuid || 'accessoryplatform:' + old_platform_config.plugin + ':' +
+            old_platform_config.platform + ':' + old_platform_config.name;
+        const uuid = hap.uuid.isValid(base_uuid) ? base_uuid : hap.uuid.generate(base_uuid);
+
+        const platform_config = added_accessory_platforms[uuid] || updated_accessory_platforms[uuid] ||
+            remaining_accessory_platforms[uuid];
+
+        if (!platform_config) {
+            // Accessory platform was removed
+            removed_accessory_platforms[uuid] = old_platform_config;
+        }
+    }
+
+    //
+    // Load updated bridge configuration
+    //
+
+    await server.loadBridgesFromConfig(Object.values(added_bridges));
+    for (const [uuid, bridge_config] of Object.entries(added_bridges)) {
+        old_options.config.bridges?.push(bridge_config);
+    }
+    for (const [uuid, [old_bridge_config, bridge_config]] of Object.entries(updated_bridges)) {
+        log.warn('Reloading bridge configuration not implemented');
+
+        // old_options.config.bridges?.splice(old_options.config.bridges.indexOf(old_bridge_config), 1);
+        // old_options.config.bridges?.push(bridge_config);
+    }
+    await Promise.all(Object.keys(removed_bridges).map(uuid => server.accessories.unloadBridge(uuid).then(() => {
+        old_options.config.bridges?.splice(old_options.config.bridges.indexOf(removed_bridges[uuid]), 1);
+    })));
+
+    //
+    // Load updated accessory configuration
+    //
+
+    await server.loadAccessoriesFromConfig(Object.values(added_accessories));
+    for (const [uuid, accessory_config] of Object.entries(added_accessories)) {
+        old_options.config.accessories?.push(accessory_config);
+    }
+    for (const [uuid, [old_accessory_config, accessory_config]] of Object.entries(updated_accessories)) {
+        const accessory = server.accessories.getPluginAccessory(uuid);
+        log.info(accessory, uuid, old_accessory_config, accessory_config);
+        if (!accessory || !(accessory instanceof PluginStandaloneAccessory)) {
+            throw new Error('Unknown accessory');
+        }
+
+        accessory.reload(accessory_config);
+
+        old_options.config.accessories2?.splice(old_options.config.accessories2.indexOf(old_accessory_config), 1);
+        old_options.config.accessories2?.push(accessory_config);
+    }
+    await Promise.all(Object.entries(removed_accessories).map(([uuid, old_accessory_config]) => {
+        server.accessories.removeAccessory(server.accessories.accessories.find(a => a.uuid === uuid)!);
+        old_options.config.accessories2?.splice(old_options.config.accessories2.indexOf(old_accessory_config), 1);
+    }));
+
+    //
+    // Load updated accessory platform configuration
+    //
+
+    await server.loadAccessoryPlatformsFromConfig(Object.values(added_accessory_platforms));
+    for (const [uuid, platform_config] of Object.entries(added_accessory_platforms)) {
+        old_options.config.platforms?.push(platform_config);
+    }
+    for (const [uuid, [old_platform_config, platform_config]] of Object.entries(updated_accessory_platforms)) {
+        const accessory_platform = server.accessories.accessory_platforms.find(p => p.uuid === uuid);
+        if (!accessory_platform) throw new Error('Unknown accessory platform');
+
+        await accessory_platform.reload(platform_config);
+
+        old_options.config.platforms2?.splice(old_options.config.platforms2.indexOf(old_platform_config), 1,
+            platform_config);
+    }
+    await Promise.all(Object.entries(removed_accessory_platforms).map(([uuid, old_platform_config]) => {
+        server.accessories.removeAccessory(server.accessories.accessories.find(a => a.uuid === uuid)!);
+        old_options.config.platforms2?.splice(old_options.config.platforms2.indexOf(old_platform_config), 1);
+    }));
 
     log.info('Finished reloading configuration');
 }

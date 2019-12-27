@@ -1177,13 +1177,17 @@ export class PluginStandaloneAccessory<HasAccessory extends boolean = boolean> e
      * @param {any} config
      */
     reload(config: any) {
-        if (!this._initialising) {
-            this.accessory!.emit(AccessoryEvents.RELOAD, config);
+        if (this.accessory) {
+            this.accessory.emit(AccessoryEvents.RELOAD, config);
             return;
         }
 
         // If we're still initialising the accessory wait for it first
-        this._initialising.catch(err => {}).then(() => this.accessory!.emit(AccessoryEvents.RELOAD, config));
+        if (this._initialising) {
+            this._initialising.catch(err => {}).then(() => this.accessory!.emit(AccessoryEvents.RELOAD, config));
+        }
+
+        // If we're not initialised and we haven't tried yet we don't need to do anything
     }
 
     destroy() {
