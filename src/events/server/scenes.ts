@@ -5,7 +5,7 @@ import Scene from '../../automations/scene';
 export class SceneTriggerEvent extends Event {
     static readonly type = 'scene-triggered';
 
-    constructor(scene: Scene, enable: boolean, context) {
+    constructor(scene: Scene, enable: boolean, context: any) {
         super(scene, enable, context);
     }
 
@@ -37,7 +37,7 @@ export class SceneTriggerEvent extends Event {
 export class SceneActivateProgressEvent extends Event {
     static readonly type = 'scene-activate-progress';
 
-    constructor(scene: Scene, parent: AutomationTriggerEvent, progress: number) {
+    constructor(scene: Scene, parent: AutomationTriggerEvent | SceneTriggerEvent, progress: number) {
         super(scene, parent, progress);
     }
 
@@ -69,7 +69,7 @@ export class SceneActivateProgressEvent extends Event {
 export class SceneActivatedEvent extends Event {
     static readonly type = 'scene-activated';
 
-    constructor(scene: Scene, parent: AutomationTriggerEvent) {
+    constructor(scene: Scene, parent: AutomationTriggerEvent | SceneTriggerEvent) {
         super(scene, parent);
     }
 
@@ -97,7 +97,7 @@ export class SceneActivatedEvent extends Event {
 export class SceneDeactivateProgressEvent extends Event {
     static readonly type = 'scene-deactivate-progress';
 
-    constructor(scene: Scene, parent: AutomationTriggerEvent, progress: number) {
+    constructor(scene: Scene, parent: AutomationTriggerEvent | SceneTriggerEvent, progress: number) {
         super(scene, parent, progress);
     }
 
@@ -129,7 +129,7 @@ export class SceneDeactivateProgressEvent extends Event {
 export class SceneDeactivatedEvent extends Event {
     static readonly type = 'scene-deactivated';
 
-    constructor(scene: Scene, parent: AutomationTriggerEvent) {
+    constructor(scene: Scene, parent: AutomationTriggerEvent | SceneTriggerEvent) {
         super(scene, parent);
     }
 

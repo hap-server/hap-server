@@ -1,12 +1,12 @@
 <template>
     <div class="accessory-setup-hap-ip">
-        <p>{{ discoveredAccessory ? JSON.stringify(discoveredAccessory) : 'Manual' }}</p>
+        <p>{{ discoveredAccessory ? JSON.stringify(discoveredAccessory) : $t('accessory_setup.hap_ip.manual') }}</p>
 
         <div class="d-flex">
-            <div v-if="creating">Saving</div>
+            <div v-if="creating">{{ $t('accessory_setup.hap_ip.saving') }}</div>
             <div class="flex-fill"></div>
             <button class="btn btn-default btn-sm" type="button" :disabled="creating"
-                @click="$emit('cancel')">Cancel</button>
+                @click="$emit('cancel')">{{ $t('accessory_setup.hap_ip.cancel') }}</button>
         </div>
     </div>
 </template>

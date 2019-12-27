@@ -1,10 +1,10 @@
-HomeKit Accessory Server
+Home Automation Server
 ===
 
-Home automation system based on HomeKit.
+Home automation system based on Homebridge.
 
-It includes a web interface for controlling accessories. Scenes, custom controls, configuring accessories in the web
-interface, storing historical data and configuring automations in the web interface are not supported yet.
+It includes a web interface for controlling accessories, activating and configuring scenes, automations and
+custom controls. Configuring accessories in the web interface and storing historical data is not supported yet.
 
 It includes a plugin system to add accessories, accessory configuration, authentication and options for automations.
 All Homebridge plugins are supported.
@@ -21,8 +21,9 @@ A lot.
     - [x] Layouts
         - Customisable by dragging sections and accessories in the web interface.
         - [x] Scenes
-        - [x] [Custom sections with plugins](docs/plugins.md#accessoryuiregisterlayoutsectioncomponent)
-        - [ ] Accessory groups (one tile controls multiple accessories)
+        - [x] [Custom sections with plugins](docs/plugins.md#uipluginregisterlayoutsectioncomponent)
+        - [ ] Service groups (one tile controls multiple accessories)
+            - Group services into a single service with merged values
     - [x] Basic accessory control (on/off)
         - [x] Switch
         - [x] Lightbulb
@@ -31,8 +32,8 @@ A lot.
         - [x] Television
         - [x] Lock Mechanism
         - [x] Garage Door Opener
-        - [ ] [All other services supported by hap-nodejs](https://github.com/khaost/hap-nodejs/tree/master/lib/gen)
-        - [x] [Other services with plugins](docs/plugins.md#accessoryuiregisterservicecomponent)
+        - [ ] [All other services supported by hap-nodejs](https://github.com/khaost/hap-nodejs/tree/master/src/lib/gen)
+        - [x] [Other services with plugins](docs/plugins.md#uipluginregisterservicetilecomponent)
     - [x] Accessory control
         - [x] Switch
         - [x] Lightbulb
@@ -43,8 +44,8 @@ A lot.
             - [ ] Remote
         - [ ] Lock Mechanism
         - [ ] Garage Door Opener
-        - [ ] [All other services supported by hap-nodejs](https://github.com/khaost/hap-nodejs/tree/master/lib/gen)
-        - [x] [Other services with plugins](docs/plugins.md#accessoryuiregisteraccessorydetailscomponent)
+        - [ ] [All other services supported by hap-nodejs](https://github.com/khaost/hap-nodejs/tree/master/src/lib/gen)
+        - [x] [Other services with plugins](docs/plugins.md#uipluginregisterservicedetailscomponent)
     - [x] Dark theme [(system wide)](https://caniuse.com/#search=prefers-color-scheme)
     - [ ] Notifications
     - Configuration
@@ -64,6 +65,9 @@ A lot.
     - Uses a local copy of the web interface instead of using the server's.
 - [ ] Historical data
     - [ ] Store changes to an accessory's state
+        - Enable with the `--experimental-history` flag. Currently only stores changes already visible to hap-server
+            (when plugins (usually incorrectly) update without any subscribed clients, when controlled in hap-server
+            or when a controller is subscribed to changes) and from all accessories.
     - [ ] Elgato Eve???
 - [ ] Security
     - [x] Web interface authentication
@@ -76,6 +80,7 @@ A lot.
             single home where everyone has permission to control all accessories. Also allows users to choose
             their own favourite accessories/scenes/colours and using multiple devices without an Apple ID.
     - [ ] Multiple pairings with a single bridge?
+    - [ ] Process isolation (e.g. using a separate process for each plugin)
 - [x] Scenes
     - Works with automations. (Scenes just run automation conditions to check if they're enabled and automation
         actions to activate/deactivate them.)
@@ -106,9 +111,25 @@ A lot.
         - [x] Set characteristic
             - [x] Increment/decrement
             - [ ] Transitions
+    - [ ] Automation history
 - [ ] Temporary scheduled actions
     - "Turn the lights off in 10 minutes."
-- [ ] Camera accessories
+- [ ] Cameras
+    - [x] Basic support (use with HomeKit)
+    - [ ] Snapshots in the web interface
+    - [ ] Live streaming in the web interface
+    - HomeKit Secure Video??
+    - Recording??
+- [ ] Routers
+    - [ ] Basic support (use with HomeKit)
+        - For routers and HomeKit Accessory Security: no support as the TLV format isn't known yet.
+        - For Wi-Fi extenders (or satellites as they are called internally) - these are very basic (only provides a
+            connected/not connected status): supported in hap-nodejs, but not yet in hap-server until Homebridge also
+            updates hap-nodejs.
+    - [ ] Visible in the web interface
+    - [ ] Controllable in the web interface
+- [ ] Merged accessories
+    - Merge services from multiple accessories into a single accessory to add functionality with multiple plugins.
 - [x] Add HomeKit accessories
     - [x] HomeKit over IP
     - [ ] HomeKit over BLE
@@ -140,6 +161,11 @@ A lot.
     - [x] Cached accessories
         - Accessory configuration can be cached so the server can run immediately and have accessories load in the
             background.
+- [ ] Configuration reloading
+- Platform compatibility
+    - [x] macOS
+    - [x] Linux??
+    - [ ] Windows??
 - [x] Full compatibility with Homebridge
     - Run instead of Homebridge and use all Homebridge plugins with the web interface. Homebridge accessories appear
         and can be controlled in the web interface, by automations on the server and with hap-server's HAP bridges.
@@ -177,6 +203,21 @@ setup workflow will be added soon.) Once you have an account setup you can make 
 hap-server make-admin {user-id}
 # Or with the path to the configuration file
 hap-server make-admin {user-id} --config data/config.yaml
+```
+
+### GitHub Package Registry
+
+By default `npm` will install from https://npmjs.com. You can configure `npm` to install hap-server from
+GitHub Package Registry by adding this to your [`npmrc`](https://docs.npmjs.com/files/npmrc):
+
+```
+@hap-server:registry=https://npm.pkg.github.com
+```
+
+Run this to configure `npm` to use GitHub Package Registry for `@hap-server` scoped packages globally:
+
+```
+echo "@hap-server:registry=https://npm.pkg.github.com" >> `npm --global prefix`/etc/npmrc
 ```
 
 Usage
@@ -226,11 +267,13 @@ Commands:
   <characteristics>
   hap-server set-characteristic <config>    Set a characteristic
   <characteristic> <value>
+  hap-server validate-configuration         Validates a configuration file
+  <config>
   hap-server version                        Show version number
 
 Positionals:
-  config  The configuration file to use
-                     [string] [default: "/Users/samuel/.homebridge/config.json"]
+  config  The configuration file to use                       [string] [default:
+                 "/Users/samuel/Documents/Projects/hap-server/data/config.yaml"]
 
 Options:
   --debug, -D                     Enable debug level logging
@@ -270,24 +313,32 @@ hap-nodejs version 0.4.51
 Configuration
 ---
 
-hap-server stores data in the same default location as Homebridge and supports the same configuration. Using the same
-configuration as Homebridge, hap-server will behave exactly like Homebridge but will have a web interface for
-controlling accessories. Using Homebridge and hap-server plugins at the same time are supported, however you shouldn't
-run multiple instances of hap-server/Homebridge using the same data location.
+hap-server stores data in a platform-specific default location (falling back to the same location as Homebridge) and
+supports the same configuration format as Homebridge, as well as YAML. Using the same configuration as Homebridge,
+hap-server will behave exactly like Homebridge but will have a web interface for controlling accessories. Using
+Homebridge and hap-server plugins at the same time are supported, however you shouldn't run multiple instances of
+hap-server/Homebridge using the same data location.
+
+Platform    | Directory
+------------|-----------
+macOS       | `~/Library/Application Support/hap-server`, `~/.homebridge`, `/Library/Application Support/hap-server`
+Linux       | `~/.config/hap-server`, `~/.homebridge`, `/var/lib/hap-server`
+
+For other platforms `~/.homebridge` is used.
 
 [See docs/config.md.](docs/config.md)
 
 You can also use hap-server programmatically with `Server.createServer`.
 
-```js
-import {Server} from 'hap-server';
+```ts
+import {Server} from '@hap-server/hap-server';
 
 const server = await Server.createServer({
     config: ...,
     data_path: ...,
 });
 
-// See src/cli.js to see what you can do with the Server object
+// See src/cli/server.ts to see what you can do with the Server object
 ```
 
 Development
@@ -302,8 +353,7 @@ cd hap-server
 npm install
 
 # Build/watch the backend and example plugins
-npx gulp build-backend-no-ts watch-backend-no-ts build-example-plugins watch-example-plugins &
-npx tsc --watch &
+npx gulp build-backend watch-backend build-example-plugins watch-example-plugins &
 
 # Copy the example configuration
 mkdir -p data
@@ -314,7 +364,7 @@ bin/hap-server data/config.yaml
 ```
 
 To build the frontend in Gulp instead of the hap-server process (and disable webpack hot module replacement) add
-`watch-frontend` to the Gulp command and add the `--no-webpack-hot` to the hap-server command.
+`watch-frontend` to the Gulp command and add the `--no-webpack-hot` flag to the hap-server command.
 
 To use the [standalone Vue devtools](https://github.com/vuejs/vue-devtools/blob/master/shells/electron/README.md)
 run `npx vue-devtools` and pass the `--vue-devtools-port` flag to `hap-server`.

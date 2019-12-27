@@ -1,3 +1,6 @@
+/// <reference path="../types/homebridge.d.ts" />
+/// <reference path="../types/xkcd-password.d.ts" />
+
 import path from 'path';
 import process from 'process';
 import os from 'os';
@@ -5,11 +8,12 @@ import fs from 'fs';
 import crypto from 'crypto';
 import util from 'util';
 import net from 'net';
+import http from 'http';
 
 import {Plugin as HomebridgePluginManager} from 'homebridge/lib/plugin';
 import {User as HomebridgeUser} from 'homebridge/lib/user';
 import HomebridgeLogger from 'homebridge/lib/logger';
-import hap from 'hap-nodejs';
+import * as hap from '../hap-nodejs';
 
 import isEqual from 'lodash.isequal';
 
@@ -18,7 +22,8 @@ import {
     ServerStartupFinishedEvent, ServerStoppingEvent, ServerPluginRegisteredEvent,
     AddAccessoryEvent, RemoveAccessoryEvent, UpdateAccessoryConfigurationEvent,
 } from '../events/server';
-import {getConfig, log} from '.';
+import {getConfig, log, GlobalArguments} from '.';
+import {getDefaultConfigPath} from './configuration';
 
 const randomBytes = util.promisify(crypto.randomBytes);
 const readFile = util.promisify(fs.readFile);
@@ -30,11 +35,13 @@ const DEVELOPMENT = true;
 export const command = '$0 [config]';
 export const describe = 'Run the HAP and web server';
 
-export function builder(yargs) {
+export function builder(yargs: typeof import('yargs')) {
     yargs.positional('config', {
         describe: 'The configuration file to use',
         type: 'string',
-        default: path.join(os.homedir(), '.homebridge', 'config.json'),
+        default: getDefaultConfigPath(process.platform, [
+            path.join(os.homedir(), '.homebridge'),
+        ]),
     });
 
     yargs.option('advertise-web-interface', {
@@ -82,6 +89,22 @@ export function builder(yargs) {
         type: 'boolean',
         default: true,
     });
+    yargs.option('enable-automations', {
+        describe: 'Whether to enable automations',
+        type: 'boolean',
+        default: true,
+    });
+    yargs.option('enable-hap', {
+        describe: 'Whether to enable HomeKit Accessory Protocol servers',
+        type: 'boolean',
+        default: true,
+    });
+
+    yargs.option('experimental-history', {
+        describe: 'Experimental history support',
+        type: 'boolean',
+        default: false,
+    });
 
     yargs.option('user', {
         alias: 'u',
@@ -117,15 +140,15 @@ export function builder(yargs) {
  * @param {string} [base_path]
  * @return {Array}
  */
-function parseAddress(address, base_path) {
+export function parseAddress(address: string | number, base_path: string): Address {
     let match;
 
     if (typeof address === 'number' || address.match(/^\d+$/)) {
-        return ['net', '::', parseInt(address)];
+        return ['net', '::', parseInt('' + address)];
     } else if ((match = address.match(/^([0-9.]+):(\d+)$/)) && net.isIPv4(match[1])) {
-        return ['net', match[1], match[2]];
+        return ['net', match[1], parseInt(match[2])];
     } else if ((match = address.match(/^\[([0-9a-f:.]+)\]:(\d+)$/i)) && net.isIPv6(match[1])) {
-        return ['net', match[1], match[2]];
+        return ['net', match[1], parseInt(match[2])];
     } else if (address.startsWith('unix:')) {
         return ['unix', path.resolve(base_path, address.substr(5))];
     } else if (address.startsWith('./') || address.startsWith('../') || address.startsWith('/')) {
@@ -141,7 +164,7 @@ function parseAddress(address, base_path) {
  * @param {Array} address
  * @return {string}
  */
-function addressToString(address) {
+export function addressToString(address: Address) {
     if (address[0] === 'net' && net.isIPv4(address[1])) {
         return `${address[1]}:${address[2]}`;
     } else if (address[0] === 'net' && net.isIPv6(address[1])) {
@@ -153,9 +176,11 @@ function addressToString(address) {
     throw new Error('Invalid address array');
 }
 
-function normaliseAddress(address, base_path) {
-    return addressToString(parseAddress(address, base_path));
+export function normaliseAddress(address: Address | string | number, base_path: string) {
+    return addressToString(typeof address === 'object' ? address : parseAddress(address, base_path));
 }
+
+type Address = ['net', string, number] | ['unix', string];
 
 /**
  * Returns an array of certificates.
@@ -164,16 +189,56 @@ function normaliseAddress(address, base_path) {
  * @param {string} [base_path]
  * @return {Promise<string[]>}
  */
-function getCertificates(certificates, base_path) {
-    return Promise.all([].concat(certificates || []).map(async certificate => {
+function getCertificates(certificates: string | [string, string], base_path: string) {
+    return Promise.all(([] as string[]).concat(certificates || []).map(async certificate => {
         if (certificate.startsWith('-----')) return certificate;
 
         return readFile(path.resolve(base_path, certificate), 'utf-8');
     }));
 }
 
-export async function handler(argv) {
+interface Arguments extends GlobalArguments {
+    config: string;
+
+    advertiseWebInterface: boolean;
+    advertiseWebInterfacePort: number;
+
+    dataPath?: string;
+    pluginPath?: string[];
+
+    printSetup: boolean;
+    allowUnauthenticated: boolean;
+
+    enableHomebridge: boolean;
+    enableAutomations: boolean;
+    enableHap: boolean;
+
+    experimentalHistory: boolean;
+
+    user?: string;
+    group?: string;
+
+    // Development
+    vueDevtoolsHost: string;
+    vueDevtoolsPort?: string;
+    webpackHot: boolean;
+}
+
+interface AddressOptions {
+    middleware?: (req: http.IncomingMessage, res: http.ServerResponse, next: () => void) => void;
+}
+interface HttpsOptions {
+    allow_unencrypted?: boolean;
+}
+
+type ListenAddresses =
+    (['net', string, number] | ['unix', string] |
+    ['net', string, number, AddressOptions | undefined] | ['unix', string, AddressOptions | undefined])[];
+type HttpsAddresses = Record<string, string | [string, string] | [string, string, HttpsOptions]>;
+
+export async function handler(argv: Arguments) {
     if (DEVELOPMENT && argv.vueDevtoolsPort) {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const {enableVueDevtools} = require('../server/connection');
         enableVueDevtools(argv.vueDevtoolsHost, argv.vueDevtoolsPort);
     }
@@ -207,6 +272,13 @@ export async function handler(argv) {
         }
     }
 
+    if (!argv.enableHap) {
+        const {default: HAPServer} = await import('../server/hap-server');
+
+        HAPServer.prototype.start = () => {};
+        HAPServer.prototype.stop = () => {};
+    }
+
     /**
      * Run the HAP and web server.
      */
@@ -233,9 +305,9 @@ export async function handler(argv) {
     const server = await Server.createServer({
         hostname: config.hostname,
         data_path,
-        config_path,
-        config,
         cli_auth_token,
+
+        // @ts-ignore
         webpack_hot: DEVELOPMENT && argv.webpackHot,
     });
 
@@ -252,199 +324,37 @@ export async function handler(argv) {
 
     log.info('Starting web server');
 
-    const listen_addresses = [].concat(config.listen || []).map(a => a instanceof Array ? a : parseAddress(a, data_path));
-    const https_addresses = {};
+    const listen_addresses: ListenAddresses = // eslint-disable-line @typescript-eslint/indent
+        ([] as (string | number | ['net', string, number] | ['unix', string])[])
+            .concat(config.listen || []).map(a => a instanceof Array ? a as Address : parseAddress(a, data_path));
+    const https_addresses: HttpsAddresses = {};
     for (const [address, certificate] of Object.entries(config['listen-https'] || {})) {
-        https_addresses[normaliseAddress(address, data_path)] = certificate;
+        https_addresses[normaliseAddress(address, data_path)] = certificate as any;
     }
-    const https_request_client_certificate_addresses = {};
+    const https_request_client_certificate_addresses: Record<string, string | string[] | boolean> = {};
     for (const [address, certificate] of config['listen-https+request-client-certificate'] instanceof Array ?
-        config['listen-https+request-client-certificate'].map(address => [address, true]) :
+        config['listen-https+request-client-certificate']
+            .map(address => [address, true] as [string | Address, boolean]) :
         Object.entries(config['listen-https+request-client-certificate'] || {})
     ) {
         https_request_client_certificate_addresses[normaliseAddress(address, data_path)] = certificate;
     }
-    const https_require_client_certificate_addresses = {};
+    const https_require_client_certificate_addresses: Record<string, string | string[]> = {};
     for (const [address, certificate] of Object.entries(config['listen-https+require-client-certificate'] || {})) {
         https_require_client_certificate_addresses[normaliseAddress(address, data_path)] = certificate;
     }
-    const https_address_crls = {};
+    const https_address_crls: Record<string, string> = {};
     for (const [address, crl] of Object.entries(config['listen-https+crl'] || {})) {
         https_address_crls[normaliseAddress(address, data_path)] = crl;
     }
-    const https_address_passphrases = {};
+    const https_address_passphrases: Record<string, string> = {};
     for (const [address, passphrase] of Object.entries(config['listen-https+passphrase'] || {})) {
         https_address_passphrases[normaliseAddress(address, data_path)] = passphrase;
     }
 
-    let bonjour_instance = null;
-    let web_interface_address = null;
-
-    if (argv.advertiseWebInterface) {
-        const bonjour = require('bonjour');
-        const genuuid = require('uuid/v4');
-        const mkdirp = require('mkdirp');
-        const forge = require('node-forge');
-
-        const bonjour_server_port = argv.advertiseWebInterfacePort;
-
-        bonjour_instance = bonjour({
-            interface: '0.0.0.0',
-        });
-
-        let uuid = await server.storage.getItem('TLSCertificateUUID');
-        if (!uuid) {
-            uuid = genuuid();
-            log.info('Generated new server UUID for automatic TLS provisioning', uuid);
-            await server.storage.setItem('TLSCertificateUUID', uuid);
-        }
-        const bonjour_server_uuid = uuid;
-
-        const bonjour_hostname = `hap-server-${bonjour_server_uuid.toLowerCase()}.local`;
-        server.hostname = bonjour_hostname;
-        log.info('Bonjour hostname: %s', bonjour_hostname);
-
-        await mkdirp(path.join(data_path, 'certificates'));
-        const bonjour_secure_server_certificate_path = path.join(data_path, 'certificates', bonjour_server_uuid + '.pem');
-        const bonjour_secure_server_certificate_key_path = path.join(data_path, 'certificates', bonjour_server_uuid + '.key');
-
-        let private_key;
-        try {
-            const key_file = await readFile(bonjour_secure_server_certificate_key_path, 'utf-8');
-            private_key = forge.pki.privateKeyFromPem(key_file);
-        } catch (err) {
-            if (err.code !== 'ENOENT') throw err;
-
-            log.info('Generating new private key for server %s', bonjour_server_uuid);
-
-            const keypair = forge.pki.rsa.generateKeyPair(2048);
-            const pem = forge.pki.privateKeyToPem(keypair.privateKey);
-            await writeFile(bonjour_secure_server_certificate_key_path, pem, 'utf-8');
-            private_key = keypair.privateKey;
-        }
-
-        const public_key = forge.pki.setRsaPublicKey(private_key.n, private_key.e);
-
-        let certificate;
-        let certificate_pem;
-        try {
-            const certificate_file = certificate_pem = await readFile(bonjour_secure_server_certificate_path, 'utf-8');
-            certificate = forge.pki.certificateFromPem(certificate_file);
-        } catch (err) {
-            if (err.code !== 'ENOENT') throw err;
-
-            log.info('Creating new certificate for server %s', bonjour_server_uuid);
-
-            certificate = forge.pki.createCertificate();
-            certificate.publicKey = public_key;
-            certificate.serialNumber = '01';
-            certificate.validity.notBefore = new Date();
-            certificate.validity.notAfter = new Date();
-            certificate.validity.notAfter.setFullYear(certificate.validity.notBefore.getFullYear() + 1);
-            const attrs = [
-                {name: 'commonName', value: `hap-server ${bonjour_server_uuid.toLowerCase()}`},
-                {name: 'countryName', value: 'GB'},
-                {name: 'organizationName', value: 'hap-server'},
-                {shortName: 'OU', value: 'hap-server'},
-            ];
-            certificate.setSubject(attrs);
-            certificate.setIssuer(attrs);
-            certificate.setExtensions([
-                {name: 'basicConstraints', cA: false},
-                {
-                    name: 'keyUsage',
-                    keyCertSign: false,
-                    digitalSignature: true,
-                    nonRepudiation: true,
-                    keyEncipherment: true,
-                    dataEncipherment: true,
-                },
-                {
-                    name: 'extKeyUsage',
-                    serverAuth: true,
-                    clientAuth: false,
-                    codeSigning: false,
-                    emailProtection: false,
-                    timeStamping: false,
-                },
-                {
-                    name: 'subjectAltName',
-                    altNames: [
-                        {type: 2, value: bonjour_hostname}, // type: 2 is dNSName
-                    ],
-                },
-                {name: 'subjectKeyIdentifier'},
-            ]);
-            certificate.sign(private_key);
-
-            const pem = certificate_pem = forge.pki.certificateToPem(certificate);
-            await writeFile(bonjour_secure_server_certificate_path, pem, 'utf-8');
-        }
-
-        const sha256 = forge.md.sha256.create();
-        sha256.start();
-        sha256.update(forge.asn1.toDer(forge.pki.certificateToAsn1(certificate)).getBytes());
-        const bonjour_secure_server_certificate_fingerprints = sha256.digest().toHex().replace(/(.{2})(?!$)/g, m => `${m}:`);
-
-        const htmlencode = (format, ...args) => {
-            return format.map((f, i) => i === 0 ? f : args[i - 1]
-                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
-            + f).join('');
-        };
-
-        const bonjour_http_service = bonjour_instance.publish({
-            name: 'hap-server',
-            host: bonjour_hostname,
-            port: bonjour_server_port,
-            type: 'http',
-            protocol: 'tcp',
-            txt: {
-                path: '/',
-            },
-        });
-        const bonjour_https_service = bonjour_instance.publish({
-            name: 'hap-server',
-            host: bonjour_hostname,
-            port: bonjour_server_port,
-            type: 'https',
-            protocol: 'tcp',
-            txt: {
-                path: '/',
-            },
-        });
-
-        listen_addresses.push(['net', '::', bonjour_server_port, {
-            middleware: (req, res, next) => {
-                if (req.connection.encrypted) res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-
-                if (req.url === '/certificate') {
-                    res.setHeader('Content-Type', 'application/x-pem-file');
-                    res.setHeader('Content-Disposition', `attachment; filename="hap-server-${bonjour_server_uuid}-certificate.pem"`);
-                    res.writeHead(200);
-                    res.end(certificate_pem);
-                } else if (!req.connection.encrypted) {
-                    const url = `https://${bonjour_hostname}:${bonjour_server_port}${req.url}`;
-                    res.setHeader('Location', url);
-                    res.writeHead(301);
-                    res.end('<!DOCTYPE html><html><head><title>Redirecting</title></head><body>' +
-                        htmlencode`<h1>Redirecting</h1><p>Redirecting to <a href="${url}">${url}</a>.</p>` +
-                        '</body></html>\n');
-                } else next();
-            },
-        }]);
-        https_addresses[`[::]:${bonjour_server_port}`] = [
-            bonjour_secure_server_certificate_path,
-            bonjour_secure_server_certificate_key_path,
-            {allow_unencrypted: true},
-        ];
-
-        web_interface_address = `https://${bonjour_hostname}:${bonjour_server_port}/`;
-
-        log.debug('Publishing Bonjour services', bonjour_http_service, bonjour_https_service);
-        log.info('You can access the web interface on your local network at %s,', web_interface_address);
-        log.info('    (remember to install the TLS certificate at %s,', bonjour_secure_server_certificate_path);
-        log.info('        fingerprint: %s)', bonjour_secure_server_certificate_fingerprints);
-    }
+    let [bonjour_instance, web_interface_address] = argv.advertiseWebInterface ?
+        await enableAdvertising(argv, server, data_path, listen_addresses, https_addresses) :
+        [null, null];
 
     if (!config.listen && !listen_addresses.length) {
         log.warn('No listening addresses - using a random port');
@@ -453,30 +363,37 @@ export async function handler(argv) {
 
     log.info('Listen addresses', listen_addresses, https_addresses, https_request_client_certificate_addresses,
         https_require_client_certificate_addresses);
-    const listening_servers = [];
+    const listening_servers: net.Server[] = [];
     let wrote_port_file = false;
 
     for (const address of listen_addresses) {
-        const options = typeof address[address.length - 1] === 'object' ? address.pop() : null;
-        const address_string = addressToString(address);
+        const options = typeof address[address.length - 1] === 'object' ? address.pop() as AddressOptions : null;
+        const address_string = addressToString(address as Address);
         const https = https_addresses[address_string];
-        const https_options = https && typeof https[https.length - 1] === 'object' ? https.pop() : null;
+        const https_options = https && typeof https[https.length - 1] === 'object' ?
+            (https as HttpsOptions[]).pop() : null;
         const https_request_client_certificate = https_request_client_certificate_addresses[address_string];
         const https_require_client_certificate = https_require_client_certificate_addresses[address_string];
         const https_crl = https_address_crls[address_string];
         const https_passphrase = https_address_passphrases[address_string];
 
         const http_server = https ? server.createSecureServer({
-            ca: await getCertificates(https_require_client_certificate || https_request_client_certificate, data_path),
-            cert: (await getCertificates(https, data_path)).filter(c => c.match(/CERTIFICATE/i)),
-            key: (await getCertificates(https, data_path)).filter(c => c.match(/PRIVATE KEY/i)),
+            ca: https_require_client_certificate || https_request_client_certificate ?
+                // @ts-ignore
+                await getCertificates(https_require_client_certificate || https_request_client_certificate, data_path) :
+                null,
+            cert: (await getCertificates(https as string | [string, string], data_path))
+                .filter(c => (c as string).match(/CERTIFICATE/i)),
+            key: (await getCertificates(https as string | [string, string], data_path))
+                .filter(c => (c as string).match(/PRIVATE KEY/i)),
             crl: await getCertificates(https_crl, data_path),
             passphrase: https_passphrase,
 
             requestCert: !!https_request_client_certificate || !!https_require_client_certificate,
             rejectUnauthorized: !!https_require_client_certificate,
         }, options && options.middleware) : server.createServer(null, options && options.middleware);
-        const listening_server = https && https_options && https_options.allow_unencrypted ? net.createServer(connection => {
+        const listening_server: net.Server =
+        https && https_options && https_options.allow_unencrypted ? net.createServer(connection => {
             const data = connection.read(1);
             if (!data) return connection.once('readable', () => listening_server.emit('connection', connection));
             const first_byte = data[0];
@@ -489,8 +406,9 @@ export async function handler(argv) {
         }) : http_server;
 
         if (address[0] === 'net') {
-            await new Promise((rs, rj) => listening_server.listen(address[2], address[1], err => err ? rj(err) : rs()));
+            await new Promise((rs, rj) => listening_server.listen(address[2], address[1], () => rs()));
 
+            // @ts-ignore
             const http_port = listening_server.address().port;
             log.info(`Listening on ${address[1]} port ${http_port}`);
 
@@ -502,7 +420,7 @@ export async function handler(argv) {
             try {
                 await unlink(address[1]);
             } catch (err) {}
-            await new Promise((rs, rj) => listening_server.listen(address[1], err => err ? rj(err) : rs()));
+            await new Promise((rs, rj) => listening_server.listen(address[1], () => rs()));
 
             log.info(`Listening on UNIX socket ${address[1]}`);
         }
@@ -511,46 +429,50 @@ export async function handler(argv) {
     }
 
     log.info('Loading cached accessories');
-    await server.loadCachedAccessories();
+    await server.loadCachedAccessories(true);
 
     log.info('Loading HAP bridges');
-    await server.loadBridgesFromConfig();
+    await server.loadBridgesFromConfig(config.bridges || []);
     await server.loadBridgesFromStorage();
 
     if (!argv.enableHomebridge) {
         log.info('Not loading Homebridge as it was disabled on the command line');
     } else if (config.bridge || config.accessories || config.platforms) {
         log.info('Loading Homebridge');
-        server.loadHomebridge();
+        server.accessories.loadHomebridge(config.bridge || {}, config.accessories || [], config.platforms || []);
     }
 
-    for (const bridge of server.bridges) {
+    for (const bridge of server.accessories.bridges) {
         bridge.unauthenticated_access = argv.allowUnauthenticated;
     }
 
-    log.info('Publishing HAP services');
-    await server.publish();
+    if (argv.enableHap) {
+        log.info('Publishing HAP services');
+        await server.publish();
+    }
 
     log.info('Loading accessories and accessory platforms');
     await Promise.all([
-        server.loadAccessoriesFromConfig(),
-        server.loadAccessoryPlatformsFromConfig(),
+        server.loadAccessoriesFromConfig(config.accessories2 || []),
+        server.loadAccessoryPlatformsFromConfig(config.platforms2 || []),
     ]);
 
-    if (server.homebridge) {
-        if (server.homebridge.homebridge._asyncCalls !== 0) {
+    if (server.accessories.homebridge) {
+        if (server.accessories.homebridge.homebridge._asyncCalls !== 0) {
             log.info('Waiting for Homebridge to finish loading');
-            await new Promise(rs => server.homebridge.bridge.once('listening', rs));
+            await new Promise<number>(rs => server.accessories.homebridge.bridge.once('listening', rs));
         }
 
         log.info('Loading accessories from Homebridge');
-        await server.loadHomebridgeAccessories();
+        await server.accessories.loadHomebridgeAccessories();
     }
 
     log.info('Saving cached accessories');
     await server.saveCachedAccessories();
 
-    function saveCachedAccessories(event) {
+    function saveCachedAccessories(
+        event: AddAccessoryEvent | UpdateAccessoryConfigurationEvent | RemoveAccessoryEvent
+    ) {
         log.info('Saving cached accessories');
         server.saveCachedAccessories();
     }
@@ -559,10 +481,22 @@ export async function handler(argv) {
     server.on(RemoveAccessoryEvent, saveCachedAccessories);
 
     log.info('Starting automations');
-    await server.loadAutomationsFromConfig();
+    await server.loadAutomationsFromConfig({
+        automations: config.automations || [],
+        'automation-triggers': config['automation-triggers'] || {},
+        'automation-conditions': config['automation-conditions'] || {},
+        'automation-actions': config['automation-actions'] || {},
+    });
     await server.loadAutomationsFromStorage();
     await server.loadScenesFromStorage();
-    await server.automations.start();
+    if (argv.enableAutomations) {
+        await server.automations.start();
+    }
+
+    if (argv.experimentalHistory) {
+        log.info('Starting history');
+        await server.loadHistory(path.join(data_path, 'history'));
+    }
 
     if (argv.user || argv.group) log.info('Setting uid/gid');
     if (argv.group) process.setgid(argv.group);
@@ -570,12 +504,12 @@ export async function handler(argv) {
 
     server.emit(ServerStartupFinishedEvent, server);
 
-    log.info('Running', server.accessories.length, 'accessories',
-        server.cached_accessories.length, 'cached accessories');
+    log.info('Running', server.accessories.accessories.length, 'accessories',
+        server.accessories.cached_accessories.length, 'cached accessories');
 
-    for (const bridge of server.bridges) {
+    for (const bridge of server.accessories.bridges) {
         log.info('Bridge', bridge.name, bridge.bridge.bridgedAccessories.length, 'accessories',
-            server.cached_accessories.length, 'cached accessories');
+            bridge.cached_accessories.length, 'cached accessories');
 
         // Save the identifier cache in case any new accessories/services/characteristics have been added or expired
         bridge.expireUnusedIDs();
@@ -587,7 +521,9 @@ export async function handler(argv) {
     }
 
     if (!await server.storage.getItem('HasCompletedSetup')) {
-        const password = new (require('xkcd-password'))();
+        // const password = new (require('xkcd-password'))();
+        const {default: XkcdPassword} = await import('xkcd-password');
+        const password = new XkcdPassword();
 
         const setup_token = server.setup_token = await password.generate({
             numWords: 4,
@@ -623,11 +559,14 @@ export async function handler(argv) {
             server.emit(ServerStoppingEvent, server);
 
             if (bonjour_instance) {
-                await new Promise(rs => bonjour_instance.unpublishAll(rs));
+                await new Promise(rs => bonjour_instance!.unpublishAll(rs));
                 bonjour_instance.destroy();
+                bonjour_instance = null;
             }
 
-            server.unpublish();
+            if (argv.enableHap) {
+                server.unpublish();
+            }
             for (const http_server of listening_servers) {
                 http_server.close();
             }
@@ -639,7 +578,7 @@ export async function handler(argv) {
 
                 server.automations.stop(),
 
-                new Promise((rs, rj) => server.wss.close(err => err ? rj(err) : rs())),
+                new Promise((rs, rj) => server.wss.close((err: Error) => err ? rj(err) : rs())),
             ]);
 
             server.removeListener(AddAccessoryEvent, saveCachedAccessories);
@@ -688,4 +627,187 @@ async function reloadConfig(server: Server, old_options: {
     }
 
     log.info('Finished reloading configuration');
+}
+
+async function enableAdvertising(
+    argv: Arguments, server: Server, data_path: string, listen_addresses: ListenAddresses,
+    https_addresses: HttpsAddresses
+): Promise<[import('bonjour').Bonjour, string]> {
+    const {default: bonjour} = await import('bonjour');
+    const {default: genuuid} = await import('uuid/v4');
+    const {default: _mkdirp} = await import('mkdirp');
+    const forge = await import('node-forge');
+
+    const mkdirp = util.promisify(_mkdirp);
+
+    const bonjour_server_port = argv.advertiseWebInterfacePort;
+
+    const bonjour_instance = bonjour({
+        interface: '0.0.0.0',
+    });
+
+    let uuid = await server.storage.getItem('TLSCertificateUUID');
+    if (!uuid) {
+        uuid = genuuid();
+        log.info('Generated new server UUID for automatic TLS provisioning', uuid);
+        await server.storage.setItem('TLSCertificateUUID', uuid);
+    }
+    const bonjour_server_uuid = uuid;
+
+    const bonjour_hostname = `hap-server-${bonjour_server_uuid.toLowerCase()}.local`;
+    server.hostname = bonjour_hostname;
+    log.info('Bonjour hostname: %s', bonjour_hostname);
+
+    await mkdirp(path.join(data_path, 'certificates'));
+    const bonjour_secure_server_certificate_path =
+        path.join(data_path, 'certificates', bonjour_server_uuid + '.pem');
+    const bonjour_secure_server_certificate_key_path =
+        path.join(data_path, 'certificates', bonjour_server_uuid + '.key');
+
+    let private_key;
+    try {
+        const key_file = await readFile(bonjour_secure_server_certificate_key_path, 'utf-8');
+        private_key = forge.pki.privateKeyFromPem(key_file);
+    } catch (err) {
+        if (err.code !== 'ENOENT') throw err;
+
+        log.info('Generating new private key for server %s', bonjour_server_uuid);
+
+        const keypair = forge.pki.rsa.generateKeyPair(2048);
+        const pem = forge.pki.privateKeyToPem(keypair.privateKey);
+        await writeFile(bonjour_secure_server_certificate_key_path, pem, 'utf-8');
+        private_key = keypair.privateKey;
+    }
+
+    // @ts-ignore
+    const public_key = forge.pki.setRsaPublicKey(private_key.n, private_key.e);
+
+    let certificate;
+    let certificate_pem: string;
+    try {
+        const certificate_file = certificate_pem = await readFile(bonjour_secure_server_certificate_path, 'utf-8');
+        certificate = forge.pki.certificateFromPem(certificate_file);
+    } catch (err) {
+        if (err.code !== 'ENOENT') throw err;
+
+        log.info('Creating new certificate for server %s', bonjour_server_uuid);
+
+        certificate = forge.pki.createCertificate();
+        certificate.publicKey = public_key;
+        certificate.serialNumber = '01';
+        certificate.validity.notBefore = new Date();
+        certificate.validity.notAfter = new Date();
+        certificate.validity.notAfter.setFullYear(certificate.validity.notBefore.getFullYear() + 1);
+        const attrs = [
+            {name: 'commonName', value: `hap-server ${bonjour_server_uuid.toLowerCase()}`},
+            {name: 'countryName', value: 'GB'},
+            {name: 'organizationName', value: 'hap-server'},
+            {shortName: 'OU', value: 'hap-server'},
+        ];
+        certificate.setSubject(attrs);
+        certificate.setIssuer(attrs);
+        certificate.setExtensions([
+            {name: 'basicConstraints', cA: false},
+            {
+                name: 'keyUsage',
+                keyCertSign: false,
+                digitalSignature: true,
+                nonRepudiation: true,
+                keyEncipherment: true,
+                dataEncipherment: true,
+            },
+            {
+                name: 'extKeyUsage',
+                serverAuth: true,
+                clientAuth: false,
+                codeSigning: false,
+                emailProtection: false,
+                timeStamping: false,
+            },
+            {
+                name: 'subjectAltName',
+                altNames: [
+                    {type: 2, value: bonjour_hostname}, // type: 2 is dNSName
+                ],
+            },
+            {name: 'subjectKeyIdentifier'},
+        ]);
+        certificate.sign(private_key);
+
+        const pem = certificate_pem = forge.pki.certificateToPem(certificate);
+        await writeFile(bonjour_secure_server_certificate_path, pem, 'utf-8');
+    }
+
+    const sha256 = forge.md.sha256.create();
+    // @ts-ignore
+    sha256.start();
+    sha256.update(forge.asn1.toDer(forge.pki.certificateToAsn1(certificate)).getBytes());
+    const bonjour_secure_server_certificate_fingerprints =
+        (sha256.digest().toHex() as string).replace(/(.{2})(?!$)/g, m => `${m}:`);
+
+    const htmlencode = (format: TemplateStringsArray, ...args: any[]) => {
+        return format.map((f, i) => i === 0 ? f : args[i - 1]
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+        + f).join('');
+    };
+
+    const bonjour_http_service = bonjour_instance!.publish({
+        name: 'hap-server',
+        host: bonjour_hostname,
+        port: bonjour_server_port,
+        type: 'http',
+        protocol: 'tcp',
+        txt: {
+            path: '/',
+        },
+    });
+    const bonjour_https_service = bonjour_instance!.publish({
+        name: 'hap-server',
+        host: bonjour_hostname,
+        port: bonjour_server_port,
+        type: 'https',
+        protocol: 'tcp',
+        txt: {
+            path: '/',
+        },
+    });
+
+    listen_addresses.push(['net', '::', bonjour_server_port, {
+        middleware: (req, res, next) => {
+            // @ts-ignore
+            if (req.connection.encrypted) {
+                res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+            }
+
+            if (req.url === '/certificate') {
+                res.setHeader('Content-Type', 'application/x-pem-file');
+                res.setHeader('Content-Disposition',
+                    `attachment; filename="hap-server-${bonjour_server_uuid}-certificate.pem"`);
+                res.writeHead(200);
+                res.end(certificate_pem);
+            // @ts-ignore
+            } else if (!req.connection.encrypted) {
+                const url = `https://${bonjour_hostname}:${bonjour_server_port}${req.url}`;
+                res.setHeader('Location', url);
+                res.writeHead(301);
+                res.end('<!DOCTYPE html><html><head><title>Redirecting</title></head><body>' +
+                    htmlencode`<h1>Redirecting</h1><p>Redirecting to <a href="${url}">${url}</a>.</p>` +
+                    '</body></html>\n');
+            } else next();
+        },
+    }]);
+    https_addresses[`[::]:${bonjour_server_port}`] = [
+        bonjour_secure_server_certificate_path,
+        bonjour_secure_server_certificate_key_path,
+        {allow_unencrypted: true},
+    ];
+
+    const web_interface_address = `https://${bonjour_hostname}:${bonjour_server_port}/`;
+
+    log.debug('Publishing Bonjour services', bonjour_http_service, bonjour_https_service);
+    log.info('You can access the web interface on your local network at %s,', web_interface_address);
+    log.info('    (remember to install the TLS certificate at %s,', bonjour_secure_server_certificate_path);
+    log.info('        fingerprint: %s)', bonjour_secure_server_certificate_fingerprints);
+
+    return [bonjour_instance, web_interface_address];
 }

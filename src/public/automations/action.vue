@@ -3,12 +3,12 @@
         <div class="automation-action-header">
             <div class="flex-fill">
                 <h4 v-if="action_component && action_component.name">{{ action_component.name }}</h4>
-                <h4 v-else>Action #{{ id }}</h4>
+                <h4 v-else>{{ $t('automation_settings.action_x', {x: id}) }}</h4>
             </div>
 
             <slot name="header-right" />
             <button v-if="editable" class="btn btn-danger btn-sm ml-3" type="button" :disabled="saving"
-                @click="$emit('delete')">Remove action</button>
+                @click="$emit('delete')">{{ $t('automation_settings.remove_action') }}</button>
         </div>
 
         <div class="automation-action-contents">

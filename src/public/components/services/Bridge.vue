@@ -1,5 +1,5 @@
 <template>
-    <service class="service-bridge" :service="service" type="Bridge">
+    <service class="service-bridge" :service="service" :type="$t('services.bridge.bridge')">
         <bridge-icon slot="icon" />
     </service>
 </template>

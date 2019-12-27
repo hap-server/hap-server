@@ -4,7 +4,9 @@
 
         <form v-if="tab === 'general'" @submit.prevent="$emit('save', true)">
             <div class="form-group row">
-                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-name'">Name</label>
+                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-name'">
+                    {{ $t('scene_settings.name') }}
+                </label>
                 <div class="col-sm-9">
                     <input :id="_uid + '-name'" v-model="data.name" type="text"
                         class="form-control form-control-sm" :disabled="saving || (scene && !scene.can_set)" />
@@ -13,7 +15,7 @@
         </form>
 
         <div v-if="tab === 'conditions'" class="automation-conditions">
-            <p>All of these conditions must be met for the scene to be considered active.</p>
+            <p>{{ $t('scene_settings.conditions_description') }}</p>
 
             <template v-for="(condition, id) in data.conditions || {}">
                 <component
@@ -31,7 +33,7 @@
         </div>
 
         <div v-if="tab === 'activate_actions'" class="automation-actions">
-            <p>These actions will be run when activating this scene.</p>
+            <p>{{ $t('scene_settings.activate_description') }}</p>
 
             <template v-for="(action, id) in data.enable_actions || {}">
                 <component
@@ -49,7 +51,7 @@
         </div>
 
         <div v-if="tab === 'deactivate_actions'" class="automation-actions">
-            <p>These actions will be run when deactivating this scene.</p>
+            <p>{{ $t('scene_settings.deactivate_description') }}</p>
 
             <template v-for="(action, id) in data.disable_actions || {}">
                 <component
@@ -70,44 +72,58 @@
             <div v-if="['conditions', 'activate_actions', 'deactivate_actions'].includes(tab)" class="form-group custom-control custom-checkbox mb-0">
                 <input v-model="simple_editor" :id="_uid + '-editor'" type="checkbox"
                     class="custom-control-input" />
-                <label class="custom-control-label" :for="_uid + '-editor'">Editor</label>
+                <label class="custom-control-label" :for="_uid + '-editor'">
+                    {{ $t('scene_settings.editor') }}
+                </label>
             </div>
 
-            <dropdown v-if="tab === 'conditions' && (!scene || scene.can_set)" label="Add condition" type="up" :disabled="saving || deleting">
+            <dropdown v-if="tab === 'conditions' && (!scene || scene.can_set)"
+                :label="$t('scene_settings.add_condition')" type="up" :disabled="saving || deleting"
+            >
                 <a v-for="{plugin, type, name} in condition_components" :key="type"
                     class="dropdown-item" href="#" @click.prevent="addCondition({plugin, condition: type})"
                 >{{ name }}</a>
                 <div v-if="!simple_editor" class="dropdown-divider" />
-                <a v-if="!simple_editor" class="dropdown-item" href="#" @click.prevent="addCondition({plugin: null, condition: null})">Other</a>
+                <a v-if="!simple_editor" class="dropdown-item" href="#"
+                    @click.prevent="addCondition({plugin: null, condition: null})"
+                >{{ $t('scene_settings.other') }}</a>
             </dropdown>
 
-            <dropdown v-if="tab === 'activate_actions' && (!scene || scene.can_set)" label="Add action" type="up" :disabled="saving || deleting">
+            <dropdown v-if="tab === 'activate_actions' && (!scene || scene.can_set)"
+                :label="$t('scene_settings.add_action')" type="up" :disabled="saving || deleting"
+            >
                 <a v-for="{plugin, type, name} in action_components" :key="type"
                     class="dropdown-item" href="#" @click.prevent="addActivateAction({plugin, action: type})"
                 >{{ name }}</a>
                 <div v-if="!simple_editor" class="dropdown-divider" />
-                <a v-if="!simple_editor" class="dropdown-item" href="#" @click.prevent="addActivateAction({plugin: null, action: null})">Other</a>
+                <a v-if="!simple_editor" class="dropdown-item" href="#"
+                    @click.prevent="addActivateAction({plugin: null, action: null})"
+                >{{ $t('scene_settings.other') }}</a>
             </dropdown>
 
-            <dropdown v-if="tab === 'deactivate_actions' && (!scene || scene.can_set)" label="Add action" type="up" :disabled="saving || deleting">
+            <dropdown v-if="tab === 'deactivate_actions' && (!scene || scene.can_set)"
+                :label="$t('scene_settings.add_action')" type="up" :disabled="saving || deleting"
+            >
                 <a v-for="{plugin, type, name} in action_components" :key="type"
                     class="dropdown-item" href="#" @click.prevent="addDeactivateAction({plugin, action: type})"
                 >{{ name }}</a>
                 <div v-if="!simple_editor" class="dropdown-divider" />
-                <a v-if="!simple_editor" class="dropdown-item" href="#" @click.prevent="addDeactivateAction({plugin: null, action: null})">Other</a>
+                <a v-if="!simple_editor" class="dropdown-item" href="#"
+                    @click.prevent="addDeactivateAction({plugin: null, action: null})"
+                >{{ $t('scene_settings.other') }}</a>
             </dropdown>
 
-            <div v-if="deleting">Deleting</div>
-            <div v-else-if="saving">Saving</div>
+            <div v-if="deleting">{{ $t('scene_settings.deleting') }}</div>
+            <div v-else-if="saving">{{ $t('scene_settings.saving') }}</div>
             <div class="flex-fill"></div>
             <button v-if="changed" class="btn btn-default btn-sm" type="button" :disabled="saving || deleting"
-                @click="() => $refs.panel.close()">Cancel</button>&nbsp;
+                @click="() => $refs.panel.close()">{{ $t('scene_settings.cancel') }}</button>&nbsp;
             <button v-if="scene && scene.can_delete" class="btn btn-danger btn-sm" type="button"
-                :disabled="saving || deleting" @click="deleteScene">Delete</button>&nbsp;
+                :disabled="saving || deleting" @click="deleteScene">{{ $t('scene_settings.delete') }}</button>&nbsp;
             <button v-if="(!scene || scene.can_set) && changed" class="btn btn-primary btn-sm" type="button"
-                :disabled="saving || deleting" @click="save">Save</button>
+                :disabled="saving || deleting" @click="save">{{ $t('scene_settings.save') }}</button>
             <button v-else class="btn btn-primary btn-sm" type="button" :disabled="saving || deleting"
-                @click="() => $refs.panel.close()">Done</button>
+                @click="() => $refs.panel.close()">{{ $t('scene_settings.done') }}</button>
         </div>
     </panel>
 </template>

@@ -1,4 +1,5 @@
-import cron from 'node-cron';
+import cron, {ScheduledTask} from 'node-cron';
+import {Timezone} from 'tz-offset';
 
 import Events, {EventListener} from '../events';
 import {AutomationTriggerEvent as TriggerEvent, SceneActivatedEvent} from '../events/server';
@@ -14,15 +15,15 @@ export default class AutomationTrigger extends Events {
         [key: string]: typeof AutomationTrigger;
     } = {};
 
-    readonly automations: Automations;
-    readonly id: number;
-    readonly uuid?: string;
-    readonly config;
-    readonly log: Logger;
+    readonly automations!: Automations;
+    readonly id!: number;
+    readonly uuid!: string | null;
+    readonly config: any;
+    readonly log!: Logger;
 
     private running = false;
-    private starting: Promise<boolean>;
-    private stopping: Promise<boolean>;
+    private starting: Promise<boolean> | null = null;
+    private stopping: Promise<boolean> | null = null;
 
     /**
      * Creates an AutomationTrigger.
@@ -34,31 +35,27 @@ export default class AutomationTrigger extends Events {
      * @param {string} [uuid]
      * @param {Logger} [log]
      */
-    constructor(automations: Automations, config?, uuid?: string, log?: Logger) {
+    constructor(automations: Automations, config?: any, uuid?: string, log?: Logger) {
         super();
 
         this.parent_emitter = automations;
         Object.defineProperty(this, 'automations', {value: automations});
 
         Object.defineProperty(this, 'id', {value: AutomationTrigger.id++});
-        Object.defineProperty(this, 'uuid', {value: uuid});
+        Object.defineProperty(this, 'uuid', {value: uuid || null});
         Object.defineProperty(this, 'config', {value: config});
 
         Object.defineProperty(this, 'log', {value: log || automations.log.withPrefix('Trigger #' + this.id)});
-
-        this.running = false;
-        this.starting = null;
-        this.stopping = null;
     }
 
-    static load(automations, config, uuid, log) {
+    static load(automations: Automations, config: any, uuid?: string, log?: Logger) {
         const Trigger = this.getTriggerClass(config.trigger, config.plugin);
         const trigger = new Trigger(automations, config, uuid, log);
 
         return trigger;
     }
 
-    static getTriggerClass(type, plugin_name) {
+    static getTriggerClass(type: string, plugin_name: string) {
         if (plugin_name) {
             const plugin = PluginManager.getPlugin(plugin_name);
 
@@ -66,7 +63,7 @@ export default class AutomationTrigger extends Events {
             if (!plugin.automation_triggers.has(type)) throw new Error('Unknown automation trigger "' + type + // eslint-disable-line curly
                 '" from plugin "' + plugin_name + '"');
 
-            return plugin.automation_triggers.get(type);
+            return plugin.automation_triggers.get(type)!;
         }
 
         const Trigger = AutomationTrigger.types[type];
@@ -117,7 +114,7 @@ export default class AutomationTrigger extends Events {
      * @param {object} [context]
      * @return {TriggerEvent}
      */
-    trigger(context?) {
+    trigger(context?: any) {
         if (!this.running) throw new Error('Cannot trigger when not running');
 
         const event = new TriggerEvent(this, context);
@@ -135,16 +132,16 @@ export interface CronTriggerConfiguration extends AutomationTriggerConfiguration
     readonly trigger: CronTriggerType;
 
     readonly expression: string;
-    readonly timezone: string;
+    readonly timezone: Timezone;
 }
 
 /**
  * An AutomationTrigger that runs based on a cron schedule.
  */
 export class CronTrigger extends AutomationTrigger {
-    readonly config: CronTriggerConfiguration;
+    readonly config!: CronTriggerConfiguration;
 
-    private task;
+    private task: ScheduledTask | null = null;
 
     onstart() {
         if (this.task) this.task.destroy(), this.task = null;
@@ -177,9 +174,9 @@ export interface SceneTriggerConfiguration extends AutomationTriggerConfiguratio
  * An AutomationTrigger that runs when a scene is triggered.
  */
 export class SceneTrigger extends AutomationTrigger {
-    readonly config: SceneTriggerConfiguration;
+    readonly config!: SceneTriggerConfiguration;
 
-    private listener?: EventListener;
+    private listener: EventListener | null = null;
 
     onstart() {
         if (this.listener) this.listener.cancel(), this.listener = null;

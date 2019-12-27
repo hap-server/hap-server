@@ -2,7 +2,9 @@
     <automation-condition class="automation-condition-script"
         :id="id" :condition="condition" :editable="editable" :saving="saving" @delete="$emit('delete')"
     >
-        <p>This script must return <code>true</code> for this condition to pass.</p>
+        <i18n path="automation_conditions.script.description" tag="p">
+            <code>true</code>
+        </i18n>
 
         <codemirror v-model="condition.script" :options="options" />
     </automation-condition>

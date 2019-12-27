@@ -1,10 +1,10 @@
 <template>
-    <service class="service-switch" :service="service" type="Switch" :active="on" :updating="updating"
-        :changed="changed" @click="service.setCharacteristicByName('On', !on)"
+    <service class="service-switch" :service="service" :type="$t('services.switch.switch')" :active="on"
+        :updating="updating" :changed="changed" @click="service.setCharacteristicByName('On', !on)"
     >
         <switch-icon slot="icon" />
 
-        <p>{{ on ? 'On' : 'Off' }}</p>
+        <p>{{ $t('services.switch.' + (on ? 'on' : 'off')) }}</p>
     </service>
 </template>
 

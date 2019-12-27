@@ -29,13 +29,13 @@
                 <slot name="info">
                     <slot name="name">
                         <h5 v-if="show_room_name && room_name">{{ room_name }}</h5>
-                        <h5>{{ service_name || 'Unknown' }}</h5>
+                        <h5>{{ service_name || $t('service_tile.unknown') }}</h5>
                         <!-- <p v-if="true">{{ type || 'Unknown' }}</p> -->
                     </slot>
 
                     <div class="service-status">
                         <slot name="status">
-                            <p v-if="updating">Updating</p>
+                            <p v-if="updating">{{ $t('service_tile.updating') }}</p>
                             <slot v-else>
                                 <p>&nbsp;</p>
                             </slot>

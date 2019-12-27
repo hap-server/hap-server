@@ -1,6 +1,6 @@
 <template>
     <layout-section v-if="editing || section.accessories && section.accessories.length" class="service-container"
-        :layout="layout" :section="section" :name="section.name" default-name="Accessories"
+        :layout="layout" :section="section" :name="section.name" :default-name="$t('layout_section.accessories')"
         :editing="editing" @edit="edit => $emit('edit', edit)" @update-name="name => $emit('update-name', name)"
     >
         <draggable v-if="editing" v-model="effective_accessories_order" class="draggable"

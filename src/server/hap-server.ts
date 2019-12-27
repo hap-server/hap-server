@@ -1,5 +1,6 @@
+/// <reference path="../types/hap-nodejs.d.ts" />
 
-import {Accessory} from 'hap-nodejs';
+import {Accessory, Service, Characteristic} from '../hap-nodejs';
 import {HAPServer} from 'hap-nodejs/lib/HAPServer';
 import {Advertiser} from 'hap-nodejs/lib/Advertiser';
 import {AccessoryInfo} from 'hap-nodejs/lib/model/AccessoryInfo';
@@ -7,13 +8,15 @@ import {IdentifierCache} from 'hap-nodejs/lib/model/IdentifierCache';
 import {Camera as CameraSource} from 'hap-nodejs/lib/Camera';
 
 import Logger from '../common/logger';
+import {PluginAccessory, AccessoryStatus} from './accessories';
 
-export function hapStatus(err): number {
+export function hapStatus(err: any): number {
     let value = 0;
 
     for (const k in HAPServer.Status) {
         if (err.message !== k) continue;
 
+        // @ts-ignore
         value = HAPServer.Status[k];
         break;
     }
@@ -24,21 +27,21 @@ export function hapStatus(err): number {
 }
 
 export default class Server {
-    private static instances = new Set();
+    private static instances = new Set<Server>();
 
-    readonly bridge;
-    readonly config;
+    readonly bridge: Accessory;
+    readonly config: any;
     readonly log: Logger;
-    readonly accessories: typeof Accessory[];
-    readonly cached_accessories: typeof Accessory[];
+    readonly accessories: Accessory[];
+    readonly cached_accessories: Accessory[];
 
     readonly accessory_info: AccessoryInfo;
     readonly identifier_cache: IdentifierCache;
-    readonly camera_source?: CameraSource;
+    readonly camera_source: CameraSource | null;
 
     readonly server: HAPServer;
     readonly advertiser: Advertiser;
-    readonly mdns;
+    readonly mdns: any;
 
     require_first_pairing?: string;
     allowed_pairings?: string[];
@@ -56,7 +59,10 @@ export default class Server {
      * @param {IdentifierCache} identifier_cache
      * @param {Camera} camera_source
      */
-    constructor(bridge, config, log, accessory_info, identifier_cache, camera_source?) {
+    constructor(
+        bridge: Accessory, config: any, log: Logger,
+        accessory_info: AccessoryInfo, identifier_cache: IdentifierCache, camera_source?: CameraSource | null
+    ) {
         this.bridge = bridge;
         this.config = config;
         this.log = log;
@@ -66,48 +72,61 @@ export default class Server {
 
         this.accessory_info = accessory_info;
         this.identifier_cache = identifier_cache;
-        this.camera_source = camera_source;
+        this.camera_source = camera_source || null;
 
         // Create our HAP server which handles all communication between iOS devices and us
         const server = this.server = new HAPServer(this.accessory_info /* , this.relay_server */);
         server.allowInsecureRequest = config.unauthenticated_access;
 
-        const err = (message, callback) => err => {
+        const err = (message: string, callback: Function) => (err: any) => {
             this.log.error(message, err);
             callback(err);
         };
 
-        server.on('listening', port => this.handleServerListening(port));
-        server.on('identify', callback =>
+        server.on('listening', (port: number) => this.handleServerListening(port));
+        server.on('identify', (callback: any) =>
             this.handleIdentify().then(v => callback(null, v), err('Error in identify handler', callback)));
-        server.on('pair', (username, public_key, callback) =>
+        server.on('pair', (username: string, public_key: Buffer, callback: Function) =>
             this.handlePair(username, public_key).then(v => callback(null, v), err('Error in pair handler', callback)));
-        server.on('unpair', (username, callback) =>
+        server.on('unpair', (username: string, callback: Function) =>
             this.handleUnpair(username).then(v => callback(null, v), err('Error in unpair handler', callback)));
-        server.on('accessories', callback =>
+        server.on('accessories', (callback: Function) =>
             this.handleAccessories().then(v => callback(null, v), err('Error in accessories handler', callback)));
-        server.on('get-characteristics', (data, events, callback, remote, connection_id) =>
-            this.handleGetCharacteristics(data, events, remote, connection_id)
-                .then(v => callback(null, v), err('Error in get characteristics handler', callback)));
-        server.on('set-characteristics', (data, events, callback, remote, connection_id) =>
-            this.handleSetCharacteristics(data, events, remote, connection_id)
-                .then(v => callback(null, v), err('Error in set characteristics handler', callback)));
-        server.on('session-close', (session_id, events) => this.handleSessionClose(session_id, events));
+        server.on('get-characteristics',
+            (data: any, events: any, callback: Function, remote: any, connection_id: any) =>
+                this.handleGetCharacteristics(data, events, remote, connection_id)
+                    .then(v => callback(null, v), err('Error in get characteristics handler', callback)));
+        server.on('set-characteristics',
+            (data: any, events: any, callback: Function, remote: any, connection_id: any) =>
+                this.handleSetCharacteristics(data, events, remote, connection_id)
+                    .then(v => callback(null, v), err('Error in set characteristics handler', callback)));
+        server.on('session-close', (session_id: any, events: any) => this.handleSessionClose(session_id, events));
 
         if (this.camera_source) {
-            server.on('request-resource', (data, callback) =>
+            server.on('request-resource', (data: any, callback: Function) =>
                 this.handleResource(data)
                     .then(v => callback(null, v), err('Error in request resource handler', callback)));
         }
 
         // Create our Advertiser which broadcasts our presence over mdns
         this.advertiser = new Advertiser(this.accessory_info, this.mdns);
+
+        // @ts-ignore
+        const publish = this.advertiser._bonjourService.publish;
+        // @ts-ignore
+        this.advertiser._bonjourService.publish = function(this: Advertiser, options: any) {
+            options.probe = false;
+            // eslint-disable-next-line prefer-rest-params
+            return publish.apply(this, arguments);
+        };
     }
 
     start() {
         if (this.started) return;
 
-        if ([...(this.constructor as typeof Server).instances.values()].find((s: Server) => s.accessory_info.username === this.accessory_info.username)) {
+        if ([...(this.constructor as typeof Server).instances.values()]
+            .find((s: Server) => s.accessory_info.username === this.accessory_info.username)
+        ) {
             throw new Error('Already running another HAP server with the same ID/username');
         }
 
@@ -137,7 +156,7 @@ export default class Server {
      * @param {boolean} [include_cached]
      * @return {Accessory}
      */
-    getAccessoryByID(aid, include_cached = false) {
+    getAccessoryByID(aid: number, include_cached = false) {
         if (aid === 1) return this.bridge;
 
         for (const accessory of this.accessories) {
@@ -158,7 +177,7 @@ export default class Server {
      * @param {number} iid
      * @return {Service}
      */
-    getServiceByID(aid, iid) {
+    getServiceByID(aid: Accessory | number, iid: number) {
         const accessory = aid instanceof Accessory ? aid : this.getAccessoryByID(aid);
         if (!accessory) return null;
 
@@ -174,7 +193,7 @@ export default class Server {
      * @param {number} iid
      * @return {Characteristic}
      */
-    getCharacteristicByID(aid, iid) {
+    getCharacteristicByID(aid: Accessory | number, iid: number): Characteristic | null {
         const accessory = aid instanceof Accessory ? aid : this.getAccessoryByID(aid);
         if (!accessory) return null;
 
@@ -183,6 +202,8 @@ export default class Server {
                 if (this.getCharacteristicID(accessory, service, characteristic) === iid) return characteristic;
             }
         }
+
+        return null;
     }
 
     /**
@@ -191,7 +212,7 @@ export default class Server {
      * @param {Accessory} accessory
      * @return {number}
      */
-    getAccessoryID(accessory) {
+    getAccessoryID(accessory: Accessory): number {
         if (accessory.UUID === this.bridge.UUID) return 1;
 
         return this.identifier_cache.getAID(accessory.UUID);
@@ -204,10 +225,11 @@ export default class Server {
      * @param {Service} service
      * @return {number}
      */
-    getServiceID(accessory, service) {
+    getServiceID(accessory: Accessory, service: Service): number {
         // The Accessory Information service must have a (reserved by IdentifierCache) ID of 1
         if (service.UUID === '0000003E-0000-1000-8000-0026BB765291' && !service.subtype) return 1;
 
+        // @ts-ignore
         return (accessory._isBridge ? 2000000000 : 0) +
             this.identifier_cache.getIID(accessory.UUID, service.UUID, service.subtype);
     }
@@ -220,17 +242,21 @@ export default class Server {
      * @param {Characteristic} characteristic
      * @return {number}
      */
-    getCharacteristicID(accessory, service, characteristic) {
+    getCharacteristicID(
+        accessory: Accessory, service: Service, characteristic: Characteristic
+    ): number {
         return this.identifier_cache.getIID(accessory.UUID, service.UUID, service.subtype, characteristic.UUID);
     }
 
-    get listening_port() {
-        const listening = this.server._httpServer._tcpServer.address();
+    get listening_port(): number | null {
+        const listening = this.server._httpServer._tcpServer.address() as import('net').AddressInfo | null;
         return listening && listening.port;
     }
 
     startAdvertising() {
+        if (!this.listening_port) throw new Error('Not listening');
         this.advertiser.startAdvertising(this.listening_port);
+        // @ts-ignore
         if (this.config.hostname) this.advertiser._advertisement.host = this.config.hostname;
     }
 
@@ -251,7 +277,7 @@ export default class Server {
      *
      * @param {number} port
      */
-    handleServerListening(port) {
+    handleServerListening(port: number) {
         this.startAdvertising();
     }
 
@@ -260,13 +286,13 @@ export default class Server {
      *
      * @param {Accessory} accessory
      */
-    unsubscribeAllEventsForAccessory(accessory) {
+    unsubscribeAllEventsForAccessory(accessory: Accessory) {
         const aid = this.getAccessoryID(accessory);
 
         for (const connection of this.server._httpServer._connections) {
             for (const k of Object.keys(connection._events)) {
                 const match = k.match(/^([0-9]*)\.([0-9]*)$/);
-                if (!match || aid != match[1]) continue;
+                if (!match || aid != (match[1] as unknown as number)) continue;
 
                 const characteristic = this.getCharacteristicByID(accessory, parseInt(match[2]));
                 if (characteristic) characteristic.unsubscribe();
@@ -284,7 +310,8 @@ export default class Server {
      */
     async handleIdentify() {
         return new Promise((rs, rj) => {
-            this.bridge._handleIdentify(err => err ? rj(err) : rs());
+            // @ts-ignore
+            this.bridge._handleIdentify((err: any) => err ? rj(err) : rs());
         });
     }
 
@@ -295,7 +322,7 @@ export default class Server {
      * @param {string} public_key
      * @return {Promise}
      */
-    async handlePair(username, public_key) {
+    async handlePair(username: string, public_key: Buffer) {
         const require_first_pairing = this.require_first_pairing;
         if (!Object.keys(this.accessory_info.pairedClients).length && require_first_pairing &&
             require_first_pairing !== username) {
@@ -315,6 +342,7 @@ export default class Server {
         // Update our advertisement so it can pick up on the paired status of AccessoryInfo
         this.updateAdvertisement();
 
+        // @ts-ignore
         this.bridge.emit('hap-server-update-pairings');
     }
 
@@ -324,7 +352,7 @@ export default class Server {
      * @param {string} username
      * @return {Promise}
      */
-    async handleUnpair(username) {
+    async handleUnpair(username: string) {
         this.log.info('Unpairing with client %s', username);
 
         this.accessory_info.removePairedClient(username);
@@ -333,6 +361,7 @@ export default class Server {
         // Update our advertisement so it can pick up on the paired status of AccessoryInfo
         this.updateAdvertisement();
 
+        // @ts-ignore
         this.bridge.emit('hap-server-update-pairings');
     }
 
@@ -358,12 +387,13 @@ export default class Server {
      * @param {object} [options]
      * @return {object}
      */
-    toHAP(options?) {
+    toHAP(options?: any) {
         return {
             // Array of Accessory HAP
             // _handleGetCharacteristics will return SERVICE_COMMUNICATION_FAILURE for cached characteristics
             accessories: [this.bridge].concat(this.accessories)
-                .map(accessory => this.accessoryToHAP(accessory, options))
+                .map(accessory => this.accessoryToHAP(accessory, options,
+                    accessory[PluginAccessory.symbol]?.status !== AccessoryStatus.READY))
                 .concat(this.cached_accessories
                     .map(accessory => this.accessoryToHAP(accessory, options, true))),
         };
@@ -374,10 +404,10 @@ export default class Server {
      *
      * @param {Accessory} accessory
      * @param {object} [options]
-     * @param {boolean} [is_cached]
+     * @param {boolean} [is_unavailable]
      * @return {object}
      */
-    accessoryToHAP(accessory, options?, is_cached = false) {
+    accessoryToHAP(accessory: Accessory, options?: any, is_unavailable = false) {
         return {
             aid: this.getAccessoryID(accessory),
             services: accessory.services.map(service => ({
@@ -386,13 +416,16 @@ export default class Server {
                 characteristics: service.characteristics
                     .map(characteristic => Object.assign(characteristic.toHAP(options), {
                         iid: this.getCharacteristicID(accessory, service, characteristic),
-                    }, is_cached ? {
+                    }, is_unavailable ? {
                         status: HAPServer.Status.SERVICE_COMMUNICATION_FAILURE,
                     } : {})),
 
+                // @ts-ignore
                 primary: service.isPrimaryService,
+                // @ts-ignore
                 hidden: service.isHiddenService,
 
+                // @ts-ignore
                 linked: service.linkedServices.map(linked_service => this.getServiceID(accessory, linked_service)),
             })),
         };
@@ -408,20 +441,20 @@ export default class Server {
      * @param {string} connection_id
      * @return {Promise<object[]>}
      */
-    async handleGetCharacteristics(data, events, remote, connection_id) {
-        return Promise.all(data.map(data => this.handleGetCharacteristic(data, events, remote, connection_id)));
+    async handleGetCharacteristics(data: any, events: object, remote: boolean, connection_id: string) {
+        return Promise.all(data.map((data: any) => this.handleGetCharacteristic(data, events, remote, connection_id)));
     }
 
-    async handleGetCharacteristic(data, events, remote, connection_id) {
+    async handleGetCharacteristic(data: any, events: any, remote: boolean, connection_id: string) {
         const status_key = remote ? 's' : 'status';
         const value_key = remote ? 'v' : 'value';
 
         const {aid, iid, e: include_event} = data;
         const accessory = this.getAccessoryByID(aid, false);
 
-        if (!accessory) {
-            this.log.debug('Tried to get a characteristic from an unknown/cached accessory with aid', aid,
-                'and iid', iid);
+        if (!accessory || accessory[PluginAccessory.symbol]?.status !== AccessoryStatus.READY) {
+            this.log.debug('Tried to get a characteristic from an unknown/cached accessory with aid %d and iid %d',
+                aid, iid);
 
             return {
                 aid, iid,
@@ -432,7 +465,7 @@ export default class Server {
         const characteristic = this.getCharacteristicByID(accessory, iid);
 
         if (!characteristic) {
-            this.log.warning('Could not find a characteristic with aid', aid, 'and iid', iid);
+            this.log.warn('Could not find a characteristic with aid %d and iid %d', aid, iid);
 
             return {
                 aid, iid,
@@ -452,10 +485,11 @@ export default class Server {
         const context = events;
 
         try {
-            const value = await new Promise((rs, rj) =>
-                characteristic.getValue((err, value) => err ? rj(err) : rs(value), context, connection_id));
+            // Set the value and wait for success
+            const value = await new Promise((rs, rj) => characteristic.getValue((err: any, value: any) => {
+                err ? rj(err) : rs(value);
+            }, context, connection_id));
 
-            // set the value and wait for success
             this.log.debug('Got characteristic "%s"', characteristic.displayName, value);
 
             // Compose the response and add it to the list
@@ -477,8 +511,8 @@ export default class Server {
 
     /**
      * Handle /characteristics requests.
-     * Called when an iOS client wishes to change the state of this accessory - like opening a door, or turning on a light.
-     * Or, to subscribe to change events for a particular Characteristic.
+     * Called when an iOS client wishes to change the state of this accessory - like opening a door, or turning
+     * on a light. Or, to subscribe to change events for a particular Characteristic.
      *
      * @param {object[]} data
      * @param {object} events
@@ -486,16 +520,16 @@ export default class Server {
      * @param {string} connection_id
      * @return {Promise<object[]>}
      */
-    async handleSetCharacteristics(data, events, remote, connection_id) {
+    async handleSetCharacteristics(data: any, events: object, remote: boolean, connection_id: string) {
         // data is an array of characteristics and values like this:
         // [ { aid: 1, iid: 8, value: true, ev: true } ]
 
         this.log.debug('Processing characteristic set', JSON.stringify(data));
 
-        return Promise.all(data.map(data => this.handleSetCharacteristic(data, events, remote, connection_id)));
+        return Promise.all(data.map((data: any) => this.handleSetCharacteristic(data, events, remote, connection_id)));
     }
 
-    async handleSetCharacteristic(data, events, remote, connection_id) {
+    async handleSetCharacteristic(data: any, events: any, remote: boolean, connection_id: string) {
         const value = remote ? data.v : data.value;
         const ev = remote ? data.e : data.ev;
         const include_value = data.r || false;
@@ -505,9 +539,9 @@ export default class Server {
         const {aid, iid} = data;
         const accessory = this.getAccessoryByID(aid, false);
 
-        if (!accessory) {
-            this.log.debug('Tried to get a characteristic from an unknown/cached accessory with aid', aid,
-                'and iid', iid);
+        if (!accessory || accessory[PluginAccessory.symbol]?.status !== AccessoryStatus.READY) {
+            this.log.debug('Tried to get a characteristic from an unknown/cached accessory with aid %d and iid %d',
+                aid, iid);
 
             return {
                 aid, iid,
@@ -518,7 +552,7 @@ export default class Server {
         const characteristic = this.getCharacteristicByID(accessory, iid);
 
         if (!characteristic) {
-            this.log.warning('Could not find a characteristic with aid %d and iid %d', aid, iid);
+            this.log.warn('Could not find a characteristic with aid %d and iid %d', aid, iid);
 
             return {
                 aid, iid,
@@ -559,8 +593,9 @@ export default class Server {
 
             try {
                 // Set the value and wait for success
-                await new Promise((rs, rj) =>
-                    characteristic.setValue(value, (err, value) => err ? rj(err) : rs(value), context, connection_id));
+                await new Promise((rs, rj) => characteristic.setValue(value, (err?, value?) => {
+                    err ? rj(err) : rs(value);
+                }, context, connection_id));
 
                 return {
                     aid, iid,
@@ -577,7 +612,7 @@ export default class Server {
             }
         }
 
-        // no value to set, so we're done (success)
+        // No value to set, so we're done (success)
         return {
             aid, iid,
             [status_key]: 0,
@@ -590,15 +625,25 @@ export default class Server {
      * @param {object} data
      * @return {Promise}
      */
-    async handleResource(data) {
-        if (data['resource-type'] === 'image' && this.camera_source) {
-            return await new Promise((rs, rj) => this.camera_source.handleSnapshotRequest({
+    async handleResource(data: ResourceRequest) {
+        if (data['resource-type'] === ResourceTypes.IMAGE && this.camera_source && !data.aid) {
+            return await new Promise((rs, rj) => this.camera_source!.handleSnapshotRequest({
                 width: data['image-width'],
                 height: data['image-height'],
-            }, (err, data) => err ? rj(err) : rs(data)));
+            }, (err: any, data: any) => err ? rj(err) : rs(data)));
         }
 
-        throw new Error('resource not found');
+        if (data['resource-type'] === ResourceTypes.IMAGE && data.aid) {
+            const accessory = this.getAccessoryByID(data.aid);
+            if (!accessory || !accessory.cameraSource) throw new Error('Resource not found');
+
+            return await new Promise((rs, rj) => accessory.cameraSource!.handleSnapshotRequest({
+                width: data['image-width'],
+                height: data['image-height'],
+            }, (err: any, data: any) => err ? rj(err) : rs(data)));
+        }
+
+        throw new Error('Resource not found');
     }
 
     /**
@@ -608,9 +653,15 @@ export default class Server {
      * @param {object} events
      * @return {Promise}
      */
-    async handleSessionClose(session_id, events) {
+    async handleSessionClose(session_id: string, events: object) {
         if (this.camera_source && this.camera_source.handleCloseConnection) {
             this.camera_source.handleCloseConnection(session_id);
+        }
+
+        for (const accessory of this.accessories) {
+            if (accessory.cameraSource && accessory.cameraSource.handleCloseConnection) {
+                accessory.cameraSource.handleCloseConnection(session_id);
+            }
         }
 
         // this._unsubscribeEvents(events);
@@ -626,4 +677,15 @@ export default class Server {
             } catch (err) {}
         }
     }
+}
+
+interface ResourceRequest {
+    'aid'?: number;
+    'image-height': number;
+    'image-width': number;
+    'resource-type': ResourceTypes;
+}
+
+export enum ResourceTypes {
+    IMAGE = 'image',
 }

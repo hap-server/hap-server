@@ -27,12 +27,12 @@
                         <div v-if="$listeners['show-settings']" class="btn btn-dark btn-sm clickable"
                             @click.stop="$emit('show-settings')"
                         >
-                            Settings
+                            {{ $t('service_details.settings') }}
                         </div>
                         <div class="btn btn-dark btn-sm clickable"
                             @click.stop="() => $listeners.close ? $emit('close') : closeAccessoryDetails()"
                         >
-                            Close
+                            {{ $t('service_details.close') }}
                         </div>
                     </slot>
                 </div>

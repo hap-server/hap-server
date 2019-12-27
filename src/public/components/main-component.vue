@@ -10,11 +10,11 @@
             </div>
 
             <h1>
-                <span v-if="show_automations" class="d-inline d-sm-none">Automations</span>
+                <span v-if="show_automations" class="d-inline d-sm-none">{{ $t('main.automations') }}</span>
                 <span v-else-if="layout && !(authenticated_user && layout.uuid === 'Overview.' + authenticated_user.id)"
-                    class="d-inline d-sm-none">{{ layout.name || 'Home' }}</span>
-                <span v-else class="d-inline d-sm-none">{{ name || 'Home' }}</span>
-                <span class="d-none d-sm-inline">{{ name || 'Home' }}</span>
+                    class="d-inline d-sm-none">{{ layout.name || $t('main.home') }}</span>
+                <span v-else class="d-inline d-sm-none">{{ name || $t('main.home') }}</span>
+                <span class="d-none d-sm-inline">{{ name || $t('main.home') }}</span>
             </h1>
 
             <div class="right">
@@ -36,7 +36,7 @@
 
         <div v-if="!show_automations" class="main">
             <layout ref="layout" :key="layout ? layout.uuid : ''" :layout="layout"
-                :title="(layout ? authenticated_user && layout.uuid === 'Overview.' + authenticated_user.id ? name : layout.name : name) || 'Home'"
+                :title="(layout ? authenticated_user && layout.uuid === 'Overview.' + authenticated_user.id ? name : layout.name : name) || $t('main.home')"
                 @modal="modal => modals.add(modal)" @ping="ping" />
         </div>
 
@@ -50,7 +50,7 @@
             @new-scene="addScene" @remove-scene="removeScene" />
 
         <div v-if="!connection" class="connecting" :class="{reconnecting: has_connected}">
-            <p>{{ has_connected ? 'Reconnecting' : 'Connecting' }}</p>
+            <p>{{ has_connected ? $t('main.reconnecting') : $t('main.connecting') }}</p>
         </div>
 
         <template v-for="preload_url in preload_urls">
@@ -191,10 +191,10 @@
                 }
 
                 if (this.show_automations) {
-                    return this.automations_title || 'Automations';
+                    return this.automations_title || this.$t('main.automations');
                 }
 
-                return this.name || 'Home';
+                return this.name || this.$t('main.home');
             },
             background_url() {
                 if (this.show_automations) return;
@@ -455,7 +455,7 @@
                 try {
                     const data = await this.connection.getHomeSettings();
 
-                    this.name = data.name || 'Home';
+                    this.name = data.name;
                     this.default_background_url = data.background_url;
                 } finally {
                     this.loading = false;

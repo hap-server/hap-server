@@ -12,26 +12,26 @@ import Logger from '../common/logger';
 export default class Scene extends Events {
     private static id = 0;
 
-    readonly automations: Automations;
-    readonly id: number;
-    readonly uuid?: string;
-    readonly config;
+    readonly automations!: Automations;
+    readonly id!: number;
+    readonly uuid!: string | null;
+    readonly config: any;
     readonly log: Logger;
 
     readonly conditions: AutomationCondition[];
     readonly enable_actions: AutomationAction[];
     readonly disable_actions: AutomationAction[];
 
-    private _active: Promise<boolean>;
-    private check_active_progress: number;
-    private last_active: boolean;
-    private last_active_time: number;
+    private _active: Promise<boolean> | null = null;
+    private check_active_progress: number | null = null;
+    private last_active = false;
+    private last_active_time: number | null = null;
 
-    private _enabling: Promise<void>;
-    private enable_progress: number;
+    private _enabling: Promise<void> | null = null;
+    private enable_progress: number | null = null;
 
-    private _disabling: Promise<void>;
-    private disable_progress: number;
+    private _disabling: Promise<void> | null = null;
+    private disable_progress: number | null = null;
 
     /**
      * Creates a Scene.
@@ -40,14 +40,14 @@ export default class Scene extends Events {
      * @param {object} config
      * @param {string} [uuid]
      */
-    constructor(automations: Automations, config?, uuid?: string) {
+    constructor(automations: Automations, config?: any, uuid?: string) {
         super();
 
         this.parent_emitter = automations;
 
         Object.defineProperty(this, 'automations', {value: automations});
         Object.defineProperty(this, 'id', {value: Scene.id++});
-        Object.defineProperty(this, 'uuid', {value: uuid});
+        Object.defineProperty(this, 'uuid', {value: uuid || null});
         this.config = config;
 
         this.log = automations.log.withPrefix('Scene #' + this.id);
@@ -74,7 +74,8 @@ export default class Scene extends Events {
             this.check_active_progress = progress;
         }).then(is_active => {
             if (this.last_active !== is_active) {
-                this.emit(is_active ? SceneActivatedEvent : SceneDeactivatedEvent, this);
+                this.emit<SceneActivatedEvent | SceneDeactivatedEvent>(is_active ?
+                    SceneActivatedEvent : SceneDeactivatedEvent, this);
             }
 
             this.last_active = is_active;
@@ -91,7 +92,7 @@ export default class Scene extends Events {
         });
     }
 
-    private async _checkActive(setProgress) {
+    private async _checkActive(setProgress: (progress: number) => void) {
         this.log.info('Checking if scene is active');
 
         for (const i in this.conditions) { // eslint-disable-line guard-for-in
@@ -166,7 +167,7 @@ export default class Scene extends Events {
      * @param {object} [context]
      * @return {Promise}
      */
-    enable(context?): Promise<void> {
+    enable(context?: any): Promise<void> {
         const trigger_event = new SceneTriggerEvent(this, true, context || {});
         this.emit(trigger_event, true, trigger_event.context);
 
@@ -193,7 +194,7 @@ export default class Scene extends Events {
         });
     }
 
-    private async _enable(setProgress) {
+    private async _enable(setProgress: (progress: number) => void) {
         await Promise.all(this.enable_actions.map(async (action, index) => {
             try {
                 this.log.debug('Running scene #%d enable action #%d', this.id, action.id);
@@ -255,7 +256,7 @@ export default class Scene extends Events {
      * @param {object} [context]
      * @return {Promise}
      */
-    disable(context?): Promise<void> {
+    disable(context?: any): Promise<void> {
         const trigger_event = new SceneTriggerEvent(this, false, context || {});
         this.emit(trigger_event, false, trigger_event.context);
 
@@ -284,7 +285,7 @@ export default class Scene extends Events {
         });
     }
 
-    private async _disable(setProgress) {
+    private async _disable(setProgress: (progress: number) => void) {
         await Promise.all(this.disable_actions.map(async (action, index) => {
             try {
                 this.log.debug('Running scene #%d disable action #%d', this.id, action.id);

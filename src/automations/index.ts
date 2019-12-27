@@ -7,6 +7,8 @@ import AutomationCondition from './condition';
 import AutomationAction from './action';
 import Scene from './scene';
 
+import {Accessory, Service, Characteristic} from '../hap-nodejs';
+
 import Server from '../server/server';
 import Logger from '../common/logger';
 
@@ -67,7 +69,7 @@ export default class Automations extends Events {
      * @param {string} [uuid]
      * @return {Promise<Automation>}
      */
-    async loadAutomation(config, uuid?: string): Promise<Automation> {
+    async loadAutomation(config: any, uuid?: string): Promise<Automation> {
         const automation = new Automation(this, config, uuid);
 
         this.addAutomation(automation);
@@ -136,7 +138,7 @@ export default class Automations extends Events {
      * @param {string} [uuid]
      * @return {Promise<Scene>}
      */
-    async loadScene(config, uuid?: string): Promise<Scene> {
+    async loadScene(config: any, uuid?: string): Promise<Scene> {
         const scene = new Scene(this, config, uuid);
 
         this.addScene(scene);
@@ -189,8 +191,8 @@ export default class Automations extends Events {
      * @param {number} id
      * @return {Automation}
      */
-    getAutomation(id: number): Automation {
-        return this.automations.find(automation => automation.id === id);
+    getAutomation(id: number): Automation | null {
+        return this.automations.find(automation => automation.id === id) || null;
     }
 
     /**
@@ -199,8 +201,8 @@ export default class Automations extends Events {
      * @param {string} uuid
      * @return {Automation}
      */
-    getAutomationByUUID(uuid: string): Automation {
-        return this.automations.find(automation => automation.uuid === uuid);
+    getAutomationByUUID(uuid: string): Automation | null {
+        return this.automations.find(automation => automation.uuid === uuid) || null;
     }
 
     /**
@@ -209,8 +211,8 @@ export default class Automations extends Events {
      * @param {number} id
      * @return {Scene}
      */
-    getScene(id: number): Scene {
-        return this.scenes.find(scene => scene.id === id);
+    getScene(id: number): Scene | null {
+        return this.scenes.find(scene => scene.id === id) || null;
     }
 
     /**
@@ -219,8 +221,8 @@ export default class Automations extends Events {
      * @param {string} uuid
      * @return {Scene}
      */
-    getSceneByUUID(uuid: string): Scene {
-        return this.scenes.find(scene => scene.uuid === uuid);
+    getSceneByUUID(uuid: string): Scene | null {
+        return this.scenes.find(scene => scene.uuid === uuid) || null;
     }
 
     /**
@@ -231,7 +233,7 @@ export default class Automations extends Events {
      * @param {Logger} [log]
      * @return {Promise<AutomationTrigger>}
      */
-    async loadAutomationTrigger(config, uuid?: string, log?: Logger): Promise<AutomationTrigger> {
+    async loadAutomationTrigger(config: any, uuid?: string, log?: Logger): Promise<AutomationTrigger> {
         return AutomationTrigger.load(this, config, uuid, log);
     }
 
@@ -243,7 +245,7 @@ export default class Automations extends Events {
      * @param {Logger} [log]
      * @return {Promise<AutomationCondition>}
      */
-    async loadAutomationCondition(config, uuid?: string, log?: Logger): Promise<AutomationCondition> {
+    async loadAutomationCondition(config: any, uuid?: string, log?: Logger): Promise<AutomationCondition> {
         return AutomationCondition.load(this, config, uuid, log);
     }
 
@@ -255,7 +257,7 @@ export default class Automations extends Events {
      * @param {Logger} [log]
      * @return {Promise<AutomationAction>}
      */
-    async loadAutomationAction(config, uuid?: string, log?: Logger): Promise<AutomationAction> {
+    async loadAutomationAction(config: any, uuid?: string, log?: Logger): Promise<AutomationAction> {
         return AutomationAction.load(this, config, uuid, log);
     }
 
@@ -269,7 +271,10 @@ export default class Automations extends Events {
      * @param {*} old_value
      * @param {object} context
      */
-    handleCharacteristicUpdate(accessory, service, characteristic, value, old_value, context) {
+    handleCharacteristicUpdate(
+        accessory: Accessory, service: Service,
+        characteristic: Characteristic, value: any, old_value: any, context: any
+    ) {
         //
     }
 }
@@ -277,9 +282,9 @@ export default class Automations extends Events {
 export class Automation {
     private static id = 0;
 
-    readonly automations: Automations;
-    readonly id: number;
-    readonly uuid?: string;
+    readonly automations!: Automations;
+    readonly id!: number;
+    readonly uuid!: string | null;
     readonly config?: any;
 
     readonly log: Logger;
@@ -295,10 +300,10 @@ export class Automation {
      * @param {object} config
      * @param {string} [uuid]
      */
-    constructor(automations: Automations, config, uuid) {
+    constructor(automations: Automations, config: any, uuid?: string) {
         Object.defineProperty(this, 'automations', {value: automations});
         Object.defineProperty(this, 'id', {value: Automation.id++});
-        Object.defineProperty(this, 'uuid', {value: uuid});
+        Object.defineProperty(this, 'uuid', {value: uuid || null});
         this.config = config;
 
         this.log = automations.log.withPrefix('Automation #' + this.id);
@@ -453,15 +458,15 @@ export class Automation {
 export class AutomationRunner extends EventEmitter {
     private static id = 0;
 
-    readonly automation: Automation;
-    readonly id: number;
-    readonly event: AutomationTriggerEvent;
-    readonly log: Logger;
-    readonly conditions: Map<AutomationCondition, number>;
-    readonly actions: Map<AutomationAction, number>;
+    readonly automation!: Automation;
+    readonly id!: number;
+    readonly event!: AutomationTriggerEvent;
+    readonly log!: Logger;
+    readonly conditions!: Map<AutomationCondition, number>;
+    readonly actions!: Map<AutomationAction, number>;
 
-    private running?: Promise<void>;
-    private finished: boolean;
+    private running: Promise<void> | null = null;
+    private finished = false;
 
     /**
      * Creates an AutomationRunner.
@@ -480,9 +485,6 @@ export class AutomationRunner extends EventEmitter {
 
         Object.defineProperty(this, 'conditions', {value: new Map(automation.conditions.map(c => [c, 0]))});
         Object.defineProperty(this, 'actions', {value: new Map(automation.actions.map(a => [a, 0]))});
-
-        this.running = null;
-        this.finished = false;
     }
 
     /**

@@ -1,15 +1,16 @@
 <template>
     <dropdown colour="dark" align="right">
         <template slot="label">
-            <span class="d-inline d-sm-none">Menu</span>
+            <span class="d-inline d-sm-none">{{ $t('menu.menu') }}</span>
             <span class="d-none d-sm-inline">{{ dropdown_label }}</span>
         </template>
 
         <a v-if="authenticatedUser && layouts['Overview.' + authenticatedUser.id]" class="dropdown-item"
             :class="{active: value && value.uuid === 'Overview.' + authenticatedUser.id && !showAutomations}"
-            href="#" @click.prevent="setLayout(layouts['Overview.' + authenticatedUser.id])">{{ name }}</a>
+            href="#" @click.prevent="setLayout(layouts['Overview.' + authenticatedUser.id])"
+        >{{ name || $t('menu.home') }}</a>
         <a class="dropdown-item" :class="{active: !value && !showAutomations}" href="#"
-            @click.prevent="setLayout(null)">All accessories</a>
+            @click.prevent="setLayout(null)">{{ $t('menu.all_accessories') }}</a>
 
         <template v-if="Object.values(layouts).length">
             <div class="dropdown-divider"></div>
@@ -26,18 +27,19 @@
 
             <a v-if="value.can_set && (!authenticatedUser || value.uuid !== 'Overview.' + authenticatedUser.id)"
                 class="dropdown-item" href="#"
-                @click.prevent="showLayoutSettings">{{ value.name || value.uuid }} Settings</a>
+                @click.prevent="showLayoutSettings"
+            >{{ $t('menu.layout_settings', {name: value.name || value.uuid}) }}</a>
             <a v-if="value.can_set" class="dropdown-item" href="#"
-                @click.prevent="$emit('edit-layout')">Edit layout</a>
+                @click.prevent="$emit('edit-layout')">{{ $t('menu.edit_layout') }}</a>
             <a v-if="value.can_delete && (!authenticatedUser || value.uuid !== 'Overview.' + authenticatedUser.id)"
-                class="dropdown-item" href="#" @click.prevent="showLayoutDelete">Delete layout</a>
+                class="dropdown-item" href="#" @click.prevent="showLayoutDelete">{{ $t('menu.delete_layout') }}</a>
         </template>
 
         <template v-if="canAccessAutomations">
             <div class="dropdown-divider"></div>
 
             <a class="dropdown-item" :class="{active: showAutomations}" href="#"
-                @click.prevent="$emit('show-automations', true)">Automations</a>
+                @click.prevent="$emit('show-automations', true)">{{ $t('menu.automations') }}</a>
         </template>
 
         <div class="dropdown-divider"></div>
@@ -47,15 +49,17 @@
         >
             <template v-if="authenticatedUser">
                 <span class="d-inline d-sm-none">{{ authenticatedUser.name }}</span>
-                <span class="d-none d-sm-inline">Authenticated as {{ authenticatedUser.name }}</span>
+                <span class="d-none d-sm-inline">
+                    {{ $t('menu.authenticated_as', {name: authenticatedUser.name}) }}
+                </span>
             </template>
-            <template v-else>Login</template>
+            <template v-else>{{ $t('menu.login') }}</template>
         </a>
 
         <a v-if="canAccessServerSettings" class="dropdown-item" href="#"
-            @click.prevent="$emit('modal', {type: 'settings'})">Settings</a>
+            @click.prevent="$emit('modal', {type: 'settings'})">{{ $t('menu.settings') }}</a>
         <a v-if="canCreate" class="dropdown-item" href="#"
-            @click.prevent="$emit('modal', {type: 'new-layout'})">New layout</a>
+            @click.prevent="$emit('modal', {type: 'new-layout'})">{{ $t('menu.new_layout') }}</a>
     </dropdown>
 </template>
 
@@ -71,7 +75,7 @@
         props: {
             layouts: Object,
             value: Layout,
-            name: {type: String, default: 'Home'},
+            name: {type: String, default: null},
             authenticatedUser: AuthenticatedUser,
             canCreate: Boolean,
             canAccessServerSettings: Boolean,
@@ -80,11 +84,11 @@
         },
         computed: {
             dropdown_label() {
-                if (this.showAutomations) return 'Automations';
-                if (!this.value) return 'All accessories';
+                if (this.showAutomations) return this.$t('menu.automations');
+                if (!this.value) return this.$t('menu.all_accessories');
 
                 if (this.authenticatedUser && this.value.uuid === 'Overview.' + this.authenticatedUser.id) {
-                    return this.name;
+                    return this.name || this.$t('menu.home');
                 }
 
                 return this.value.name || this.value.uuid;

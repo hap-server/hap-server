@@ -4,7 +4,7 @@
     >
         <lightbulb-icon slot="icon" />
 
-        <p>Lightbulb</p>
+        <p>{{ $t('services.lightbulb.lightbulb') }}</p>
 
         <div style="flex: 1 1 10%;" />
 
@@ -15,7 +15,7 @@
                 >
                     <div class="flex-fill"></div>
 
-                    <p @click.stop="setOn(!on)">{{ on ? 'On' : 'Off' }}</p>
+                    <p @click.stop="setOn(!on)">{{ $t('services.outlet.' + (on ? 'on' : 'off')) }}</p>
 
                     <div v-if="service.getCharacteristicByName('Brightness')" style="flex: 1 1 10%;" />
 

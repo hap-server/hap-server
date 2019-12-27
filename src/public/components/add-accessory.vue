@@ -19,7 +19,7 @@
             <!-- TODO: maybe allow accessory platforms to list unconfigured accessories instead of adding new
                 accessories to the accessory platform? -->
 
-            <h4 v-if="Object.keys(discovered_accessories).length">Discovered accessories</h4>
+            <h4 v-if="Object.keys(discovered_accessories).length">{{ $t('add_accessory.discovered_accessories') }}</h4>
             <div v-if="Object.keys(discovered_accessories).length" class="discovered-accessories">
                 <div v-for="da in discovered_accessories" :key="da.id" class="discovered-accessory-wrapper">
                     <component v-if="da.component" :is="da.component" :discovered-accessory="da"
@@ -30,7 +30,7 @@
             </div>
 
             <!-- List accessory setup handlers that allow manual setup (without an accessory discovery handler) -->
-            <h4 v-if="accessory_setup_handlers.length">Other</h4>
+            <h4 v-if="accessory_setup_handlers.length">{{ $t('add_accessory.other') }}</h4>
             <list-group v-if="accessory_setup_handlers.length" class="mb-3">
                 <list-item v-for="[id, name] in accessory_setup_handlers" :key="id"
                     @click="accessory_setup_handler = id"
@@ -41,10 +41,10 @@
         </template>
 
         <div v-if="!(typeof accessory_setup_handler === 'number' && accessory_setup_component) && !(discovered_accessory && discovered_accessory.setup_component)" class="d-flex">
-            <div v-if="creating">Saving</div>
+            <div v-if="creating">{{ $t('add_accessory.saving') }}</div>
             <div class="flex-fill"></div>
             <button class="btn btn-default btn-sm" type="button" :disabled="creating"
-                @click="() => $refs.panel.close()">Cancel</button>
+                @click="() => $refs.panel.close()">{{ $t('add_accessory.cancel') }}</button>
         </div>
     </panel>
 </template>

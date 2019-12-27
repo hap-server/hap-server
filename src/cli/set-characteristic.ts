@@ -1,16 +1,19 @@
 import path from 'path';
 import os from 'os';
 
-import {connect, log} from '.';
+import {connect, log, GlobalArguments} from '.';
+import {getDefaultConfigPath} from './configuration';
 
 export const command = 'set-characteristic <config> <characteristic> <value>';
 export const describe = 'Set a characteristic';
 
-export function builder(yargs) {
+export function builder(yargs: typeof import('yargs')) {
     yargs.positional('config', {
         describe: 'The configuration file to use',
         type: 'string',
-        default: path.join(os.homedir(), '.homebridge', 'config.json'),
+        default: getDefaultConfigPath(process.platform, [
+            path.join(os.homedir(), '.homebridge'),
+        ]),
     });
     yargs.positional('characteristic', {
         describe: 'Dot separated accessory, service and characteristic UUID',
@@ -22,7 +25,13 @@ export function builder(yargs) {
     });
 }
 
-export async function handler(argv) {
+interface Arguments extends GlobalArguments {
+    config: string;
+    characteristic: string;
+    value: string;
+}
+
+export async function handler(argv: Arguments) {
     // eslint-disable-next-line no-unused-vars
     const {connection, authenticated_user, config, config_path, data_path, server_pid} = await connect(argv);
 

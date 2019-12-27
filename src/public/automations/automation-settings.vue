@@ -4,7 +4,9 @@
 
         <form v-if="tab === 'general'" @submit.prevent="$emit('save', true)">
             <div class="form-group row">
-                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-name'">Name</label>
+                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-name'">
+                    {{ $t('automation_settings.name') }}
+                </label>
                 <div class="col-sm-9">
                     <input :id="_uid + '-name'" v-model="automation.data.name" type="text"
                         class="form-control form-control-sm" :disabled="saving" />
@@ -12,7 +14,9 @@
             </div>
 
             <div class="form-group row">
-                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-group'">Group</label>
+                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-group'">
+                    {{ $t('automation_settings.group') }}
+                </label>
                 <div class="col-sm-9">
                     <input :id="_uid + '-group'" v-model="automation.data.group_name" type="text"
                         class="form-control form-control-sm" :disabled="saving" />
@@ -21,13 +25,8 @@
         </form>
 
         <div v-if="tab === 'triggers'" class="automation-triggers">
-            <p>The automation will run when any of these triggers run.</p>
-
-            <p v-if="other_automation_triggers.length">
-                {{ other_automation_triggers.length }} other automation{{ other_automation_triggers.length === 1 ? '' : 's' }}
-                will trigger this automation.
-            </p>
-            <p v-else>Other automations can also trigger this automation.</p>
+            <p>{{ $t('automation_settings.triggers_description') }}</p>
+            <p>{{ $tc('automation_settings.triggers_description_other', other_automation_triggers.length) }}</p>
 
             <template v-for="(trigger, id) in automation.data.triggers || {}">
                 <component
@@ -45,7 +44,7 @@
         </div>
 
         <div v-if="tab === 'conditions'" class="automation-conditions">
-            <p>All of these conditions must be met for the automation's actions to run.</p>
+            <p>{{ $t('automation_settings.conditions_description') }}</p>
 
             <template v-for="(condition, id) in automation.data.conditions || {}">
                 <component
@@ -82,48 +81,67 @@
             <div v-if="['triggers', 'conditions', 'actions'].includes(tab)" class="form-group custom-control custom-checkbox mb-0">
                 <input v-model="simple_editor" :id="_uid + '-editor'" type="checkbox"
                     class="custom-control-input" />
-                <label class="custom-control-label" :for="_uid + '-editor'">Editor</label>
+                <label class="custom-control-label" :for="_uid + '-editor'">
+                    {{ $t('automation_settings.editor') }}
+                </label>
             </div>
 
-            <dropdown v-if="tab === 'triggers' && editable" label="Add trigger" type="up" :disabled="saving || deleting">
+            <dropdown v-if="tab === 'triggers' && editable" :label="$t('automation_settings.add_trigger')"
+                type="up" :disabled="saving || deleting"
+            >
                 <a v-for="{plugin, type, name} in trigger_components" :key="type"
                     class="dropdown-item" href="#" @click.prevent="addTrigger({plugin, trigger: type})"
                 >{{ name }}</a>
                 <div v-if="!simple_editor" class="dropdown-divider" />
-                <a v-if="!simple_editor" class="dropdown-item" href="#" @click.prevent="addTrigger({plugin: null, trigger: null})">Other</a>
+                <a v-if="!simple_editor" class="dropdown-item" href="#" @click.prevent="addTrigger({plugin: null, trigger: null})">
+                    {{ $t('automation_settings.other') }}
+                </a>
             </dropdown>
 
-            <dropdown v-if="tab === 'conditions' && editable" label="Add condition" type="up" :disabled="saving || deleting">
+            <dropdown v-if="tab === 'conditions' && editable" :label="$t('automation_settings.add_condition')"
+                type="up" :disabled="saving || deleting"
+            >
                 <a v-for="{plugin, type, name} in condition_components" :key="type"
                     class="dropdown-item" href="#" @click.prevent="addCondition({plugin, condition: type})"
                 >{{ name }}</a>
                 <div v-if="!simple_editor" class="dropdown-divider" />
-                <a v-if="!simple_editor" class="dropdown-item" href="#" @click.prevent="addCondition({plugin: null, condition: null})">Other</a>
+                <a v-if="!simple_editor" class="dropdown-item" href="#" @click.prevent="addCondition({plugin: null, condition: null})">
+                    {{ $t('automation_settings.other') }}
+                </a>
             </dropdown>
 
-            <dropdown v-if="tab === 'actions' && editable" label="Add action" type="up" :disabled="saving || deleting">
+            <dropdown v-if="tab === 'actions' && editable" :label="$t('automation_settings.add_action')"
+                type="up" :disabled="saving || deleting"
+            >
                 <a v-for="{plugin, type, name} in action_components" :key="type"
                     class="dropdown-item" href="#" @click.prevent="addAction({plugin, action: type})"
                 >{{ name }}</a>
                 <div v-if="!simple_editor" class="dropdown-divider" />
-                <a v-if="!simple_editor" class="dropdown-item" href="#" @click.prevent="addAction({plugin: null, action: null})">Other</a>
+                <a v-if="!simple_editor" class="dropdown-item" href="#" @click.prevent="addAction({plugin: null, action: null})">
+                    {{ $t('automation_settings.other') }}
+                </a>
             </dropdown>
 
-            <div v-if="saving">Saving</div>
+            <div v-if="saving">{{ $t('automation_settings.saving') }}</div>
             <div class="flex-fill"></div>
             <template v-if="(editable && changed) || !exists">
                 <button class="btn btn-default btn-sm" type="button" :disabled="saving || deleting"
-                    @click="() => ($emit('reset'), $refs.panel.close())">Cancel</button>&nbsp;
+                    @click="() => ($emit('reset'), $refs.panel.close())"
+                >{{ $t('automation_settings.cancel') }}</button>&nbsp;
                 <button v-if="exists && deletable" key="delete" class="btn btn-danger btn-sm" type="button"
-                    :disabled="saving || deleting" @click="() => $emit('delete')">Delete</button>&nbsp;
+                    :disabled="saving || deleting" @click="() => $emit('delete')"
+                >{{ $t('automation_settings.delete') }}</button>&nbsp;
                 <button v-if="editable" key="primary" class="btn btn-primary btn-sm" type="button"
-                    :disabled="saving || deleting" @click="$emit('save', true)">Save</button>
+                    :disabled="saving || deleting" @click="$emit('save', true)"
+                >{{ $t('automation_settings.save') }}</button>
             </template>
             <template v-else>
                 <button v-if="exists && deletable" key="delete" class="btn btn-danger btn-sm" type="button"
-                    :disabled="saving || deleting" @click="() => $emit('delete')">Delete</button>&nbsp;
+                    :disabled="saving || deleting" @click="() => $emit('delete')"
+                >{{ $t('automation_settings.delete') }}</button>&nbsp;
                 <button key="primary" class="btn btn-primary btn-sm" type="button"
-                    :disabled="saving || deleting" @click="$refs.panel.close()">Done</button>
+                    :disabled="saving || deleting" @click="$refs.panel.close()"
+                >{{ $t('automation_settings.done') }}</button>
             </template>
         </div>
     </panel>
@@ -172,21 +190,21 @@
             return {
                 tab: 'general',
                 tabs: {
-                    general: 'General',
+                    general: () => this.$t('automation_settings.general'),
                     triggers: {
-                        label: 'Triggers',
+                        label: () => this.$t('automation_settings.triggers'),
                         get badge() {
                             return Object.keys($vm.automation.data.triggers || {}).length + '';
                         },
                     },
                     conditions: {
-                        label: 'Conditions',
+                        label: () => this.$t('automation_settings.conditions'),
                         get badge() {
                             return Object.keys($vm.automation.data.conditions || {}).length + '';
                         },
                     },
                     actions: {
-                        label: 'Actions',
+                        label: () => this.$t('automation_settings.actions'),
                         get badge() {
                             return Object.keys($vm.automation.data.actions || {}).length + '';
                         },

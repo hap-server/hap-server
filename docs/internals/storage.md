@@ -10,6 +10,8 @@ These files are created in the data directory.
     - Contains uploaded images.
 - `plugin-storage/*`
     - Contains node-persist directories for each plugin.
+- `history`
+    - Contains historical data. [See history.md](history.md)
 - `persist`
     - node-persist directory that contains HAP-NodeJS data. [See hap-nodejs storage.](#hap-nodejs-storage)
 - `accessories/cachedAccessories`

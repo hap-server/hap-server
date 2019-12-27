@@ -2,7 +2,7 @@
     <automation-condition class="automation-condition-any"
         :id="id" :condition="condition" :editable="editable" :saving="saving" @delete="$emit('delete')"
     >
-        <p>One of these conditions must be met for this condition to pass.</p>
+        <p>{{ $t('automation_conditions.any.description') }}</p>
 
         <template v-for="(child, id) in condition.conditions || {}">
             <component
@@ -12,7 +12,9 @@
                 @delete="$delete(condition.conditions, id); $forceUpdate()" />
         </template>
 
-        <dropdown v-if="editable" slot="header-right" label="Add condition" align="right" :disabled="saving">
+        <dropdown v-if="editable" slot="header-right" :label="$t('automation_conditions.any.add_condition')"
+            align="right" :disabled="saving"
+        >
             <a v-for="{plugin, type, name} in condition_components" :key="type"
                 class="dropdown-item" href="#" @click.prevent="addCondition({plugin, condition: type})"
             >{{ name }}</a>

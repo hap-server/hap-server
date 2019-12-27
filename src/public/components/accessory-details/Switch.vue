@@ -4,9 +4,11 @@
     >
         <switch-icon slot="icon" />
 
-        <p>Switch</p>
-        <p v-if="updating">Updating</p>
-        <p @click.stop="service.setCharacteristicByName('On', !on)">{{ on ? 'On' : 'Off' }}</p>
+        <p>{{ $t('services.switch.switch') }}</p>
+        <p v-if="updating">{{ $t('services.switch.updating') }}</p>
+        <p @click.stop="service.setCharacteristicByName('On', !on)">
+            {{ $t('services.switch.' + (on ? 'on' : 'off')) }}
+        </p>
     </accessory-details>
 </template>
 

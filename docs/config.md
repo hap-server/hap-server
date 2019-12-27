@@ -274,21 +274,21 @@ Accessory UI.
 
 > TODO
 
-Whether [service tile components](plugins.md#accessoryuiregisterservicecomponent) from this Accessory UI should be
+Whether [service tile components](plugins.md#uipluginregisterservicecomponent) from this Accessory UI should be
 enabled.
 
 ##### `plugins[]['accessory-uis'][]['accessory-details']`
 
 > TODO
 
-Whether [accessory details components](plugins.md#accessoryuiregisteraccessorydetailscomponent) from this Accessory UI
+Whether [accessory details components](plugins.md#uipluginregisteraccessorydetailscomponent) from this Accessory UI
 should be enabled.
 
 ##### `plugins[]['accessory-uis'][]['collapsed-services']`
 
 > TODO
 
-Whether [collapsed services](plugins.md#accessoryuiregistercollapsedservicescomponent) from this Accessory UI should
+Whether [collapsed services](plugins.md#uipluginregistercollapsedservicescomponent) from this Accessory UI should
 be enabled.
 
 #### `plugins[]['accessory-discovery']`

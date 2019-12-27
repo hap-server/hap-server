@@ -1,17 +1,25 @@
+/// <reference path="../types/homebridge.d.ts" />
 
 import Bridge from './bridge';
+import HAPServer from './hap-server';
 
 import {Server as HomebridgeServer} from 'homebridge/lib/server';
 import {User as HomebridgeUser} from 'homebridge/lib/user';
 import {_system as homebridge_logger} from 'homebridge/lib/logger';
+
+// Types
+import Server from './server';
+import Logger from '../common/logger';
+import {Accessory} from '../hap-nodejs';
 
 homebridge_logger.prefix = 'Homebridge';
 
 export default class Homebridge extends Bridge {
     readonly homebridge: HomebridgeServer;
 
-    constructor(server, log, config, unauthenticated_access = false) {
-        HomebridgeUser.configPath = () => undefined;
+    constructor(server: Server, log: Logger, config: any, unauthenticated_access = false) {
+        // @ts-ignore
+        HomebridgeUser.configPath = (() => undefined) as () => undefined;
         HomebridgeUser.config = () => config;
 
         const homebridge = new HomebridgeServer({
@@ -20,9 +28,10 @@ export default class Homebridge extends Bridge {
             hideQRCode: true,
         });
 
-        homebridge._printSetupInfo = () => undefined;
-        homebridge._printPin = () => undefined;
-        homebridge._handleNewConfig = () => undefined;
+        homebridge._printSetupInfo = (() => undefined) as () => undefined;
+        homebridge._printPin = (() => undefined) as () => undefined;
+        // @ts-ignore
+        homebridge._handleNewConfig = (() => undefined) as () => undefined;
 
         super(server, log, {
             uuid: homebridge._bridge.UUID,
@@ -37,27 +46,29 @@ export default class Homebridge extends Bridge {
         this.homebridge = homebridge;
     }
 
-    protected _createBridge(config) {
+    protected _createBridge(config: {homebridge: HomebridgeServer}) {
         const bridge = config.homebridge._bridge;
 
+        // @ts-ignore
         bridge._handlePair = this._handlePair.bind(this, bridge, bridge._handlePair);
+        // @ts-ignore
         bridge._handleUnpair = this._handleUnpair.bind(this, bridge, bridge._handleUnpair);
 
         return bridge;
     }
 
-    private _handlePair(bridge, handlePair, ...args) {
+    private _handlePair(bridge: any, handlePair: any, ...args: any[]) {
         const r = handlePair.call(bridge, ...args);
 
-        this.server.handlePairingsUpdate(this);
+        this.server.accessories.handlePairingsUpdate(this);
 
         return r;
     }
 
-    private _handleUnpair(bridge, handleUnpair, ...args) {
+    private _handleUnpair(bridge: any, handleUnpair: any, ...args: any[]) {
         const r = handleUnpair.call(bridge, ...args);
 
-        this.server.handlePairingsUpdate(this);
+        this.server.accessories.handlePairingsUpdate(this);
 
         return r;
     }
@@ -70,31 +81,31 @@ export default class Homebridge extends Bridge {
         this.homebridge._teardown();
     }
 
-    get hap_server() {
+    get hap_server(): HAPServer {
         throw new Error('Cannot create a HAPServer for Homebridge');
     }
 
     get accessory_info() {
-        return this.bridge._accessoryInfo;
+        return this.bridge._accessoryInfo!;
     }
 
     get identifier_cache() {
-        return this.bridge._identifierCache;
+        return this.bridge._identifierCache!;
     }
 
-    addAccessory(accessory) {
+    addAccessory(accessory: Accessory) {
         throw new Error('Cannot add accessory to Homebridge');
     }
 
-    removeAccessory(accessory) {
+    removeAccessory(accessory: Accessory) {
         throw new Error('Cannot remove accessory from Homebridge');
     }
 
-    addCachedAccessory(accessory) {
+    addCachedAccessory(accessory: Accessory) {
         throw new Error('Cannot add accessory to Homebridge');
     }
 
-    removeCachedAccessory(accessory) {
+    removeCachedAccessory(accessory: Accessory) {
         throw new Error('Cannot remove accessory from Homebridge');
     }
 

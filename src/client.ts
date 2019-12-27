@@ -10,6 +10,8 @@ import Layout from './client/layout';
 import Automation from './client/automation';
 import Scene from './client/scene';
 
+import * as util from './util';
+
 export {
     Logger,
 
@@ -25,6 +27,8 @@ export {
     Layout,
     Automation,
     Scene,
+
+    util,
 };
 
 export const DEVELOPMENT = true;

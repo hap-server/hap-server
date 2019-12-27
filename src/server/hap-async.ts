@@ -1,25 +1,50 @@
 
 /**
  * Add get_handler and set_handler properties and helper getHandler and setHandler methods to Characteristics
- * that wrap handlers so they can return a Promise/a value.
+ * that wrap handlers so they can return a Promise/a value instead of using a callback.
  */
 
 import Logger from '../common/logger';
-import {Characteristic} from 'hap-nodejs';
+import {Characteristic} from '../hap-nodejs';
+
+type GetCharacteristicHandler =
+    (this: Characteristic, context?: any, connection_id?: string) => Promise<any> | any;
+type SetCharacteristicHandler =
+    (this: Characteristic, new_value: any, context?: any, connection_id?: string) => Promise<void> | void;
+
+// eslint-disable-next-line @typescript-eslint/no-namespace
+declare module 'hap-nodejs/lib/Characteristic' {
+    interface Characteristic {
+        get_handler?: GetCharacteristicHandler;
+        getHandler(handler?: GetCharacteristicHandler): this;
+        // private _get_handler?: {
+        //     handler: GetCharacteristicHandler;
+        //     listener: (callback: (err, value) => void, context?, connection_id?: string) => void;
+        // };
+        set_handler?: SetCharacteristicHandler;
+        setHandler(handler?: SetCharacteristicHandler): this;
+        // private _set_handler?: {
+        //     handler: SetCharacteristicHandler;
+        //     listener: (new_value, callback: (err, value) => void, context?, connection_id?: string) => void;
+        // };
+    }
+}
 
 const log = new Logger('hap-async');
 
 Object.defineProperty(Characteristic.prototype, 'get_handler', {
     configurable: true,
     enumerable: true,
-    get() {
+    get(): GetCharacteristicHandler {
         return this._get_handler ? this._get_handler.handler : null;
     },
-    set(handler?: (context?, connection_id?) => Promise<any> | any) {
+    set(handler?: GetCharacteristicHandler) {
         if (this._get_handler) this.removeListener('get', this._get_handler.listener);
 
         if (handler) {
-            const listener = async function(callback: (err, value) => void, context, connection_id) {
+            const listener = async function(this: Characteristic,
+                callback: (err: any, value: any) => void, context?: any, connection_id?: string
+            ) {
                 try {
                     const value = await handler.call(this, context, connection_id); // eslint-disable-line no-invalid-this
 
@@ -38,7 +63,7 @@ Object.defineProperty(Characteristic.prototype, 'get_handler', {
     },
 });
 
-Characteristic.prototype.getHandler = function(handler?: (context?, connection_id?) => Promise<any> | any) {
+Characteristic.prototype.getHandler = function(this: Characteristic, handler?: GetCharacteristicHandler) {
     this.get_handler = handler;
     return this;
 };
@@ -49,11 +74,13 @@ Object.defineProperty(Characteristic.prototype, 'set_handler', {
     get() {
         return this._set_handler ? this._set_handler.handler : null;
     },
-    set(handler?: (new_value, context?, connection_id?) => Promise<void> | void) {
+    set(handler?: SetCharacteristicHandler) {
         if (this._set_handler) this.removeListener('set', this._set_handler.listener);
 
         if (handler) {
-            const listener = async function(new_value, callback: (err, value) => void, context, connection_id) {
+            const listener = async function(this: Characteristic,
+                new_value: any, callback: (err: any, value: any) => void, context?: any, connection_id?: string
+            ) {
                 try {
                     const value = await handler.call(this, new_value, context, connection_id); // eslint-disable-line no-invalid-this
 
@@ -72,7 +99,7 @@ Object.defineProperty(Characteristic.prototype, 'set_handler', {
     },
 });
 
-Characteristic.prototype.setHandler = function(handler?: (new_value, context?, connection_id?) => Promise<void> | void) {
+Characteristic.prototype.setHandler = function(this: Characteristic, handler?: SetCharacteristicHandler) {
     this.set_handler = handler;
     return this;
 };

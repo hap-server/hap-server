@@ -2,7 +2,7 @@
     <automation-action class="automation-action-conditional"
         :id="id" :action="action" :editable="editable" :saving="saving" @delete="$emit('delete')"
     >
-        <p>These actions will only run if this condition passes.</p>
+        <p>{{ $t('automation_actions.conditional.description') }}</p>
 
         <component
             v-if="action.condition && condition_components.find(c => c.plugin === action.condition.plugin && c.type === action.condition.condition)"
@@ -10,7 +10,7 @@
             :key="id" :id="id" :condition="action.condition" :editable="editable" :saving="saving"
             @delete="action.condition = null; $forceUpdate()" />
 
-        <p v-else>No condition selected.</p>
+        <p v-else>{{ $t('automation_actions.conditional.no_condition') }}</p>
 
         <template v-for="(child, id) in action.actions || {}">
             <component
@@ -22,14 +22,14 @@
 
         <template v-if="editable" slot="header-right">
             <dropdown v-if="!action.condition || !condition_components.find(c => c.plugin === action.condition.plugin && c.type === action.condition.condition)"
-                label="Add condition" :disabled="saving"
+                :label="$t('automation_actions.conditional.add_condition')" :disabled="saving"
             >
                 <a v-for="{plugin, type, name} in condition_components" :key="type" class="dropdown-item" href="#"
                     @click.prevent="action.condition = {plugin, condition: type}; $forceUpdate()"
                 >{{ name }}</a>
             </dropdown>
 
-            <dropdown label="Add action" :disabled="saving">
+            <dropdown :label="$t('automation_actions.conditional.add_action')" :disabled="saving">
                 <a v-for="{plugin, type, name} in action_components" :key="type"
                     class="dropdown-item" href="#" @click.prevent="addAction({plugin, action: type})"
                 >{{ name }}</a>

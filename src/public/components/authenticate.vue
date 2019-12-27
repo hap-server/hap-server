@@ -1,12 +1,14 @@
 <template>
     <panel ref="panel" @close="$emit('close')">
         <div v-if="!authentication_handlers.length">
-            <h4>No authentication handlers</h4>
-            <p>There are no authentication handlers configured.</p>
+            <h4>{{ $t('authenticate.no_authentication_handlers') }}</h4>
+            <p>{{ $t('authenticate.no_authentication_handlers_info') }}</p>
         </div>
 
         <div v-else-if="authentication_handlers.length !== 1" class="form-group row">
-            <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-handler'">Handler</label>
+            <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-handler'">
+                {{ $t('authenticate.handler') }}
+            </label>
             <div class="col-sm-9">
                 <select :id="_uid + '-handler'" ref="select" class="custom-select custom-select-sm"
                     :disabled="authenticating" @change="() => selected = parseInt($refs.select.value)"
@@ -24,19 +26,21 @@
         >
             <template slot="left-buttons">
                 <button v-if="localStorage.token" class="btn btn-default btn-sm" type="button"
-                    @click="forgetAuthenticatedUser">Logout</button>
+                    @click="forgetAuthenticatedUser">{{ $t('authenticate.logout') }}</button>
             </template>
             <template slot="right-buttons">
                 <button ref="close-button" class="btn btn-default btn-sm" type="button"
-                    @click="() => $refs.panel.close()">Cancel</button>
+                    @click="() => $refs.panel.close()">{{ $t('authenticate.cancel') }}</button>
             </template>
         </component>
 
         <div v-else class="d-flex">
             <button v-if="localStorage.token" class="btn btn-default btn-sm" type="button"
-                @click="forgetAuthenticatedUser">Logout</button>
+                @click="forgetAuthenticatedUser">{{ $t('authenticate.logout') }}</button>
             <div class="flex-fill"></div>
-            <button class="btn btn-default btn-sm" type="button" @click="() => $refs.panel.close()">Cancel</button>
+            <button class="btn btn-default btn-sm" type="button" @click="() => $refs.panel.close()">
+                {{ $t('authenticate.cancel') }}
+            </button>
         </div>
     </panel>
 </template>

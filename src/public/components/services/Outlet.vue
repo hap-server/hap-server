@@ -1,10 +1,10 @@
 <template>
-    <service class="service-outlet" :service="service" type="Outlet" :active="on" :updating="updating"
-        :changed="changed" @click="service.setCharacteristicByName('On', !on)"
+    <service class="service-outlet" :service="service" :type="$t('services.outlet.outlet')" :active="on"
+        :updating="updating" :changed="changed" @click="service.setCharacteristicByName('On', !on)"
     >
         <outlet-icon slot="icon" />
 
-        <p>{{ on ? 'On' : 'Off' }}</p>
+        <p>{{ $t('services.outlet.' + (on ? 'on' : 'off')) }}</p>
     </service>
 </template>
 

@@ -2,8 +2,8 @@ import {Event} from '..';
 import {PluginManager, Plugin, ServerPlugin} from '../../server/plugins';
 
 export class ServerPluginRegisteredEvent extends Event {
-    constructor(plugin: Plugin, plugin_manager: PluginManager, server_plugin: ServerPlugin) {
-        super(plugin, plugin_manager, server_plugin);
+    constructor(plugin: Plugin, server_plugin: typeof ServerPlugin) {
+        super(plugin, server_plugin);
     }
 
     get plugin(): Plugin {
@@ -14,7 +14,7 @@ export class ServerPluginRegisteredEvent extends Event {
         return this.plugin.plugin_manager;
     }
 
-    get server_plugin(): ServerPlugin {
+    get server_plugin(): typeof ServerPlugin {
         return this.args[1];
     }
 }
