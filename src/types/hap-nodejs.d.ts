@@ -298,7 +298,7 @@ declare module 'hap-nodejs/lib/Advertiser' {
     export class Advertiser {
         accessoryInfo: AccessoryInfo;
         _bonjourService: unknown;
-        _advertisement: unknown | null;
+        _advertisement: import('bonjour').Service | null;
         _setupHash: string;
 
         constructor(accessoryInfo: AccessoryInfo, mdnsConfig?: unknown);

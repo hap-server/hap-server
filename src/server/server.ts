@@ -322,15 +322,17 @@ export default class Server extends Events {
 
         this.hostname = hostname;
 
-        for (const bridge of this.bridges) {
+        for (const bridge of this.accessories.bridges) {
             if (bridge.hasOwnProperty('hap_server')) {
                 bridge.hap_server.config.hostname = hostname;
 
                 if (bridge.hap_server.is_advertising) {
                     this.log.debug('Restarting advertisement for bridge %s', bridge.username);
                     // bridge.hap_server.stopAdvertising();
-                    bridge.hap_server.advertiser._advertisement.stop();
-                    bridge.hap_server.advertiser._advertisement.destroy();
+                    // @ts-ignore
+                    bridge.hap_server.advertiser._advertisement!.stop();
+                    // @ts-ignore
+                    bridge.hap_server.advertiser._advertisement!.destroy();
                     bridge.hap_server.advertiser._advertisement = null;
                     bridge.hap_server.startAdvertising();
                 }
@@ -343,8 +345,10 @@ export default class Server extends Events {
                     this.log.debug('Restarting advertisement for bridge %s external accessory %s',
                         bridge.username, hap_server.accessory_info.displayName);
                     // hap_server.stopAdvertising();
-                    hap_server.advertiser._advertisement.stop();
-                    hap_server.advertiser._advertisement.destroy();
+                    // @ts-ignore
+                    hap_server.advertiser._advertisement!.stop();
+                    // @ts-ignore
+                    hap_server.advertiser._advertisement!.destroy();
                     hap_server.advertiser._advertisement = null;
                     hap_server.startAdvertising();
                 }
