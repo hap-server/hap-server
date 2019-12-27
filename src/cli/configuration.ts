@@ -94,7 +94,7 @@ type UnixSocketAddressType = 'unix';
 
 type ListenAddress = number | string | [NetAddressType, string, number] | [UnixSocketAddressType, string];
 
-interface ConfigurationFile {
+export interface ConfigurationFile {
     hostname?: string;
 
     'data-path'?: string;
@@ -128,7 +128,41 @@ interface ConfigurationFile {
     http_host?: string;
 }
 
-export default ConfigurationFile;
+interface Configuration {
+    hostname?: string;
+
+    'data-path'?: string;
+    'plugin-path'?: string | string[];
+
+    listen?: number | string | ListenAddress[];
+    'listen-https'?: {[key: string]: string | string[]};
+    'listen-https+request-client-certificate'?: string[] | {[key: string]: string | string[]};
+    'listen-https+require-client-certificate'?: {[key: string]: string | string[]};
+    'listen-https+crl'?: string[] | {[key: string]: string};
+    'listen-https+passphrase'?: string[] | {[key: string]: string};
+
+    plugins?: {
+        [key: string]: any;
+    };
+
+    bridge?: HomebridgeBridgeConfiguration;
+    accessories?: HomebridgeAccessoryConfiguration[];
+    platforms?: HomebridgePlatformConfiguration[];
+
+    bridges?: BridgeConfiguration[];
+    accessories2?: AccessoryConfiguration[];
+    platforms2?: AccessoryPlatformConfiguration[];
+
+    'automation-triggers'?: {[key: string]: AutomationTriggerConfiguration};
+    'automation-conditions'?: {[key: string]: AutomationConditionConfiguration};
+    'automation-actions'?: {[key: string]: AutomationActionConfiguration};
+    automations?: AutomationConfiguration[];
+
+    /** @deprecated */
+    http_host?: string;
+}
+
+export default Configuration;
 
 const validkeys = [
     'hostname', 'data-path', 'plugin-path',

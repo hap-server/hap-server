@@ -17,7 +17,7 @@ import {Plugin as HomebridgePluginManager} from 'homebridge/lib/plugin';
 import Events, {Event, EventListener, EventListenerPromise, EventListeners} from '../events';
 import {ServerPluginRegisteredEvent} from '../events/server';
 import * as ServerEvents from '../events/server';
-import {AccessoryPlatform, PluginAccessoryPlatformAccessory} from './accessories';
+import {AccessoryPlatform, AccessoryEvents, AccessoryStatus} from './accessories';
 import Logger from '../common/logger';
 import AutomationTrigger from '../automations/trigger';
 import AutomationCondition from '../automations/condition';
@@ -170,6 +170,8 @@ export class PluginManager extends Events {
                 EventListenerPromise,
                 EventListeners,
                 events,
+                AccessoryEvents,
+                AccessoryStatus,
             }));
 
             return plugin_api;

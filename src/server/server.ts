@@ -311,6 +311,51 @@ export default class Server extends Events {
         // Server.instances.remove(this);
     }
 
+    /**
+     * Sets or updates the server's hostname.
+     * This is used for Bonjour advertisements of HAP servers.
+     *
+     * @param {string} hostname
+     */
+    setHostname(hostname: string) {
+        if (!hostname) throw new Error('Cannot remove configured hostname');
+
+        this.hostname = hostname;
+
+        for (const bridge of this.accessories.bridges) {
+            if (bridge.hasOwnProperty('hap_server')) {
+                bridge.hap_server.config.hostname = hostname;
+
+                if (bridge.hap_server.is_advertising) {
+                    this.log.debug('Restarting advertisement for bridge %s', bridge.username);
+                    // bridge.hap_server.stopAdvertising();
+                    // @ts-ignore
+                    bridge.hap_server.advertiser._advertisement!.stop();
+                    // @ts-ignore
+                    bridge.hap_server.advertiser._advertisement!.destroy();
+                    bridge.hap_server.advertiser._advertisement = null;
+                    bridge.hap_server.startAdvertising();
+                }
+            }
+
+            for (const hap_server of bridge.external_accessory_servers.values()) {
+                hap_server.config.hostname = hostname;
+
+                if (hap_server.is_advertising) {
+                    this.log.debug('Restarting advertisement for bridge %s external accessory %s',
+                        bridge.username, hap_server.accessory_info.displayName);
+                    // hap_server.stopAdvertising();
+                    // @ts-ignore
+                    hap_server.advertiser._advertisement!.stop();
+                    // @ts-ignore
+                    hap_server.advertiser._advertisement!.destroy();
+                    hap_server.advertiser._advertisement = null;
+                    hap_server.startAdvertising();
+                }
+            }
+        }
+    }
+
     async loadPlugins() {
         for (const server_plugin of PluginManager.getServerPlugins()) {
             await this.loadPlugin(server_plugin);
