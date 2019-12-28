@@ -802,7 +802,15 @@ export class AccessoryPlatform {
      */
     reload(config: any) {
         if (this._destroyed) return Promise.reject(new Error('Canceled'));
+        if (!this._reloading && !this._initialising && this._initialiseCallbacks) {
+            // Not started initialising yet
+            Object.defineProperty(this, 'config', {configurable: true, value: Object.freeze(config)});
+            this._init();
+            return Promise.resolve();
+        }
         if (this._reloading && this._nextConfiguration === config) return this._reloading;
+
+        this._nextConfiguration = config;
 
         if (!this._reloadCallbacks) this._reloadCallbacks = [];
 
