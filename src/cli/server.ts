@@ -693,16 +693,18 @@ async function reloadConfig(server: Server, old_options: {
         const uuid = accessory_config.uuid || hap.uuid.generate('accessory:' + accessory_config.plugin + ':' +
             accessory_config.accessory + ':' + accessory_config.name);
 
-        accessory_config.uuid = uuid;
-
         const old_accessory_config = (old_options.config.accessories2 || []).find(accessory_config => {
-            return uuid === accessory_config.uuid || hap.uuid.generate('accessory:' + accessory_config.plugin + ':' +
-                accessory_config.accessory + ':' + accessory_config.name);
+            return uuid === (accessory_config.uuid || hap.uuid.generate('accessory:' + accessory_config.plugin + ':' +
+                accessory_config.accessory + ':' + accessory_config.name));
         });
 
         if (!old_accessory_config || !server.accessories.getPluginAccessory(uuid)) {
             // Accessory was added (or it wasn't loaded at startup/last reload)
             added_accessories[uuid] = accessory_config;
+            if (old_accessory_config) {
+                old_options.config.accessories2?.splice(
+                    old_options.config.accessories2.indexOf(old_accessory_config), 1);
+            }
         } else if (!isEqual(accessory_config, old_accessory_config)) {
             // Accessory configuration was updated
             updated_accessories[uuid] = [old_accessory_config, accessory_config];
@@ -738,8 +740,6 @@ async function reloadConfig(server: Server, old_options: {
         const base_uuid = platform_config.uuid || 'accessoryplatform:' + platform_config.plugin + ':' +
             platform_config.platform + ':' + platform_config.name;
         const uuid = hap.uuid.isValid(base_uuid) ? base_uuid : hap.uuid.generate(base_uuid);
-
-        platform_config.uuid = base_uuid;
 
         const old_platform_config = (old_options.config.platforms2 || []).find(platform_config => {
             const base_uuid = platform_config.uuid || 'accessoryplatform:' + platform_config.plugin + ':' +
@@ -834,7 +834,7 @@ async function reloadConfig(server: Server, old_options: {
             platform_config);
     }
     await Promise.all(Object.entries(removed_accessory_platforms).map(([uuid, old_platform_config]) => {
-        server.accessories.removeAccessory(server.accessories.accessories.find(a => a.uuid === uuid)!);
+        server.accessories.removeAccessoryPlatform(uuid);
         old_options.config.platforms2?.splice(old_options.config.platforms2.indexOf(old_platform_config), 1);
     }));
 

@@ -277,6 +277,8 @@ export default class AccessoryManager {
         if (!accessory_type || !name) throw new Error('Invalid accessory configuration: accessories must have the' +
             ' plugin, accessory and name properties');
 
+        accessory_config = Object.assign({}, accessory_config);
+
         if (uuid) accessory_config.uuid = uuid;
 
         // eslint-disable-next-line curly
@@ -325,6 +327,8 @@ export default class AccessoryManager {
 
         const [plugin, AccessoryPlatformHandler] = this.getAccessoryPlatformHandler(config);
 
+        config = Object.assign({}, config);
+
         if (uuid) config.uuid = uuid + ':';
         if (!config.uuid) {
             uuid = config.uuid = 'accessoryplatform:' + plugin_name + ':' + accessory_platform_name + ':' + name;
@@ -347,6 +351,30 @@ export default class AccessoryManager {
         return accessory_platform;
     }
 
+    async removeAccessoryPlatform(accessory_platform: AccessoryPlatform | string, cache_accessories = false) {
+        if (!(accessory_platform instanceof AccessoryPlatform)) {
+            accessory_platform = this.accessory_platforms.find(p => p.uuid === accessory_platform)!;
+            if (!accessory_platform) throw new Error('Unknown accessory platform');
+        }
+
+        for (const accessory of accessory_platform.accessories) {
+            accessory_platform.removeAccessory(accessory.accessory);
+            if (cache_accessories) {
+                accessory_platform.cached_accessories
+                    .push((await this.loadCachedAccessory(accessory.cache())).accessory);
+            }
+        }
+        if (!cache_accessories) accessory_platform.removeAllCachedAccessories();
+
+        // Emit the destroy event on the accessory - this allows the plugin to disconnect from the accessory properly
+        accessory_platform.destroy();
+
+        let index;
+        while ((index = this.accessory_platforms.indexOf(accessory_platform as AccessoryPlatform)) !== -1) {
+            this.accessory_platforms.splice(index, 1);
+        }
+    }
+
     async loadCachedAccessory(cache: any) {
         const plugin_accessory = PluginAccessory.restore(this.server, cache);
 
@@ -362,6 +390,8 @@ export default class AccessoryManager {
         ))) {
             bridge.addCachedAccessory(plugin_accessory.accessory);
         }
+
+        return plugin_accessory;
     }
 
     /**
@@ -819,7 +849,7 @@ export class AccessoryPlatform {
      *
      * @return {Promise}
      */
-    private destroy() {
+    destroy() {
         this._destroyed = true;
 
         clearTimeout(this._initialiseTimeout!);
