@@ -1,13 +1,21 @@
 Configuration
 ---
 
-hap-server stores data in the same default location as Homebridge and supports the same configuration. Using the same
-configuration as Homebridge, hap-server will behave exactly like Homebridge but will have a web interface for
-controlling accessories. Using Homebridge and hap-server plugins at the same time is supported, however you shouldn't
-run multiple instances of hap-server/Homebridge using the same data location.
+hap-server stores data in a platform-specific default location (falling back to the same location as Homebridge) and
+supports the same configuration format as Homebridge, as well as YAML. Using the same configuration as Homebridge,
+hap-server will behave exactly like Homebridge but will have a web interface for controlling accessories. Using
+Homebridge and hap-server plugins at the same time are supported, however you shouldn't run multiple instances of
+hap-server/Homebridge using the same data location.
 
-<!-- When using Homebridge accessories in the web interface, you can control, rename and move Homebridge accessories, but
-not configure them. Configuring Homebridge accessories must be done by editing the configuration file. -->
+Platform    | Directory
+------------|-----------
+macOS       | `~/Library/Application Support/hap-server`, `~/.homebridge`, `/Library/Application Support/hap-server`
+Linux       | `~/.config/hap-server`, `~/.homebridge`, `/var/lib/hap-server`
+
+For other platforms `~/.homebridge` is used.
+
+When using Homebridge accessories in the web interface, you can control, rename and move Homebridge accessories, but
+not configure them. Configuring Homebridge accessories must be done by editing the configuration file.
 
 ```yaml
 listen: [::1]:8080
@@ -24,6 +32,15 @@ accessories2:
         name: "Switch #1"
 ```
 
+#### Configuration reloading
+
+hap-server will reload the configuration file when it receives a `SIGHUP` signal. Currently this only works with
+accessories from hap-server plugins and HomeKit Accessory Protocol bridges.
+
+```
+kill -HUP `cat data/hap-server.pid`
+```
+
 ### `hostname`
 
 The hostname hap-server should use to advertise HAP bridges. If this is not set each bridge will use it's own
@@ -34,6 +51,10 @@ server on your network.
 
 > When running hap-server with the `advertise-web-interface` flag a random Multicast DNS hostname will always be used
 > even if this is set.
+
+> hap-server and hap-nodejs uses [`bonjour`](https://www.npmjs.com/package/bonjour) which implements it's own
+> Multicast DNS and DNS Service Discovery server, but doesn't handle name conflicts properly. Make sure the hostname
+> is unique if using a Multicast DNS hostname.
 
 ### `bridge`, `accessories` and `platforms`
 

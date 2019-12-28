@@ -161,7 +161,13 @@ A lot.
     - [x] Cached accessories
         - Accessory configuration can be cached so the server can run immediately and have accessories load in the
             background.
-- [ ] Configuration reloading
+- [x] Configuration reloading
+    - Global plugin configuration cannot be reloaded.
+    - [x] Accessories + accessory platforms
+    - [x] HAP bridges
+    - [x] Server hostname
+    - [ ] Listening addresses and HTTPS configuration
+    - [ ] Automations
 - Platform compatibility
     - [x] macOS
     - [x] Linux??

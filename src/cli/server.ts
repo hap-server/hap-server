@@ -611,13 +611,14 @@ async function reloadConfig(server: Server, old_options: {
     if (data_path !== old_options.data_path) throw new Error('Cannot change data path while running');
     if (!isEqual(config['plugin-path'], old_options.config['plugin-path'])) throw new Error('Cannot change plugin paths while running');
 
-    const nullchildren = [
+    const _nullchildren: (keyof ConfigurationFile)[] = [
         // List configuration keys that can be changed
         'hostname',
         'bridges',
         'accessories2',
         'platforms2',
-    ].reduce((acc, cur) => (acc[cur] = null, acc), {} as Record<string, null>);
+    ];
+    const nullchildren = _nullchildren.reduce((acc, cur) => (acc[cur] = null, acc), {} as Record<string, null>);
 
     if (!isEqual(
         Object.assign({}, nullchildren, old_options.config, nullchildren),
