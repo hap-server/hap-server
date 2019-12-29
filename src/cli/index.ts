@@ -216,6 +216,7 @@ command('./server', '$0 [config]', 'Run the HAP and web server');
 command('./make-admin', 'make-admin <user>', 'Promote a user to administrator');
 command('./get-characteristics', 'get-characteristics <config> <characteristics>', 'Get characteristics');
 command('./set-characteristic', 'set-characteristic <config> <characteristic> <value>', 'Set a characteristic');
+command('./hap-pair', 'hap-pair <host> <port>', 'Pair with a HomeKit accessory');
 
 interface ValidateConfigurationArguments extends GlobalArguments {
     strict: boolean;

@@ -13,10 +13,18 @@ const HttpClient: typeof import('hap-controller').HttpClient | undefined = (() =
 type HttpClient = import('hap-controller').HttpClient;
 const HttpConnection: typeof import('hap-controller/lib/transport/ip/http-connection') | undefined = (() => {
     try {
-        return require('hap-controller/lib/transport/http-connection');
+        return require('hap-controller/lib/transport/ip/http-connection');
     } catch (err) {}
 })();
 type HttpConnection = import('hap-controller/lib/transport/ip/http-connection');
+const IPDiscovery: typeof import('hap-controller').IPDiscovery | undefined = (() => {
+    try {
+        return require('hap-controller').IPDiscovery;
+    } catch (err) {}
+})();
+type IPDiscovery = import('hap-controller').IPDiscovery;
+import {PairingData} from 'hap-controller/lib/protocol/pairing-protocol';
+import {HapService} from 'hap-controller/lib/transport/ip/ip-discovery';
 
 const log = new Logger('HAP IP Accessory');
 const IID = Symbol('IID');
@@ -60,19 +68,29 @@ declare module 'hap-nodejs/lib/Characteristic' {
 
 const APPLE_BASE_UUID = '-0000-1000-8000-0026BB765291';
 
+interface HomeKitIPConfiguration {
+    plugin: undefined;
+    platform: 'HomeKitIP';
+    name: string;
+    uuid: string; // Set by hap-server if not set by the user
+
+    /** Device identifier (or username in hap-nodejs) */
+    id?: string;
+    /** Hostname/IP address */
+    host?: string;
+    /** Port */
+    port?: number;
+    /** hap-controller pairing data */
+    pairing_data: PairingData;
+}
+
 export default class HAPIP extends AccessoryPlatform {
-    config!: {
-        plugin: undefined;
-        platform: 'HomeKitIP';
-        name: string;
-        uuid: string; // Set by hap-server if not set by the user
+    config!: HomeKitIPConfiguration;
+    host: string | null = null;
+    port: number | null = null;
 
-        id: string; // Same as hap-nodejs usernames
-        address: string;
-        port: number;
-        pairing_data: any;
-    };
-
+    discovery: IPDiscovery | null = null;
+    advertisement: HapService | null = null;
     client: HttpClient | null = null;
     events_connection: HttpConnection | null = null;
     subscribed_characteristics: string[] = [];
@@ -93,11 +111,45 @@ export default class HAPIP extends AccessoryPlatform {
     private subscribe_queue_timeout?: NodeJS.Timeout = undefined;
 
     async init(cached_accessories: Accessory[]) {
-        if (!HttpClient) {
+        if (!HttpClient || !IPDiscovery) {
             throw new Error('hap-controller is not available');
         }
 
-        this.client = new HttpClient(this.config.id, this.config.address, this.config.port, this.config.pairing_data);
+        let advertisement_promise: Promise<HapService> | null = null;
+
+        if (this.config.id) {
+            // If we have the device identifier watch the advertisement
+            this.discovery = new IPDiscovery();
+            advertisement_promise = new Promise(resolve => {
+                this.discovery!.on('serviceUp', service => {
+                    if (service.id !== this.config.id) return;
+                    resolve(this.updateAdvertisement(service).then(() => service));
+                });
+            });
+        }
+
+        if (!this.config.host || !this.config.port) {
+            if (!this.config.id) {
+                throw new Error('The device identifier must be provided if the host/port is not configured');
+            }
+
+            this.discovery!.start();
+
+            await Promise.race([
+                this.advertisement || advertisement_promise,
+                new Promise((rs, rj) => {
+                    setTimeout(() => {
+                        this.discovery?.stop();
+                        rj(new Error('Timeout waiting for advertisement'));
+                    }, 30000);
+                }),
+            ]);
+        } else {
+            this.host = this.config.host;
+            this.port = this.config.port;
+        }
+
+        this.client = new HttpClient(this.config.id!, this.host!, this.port!, this.config.pairing_data);
 
         this.client.on('event', (event: any) => {
             log.info('Received event', event);
@@ -107,9 +159,9 @@ export default class HAPIP extends AccessoryPlatform {
                     const accessory_uuid = uuid.fromString(this.config.uuid + ':' + hap_characteristic.aid);
                     const accessory: Accessory = this.accessories.find(plugin_accessory =>
                         plugin_accessory.uuid === accessory_uuid)!.accessory;
-                    const characteristic = (accessory as any)[CharacteristicMap].get(hap_characteristic.iid);
+                    const characteristic = accessory[CharacteristicMap]!.get(hap_characteristic.iid);
 
-                    characteristic.updateValue(hap_characteristic.value);
+                    characteristic!.updateValue(hap_characteristic.value);
                 } catch (err) {
                     log.error('Error updating characteristic', hap_characteristic, err);
                 }
@@ -141,6 +193,104 @@ export default class HAPIP extends AccessoryPlatform {
 
         // Once we've registered all accessories from the bridge we can clear any remaining cached accessories
         this.removeAllCachedAccessories();
+    }
+
+    async onreload(config: HomeKitIPConfiguration) {
+        if (this.config.id !== config.id) {
+            this.discovery?.stop();
+            this.discovery = new IPDiscovery!();
+            this.discovery!.on('serviceUp', service => {
+                if (service.id !== this.config.id) return;
+                this.updateAdvertisement(service);
+            });
+        }
+
+        const host = config.host || this.advertisement?.address || null;
+        const port = config.port || this.advertisement?.port || null;
+
+        if (!host || !port) {
+            throw new Error('The device identifier must be provided if the host/port is not configured');
+        }
+
+        if (host !== this.host || port !== this.port) {
+            this.host = host;
+            this.port = port;
+        }
+
+        this.config = config;
+
+        if (this.client) {
+            this.client.address = this.host;
+            this.client.port = this.port;
+            this.client.pairingProtocol.AccessoryPairingID =
+                Buffer.from(this.config.pairing_data.AccessoryPairingID, 'hex');
+            this.client.pairingProtocol.AccessoryLTPK = Buffer.from(this.config.pairing_data.AccessoryLTPK, 'hex');
+            this.client.pairingProtocol.iOSDevicePairingID =
+                Buffer.from(this.config.pairing_data.iOSDevicePairingID, 'hex');
+            this.client.pairingProtocol.iOSDeviceLTSK = Buffer.from(this.config.pairing_data.iOSDeviceLTSK, 'hex');
+            this.client.pairingProtocol.iOSDeviceLTPK = Buffer.from(this.config.pairing_data.iOSDeviceLTPK, 'hex');
+        }
+    }
+
+    async ondestroy() {
+        this.client = null;
+        const events_connection = this.events_connection;
+        this.events_connection = null;
+        events_connection?.close();
+    }
+
+    async updateAdvertisement(service: HapService) {
+        const host = this.config.host || service.address;
+        const port = this.config.port || service.port;
+
+        if (host !== this.host || port !== this.port) {
+            this.host = host;
+            this.port = port;
+
+            if (this.client) {
+                this.client.address = host;
+                this.client.port = port;
+            }
+
+            if (this.advertisement) {
+                // Automatically reconnects
+                this.events_connection?.close();
+            }
+        }
+
+        if (this.advertisement && this.advertisement['c#'] !== service['c#']) {
+            await this.updateAccessories();
+        }
+
+        this.advertisement = service;
+    }
+
+    private events_connection_timeout: NodeJS.Timeout | null = null;
+
+    async eventsConnection() {
+        clearTimeout(this.events_connection_timeout!);
+
+        try {
+            const events_connection = this.events_connection =
+                await this.client!.subscribeCharacteristics(this.subscribed_characteristics);
+
+            this.events_connection.on('close', () => {
+                if (this.events_connection !== events_connection) return;
+
+                this.events_connection = null;
+                this.eventsConnection();
+            });
+
+            return;
+        } catch (err) {
+            log.error('Error connecting for events, retrying in 30 seconds', err);
+        }
+
+        return new Promise<void>((rs, rj) => {
+            this.events_connection_timeout = setTimeout(() => {
+                rs(this.eventsConnection());
+            }, 30000);
+        });
     }
 
     async getAccessoryDatabase(): Promise<AccessoriesHap> {
@@ -316,8 +466,8 @@ export default class HAPIP extends AccessoryPlatform {
                 .filter(cid => !cid.startsWith(accessory[IID] + '.'));
         }
 
-        for (const cid of subscribe_characteristics) patch_characteristics[cid] = true;
-        await this.patchSubscribedCharacteristics(patch_characteristics);
+        // for (const cid of subscribe_characteristics) patch_characteristics[cid] = true;
+        // await this.patchSubscribedCharacteristics(patch_characteristics);
     }
 
     patchAccessory(accessory: Accessory, hap_accessory: AccessoryHap, subscribe_characteristics: string[]) {
@@ -640,7 +790,7 @@ export default class HAPIP extends AccessoryPlatform {
 
     async processCharacteristicSubscribeQueue() {
         const queue = this.subscribe_queue || [];
-        clearTimeout(this.subscribe_queue_timeout as any);
+        clearTimeout(this.subscribe_queue_timeout!);
 
         this.subscribe_queue = null;
         this.subscribe_queue_timeout = undefined;

@@ -12,7 +12,23 @@ declare module 'hap-controller' {
 }
 
 declare module 'hap-controller/lib/protocol/pairing-protocol' {
-    import {PairingData, SessionKeys} from 'hap-controller/lib/protocol/pairing-protocol-types';
+    interface PairingData {
+        /** Hex encoded 17 byte accessory pairing identifier */
+        AccessoryPairingID: string;
+        /** Hex encoded 32 byte accessory public key */
+        AccessoryLTPK: string;
+        /** Hex encoded 36 byte controller pairing identifier */
+        iOSDevicePairingID: string;
+        /** Hex encoded 64 byte controller private key */
+        iOSDeviceLTSK: string;
+        /** Hex encoded 32 byte controller public key */
+        iOSDeviceLTPK: string;
+    }
+
+    interface SessionKeys {
+        AccessoryToControllerKey: Buffer;
+        ControllerToAccessoryKey: Buffer;
+    }
 
     enum Steps {
         M1 = 1,
@@ -121,22 +137,14 @@ declare module 'hap-controller/lib/protocol/pairing-protocol' {
         getLongTermData(): PairingData;
     }
 
+    namespace PairingProtocol {
+        export {
+            PairingData,
+            SessionKeys,
+        };
+    }
+
     export = PairingProtocol;
-}
-
-declare module 'hap-controller/lib/protocol/pairing-protocol-types' {
-    interface PairingData {
-        AccessoryPairingID: string;
-        AccessoryLTPK: string;
-        iOSDevicePairingID: string;
-        iOSDeviceLTSK: string;
-        iOSDeviceLTPK: string;
-    }
-
-    interface SessionKeys {
-        AccessoryToControllerKey: Buffer;
-        ControllerToAccessoryKey: Buffer;
-    }
 }
 
 declare module 'hap-controller/lib/transport/ip/http-client' {
@@ -144,8 +152,7 @@ declare module 'hap-controller/lib/transport/ip/http-client' {
 
     import {AccessoryHap} from '@hap-server/types/hap';
     import HttpConnection from 'hap-controller/lib/transport/ip/http-connection';
-    import PairingProtocol from 'hap-controller/lib/protocol/pairing-protocol';
-    import {PairingData, SessionKeys} from 'hap-controller/lib/protocol/pairing-protocol-types';
+    import PairingProtocol, {PairingData, SessionKeys} from 'hap-controller/lib/protocol/pairing-protocol';
 
     interface AccessoriesHap {
         accessories: AccessoryHap[];
@@ -174,7 +181,7 @@ declare module 'hap-controller/lib/transport/ip/http-client' {
         port: number;
         pairingProtocol: PairingProtocol;
 
-        constructor(deviceId: string, address: string, port: number, pairingData: any)
+        constructor(deviceId: string, address: string, port: number, pairingData?: PairingData);
         getLongTermData(): PairingData;
 
         identify(): Promise<void>;
@@ -200,7 +207,7 @@ declare module 'hap-controller/lib/transport/ip/http-connection' {
     import EventEmitter from 'events';
     import net from 'net';
 
-    import {SessionKeys} from 'hap-controller/lib/protocol/pairing-protocol-types';
+    import {SessionKeys} from 'hap-controller/lib/protocol/pairing-protocol';
 
     enum State {
         CLOSED = 0,
@@ -244,6 +251,12 @@ declare module 'hap-controller/lib/transport/ip/http-connection' {
         close(): void;
     }
 
+    namespace HttpConnection {
+        export {
+            HttpResponse,
+        };
+    }
+
     export = HttpConnection;
 }
 
@@ -251,16 +264,31 @@ declare module 'hap-controller/lib/transport/ip/ip-discovery' {
     import TypedEventEmitter from '@hap-server/types/typed-eventemitter';
 
     interface HapService {
+        /** Accessory display name */
         name: string;
+        /** Hostname/IP address */
         address: string;
+        /** Port number */
         port: number;
+        /** Configuration number/accessory database version */
         'c#': number;
+        /** Pairing feature flags */
         ff: number;
+        /** Device identifier */
         id: string;
+        /** Device model */
         md: string;
+        /** Protocol version */
         pv: string;
+        /**
+         * State number
+         *
+         * In v1 this must be 1.
+         * */
         's#': number;
+        /** Status flags */
         sf: number;
+        /** Category */
         ci: number;
     }
 
@@ -278,6 +306,12 @@ declare module 'hap-controller/lib/transport/ip/ip-discovery' {
 
         start(): void;
         stop(): void;
+    }
+
+    namespace IPDiscovery {
+        export {
+            HapService,
+        };
     }
 
     export = IPDiscovery;

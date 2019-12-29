@@ -79,7 +79,7 @@
                         },
                         "name": {},
                         "uuid": {},
-                        "username": {
+                        "id": {
                             "type": "string",
                             "description": "Device ID of the HomeKit accessory."
                         },
@@ -98,7 +98,20 @@
                     "required": [
                         "pairing_data"
                     ],
-                    "additionalProperties": false
+                    "additionalProperties": false,
+                    "oneOf": [
+                        {
+                            "required": [
+                                "id"
+                            ]
+                        },
+                        {
+                            "required": [
+                                "host",
+                                "port"
+                            ]
+                        }
+                    ]
                 }
             ]
         }
