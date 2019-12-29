@@ -1,8 +1,12 @@
 <template>
     <div class="root" :class="{scrolled, 'has-open-modals': modal_open}">
         <transition name="fade">
-            <div :key="background_url" class="background"
-                :style="{'background-image': background_url ? `url(${JSON.stringify(background_url)})` : 'none'}" />
+            <div :key="background_url" class="background" :style="background_url ? {
+                'background-image': `url(${JSON.stringify(background_url)})`,
+                filter: 'brightness(0.8)',
+            } : {
+                'background-image': 'none',
+            }" />
         </transition>
 
         <div class="header">
