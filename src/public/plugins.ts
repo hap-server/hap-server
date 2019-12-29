@@ -68,6 +68,7 @@ import * as vue_color_sketch_module from 'vue-color/src/components/Sketch.vue';
 // @ts-ignore
 import {DiscoveredAccessory} from './components/add-accessory.vue';
 
+import * as client_module from '../client';
 import * as vue_module from 'vue';
 import * as axios_module from 'axios';
 
@@ -206,6 +207,8 @@ export class PluginManager extends EventEmitter {
             return icon_component_modules.get('./' + request.substr(25) + '.vue');
         } else if (request === '@hap-server/ui-api/mixins') {
             return vue_mixins;
+        } else if (request === '@hap-server/hap-server/client') {
+            return client_module;
         } else if (request === 'vue') {
             return vue_module;
         } else if (request === 'axios') {

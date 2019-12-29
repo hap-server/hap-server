@@ -1,4 +1,6 @@
-import {uuid} from '../hap-nodejs';
+/// <reference path="../types/hap-nodejs.d.ts" />
+
+import * as uuid from 'hap-nodejs/lib/util/uuid';
 import genuuid from 'uuid/v4';
 
 export const fromString = uuid.generate;

@@ -637,8 +637,9 @@ You can also use [webpack](https://webpack.js.org) to bundle your web interface 
 
 ```js
     externals: [
-        (context, request, callback) => request.match(/^(@hap-server/ui-api(\/.+)|vue|axios|vue-color\/.+)$/g)
-            ? callback(null, `require(${JSON.stringify(request)})`) : callback(),
+        (context, request, callback) =>
+            request.match(/^(@hap-server/(hap-server\/client|ui-api(\/.+))|vue|axios|vue-color\/.+)$/g) ?
+                callback(null, `require(${JSON.stringify(request)})`) : callback(),
     ],
 ```
 
@@ -1144,26 +1145,35 @@ uiplugin.registerAutomationActionComponent('Webhook', ..., 'Webhook', 'webhook-p
 Registers additional routes to show custom full page views.
 
 ```js
+import {Client} from '@hap-server/hap-server/client';
 import uiplugin from '@hap-server/ui-api';
 import Map from 'somewhere';
 
 const MapComponent = {
-    template: `<div class="map-view" style="position: relative;">
+    template: `<div style="position: relative;">
         <map ref="map" />
 
-        <div class="map-overlay">
-            <h2>Map</h2>
-            <p>This component will be displayed full screen.</p>
+        <div class="main map-overlay">
+            <h1>Map</h1>
+
+            <div class="section">
+                <p>This component will be displayed full screen.</p>
+            </div>
         </div>
     </div>`,
     components: {
         Map,
+    },
+    props: {
+        client: Client,
     },
     computed: {
         title() {
             return 'Test';
         },
         background_url() {
+            // This must be bundled with your plugin for CSP
+            // If you are using webpack you can use file-loader
             return null;
         },
     },

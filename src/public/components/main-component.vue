@@ -33,7 +33,8 @@
             </div>
         </div>
 
-        <router-view v-if="is_plugin_route_active" ref="plugin_view" @title="title => plugin_view_title = title"
+        <router-view v-if="is_plugin_route_active" ref="plugin_view" :client="client"
+            @title="title => plugin_view_title = title"
             @background-url="background_url => plugin_view_background_url = background_url" />
 
         <keep-alive>
