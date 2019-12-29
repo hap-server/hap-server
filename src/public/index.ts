@@ -78,6 +78,10 @@ const i18n = new VueI18n({
 
 import PluginManager from './plugins';
 
+PluginManager.on('add-plugin-routes', routes => {
+    router.addRoutes(routes);
+});
+
 interface NativeHook {
     Client?: typeof Client;
     Modals?: {new (client: Client): Modals};

@@ -10,7 +10,10 @@
             </div>
 
             <h1>
-                <span v-if="show_automations" class="d-inline d-sm-none">{{ $t('main.automations') }}</span>
+                <span v-if="is_plugin_route_active" class="d-inline d-sm-none">
+                    {{ plugin_view_title || $t('main.home') }}
+                </span>
+                <span v-else-if="show_automations" class="d-inline d-sm-none">{{ $t('main.automations') }}</span>
                 <span v-else-if="layout && !(authenticated_user && layout.uuid === 'Overview.' + authenticated_user.id)"
                     class="d-inline d-sm-none">{{ layout.name || $t('main.home') }}</span>
                 <span v-else class="d-inline d-sm-none">{{ name || $t('main.home') }}</span>
@@ -23,18 +26,22 @@
                     :can-access-server-settings="can_access_server_settings || can_update_home_settings ||
                         can_open_console || can_add_accessories || can_create_bridges || can_create_layouts ||
                         can_manage_users"
+                    :is-plugin-route-active="is_plugin_route_active" :plugin-view-title="plugin_view_title"
                     :show-automations="show_automations" :can-access-automations="can_access_automations"
                     @edit-layout="$refs.layout.edit = !$refs.layout.edit" @show-automations="show_automations = $event"
                     @modal="modal => modals.add(modal)" />
             </div>
         </div>
 
+        <router-view v-if="is_plugin_route_active" ref="plugin_view" @title="title => plugin_view_title = title"
+            @background-url="background_url => plugin_view_background_url = background_url" />
+
         <keep-alive>
-            <automations v-if="show_automations" ref="automations" :client="client"
+            <automations v-if="!is_plugin_route_active && show_automations" ref="automations" :client="client"
                 @title="title => automations_title = title" />
         </keep-alive>
 
-        <div v-if="!show_automations" class="main">
+        <div v-if="!is_plugin_route_active && !show_automations" class="main">
             <layout ref="layout" :key="layout ? layout.uuid : ''" :layout="layout"
                 :title="(layout ? authenticated_user && layout.uuid === 'Overview.' + authenticated_user.id ? name : layout.name : name) || $t('main.home')"
                 @modal="modal => modals.add(modal)" @ping="ping" />
@@ -107,6 +114,9 @@
                 default_background_url: null,
                 last_layout_uuid: null,
                 force_update_layout: false,
+
+                plugin_view_title: null,
+                plugin_view_background_url: null,
 
                 automations_title: null,
                 can_access_automations: false,
@@ -184,10 +194,17 @@
                     else this.layout_uuid = this.last_layout_uuid;
                 },
             },
+            is_plugin_route_active() {
+                return this.$route.fullPath.startsWith('/-');
+            },
 
             title() {
                 if (this.modals.modal_open) {
                     return this.modals.stack[this.modals.stack.length - 1].title;
+                }
+
+                if (this.is_plugin_route_active) {
+                    return this.plugin_view_title || this.$t('main.home');
                 }
 
                 if (this.show_automations) {
@@ -197,6 +214,7 @@
                 return this.name || this.$t('main.home');
             },
             background_url() {
+                if (this.is_plugin_route_active) return this.plugin_view_background_url;
                 if (this.show_automations) return;
 
                 if (this.layout && this.layout.background_url) return this.getAssetURL(this.layout.background_url);
@@ -273,6 +291,13 @@
                     this.force_update_layout = !this.force_update_layout;
                 },
                 deep: true,
+            },
+            $route() {
+                if (!this.is_plugin_route_active) return;
+
+                this.plugin_view_title = this.$refs.plugin_view ? this.$refs.plugin_view.title || null : null;
+                this.plugin_view_background_url =
+                    this.$refs.plugin_view ? this.$refs.plugin_view.background_url || null : null;
             },
         },
         async created() {

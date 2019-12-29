@@ -1138,3 +1138,81 @@ that registered the web interface plugin.
 ```js
 uiplugin.registerAutomationActionComponent('Webhook', ..., 'Webhook', 'webhook-plugin');
 ```
+
+#### `uiplugin.registerPluginRoutes`
+
+Registers additional routes to show custom full page views.
+
+```js
+import uiplugin from '@hap-server/ui-api';
+import Map from 'somewhere';
+
+const MapComponent = {
+    template: `<div class="map-view" style="position: relative;">
+        <map ref="map" />
+
+        <div class="map-overlay">
+            <h2>Map</h2>
+            <p>This component will be displayed full screen.</p>
+        </div>
+    </div>`,
+    components: {
+        Map,
+    },
+    computed: {
+        title() {
+            return 'Test';
+        },
+        background_url() {
+            return null;
+        },
+    },
+    watch: {
+        title(title) {
+            this.$emit('title', this.title);
+        },
+        background_url(background_url) {
+            this.$emit('background-url', this.background_url);
+        },
+    },
+    mounted() {
+        this.$emit('title', this.title);
+        this.$emit('background-url', this.background_url);
+    },
+};
+
+uiplugin.registerPluginRoutes([
+    // This will be available at /-/map
+    {path: 'map', component: MapComponent},
+])
+```
+
+#### `uiplugin.registerMenuItem`
+
+Registers items in the menu.
+
+```js
+import uiplugin from '@hap-server/ui-api';
+
+uiplugin.registerMenuItem('/-/map', 'Map', {
+    // All optional
+    category: 'map',
+    category_name: 'Map',
+    if: () => true,
+});
+```
+
+You can also pass an object.
+
+```js
+uiplugin.registerMenuItem({
+    // Required
+    action: '/-/map', // You can also pass a function to call when the menu item is clicked
+    label: 'Map',
+
+    // Optional
+    category: 'map',
+    category_name: 'Map',
+    if: () => true,
+});
+```

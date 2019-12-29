@@ -6,10 +6,10 @@
         </template>
 
         <a v-if="authenticatedUser && layouts['Overview.' + authenticatedUser.id]" class="dropdown-item"
-            :class="{active: value && value.uuid === 'Overview.' + authenticatedUser.id && !showAutomations}"
+            :class="{active: value && value.uuid === 'Overview.' + authenticatedUser.id && !isPluginRouteActive && !showAutomations}"
             href="#" @click.prevent="setLayout(layouts['Overview.' + authenticatedUser.id])"
         >{{ name || $t('menu.home') }}</a>
-        <a class="dropdown-item" :class="{active: !value && !showAutomations}" href="#"
+        <a class="dropdown-item" :class="{active: !value && !isPluginRouteActive && !showAutomations}" href="#"
             @click.prevent="setLayout(null)">{{ $t('menu.all_accessories') }}</a>
 
         <template v-if="Object.values(layouts).length">
@@ -18,11 +18,11 @@
             <!-- eslint-disable-next-line vue/no-use-v-if-with-v-for -->
             <a v-for="layout in layouts" v-if="!authenticatedUser || layout.uuid !== 'Overview.' + authenticatedUser.id"
                 :key="layout.uuid" class="dropdown-item"
-                :class="{active: value && value.uuid === layout.uuid && !showAutomations}" href="#"
-                @click.prevent="setLayout(layout)">{{ layout.name || layout.uuid }}</a>
+                :class="{active: value && value.uuid === layout.uuid && !isPluginRouteActive && !showAutomations}"
+                href="#" @click.prevent="setLayout(layout)">{{ layout.name || layout.uuid }}</a>
         </template>
 
-        <template v-if="value && (value.can_set || value.can_delete) && !showAutomations">
+        <template v-if="value && (value.can_set || value.can_delete) && !isPluginRouteActive && !showAutomations">
             <div class="dropdown-divider"></div>
 
             <a v-if="value.can_set && (!authenticatedUser || value.uuid !== 'Overview.' + authenticatedUser.id)"
@@ -40,6 +40,16 @@
 
             <a class="dropdown-item" :class="{active: showAutomations}" href="#"
                 @click.prevent="$emit('show-automations', true)">{{ $t('menu.automations') }}</a>
+        </template>
+
+        <template v-for="[category, items] in plugin_items">
+            <div :key="'plugin-category-' + getKey(category) + '-divider'" class="dropdown-divider"></div>
+            <h6 v-if="items[0].category_name" :key="'plugin-category-' + getKey(category) + '-header'"
+                class="dropdown-header">{{ items[0].category_name }}</h6>
+
+            <a v-for="item in items" :key="'plugin-item-' + getKey(item)" class="dropdown-item"
+                :class="{active: isMenuItemActive(item)}" href="#"
+                @click.prevent="activateMenuItem(item)">{{ item.label }}</a>
         </template>
 
         <div class="dropdown-divider"></div>
@@ -67,6 +77,10 @@
     import {AuthenticatedUser} from '../../client/connection';
     import Layout from '../../client/layout';
     import Dropdown from './dropdown.vue';
+    import PluginManager, {MenuItem} from '../plugins';
+
+    const keys = new WeakMap();
+    let nextkey = 0;
 
     export default {
         components: {
@@ -79,11 +93,19 @@
             authenticatedUser: AuthenticatedUser,
             canCreate: Boolean,
             canAccessServerSettings: Boolean,
+            isPluginRouteActive: Boolean,
+            pluginViewTitle: {type: String, default: null},
             showAutomations: Boolean,
             canAccessAutomations: Boolean,
         },
+        data() {
+            return {
+                raw_plugin_items: PluginManager.plugin_menu_items,
+            };
+        },
         computed: {
             dropdown_label() {
+                if (this.isPluginRouteActive) return this.pluginViewTitle || this.$t('menu.home');
                 if (this.showAutomations) return this.$t('menu.automations');
                 if (!this.value) return this.$t('menu.all_accessories');
 
@@ -92,6 +114,38 @@
                 }
 
                 return this.value.name || this.value.uuid;
+            },
+            categorised_plugin_items() {
+                const categories = new Map();
+
+                for (const item of this.raw_plugin_items) {
+                    let category = categories.get(item.category);
+                    if (!category) categories.set(item.category, category = []);
+
+                    category.push(item);
+                }
+
+                return categories;
+            },
+            plugin_items() {
+                const categories = new Map();
+
+                for (const [category, items] of this.categorised_plugin_items.entries()) {
+                    const filtered_items = [];
+
+                    for (const item of items) {
+                        try {
+                            if (item.if && !item.if()) continue;
+                            filtered_items.push(item);
+                        } catch (err) {
+                            console.error('Error checking if menu item should be listed', item, err);
+                        }
+                    }
+
+                    if (filtered_items.length) categories.set(category, filtered_items);
+                }
+
+                return categories;
             },
         },
         methods: {
@@ -104,6 +158,29 @@
             },
             showLayoutDelete() {
                 this.$emit('modal', {type: 'delete-layout', layout: this.value});
+            },
+            getKey(category) {
+                if (typeof category === 'object') {
+                    if (!keys.has(category)) keys.set(category, nextkey++);
+                    return keys.get(category);
+                }
+
+                return (typeof category) + category;
+            },
+            isMenuItemActive(item) {
+                if (typeof item.action === 'string') {
+                    return this.$route.matched[0] &&
+                        this.$router.resolve(item.action).route.matched[0] === this.$route.matched[0];
+                }
+
+                return false;
+            },
+            activateMenuItem(item) {
+                if (typeof item.action === 'string') {
+                    this.$router.push(item.action);
+                } else {
+                    item.action();
+                }
             },
         },
     };

@@ -3,9 +3,11 @@
 
 import path from 'path';
 import url from 'url';
+import EventEmitter from 'events';
 import axios from 'axios';
 
 import Vue, {Component} from 'vue';
+import {RouteConfig} from 'vue-router';
 
 import Accessory from '../client/accessory';
 import Service, {
@@ -102,10 +104,26 @@ interface RequireCache {
     [key: string]: Module;
 }
 
-export class PluginManager {
+export interface MenuItem {
+    /** Either a link to go to or a function to call when the item is clicked */
+    action: string | (() => void);
+    /** The name to show in the menu */
+    label: string;
+    /** An object to use to sort items into categories */
+    category?: any;
+    /** The name of the category to display */
+    category_name?: string;
+    /** A function to call to check if the menu item should be displayed */
+    if?: () => boolean;
+}
+
+export class PluginManager extends EventEmitter {
     private readonly require_caches = new WeakMap<UIPlugin, {[key: string]: Module}>();
     private readonly plugin_apis = new Map();
     base_url = '';
+
+    private readonly plugin_routes: RouteConfig[] = [];
+    readonly plugin_menu_items: MenuItem[] = [];
 
     static get instance() {
         return instance || (instance = new PluginManager());
@@ -237,7 +255,9 @@ export class PluginManager {
      * @param {string} request The name of the module to return the exports of
      * @return {Promise<*>}
      */
-    async import(ui_plugin: UIPlugin, script: string | null, cache: RequireCache, parent: Module | null, request: string) {
+    async import(
+        ui_plugin: UIPlugin, script: string | null, cache: RequireCache, parent: Module | null, request: string
+    ) {
         if (script) request = path.resolve(path.dirname(script), request);
 
         if (request.match(/^@hap-server\/accessory-ui-api(\/.*)?$/)) {
@@ -368,6 +388,48 @@ export class PluginManager {
 
         return plugin_api_module;
     }
+
+    getPluginRoutes(): RouteConfig[] {
+        return [...this.plugin_routes];
+    }
+
+    addPluginRoutes(routes: RouteConfig[]) {
+        for (const route of routes) {
+            this.constructor.validateRoute(route);
+
+            if (!route.path.startsWith('/')) {
+                route.path = '/-/' + route.path;
+            }
+        }
+
+        this.plugin_routes.push(...routes);
+        for (const route of routes) {
+            this.emit('add-plugin-route', route);
+        }
+        this.emit('add-plugin-routes', routes);
+    }
+
+    static validateRoute(route: RouteConfig) {
+        if (route.path.startsWith('/') && !route.path.startsWith('/-/')) {
+            throw new Error('Route doesn\'t start with `/-/`');
+        }
+
+        for (const child of route.children || []) {
+            this.validateRoute(child);
+        }
+    }
+
+    addMenuItems(items: MenuItem[]) {
+        this.plugin_menu_items.push(...items);
+        for (const item of items) {
+            this.emit('add-menu-item', item);
+        }
+        this.emit('add-menu-items', items);
+    }
+}
+
+export interface PluginManager {
+    constructor: typeof PluginManager;
 }
 
 export default PluginManager.instance;
@@ -751,6 +813,32 @@ export class PluginAPI {
         }
 
         AutomationActionComponents.pushPluginComponent(this.ui_plugin, {component, plugin, type, name});
+    }
+
+    /**
+     * Registers additional routes for plugins.
+     *
+     * @param {RouteConfig[]} routes
+     */
+    registerPluginRoutes(routes: RouteConfig[]) {
+        this.plugin_manager.addPluginRoutes(routes);
+    }
+
+    /**
+     * Registers menu items.
+     *
+     * @param {string} action
+     * @param {string} label
+     * @param {object} options
+     */
+    registerMenuItem(action: string, label: string, options?: Partial<MenuItem>): void
+    registerMenuItem(options: MenuItem): void
+    registerMenuItem(action: MenuItem | string, label?: string, options?: Partial<MenuItem>) {
+        if (typeof action !== 'string') return this.plugin_manager.addMenuItems([action]);
+
+        this.plugin_manager.addMenuItems([Object.assign({
+            action, label: label!,
+        }, options)]);
     }
 }
 
