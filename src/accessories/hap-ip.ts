@@ -821,8 +821,18 @@ export default class HAPIP extends AccessoryPlatform {
             }[],
         };
 
+        for (const cid of this.subscribed_characteristics) {
+            const parts = cid.split('.');
+            data.characteristics.push({
+                aid: parseInt(parts[0], 10),
+                iid: parseInt(parts[1], 10),
+                ev: true,
+            });
+        }
+
         for (const [cid, subscribe] of Object.entries(characteristics)) {
             const parts = cid.split('.');
+            if (this.subscribed_characteristics.includes(cid) || !subscribe) continue;
             data.characteristics.push({
                 aid: parseInt(parts[0], 10),
                 iid: parseInt(parts[1], 10),
@@ -830,12 +840,15 @@ export default class HAPIP extends AccessoryPlatform {
             });
         }
 
+        this.events_connection?.socket && this.events_connection?.close();
+        if (!data.characteristics.length) return;
         if (!this.events_connection) {
-            this.events_connection = new HttpConnection!(this.client!.address, this.client!.port);
+            // this.events_connection = new HttpConnection!(this.client!.address, this.client!.port);
 
-            // @ts-ignore
-            const keys = await this.client!._pairVerify(this.events_connection);
-            this.events_connection!.setSessionKeys(keys);
+            // // @ts-ignore
+            // const keys = await this.client!._pairVerify(this.events_connection);
+            // this.events_connection!.setSessionKeys(keys);
+            await this.eventsConnection();
         }
 
         const response = await this.events_connection!
