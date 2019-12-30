@@ -17,6 +17,7 @@ import {
     BridgeConfiguration, AccessoryPlatformConfiguration,
     HomebridgeBridgeConfiguration, HomebridgeAccessoryConfiguration, HomebridgePlatformConfiguration,
 } from '../cli/configuration';
+import {AccessoryType} from '../common/types/storage';
 
 import {Accessory, Service, Characteristic} from '../hap-nodejs';
 import * as hap from '../hap-nodejs';
@@ -248,6 +249,28 @@ export default class AccessoryManager {
         }
 
         this.server.emit(RemoveAccessoryEvent, this.server, plugin_accessory);
+    }
+
+    async loadAccessoriesFromStorage(dont_throw = false) {
+        const accessory_uuids: string[] = await this.server.storage.getItem('Accessories') || [];
+
+        return Promise.all(accessory_uuids.map(uuid => this.server.storage.getItem('Accessory.' + uuid)
+            .then(async data => {
+                switch (data.type) {
+                    case AccessoryType.ACCESSORY:
+                        return this.loadAccessory(data.config, uuid);
+                    case AccessoryType.ACCESSORY_PLATFORM:
+                        return this.loadAccessoryPlatform(data.config, uuid);
+                    // case AccessoryType.MERGED_ACCESSORY:
+                    //     return this.loadMergedAccessory(data.config, uuid);
+                    default:
+                        throw new Error('Unknown accessory type "' + data.type + '"');
+                }
+            }).catch(err => {
+                this.log.error('Error loading accessory %s:', uuid, err);
+
+                if (!dont_throw) throw err;
+            })));
     }
 
     getAccessoryHandler(config: {

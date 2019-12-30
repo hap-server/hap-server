@@ -142,13 +142,14 @@ A lot.
         - [x] Basic accessory control
         - [x] Accessory control
         - [x] Accessory + accessory platform discovery + setup
-            - Discovery + setup UI works but accessories aren't actually created yet.
         - [ ] Accessory + accessory platform configuration
         - [x] Authentication
         - [x] User management
         - [x] Automation trigger configuration
         - [x] Automation condition configuration
         - [x] Automation action configuration
+        - [x] Custom routes and menu items
+        - [ ] Custom modals
     - [ ] Web interface themes?
     - [x] Automation plugins
         - Automation plugins can run other automation conditions/actions.

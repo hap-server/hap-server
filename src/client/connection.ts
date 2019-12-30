@@ -254,6 +254,14 @@ class Connection extends EventEmitter {
         return this.send('set-accessories-configuration', {id_data});
     }
 
+    getAccessoryPlatformsConfiguration(...id: string[]) {
+        return this.send('get-accessory-platforms-configuration', {id});
+    }
+
+    setAccessoryPlatformsConfiguration(...id_data: [string, any][]) {
+        return this.send('set-accessory-platforms-configuration', {id_data});
+    }
+
     getAccessoriesPermissions(...id: string[]) {
         return this.send('get-accessories-permissions', {id});
     }
@@ -312,6 +320,22 @@ class Connection extends EventEmitter {
 
     stopAccessoryDiscovery() {
         return this.send('stop-accessory-discovery');
+    }
+
+    createAccessories(...data: any[]) {
+        return this.send('create-accessories', {data});
+    }
+
+    createAccessoryPlatforms(...data: any[]) {
+        return this.send('create-accessory-platforms', {data});
+    }
+
+    deleteAccessories(...id: any[]) {
+        return this.send('delete-accessories', {id});
+    }
+
+    deleteAccessoryPlatforms(...id: any[]) {
+        return this.send('delete-accessory-platforms', {id});
     }
 
     getHomeSettings() {

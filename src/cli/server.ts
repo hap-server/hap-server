@@ -459,6 +459,7 @@ export async function handler(argv: Arguments) {
     await Promise.all([
         server.loadAccessoriesFromConfig(config.accessories2 || []),
         server.loadAccessoryPlatformsFromConfig(config.platforms2 || []),
+        server.accessories.loadAccessoriesFromStorage(true),
     ]);
 
     if (server.accessories.homebridge) {

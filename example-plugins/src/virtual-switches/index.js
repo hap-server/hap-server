@@ -3,9 +3,10 @@
 // "homebridge-api/storage" is a node-persist instance (will be configured and initialised automatically)
 // "homebridge-api/hap" is hap-nodejs (hap-server adds the getHandler and setHandler methods of Characteristics)
 
-import hapserver, {log, AccessoryEvents, AccessoryStatus} from '@hap-server/api';
+import hapserver, {log, WebInterfacePlugin, AccessorySetup, AccessoryEvents, AccessoryStatus} from '@hap-server/api';
 import storage from '@hap-server/api/storage';
 import {Accessory, Service, Characteristic, uuid} from '@hap-server/api/hap';
+import path from 'path';
 
 import globalconfig from '@hap-server/api/plugin-config';
 
@@ -130,3 +131,13 @@ hapserver.registerDynamicAccessoryPlatform('VirtualSwitches', async (accessory_p
 
     return switches;
 });
+
+const accessory_setup = new AccessorySetup('VirtualSwitch');
+hapserver.registerAccessorySetup(accessory_setup);
+
+const ui = new WebInterfacePlugin();
+
+ui.static('/ui', path.join(__dirname, 'ui'));
+ui.loadScript('/ui/index.js');
+
+hapserver.registerWebInterfacePlugin(ui);

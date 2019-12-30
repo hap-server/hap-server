@@ -159,3 +159,7 @@ global.client = client;
 global.native_hook = native_hook;
 // @ts-ignore
 global.$root = vue;
+// @ts-ignore
+global.PluginManager = PluginManager;
+// @ts-ignore
+global.components = require('./component-registry');

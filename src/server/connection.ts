@@ -453,8 +453,21 @@ export default class Connection {
         };
 
         // eslint-disable-next-line curly
-        if (plugin_accessory instanceof PluginStandaloneAccessory) return {
-            is_writable: !!await this.server.storage.getItem('Accessory.' + uuid),
+        if (plugin_accessory instanceof PluginStandaloneAccessory &&
+            await this.server.storage.getItem('Accessory.' + uuid)
+        ) return {
+            is_writable: true,
+            type: AccessoryType.ACCESSORY,
+            plugin: plugin_accessory.plugin?.name,
+            accessory: plugin_accessory.accessory_type,
+            config: await this.server.storage.getItem('Accessory.' + uuid),
+        };
+
+        // eslint-disable-next-line curly
+        if (plugin_accessory instanceof PluginStandaloneAccessory &&
+            !await this.server.storage.getItem('Accessory.' + uuid)
+        ) return {
+            is_writable: true,
             type: AccessoryType.ACCESSORY,
             plugin: plugin_accessory.plugin?.name,
             accessory: plugin_accessory.accessory_type,
@@ -480,9 +493,82 @@ export default class Connection {
         await this.permissions.assertCanSetAccessoryConfig(uuid);
 
         const plugin_accessory = this.server.getPluginAccessory(uuid);
-        if (!plugin_accessory) return null!;
+        if (!plugin_accessory || !(plugin_accessory instanceof PluginStandaloneAccessory)) return null!;
 
-        //
+        const current_data = await this.server.storage.getItem('Accessory.' + uuid);
+        if (!current_data || current_data.type !== AccessoryType.ACCESSORY) return null!;
+
+        await this.server.storage.setItem('Accessory.' + uuid, {
+            type: AccessoryType.ACCESSORY,
+            config,
+        });
+
+        plugin_accessory.reload(config);
+    }
+
+    /**
+     * Gets accessory platform configuration.
+     */
+    @messagehandler('get-accessory-platforms-configuration', data => data.id)
+    getAccessoryPlatformsConfiguration(
+        ...id: string[]
+    ): Promise<ResponseMessages['get-accessory-platforms-configuration']> {
+        return Promise.all(id.map(id => this.getAccessoryPlatformConfiguration(id)));
+    }
+
+    async getAccessoryPlatformConfiguration(
+        uuid: string
+    ): Promise<ResponseMessages['get-accessory-platforms-configuration'][0]> {
+        const accessory_platform = this.server.accessories.accessory_platforms.find(p => p.uuid === uuid);
+        if (!accessory_platform) return null!;
+
+        // Accessory platform configuration can be accessed by users that have access to the configuration of any
+        // of it's accessories
+        if (!(await Promise.all(accessory_platform.accessories
+            .map(a => this.permissions.checkCanGetAccessoryConfig(a.uuid)))).find(a => a)
+        ) {
+            throw new Error('You don\'t have permission to access this accessory platform\'s configuration.');
+        }
+
+        return {
+            is_writable: !!await this.server.storage.getItem('Accessory.' + uuid),
+            type: AccessoryType.ACCESSORY_PLATFORM,
+            config: accessory_platform.config,
+            accessories: accessory_platform.accessories.map(a => a.uuid),
+        };
+    }
+
+    /**
+     * Sets accessory platform configuration.
+     */
+    @messagehandler('set-accessory-platforms-configuration', data => data.id_data)
+    setAccessoryPlatformsConfiguration(
+        ...id_data: [string, any][]
+    ): Promise<ResponseMessages['set-accessory-platforms-configuration']> {
+        return Promise.all(id_data.map(([id, data]) => this.setAccessoryPlatformConfiguration(id, data)));
+    }
+
+    async setAccessoryPlatformConfiguration(uuid: string, config: any) {
+        const accessory_platform = this.server.accessories.accessory_platforms.find(p => p.uuid === uuid);
+        if (!accessory_platform) return null!;
+
+        // Accessory platform configuration can be accessed by users that have access to the configuration of any
+        // of it's accessories
+        if (!(await Promise.all(accessory_platform.accessories
+            .map(a => this.permissions.checkCanGetAccessoryConfig(a.uuid)))).find(a => a)
+        ) {
+            throw new Error('You don\'t have permission to access this accessory platform\'s configuration.');
+        }
+
+        const current_data = await this.server.storage.getItem('Accessory.' + uuid);
+        if (!current_data || current_data.type !== AccessoryType.ACCESSORY_PLATFORM) return null!;
+
+        await this.server.storage.setItem('Accessory.' + uuid, {
+            type: AccessoryType.ACCESSORY_PLATFORM,
+            config,
+        });
+
+        accessory_platform.reload(config);
     }
 
     /**
@@ -793,6 +879,139 @@ export default class Connection {
 
         this.enable_accessory_discovery = false;
         this.server.decrementAccessoryDiscoveryCounter();
+    }
+
+    /**
+     * Creates accessories.
+     */
+    @messagehandler('create-accessories', data => data.data)
+    createAccessories(...data: any[]): Promise<ResponseMessages['create-accessories']> {
+        return Promise.all(data.map(data => this.createAccessory(data)));
+    }
+
+    async createAccessory(config: any) {
+        await this.permissions.assertCanCreateAccessories();
+
+        const uuid = genuuid();
+
+        this.log.debug('Creating accessory', uuid, config);
+
+        await this.server.storage.setItem('Accessory.' + uuid, {
+            type: AccessoryType.ACCESSORY,
+            config,
+        });
+
+        const accessory_uuids = await this.server.storage.getItem('Accessories') || [];
+        if (!accessory_uuids.includes(uuid)) {
+            accessory_uuids.push(uuid);
+            await this.server.storage.setItem('Accessories', accessory_uuids);
+        }
+
+        this.server.accessories.loadAccessory(config, uuid);
+
+        this.server.sendBroadcast({
+            type: 'add-accessory',
+            uuid,
+        }, this.ws);
+
+        return uuid;
+    }
+
+    /**
+     * Creates accessory platforms.
+     */
+    @messagehandler('create-accessory-platforms', data => data.data)
+    createAccessoryPlatforms(...data: any[]): Promise<ResponseMessages['create-accessory-platforms']> {
+        return Promise.all(data.map(data => this.createAccessoryPlatform(data)));
+    }
+
+    async createAccessoryPlatform(config: any) {
+        await this.permissions.assertCanCreateAccessories();
+
+        const uuid = genuuid();
+
+        this.log.debug('Creating accessory platform', uuid, config);
+
+        await this.server.storage.setItem('Accessory.' + uuid, {
+            type: AccessoryType.ACCESSORY_PLATFORM,
+            config,
+        });
+
+        const accessory_uuids = await this.server.storage.getItem('Accessories') || [];
+        if (!accessory_uuids.includes(uuid)) {
+            accessory_uuids.push(uuid);
+            await this.server.storage.setItem('Accessories', accessory_uuids);
+        }
+
+        this.server.accessories.loadAccessoryPlatform(config, uuid);
+
+        return uuid;
+    }
+
+    /**
+     * Removes accessories.
+     */
+    @messagehandler('delete-accessories', data => data.id)
+    deleteAccessories(id: string[]): Promise<ResponseMessages['delete-accessories']> {
+        return Promise.all(id.map(id => this.deleteAccessory(id)));
+    }
+
+    async deleteAccessory(uuid: string) {
+        await this.permissions.assertCanDeleteAccessory(uuid);
+
+        this.log.debug('Removing accessory', uuid);
+
+        const plugin_accessory = this.server.getPluginAccessory(uuid);
+        if (!plugin_accessory || !(plugin_accessory instanceof PluginStandaloneAccessory)) return null!;
+
+        this.server.accessories.removeAccessory(plugin_accessory);
+
+        await this.server.storage.removeItem('Accessory.' + uuid);
+
+        const accessory_uuids = await this.server.storage.getItem('Accessories') || [];
+        let index;
+        while ((index = accessory_uuids.indexOf(uuid)) > -1) {
+            accessory_uuids.splice(index, 1);
+        }
+        await this.server.storage.setItem('Accessories', accessory_uuids);
+
+        this.server.sendBroadcast({
+            type: 'remove-accessory',
+            uuid,
+        }, this.ws);
+    }
+
+    /**
+     * Creates accessory platforms.
+     */
+    @messagehandler('delete-accessory-platforms', data => data.id)
+    deleteAccessoryPlatforms(id: any[]): Promise<ResponseMessages['delete-accessory-platforms']> {
+        return Promise.all(id.map(id => this.deleteAccessoryPlatform(id)));
+    }
+
+    async deleteAccessoryPlatform(uuid: string) {
+        const accessory_platform = this.server.accessories.accessory_platforms.find(p => p.uuid === uuid);
+        if (!accessory_platform) return null!;
+
+        // Accessory platforms can be deleted by users that have access to delete all of it's accessories
+        if ((await Promise.all(accessory_platform.accessories
+            .map(a => this.permissions.checkCanGetAccessoryConfig(a.uuid)))).find(a => !a)
+        ) {
+            throw new Error('You don\'t have permission to access this accessory platform\'s configuration.');
+        }
+
+        this.server.accessories.removeAccessoryPlatform(accessory_platform);
+
+        this.log.debug('Deleting accessory platform', uuid);
+
+        await this.server.storage.removeItem('Accessory.' + uuid);
+
+        const accessory_uuids = await this.server.storage.getItem('Accessories') || [];
+        let index;
+        while ((index = accessory_uuids.indexOf(uuid)) > -1) {
+            accessory_uuids.splice(index, 1);
+        }
+        await this.server.storage.setItem('Accessories', accessory_uuids);
     }
 
     /**

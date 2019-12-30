@@ -54,7 +54,24 @@ export interface SetAccessoriesConfigurationRequestMessage {
     type: 'set-accessories-configuration';
     id_data: [string, unknown][];
 }
-export type SetAccessoriesConfigurationResponseMessage = unknown[];
+export type SetAccessoriesConfigurationResponseMessage = void[];
+
+export interface GetAccessoryPlatformsConfigurationRequestMessage {
+    type: 'get-accessory-platforms-configuration';
+    id: string[];
+}
+export type GetAccessoryPlatformsConfigurationResponseMessage = {
+    is_writable: boolean;
+    type: AccessoryType.ACCESSORY_PLATFORM;
+    config: any;
+    accessories: string[];
+}[];
+
+export interface SetAccessoryPlatformsConfigurationRequestMessage {
+    type: 'set-accessory-platforms-configuration';
+    id_data: [string, unknown][];
+}
+export type SetAccessoryPlatformsConfigurationResponseMessage = void[];
 
 export interface GetAccessoriesPermissionsRequestMessage {
     type: 'get-accessories-permissions';
@@ -131,6 +148,30 @@ export interface StopAccessoryDiscoveryRequestMessage {
     type: 'stop-accessory-discovery';
 }
 export type StopAccessoryDiscoveryResponseMessage = void;
+
+export interface CreateAccessoriesRequestMessage {
+    type: 'create-accessories';
+    data: any[];
+}
+export type CreateAccessoriesResponseMessage = string[];
+
+export interface CreateAccessoryPlatformsRequestMessage {
+    type: 'create-accessory-platforms';
+    data: any[];
+}
+export type CreateAccessoryPlatformsResponseMessage = string[];
+
+export interface DeleteAccessoriesRequestMessage {
+    type: 'delete-accessories';
+    id: string[];
+}
+export type DeleteAccessoriesResponseMessage = void[];
+
+export interface DeleteAccessoryPlatformsRequestMessage {
+    type: 'delete-accessory-platforms';
+    id: string[];
+}
+export type DeleteAccessoryPlatformsResponseMessage = void[];
 
 export interface GetHomeSettingsRequestMessage {
     type: 'get-home-settings';
@@ -542,6 +583,12 @@ interface DefinedRequestResponseMessages {
     'set-accessories-configuration': [
         SetAccessoriesConfigurationRequestMessage, SetAccessoriesConfigurationResponseMessage,
     ];
+    'get-accessory-platforms-configuration': [
+        GetAccessoryPlatformsConfigurationRequestMessage, GetAccessoryPlatformsConfigurationResponseMessage,
+    ];
+    'set-accessory-platforms-configuration': [
+        SetAccessoryPlatformsConfigurationRequestMessage, SetAccessoryPlatformsConfigurationResponseMessage,
+    ];
     'get-accessories-permissions': [GetAccessoriesPermissionsRequestMessage, GetAccessoriesPermissionsResponseMessage];
     'get-characteristics': [GetCharacteristicsRequestMessage, GetCharacteristicsResponseMessage];
     'set-characteristics': [SetCharacteristicsRequestMessage, SetCharacteristicsResponseMessage];
@@ -556,6 +603,10 @@ interface DefinedRequestResponseMessages {
     'start-accessory-discovery': [StartAccessoryDiscoveryRequestMessage, StartAccessoryDiscoveryResponseMessage];
     'get-discovered-accessories': [GetDiscoveredAccessoriesRequestMessage, GetDiscoveredAccessoriesResponseMessage];
     'stop-accessory-discovery': [StopAccessoryDiscoveryRequestMessage, StopAccessoryDiscoveryResponseMessage];
+    'create-accessories': [CreateAccessoriesRequestMessage, CreateAccessoriesResponseMessage];
+    'create-accessory-platforms': [CreateAccessoryPlatformsRequestMessage, CreateAccessoryPlatformsResponseMessage];
+    'delete-accessories': [DeleteAccessoriesRequestMessage, DeleteAccessoriesResponseMessage];
+    'delete-accessory-platforms': [DeleteAccessoryPlatformsRequestMessage, DeleteAccessoryPlatformsResponseMessage];
 
     'get-home-settings': [GetHomeSettingsRequestMessage, GetHomeSettingsResponseMessage];
     'get-home-permissions': [GetHomePermissionsRequestMessage, GetHomePermissionsResponseMessage];

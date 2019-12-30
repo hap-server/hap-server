@@ -55,6 +55,7 @@
         AccessoryDiscoveryComponents as accessory_discovery_components,
         AccessorySetupComponents as accessory_setup_components,
     } from '../component-registry';
+    import {ClientSymbol} from '../internal-symbols';
 
     import Panel from './panel.vue';
     import ListGroup from './list-group.vue';
@@ -92,6 +93,9 @@
         },
         props: {
             connection: Connection,
+        },
+        inject: {
+            client: {from: ClientSymbol},
         },
         data() {
             return {
@@ -161,9 +165,15 @@
                 this.creating = true;
 
                 try {
-                    console.log('Creating', type === 'platform' ? 'accessory platform' : 'accessory', config);
+                    console.log('Creating %s', type === 'platform' ? 'accessory platform' : 'accessory', config);
 
-                    // ...
+                    if (type === 'platform') {
+                        const [uuid] = await this.connection.createAccessoryPlatforms(config);
+                    } else {
+                        const [uuid] = await this.connection.createAccessories(config);
+                        await this.client.refreshAccessories();
+                        const accessory = this.client.accessories[uuid];
+                    }
 
                     if (close) this.$refs.panel.close();
                 } finally {
@@ -180,7 +190,7 @@
                     // Start accessory discovery and get any already discovered accessories
                     const discovered_accessories = await this.connection.startAccessoryDiscovery();
 
-                    for (const data of discovered_accessories) {
+                    for (const data of discovered_accessories || []) {
                         const discovered_accessory = new DiscoveredAccessory(this.connection, data.plugin,
                             data.accessory_discovery, data.id, data.data); // eslint-disable-line vue/script-indent
 
