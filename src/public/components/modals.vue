@@ -33,6 +33,7 @@
                 @show-accessory-settings="accessory => pushModal({type: 'accessory-settings', accessory})"
                 @show-service-settings="service => pushModal({type: 'service-settings', service,
                     fromAccessorySettings: () => modals.stack[index] === modal})"
+                @accessory-platform-settings="uuid => pushModal({type: 'accessory-platform-settings', uuid})"
                 @modal="pushModal" @close="modals.remove(modal)" />
             <!-- eslint-enable vue/html-indent -->
             <accessory-settings v-else-if="modal.type === 'new-bridge'" :key="getModalID(modal)"
@@ -43,6 +44,11 @@
                 :ref="'modal-' + getModalID(modal)" :connection="client.connection" :accessory="modal.accessory"
                 :accessories="client.accessories" :bridge-uuids="bridgeUuids" :delete-bridge="true"
                 @remove="removeAccessory" @close="modals.remove(modal)" />
+
+            <accessory-platform-settings v-else-if="modal.type === 'accessory-platform-settings'"
+                :key="getModalID(modal)" :client="client" :accessory-platform-uuid="modal.uuid"
+                @show-accessory-settings="accessory => pushModal({type: 'accessory-settings', accessory})"
+                @close="modals.remove(modal)" />
 
             <pairing-settings v-else-if="modal.type === 'pairing-settings'" :key="getModalID(modal)"
                 :ref="'modal-' + getModalID(modal)" :connection="client.connection" :accessory="modal.accessory"
@@ -97,6 +103,8 @@
             AddAccessory: () => import(/* webpackChunkName: 'settings' */ './add-accessory.vue'),
             LayoutSettings: () => import(/* webpackChunkName: 'settings' */ './layout-settings.vue'),
             AccessorySettings: () => import(/* webpackChunkName: 'settings' */ './accessory-settings.vue'),
+            AccessoryPlatformSettings: () =>
+                import(/* webpackChunkName: 'settings' */ './accessory-platform-settings.vue'),
             PairingSettings: () => import(/* webpackChunkName: 'settings' */ './pairing-settings.vue'),
             ServiceSettings: () => import(/* webpackChunkName: 'settings' */ './service-settings.vue'),
 

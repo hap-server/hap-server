@@ -11,6 +11,7 @@ const external_types = [
     'new-layout',
     'delete-layout',
     'accessory-settings',
+    'accessory-platform-settings',
     'new-bridge',
     'delete-bridge',
     'pairing-settings',
@@ -75,6 +76,10 @@ export class WindowModals extends Modals {
 
         if (modal.type === 'accessory-settings' || modal.type === 'delete-bridge') {
             return {accessory: modal.accessory.uuid};
+        }
+
+        if (modal.type === 'accessory-platform-settings') {
+            return {uuid: modal.uuid};
         }
 
         if (modal.type === 'pairing-settings') {

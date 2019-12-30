@@ -36,6 +36,7 @@
             :accessory="modal.accessory" :accessories="client.accessories" :bridge-uuids="modal.bridge_uuids"
             @show-accessory-settings="accessory => pushModal({type: 'accessory-settings', accessory})"
             @show-service-settings="service => pushModal({type: 'service-settings', service})"
+            @accessory-platform-settings="uuid => pushModal({type: 'accessory-platform-settings', uuid})"
             @modal="pushModal" @close="close" />
         <accessory-settings v-else-if="modal.type === 'new-bridge'" :connection="client.connection"
             :accessories="client.accessories" :bridge-uuids="bridgeUuids" :create-bridge="true"
@@ -43,6 +44,10 @@
         <accessory-settings v-else-if="modal.type === 'delete-bridge'" :connection="client.connection"
             :accessory="modal.accessory" :accessories="client.accessories" :bridge-uuids="bridgeUuids"
             :delete-bridge="true" @remove="removeAccessory" @close="close" />
+
+        <accessory-platform-settings v-else-if="modal.type === 'accessory-platform-settings'"
+            :client="client" :accessory-platform-uuid="modal.uuid"
+            @show-accessory-settings="accessory => pushModal({type: 'accessory-settings', accessory})" @close="close" />
 
         <pairing-settings v-else-if="modal.type === 'pairing-settings'" :connection="client.connection"
             :accessory="modal.accessory" :pairing="modal.pairing" :pairing-data="modal.pairing_data"
@@ -99,6 +104,8 @@
             AddAccessory: () => import(/* webpackChunkName: 'settings' */ './add-accessory.vue'),
             LayoutSettings: () => import(/* webpackChunkName: 'settings' */ './layout-settings.vue'),
             AccessorySettings: () => import(/* webpackChunkName: 'settings' */ './accessory-settings.vue'),
+            AccessoryPlatformSettings: () =>
+                import(/* webpackChunkName: 'settings' */ './accessory-platform-settings.vue'),
             PairingSettings: () => import(/* webpackChunkName: 'settings' */ './pairing-settings.vue'),
             ServiceSettings: () => import(/* webpackChunkName: 'settings' */ './service-settings.vue'),
 
@@ -250,6 +257,10 @@
                         modal.accessory = this.client.accessories[this.$route.query.accessory];
                         if (!modal.accessory) throw new Error('Unknown ' + (modal.bridge_uuids // eslint-disable-line curly
                             .includes(this.$route.query.accessory) ? 'bridge' : 'accessory'));
+                    }
+
+                    if (modal.type === 'accessory-platform-settings') {
+                        modal.uuid = this.$route.query.uuid;
                     }
 
                     if (modal.type === 'pairing-settings') {

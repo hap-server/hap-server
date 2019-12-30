@@ -290,6 +290,7 @@ export default {
         new_layout: 'New layout',
         delete_layout: 'Delete {name}?',
         accessory_settings: '{name} Settings',
+        accessory_platform_settings: 'Accessory platform settings - {uuid}',
         new_bridge: 'New bridge',
         delete_bridge: 'Delete {name}?',
         pairing_settings: '{name} Settings',

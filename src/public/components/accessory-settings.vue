@@ -34,7 +34,9 @@
 
             <div v-if="config && config.type === 'accessory-platform'" class="d-flex mb-3">
                 <p class="mb-0 flex-fill">{{ $t('accessory_settings.accessory_platform_configuration_info') }}</p>
-                <a class="btn btn-default btn-sm ml-3" href="#" @click.prevent>
+                <a class="btn btn-default btn-sm ml-3" href="#"
+                    @click.prevent="$emit('accessory-platform-settings', config.accessory_platform)"
+                >
                     {{ $t('accessory_settings.accessory_platform_configuration') }}
                 </a>
             </div>
@@ -260,8 +262,8 @@
                 >{{ $t('accessory_settings.save') }}</button>
             </template>
             <template v-else>
-                <button v-if="changed || config_changed || bridge_config_changed || accessories_changed" class="btn btn-default btn-sm"
-                    type="button" :disabled="saving || saving_bridge_config"
+                <button v-if="changed || config_changed || bridge_config_changed || accessories_changed"
+                    class="btn btn-default btn-sm" type="button" :disabled="saving || saving_bridge_config"
                     @click="() => $refs.panel.close()">{{ $t('accessory_settings.cancel') }}</button>&nbsp;
                 <button key="primary" class="btn btn-primary btn-sm" type="button"
                     :disabled="changed || config_changed || bridge_config_changed || accessories_changed || loading ||
@@ -322,7 +324,7 @@
                     general: {label: () => this.$t('accessory_settings.general')},
                     config: {label: () => this.$t('accessory_settings.configuration'),
                         if: () => this.config && !this.config.is_homebridge &&
-                            !this.config.type !== 'accessory-platform'},
+                            this.config.type !== 'accessory-platform'},
                     bridge_config: {label: () => this.$t('accessory_settings.configuration'),
                         if: () => this.bridge_config},
                     accessories: {label: () => this.$t('accessory_settings.accessories'), if: () => this.is_bridge},

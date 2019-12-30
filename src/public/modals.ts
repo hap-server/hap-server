@@ -130,6 +130,14 @@ export class AccessorySettingsModal extends Modal {
 
 Modal.types['accessory-settings'] = AccessorySettingsModal;
 
+export class AccessoryPlatformSettingsModal extends Modal {
+    get title() {
+        return this.modals.i18n!.t('modals.accessory_platform_settings', {uuid: this.uuid});
+    }
+}
+
+Modal.types['accessory-platform-settings'] = AccessoryPlatformSettingsModal;
+
 export class NewBridgeModal extends Modal {
     get title() {
         return this.modals.i18n!.t('modals.new_bridge');
