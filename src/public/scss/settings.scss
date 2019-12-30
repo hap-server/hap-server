@@ -59,6 +59,7 @@
         max-height: 90%;
         border: darken($light, 20%) 1px solid;
         border-top-width: 0;
+        box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
 
         @include dark-theme {
             border-color: darken($dark, 20%);
@@ -66,11 +67,11 @@
 
         &.show,
         &.v-enter-active {
-            animation: panel-in 0.3s ease-in forwards;
+            animation: panel-in 0.2s ease-in forwards;
         }
 
         &.v-leave-active {
-            animation: panel-out 0.3s ease-out forwards;
+            animation: panel-out 0.2s ease-out forwards;
         }
     }
 
