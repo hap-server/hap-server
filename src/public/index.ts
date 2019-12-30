@@ -121,6 +121,10 @@ const modals = new (native_hook && native_hook.Modals ? native_hook.Modals : Mod
 modals.component = ModalsComponent;
 modals.i18n = i18n;
 
+const cached_data_json = localStorage.getItem('CachedData');
+if (cached_data_json) client.restoreCachedData(cached_data_json);
+client.on('cached-data', data => localStorage.setItem('CachedData', data));
+
 const vue = new Vue({
     router,
     i18n,

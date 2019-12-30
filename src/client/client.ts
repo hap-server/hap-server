@@ -87,6 +87,118 @@ class Client extends EventEmitter {
         // this.on('updated-layouts', (added, removed) => console.log('Updated layouts', added, removed));
     }
 
+    restoreCachedData(data_json: string) {
+        const data = JSON.parse(data_json);
+
+        if (data.accessories) {
+            if (!this.accessories) this.accessories = {};
+            for (const accessory_data of data.accessories) {
+                if (this.accessories && this.accessories[accessory_data.uuid]) continue;
+
+                const accessory = new Accessory(this.connection!, accessory_data.uuid, accessory_data.details,
+                    accessory_data.data, accessory_data.permissions); // eslint-disable-line vue/script-indent
+
+                $set(this.accessories, accessory.uuid, accessory);
+            }
+        }
+        if (data.layouts) {
+            if (!this.layouts) this.layouts = {};
+            for (const layout_data of data.layouts) {
+                if (this.layouts && this.layouts[layout_data.uuid]) continue;
+
+                const layout = new Layout(
+                    this.connection!, layout_data.uuid, layout_data.data, layout_data.sections, layout_data.permissions
+                );
+
+                $set(this.layouts, layout.uuid, layout);
+            }
+        }
+        if (data.automations) {
+            if (!this.automations) this.automations = {};
+            for (const automation_data of data.automations) {
+                if (this.automations && this.automations[automation_data.uuid]) continue;
+
+                const automation = new Automation(
+                    this.connection!, automation_data.uuid, automation_data.data, automation_data.permissions);
+
+                $set(this.automations, automation.uuid, automation);
+            }
+        }
+        if (data.scenes) {
+            if (!this.scenes) this.scenes = {};
+            for (const scene_data of data.scenes) {
+                if (this.scenes && this.scenes[scene_data.uuid]) continue;
+
+                const scene = new Scene(
+                    this.connection!, scene_data.uuid, scene_data.data, false, scene_data.permissions);
+
+                $set(this.scenes, scene.uuid, scene);
+            }
+        }
+    }
+
+    updateCachedData() {
+        if (!this.listenerCount('cached-data')) return;
+
+        const data = {} as any;
+
+        if (this.accessories) {
+            data.accessories = [];
+            for (const accessory of Object.values(this.accessories)) {
+                data.accessories.push({
+                    uuid: accessory.uuid,
+                    details: accessory.details,
+                    data: accessory.data,
+                    // @ts-ignore
+                    permissions: accessory._permissions,
+                });
+            }
+        }
+        if (this.layouts) {
+            data.layouts = [];
+            for (const layout of Object.values(this.layouts)) {
+                const sections = {} as any;
+
+                for (const section of Object.values(layout.sections)) {
+                    sections[section.uuid] = section.data;
+                }
+
+                data.layouts.push({
+                    uuid: layout.uuid,
+                    data: layout.data,
+                    sections,
+                    // @ts-ignore
+                    permissions: layout._permissions,
+                });
+            }
+        }
+        if (this.automations) {
+            data.automations = [];
+            for (const automation of Object.values(this.automations)) {
+                data.automations.push({
+                    uuid: automation.uuid,
+                    data: automation.data,
+                    // @ts-ignore
+                    permissions: automation._permissions,
+                });
+            }
+        }
+        if (this.scenes) {
+            data.scenes = [];
+            for (const scene of Object.values(this.scenes)) {
+                data.scenes.push({
+                    uuid: scene.uuid,
+                    data: scene.data,
+                    active: scene.active,
+                    // @ts-ignore
+                    permissions: scene._permissions,
+                });
+            }
+        }
+
+        this.emit('cached-data', JSON.stringify(data));
+    }
+
     /**
      * Connects to the server.
      *
@@ -162,7 +274,9 @@ class Client extends EventEmitter {
             this.layouts ? this.refreshLayouts() : null,
             this.automations ? this.refreshAutomations() : null,
             this.scenes ? this.refreshScenes() : null,
-        ]);
+        ]).then(() => {
+            this.updateCachedData();
+        });
     }
 
     /**
@@ -612,6 +726,8 @@ class Client extends EventEmitter {
             if (added_accessories.length || removed_accessories.length) {
                 this.emit('updated-accessories', added_accessories, removed_accessory_objects);
             }
+
+            this.updateCachedData();
         } finally {
             this.loading_accessories = false;
         }
@@ -740,6 +856,8 @@ class Client extends EventEmitter {
             if (new_layouts.length || removed_layouts.length) {
                 this.emit('updated-layouts', new_layouts, removed_layouts);
             }
+
+            this.updateCachedData();
         } finally {
             this.loading_layouts = false;
         }
@@ -839,6 +957,8 @@ class Client extends EventEmitter {
             if (new_automations.length || removed_automations.length) {
                 this.emit('updated-automations', new_automations, removed_automations);
             }
+
+            this.updateCachedData();
         } finally {
             this.loading_automations = false;
         }
@@ -942,6 +1062,8 @@ class Client extends EventEmitter {
             if (new_scenes.length || removed_scenes.length) {
                 this.emit('updated-scenes', new_scenes, removed_scenes);
             }
+
+            this.updateCachedData();
         } finally {
             this.loading_scenes = false;
         }
@@ -1178,6 +1300,8 @@ type ClientEvents = {
     'received-broadcast': (this: Client, data: BroadcastMessage) => void;
     'update-home-permissions': (this: Client, data: GetHomePermissionsResponseMessage) => void;
     'update-home-settings': (this: Client, data: Home) => void;
+
+    'cached-data': (this: Client, data: string) => void;
 
     'new-accessory': (this: Client, accessory: Accessory) => void;
     'new-accessories': (this: Client, accessories: Accessory[]) => void;
