@@ -34,7 +34,7 @@
         },
         data() {
             return {
-                valid: false,
+                valid: true,
                 config: null,
                 current_value: null,
                 error: null,
@@ -54,7 +54,7 @@
                 return !isEqual(this.config, this.value.config);
             },
             editable() {
-                return this.accessory.can_set_config && this.config.is_writable;
+                return this.accessory.can_set_configuration && this.value.is_writable;
             },
             json: {
                 get() {
@@ -72,10 +72,13 @@
         },
         watch: {
             valid(valid) {
-                this.$emit('valid', valid);
+                this.$emit('is-config-valid', valid);
             },
             value(value) {
                 this.config = JSON.parse(JSON.stringify(value.config));
+            },
+            component(component) {
+                if (!component) this.valid = true;
             },
             json(new_value) {
                 // const new_value = JSON.stringify(value, null, 4) + '\n';
@@ -112,7 +115,7 @@
         },
         created() {
             this.config = JSON.parse(JSON.stringify(this.value.config));
-            this.$emit('valid', this.valid);
+            this.$emit('is-config-valid', this.valid);
         },
         methods: {
             blur() {

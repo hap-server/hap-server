@@ -187,6 +187,9 @@
                     await this.client.connection.setAccessoryPlatformsConfiguration([
                         this.accessoryPlatformUuid, this.config,
                     ]);
+                    this.accessory_platform_data = Object.assign({}, this.accessory_platform_data, {
+                        config: this.config,
+                    });
 
                     if (close) this.$refs.panel.close();
                 } finally {

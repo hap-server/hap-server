@@ -582,20 +582,8 @@
                 this.saving = true;
 
                 try {
-                    if (!this.createBridge) {
-                        await this.connection.setBridgeConfiguration(this.accessory.uuid, this.config);
-                    } else {
-                        const [uuid] = await this.connection.createBridges(this.config);
-
-                        const [[details], [permissions]] = await Promise.all([
-                            this.connection.getAccessories(uuid),
-                            this.connection.getAccessoriesPermissions(uuid),
-                        ]);
-
-                        const accessory = new Accessory(this.connection, uuid, details, this.config, permissions);
-
-                        this.$emit('accessory', accessory);
-                    }
+                    await this.accessory.setConfiguration(this.config.config);
+                    this.saved_config = this.config;
 
                     if (close) this.$emit('close');
                 } finally {

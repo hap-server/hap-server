@@ -47,6 +47,13 @@ hapserver.registerAccessory('VirtualSwitch', async config => {
 
     accessory.on(AccessoryEvents.RELOAD, new_config => {
         log.info('Updating configuration', config, new_config);
+
+        if (config.name !== new_config.name) {
+            config.name = new_config.name;
+            accessory.displayName = new_config.name;
+            accessory.getService(Service.AccessoryInformation)
+                .setCharacteristic(Characteristic.Name, new_config.name);
+        }
     });
 
     return accessory;
