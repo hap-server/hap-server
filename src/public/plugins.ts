@@ -34,6 +34,8 @@ import {
     LayoutSectionComponents,
     AccessoryDiscoveryComponents,
     AccessorySetupComponents,
+    AccessoryConfigurationComponents,
+    AccessoryPlatformConfigurationComponents,
     AuthenticationHandlerComponents,
     UserManagementHandlers,
     AutomationTriggerComponents,
@@ -630,6 +632,52 @@ export class PluginAPI {
         }
 
         AccessorySetupComponents.addPluginComponent(this.ui_plugin, id, {component, name, manual});
+    }
+
+    /**
+     * Registers an accessory configuration component.
+     *
+     * @param {string} type
+     * @param {VueComponent} component
+     * @param {string} [plugin] The name of the plugin, if not the same plugin
+     */
+    registerAccessoryConfigurationComponent(type: string, component: Component, plugin?: string | null) {
+        if (typeof plugin === 'undefined') plugin = this.ui_plugin.plugin;
+        const id = JSON.stringify([plugin, type]);
+
+        if (AccessoryConfigurationComponents.has(id)) {
+            throw new Error('There is already an accessory configuration component with the ID "' + id + '"');
+        }
+
+        if (!component.name) {
+            // @ts-ignore
+            component.name = 'accessory-configuration-' + type;
+        }
+
+        AccessoryConfigurationComponents.addPluginComponent(this.ui_plugin, id, component);
+    }
+
+    /**
+     * Registers an accessory platform configuration component.
+     *
+     * @param {string} type
+     * @param {VueComponent} component
+     * @param {string} [plugin] The name of the plugin, if not the same plugin
+     */
+    registerAccessoryPlatformConfigurationComponent(type: string, component: Component, plugin?: string | null) {
+        if (typeof plugin === 'undefined') plugin = this.ui_plugin.plugin;
+        const id = JSON.stringify([plugin, type]);
+
+        if (AccessoryPlatformConfigurationComponents.has(id)) {
+            throw new Error('There is already an accessory platform configuration component with the ID "' + id + '"');
+        }
+
+        if (!component.name) {
+            // @ts-ignore
+            component.name = 'accessory-platform-configuration-' + type;
+        }
+
+        AccessoryPlatformConfigurationComponents.addPluginComponent(this.ui_plugin, id, component);
     }
 
     /**

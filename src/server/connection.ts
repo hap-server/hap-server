@@ -460,7 +460,7 @@ export default class Connection {
             type: AccessoryType.ACCESSORY,
             plugin: plugin_accessory.plugin?.name,
             accessory: plugin_accessory.accessory_type,
-            config: await this.server.storage.getItem('Accessory.' + uuid),
+            config: (await this.server.storage.getItem('Accessory.' + uuid)).config,
         };
 
         // eslint-disable-next-line curly
@@ -530,8 +530,18 @@ export default class Connection {
             throw new Error('You don\'t have permission to access this accessory platform\'s configuration.');
         }
 
+        // Accessory platform configuration can be updated by users that can update the configuration of all of it's
+        // accessories
+        let can_set = true;
+        if ((await Promise.all(accessory_platform.accessories
+            .map(a => this.permissions.checkCanSetAccessoryConfig(a.uuid)))).find(a => !a)
+        ) {
+            can_set = false;
+        }
+
         return {
             is_writable: !!await this.server.storage.getItem('Accessory.' + uuid),
+            can_set,
             type: AccessoryType.ACCESSORY_PLATFORM,
             config: accessory_platform.config,
             accessories: accessory_platform.accessories.map(a => a.uuid),
@@ -592,9 +602,7 @@ export default class Connection {
             this.getCharacteristicsWithSetPermission(accessory),
         ]);
 
-        const is_config_writable = false;
-
-        return {get, set, get_config, set_config: set_config && is_config_writable, set_characteristics};
+        return {get, set, get_config, set_config: set_config, set_characteristics};
     }
 
     async getCharacteristicsWithSetPermission(accessory: Accessory) {

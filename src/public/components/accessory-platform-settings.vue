@@ -7,7 +7,12 @@
         <panel-tabs v-else v-model="tab" :tabs="tabs" />
 
         <template v-if="accessory_platform_data && tab === 'config'">
-            <pre><code>{{ JSON.stringify(config, null, 4) }}</code></pre>
+            <component :is="component" v-if="component" v-model="config" :accessory="accessory" :editable="can_set" />
+
+            <template v-else>
+                <codemirror v-model="current_value" class="mb-3" :options="options" @blur="blur" />
+                <pre v-if="error" class="text-danger mt-2"><code>{{ error }}</code></pre>
+            </template>
         </template>
 
         <list-group v-if="accessory_platform_data && tab === 'accessories'" class="mb-3">
@@ -37,7 +42,7 @@
                 {{ $t('accessory_settings.cancel') }}
             </button>
             <button :key="changed ? 'save' : 'done'" class="btn btn-primary btn-sm" type="button"
-                @click="() => changed ? save(true) : $refs.panel.close()"
+                :disabled="changed && !can_set" @click="() => changed ? save(true) : $refs.panel.close()"
             >
                 {{ $t('accessory_settings.' + (changed ? 'save' : 'done')) }}
             </button>
@@ -47,6 +52,7 @@
 
 <script>
     import Client from '../../client/client';
+    import {AccessoryPlatformConfigurationComponents} from '../component-registry';
 
     import Panel from './panel.vue';
     import PanelTabs from './panel-tabs.vue';
@@ -61,6 +67,9 @@
             PanelTabs,
             ListGroup,
             ListItem,
+
+            Codemirror: () => import(/* webpackChunkName: 'codemirror' */ 'codemirror/mode/javascript/javascript')
+                .then(() => import(/* webpackChunkName: 'codemirror' */ 'vue-codemirror')).then(c => c.codemirror),
         },
         props: {
             client: Client,
@@ -77,6 +86,17 @@
                     config: {label: () => this.$t('accessory_settings.configuration')},
                     accessories: {label: () => this.$t('accessory_settings.accessories')},
                 },
+
+                current_value: null,
+                error: null,
+
+                options: {
+                    tabSize: 4,
+                    mode: 'application/json',
+                    theme: 'base16-dark',
+                    lineNumbers: true,
+                    line: true,
+                },
             };
         },
         computed: {
@@ -84,8 +104,17 @@
                 if (!this.accessory_platform_data || !this.accessory_platform_data.config) return false;
                 return !isEqual(this.config, this.accessory_platform_data.config);
             },
+            can_set() {
+                return this.accessory_platform_data && this.accessory_platform_data.is_writable &&
+                    this.accessory_platform_data.can_set;
+            },
             can_delete() {
                 return false;
+            },
+            component() {
+                return this.accessory_platform_data ? AccessoryPlatformConfigurationComponents.get(JSON.stringify([
+                    this.accessory_platform_data.plugin || null, this.accessory_platform_data.platform,
+                ])) : null;
             },
         },
         watch: {
@@ -99,6 +128,36 @@
                     this.client.loadAccessories(this, data.accessories);
                 } else {
                     this.client.unloadAccessories(this);
+                }
+            },
+            config: {
+                handler(value) {
+                    this.current_value = JSON.stringify(value, null, 4) + '\n';
+                    this.error = null;
+                },
+                deep: true,
+            },
+            current_value(current_value) {
+                if (!this.can_set) {
+                    this.current_value = JSON.stringify(JSON.parse(this.current_value), null, 4) + '\n';
+                    this.error = new Error('This accessory platform\'s configuration cannot be updated or you ' +
+                        'don\'t have permission to update it');
+                    return;
+                }
+
+                try {
+                    const new_value = JSON.parse(current_value);
+
+                    if (new_value.plugin !== this.accessory_platform_data.config.plugin ||
+                        new_value.platform !== this.accessory_platform_data.config.platform
+                    ) {
+                        throw new Error('Cannot change plugin/accessory platform');
+                    }
+
+                    this.config = new_value;
+                    this.error = null;
+                } catch (err) {
+                    this.error = err;
                 }
             },
         },
@@ -134,6 +193,12 @@
                     this.saving = false;
                 }
             },
+            blur() {
+                if (this.current_value.substr(-1) !== '\n') this.current_value += '\n';
+            },
         },
     };
 </script>
+
+<style src="codemirror/lib/codemirror.css" />
+<style src="codemirror/theme/base16-dark.css" />

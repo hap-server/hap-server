@@ -22,6 +22,8 @@ export const AccessorySetupComponents = new ComponentRegistry<UIPlugin, {
     name: string;
     manual: boolean;
 }>();
+export const AccessoryConfigurationComponents = new ComponentRegistry<UIPlugin, Component>();
+export const AccessoryPlatformConfigurationComponents = new ComponentRegistry<UIPlugin, Component>();
 export const AuthenticationHandlerComponents = new ComponentRegistry<UIPlugin, {
     component: Component;
     name: string;

@@ -355,13 +355,16 @@
             changed() {
                 if (!this.accessory) return false;
 
-                return this.name !== this.accessory.data.name ||
-                    this.room_name !== this.accessory.data.room_name;
+                return this.name != this.accessory.data.name ||
+                    this.room_name != this.accessory.data.room_name;
             },
             config_changed() {
                 if (!this.config || !this.saved_config) return false;
 
                 return !isEqual(this.saved_config, this.config);
+            },
+            can_set_config() {
+                return this.config_changed && this.accessory.can_set_configuration && this.config.is_writable;
             },
             bridge_config_changed() {
                 if (!this.bridge_config || !this.saved_bridge_config) return false;

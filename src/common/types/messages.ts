@@ -62,6 +62,7 @@ export interface GetAccessoryPlatformsConfigurationRequestMessage {
 }
 export type GetAccessoryPlatformsConfigurationResponseMessage = {
     is_writable: boolean;
+    can_set: boolean;
     type: AccessoryType.ACCESSORY_PLATFORM;
     config: any;
     accessories: string[];
