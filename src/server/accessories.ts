@@ -77,11 +77,9 @@ export default class AccessoryManager {
      */
     getAccessory(uuid: string): Accessory | null {
         const plugin_accessory = this.getPluginAccessory(uuid);
-
         if (plugin_accessory) return plugin_accessory.accessory;
 
-        const cached_plugin_accessory = this.getCachedAccessory(uuid);
-
+        const cached_plugin_accessory = this.getCachedAccessory(uuid) || this.getCachedHomebridgeAccessory(uuid);
         if (cached_plugin_accessory) return cached_plugin_accessory.accessory;
 
         for (const bridge of this.bridges) {
@@ -431,6 +429,18 @@ export default class AccessoryManager {
             (!plugin || accessory.plugin === plugin) &&
             ((!plugin && !accessory_type) || accessory.accessory_type === accessory_type)
         ) as PluginStandaloneAccessory<true> || null;
+    }
+
+    /**
+     * Gets a cached accessory from Homebridge.
+     *
+     * @param {string} uuid
+     * @return {HomebridgeAccessory}
+     */
+    getCachedHomebridgeAccessory(uuid: string): HomebridgeAccessory | null {
+        return this.cached_accessories.find(accessory => accessory instanceof HomebridgeAccessory &&
+            accessory.uuid === uuid
+        ) as HomebridgeAccessory || null;
     }
 
     /**
