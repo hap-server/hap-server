@@ -3,6 +3,7 @@ import {
     AccessoryData, Home, Layout, LayoutSection, Automation, Pairing, Permissions, Scene,
 } from './storage';
 import {GetHomePermissionsResponseMessage} from './messages';
+import {AccessoryStatus} from '../../common/types/accessories';
 
 export interface AddAccessoriesMessage {
     type: 'add-accessories';
@@ -16,6 +17,12 @@ export interface UpdateAccessoryMessage {
     type: 'update-accessory';
     uuid: string;
     details: AccessoryHap;
+}
+
+export interface UpdateAccessoryStatusMessage {
+    type: 'update-accessory-status';
+    uuid: string;
+    status: AccessoryStatus;
 }
 
 export interface UpdateCharacteristicMessage {
@@ -183,7 +190,8 @@ export interface ConsoleOutputMessage {
 }
 
 export type SendableBroadcastMessage =
-    AddAccessoriesMessage | RemoveAccessoriesMessage | UpdateAccessoryMessage | UpdateCharacteristicMessage |
+    AddAccessoriesMessage | RemoveAccessoriesMessage | UpdateAccessoryMessage | UpdateAccessoryStatusMessage |
+    UpdateCharacteristicMessage |
     UpdateAccessoryDataMessage | AddDiscoveredAccessoryMessage | RemoveDiscoveredAccessoryMessage |
     UpdateHomeSettingsMessage |
     AddLayoutMessage | RemoveLayoutMessage | UpdateLayoutMessage |

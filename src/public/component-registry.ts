@@ -3,10 +3,19 @@ import {Component} from 'vue';
 
 import ComponentRegistry from '../common/component-registry';
 import {UIPlugin} from '../common/types/messages';
+import {AccessoryStatus} from '../common/types/accessories';
 
 export default ComponentRegistry;
 
-export const ServiceTileComponents = new ComponentRegistry<UIPlugin, Component>();
+export const ServiceTileComponents = new ComponentRegistry<UIPlugin, {
+    component: Component;
+    /**
+     * Component to use for the service's icon when the service tile component isn't used (when it doesn't support
+     * an accessory's status).
+     */
+    icon_component: Component | null;
+    supported_statuses: AccessoryStatus[];
+}>();
 export const ServiceDetailsComponents = new ComponentRegistry<UIPlugin, Component>();
 export const ServiceSettingsComponents = new ComponentRegistry<UIPlugin, Component>();
 export const LayoutSectionComponents = new ComponentRegistry<UIPlugin, {

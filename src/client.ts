@@ -10,6 +10,12 @@ import Layout from './client/layout';
 import Automation from './client/automation';
 import Scene from './client/scene';
 
+import {AccessoryStatus} from './common/types/accessories';
+import {
+    DefinedRequestResponseMessages, DefinedRequestMessages, DefinedResponseMessages,
+    RequestMessage, ResponseMessage,
+} from './common/types/messages';
+
 import * as util from './util';
 
 export {
@@ -27,6 +33,13 @@ export {
     Layout,
     Automation,
     Scene,
+
+    AccessoryStatus,
+    DefinedRequestResponseMessages as RequestResponseMessages,
+    DefinedRequestMessages as RequestMessages,
+    DefinedResponseMessages as ResponseMessages,
+    RequestMessage,
+    ResponseMessage,
 
     util,
 };

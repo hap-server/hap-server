@@ -96,7 +96,8 @@ class Client extends EventEmitter {
                 if (this.accessories && this.accessories[accessory_data.uuid]) continue;
 
                 const accessory = new Accessory(this.connection!, accessory_data.uuid, accessory_data.details,
-                    accessory_data.data, accessory_data.permissions); // eslint-disable-line vue/script-indent
+                    accessory_data.data, accessory_data.permissions, accessory_data.status ?? 0
+                );
 
                 $set(this.accessories, accessory.uuid, accessory);
             }
@@ -151,6 +152,7 @@ class Client extends EventEmitter {
                     data: accessory.data,
                     // @ts-ignore
                     permissions: accessory._permissions,
+                    status: accessory.status,
                 });
             }
         }
@@ -366,14 +368,16 @@ class Client extends EventEmitter {
             const accessory_uuids = data.ids.filter(uuid => !this.accessories![uuid]);
             if (!accessory_uuids.length) return;
 
-            const [accessory_details, accessory_data, accessory_permissions] = await Promise.all([
+            const [accessory_details, accessory_data, accessory_permissions, accessory_status] = await Promise.all([
                 this.connection!.getAccessories(...accessory_uuids),
                 this.connection!.getAccessoriesData(...accessory_uuids),
                 this.connection!.getAccessoriesPermissions(...accessory_uuids),
+                this.connection!.getAccessoriesStatus(...accessory_uuids),
             ]);
 
             const accessories = accessory_uuids.map((uuid, index) => new Accessory(this.connection!, uuid,
-                accessory_details[index], accessory_data[index], accessory_permissions[index])) as Accessory[];
+                accessory_details[index], accessory_data[index], accessory_permissions[index], accessory_status[index]
+            )) as Accessory[];
 
             for (const accessory of accessories) {
                 $set(this.accessories, accessory.uuid, accessory);
@@ -404,6 +408,13 @@ class Client extends EventEmitter {
             if (!accessory) return;
 
             accessory._setDetails(data.details);
+        }
+
+        if (this.accessories && data.type === 'update-accessory-status') {
+            const accessory = this.accessories[data.uuid];
+            if (!accessory) return;
+
+            accessory._setStatus(data.status);
         }
 
         if (this.accessories && data.type === 'update-accessory-data') {
@@ -694,16 +705,18 @@ class Client extends EventEmitter {
             }
 
             const [
-                new_accessory_details, new_accessory_data, new_accessory_permissions,
+                new_accessory_details, new_accessory_data, new_accessory_permissions, new_accessory_status,
             ] = new_accessories.length ? await Promise.all([
                 this.connection.getAccessories(...new_accessories),
                 this.connection.getAccessoriesData(...new_accessories),
                 this.connection.getAccessoriesPermissions(...new_accessories),
-            ]) : [[], [], []];
+                this.connection.getAccessoriesStatus(...new_accessories),
+            ]) : [[], [], [], []];
 
-            const added_accessories = new_accessories.map((uuid, index) =>
-                new Accessory(this.connection!, uuid, new_accessory_details[index], new_accessory_data[index],
-                    new_accessory_permissions[index])); // eslint-disable-line vue/script-indent
+            const added_accessories = new_accessories.map((uuid, index) => new Accessory(this.connection!, uuid,
+                new_accessory_details[index], new_accessory_data[index], new_accessory_permissions[index],
+                new_accessory_status[index]
+            ));
 
             for (const accessory of added_accessories) {
                 $set(this.accessories, accessory.uuid, accessory);

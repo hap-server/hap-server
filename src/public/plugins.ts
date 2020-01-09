@@ -24,6 +24,7 @@ import Connection, {
 } from '../client/connection';
 
 import {UIPlugin} from '../common/types/messages';
+import {AccessoryStatus} from '../common/types/accessories';
 
 // @ts-ignore
 import {instances as main_component_instances} from './components/main-component.vue';
@@ -479,8 +480,13 @@ export class PluginAPI {
      *
      * @param {string} type The service type UUID
      * @param {VueComponent} component
+     * @param {object} [options]
+     * @param {AccessoryStatus[]} [options.supported_statuses]
      */
-    registerServiceTileComponent(type: string, component: Component) {
+    registerServiceTileComponent(type: string, component: Component, options: {
+        icon_component?: Component;
+        supported_statuses?: AccessoryStatus[];
+    } = {}) {
         if (ServiceTileComponents.has(type)) {
             throw new Error('There is already a service component with the type "' + type + '"');
         }
@@ -490,7 +496,16 @@ export class PluginAPI {
             component.name = service_type_names[type] || 'service-tile-' + type;
         }
 
-        ServiceTileComponents.addPluginComponent(this.ui_plugin, type, component);
+        if (options.icon_component && !options.icon_component.name) {
+            // @ts-ignore
+            options.icon_component.name = (service_type_names[type] || 'service-tile-' + type) + '-icon';
+        }
+
+        ServiceTileComponents.addPluginComponent(this.ui_plugin, type, {
+            component,
+            icon_component: options.icon_component || null,
+            supported_statuses: options.supported_statuses || [],
+        });
 
         this.refreshDisplayServices();
     }

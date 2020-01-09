@@ -8,7 +8,8 @@ import {IdentifierCache} from 'hap-nodejs/lib/model/IdentifierCache';
 import {Camera as CameraSource} from 'hap-nodejs/lib/Camera';
 
 import Logger from '../common/logger';
-import {PluginAccessory, AccessoryStatus} from './accessories';
+import {PluginAccessory} from './accessories';
+import {AccessoryStatus} from '../common/types/accessories';
 
 export function hapStatus(err: any): number {
     let value = 0;

@@ -9,7 +9,11 @@ for (const file of contextRequire.keys()) {
 
     if (!service.uuid) continue;
 
-    service_components.set(service.uuid, service.default);
+    service_components.set(service.uuid, {
+        component: service.default,
+        icon_component: service.icon_component || null,
+        supported_statuses: service.supported_statuses || [],
+    });
 
     console.log('Service tile', file, service);
 }

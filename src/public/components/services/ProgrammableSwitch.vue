@@ -18,6 +18,7 @@
     import ButtonIcon from '../icons/button.vue';
 
     export const uuid = 'CollapsedService.' + Service.StatelessProgrammableSwitch;
+    export const icon_component = ButtonIcon;
 
     export default {
         mixins: [

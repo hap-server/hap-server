@@ -61,6 +61,13 @@ export default {
         not_available: 'Not available',
         not_supported: 'Not supported',
 
+        status_waiting: 'Connecting',
+        status_destroyed: 'Removed',
+        status_error: 'Not responding',
+        status_connecting: 'Connecting',
+        status_disconnecting: 'Disconnecting',
+        status_unknown: 'Not responding',
+
         unknown: 'Unknown',
         updating: 'Updating',
     },

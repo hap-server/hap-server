@@ -15,6 +15,7 @@
     import OutletIcon from '../icons/outlet.vue';
 
     export const uuid = Service.Outlet;
+    export const icon_component = OutletIcon;
 
     export default {
         mixins: [

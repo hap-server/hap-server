@@ -10,6 +10,7 @@ import ComponentRegistry from '../common/component-registry';
 import {AccessoryHap} from '../common/types/hap';
 import {AccessoryData, ServiceData} from '../common/types/storage';
 import {GetAccessoriesPermissionsResponseMessage} from '../common/types/messages';
+import {AccessoryStatus} from '../common/types/accessories';
 
 class Accessory extends EventEmitter {
     connection: Connection;
@@ -20,6 +21,7 @@ class Accessory extends EventEmitter {
     private _details!: AccessoryHap;
     private _data!: AccessoryData;
     private _permissions!: GetAccessoriesPermissionsResponseMessage[0];
+    private _status!: AccessoryStatus;
 
     /**
      * Creates an Accessory.
@@ -29,10 +31,11 @@ class Accessory extends EventEmitter {
      * @param {object} details The HAP accessory data (read only)
      * @param {object} data Configuration data stored by the web UI (read/write)
      * @param {object} permissions
+     * @param {number} status
      */
     constructor(
         connection: Connection, uuid: string, details: AccessoryHap, data: AccessoryData,
-        permissions: GetAccessoriesPermissionsResponseMessage[0]
+        permissions: GetAccessoriesPermissionsResponseMessage[0], status: AccessoryStatus
     ) {
         super();
 
@@ -43,6 +46,7 @@ class Accessory extends EventEmitter {
         this._setPermissions(permissions || {} as GetAccessoriesPermissionsResponseMessage[0]);
         this._setData(data || {});
         this._setDetails(details || {aid: 0, services: []});
+        this._setStatus(status);
     }
 
     static get service_components(): ComponentRegistry<unknown, any> | Map<string | number, any> {
@@ -411,6 +415,18 @@ class Accessory extends EventEmitter {
         return this._permissions.set_config;
     }
 
+    _setStatus(status: AccessoryStatus) {
+        if (this._status === status) return;
+
+        this._status = status;
+
+        this.emit('status-updated', status);
+    }
+
+    get status() {
+        return this._status;
+    }
+
     async getConfiguration() {
         const [config] = await this.connection.getAccessoriesConfiguration(this.uuid);
         return config;
@@ -503,6 +519,7 @@ type AccessoryEvents = {
      */
     'data-updated': (this: Accessory, here: boolean) => void;
     'permissions-updated': (this: Accessory, permissions: GetAccessoriesPermissionsResponseMessage[0]) => void;
+    'status-updated': (this: Accessory, status: AccessoryStatus) => void;
 };
 
 interface Accessory {

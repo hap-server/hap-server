@@ -3,6 +3,7 @@ import {
     AccessoryData, Home, Layout, LayoutSection, Automation, Scene, Bridge, Pairing, Permissions, AccessoryType,
 } from './storage';
 import {Record} from '../../history';
+import {AccessoryStatus} from '../../common/types/accessories';
 
 export interface ErrorResponse {
     reject: true;
@@ -21,6 +22,12 @@ export interface GetAccessoriesRequestMessage {
     id: string[];
 }
 export type GetAccessoriesResponseMessage = AccessoryHap[];
+
+export interface GetAccessoriesStatusRequestMessage {
+    type: 'get-accessories-status';
+    id: string[];
+}
+export type GetAccessoriesStatusResponseMessage = AccessoryStatus[];
 
 export interface GetAccessoriesConfigurationRequestMessage {
     type: 'get-accessories-configuration';
@@ -575,9 +582,10 @@ export interface ConsoleInputRequestMessage {
 }
 export type ConsoleInputResponseMessage = void;
 
-interface DefinedRequestResponseMessages {
+export interface DefinedRequestResponseMessages {
     'list-accessories': [ListAccessoriesRequestMessage, ListAccessoriesResponseMessage];
     'get-accessories': [GetAccessoriesRequestMessage, GetAccessoriesResponseMessage];
+    'get-accessories-status': [GetAccessoriesStatusRequestMessage, GetAccessoriesStatusResponseMessage];
     'get-accessories-configuration': [
         GetAccessoriesConfigurationRequestMessage, GetAccessoriesConfigurationResponseMessage,
     ];

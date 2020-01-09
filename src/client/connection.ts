@@ -7,7 +7,8 @@ import {
 } from '../common/types/messages';
 import {
     BroadcastMessage,
-    AddAccessoriesMessage, RemoveAccessoriesMessage, UpdateAccessoryMessage, UpdateCharacteristicMessage,
+    AddAccessoriesMessage, RemoveAccessoriesMessage, UpdateAccessoryMessage, UpdateAccessoryStatusMessage,
+    UpdateCharacteristicMessage,
     UpdateAccessoryDataMessage, AddDiscoveredAccessoryMessage, RemoveDiscoveredAccessoryMessage,
     UpdateHomeSettingsMessage,
     AddLayoutMessage, RemoveLayoutMessage, UpdateLayoutMessage,
@@ -20,11 +21,13 @@ import {
     UpdatePermissionsMessage, StdoutMessage, StderrMessage, ConsoleOutputMessage,
 } from '../common/types/broadcast-messages';
 import {Home, Scene} from '../common/types/storage';
+import {AccessoryStatus} from '../common/types/accessories';
 
 const broadcast_message_methods = {
     'add-accessory': 'handleAddAccessoryMessage',
     'remove-accessory': 'handleRemoveAccessoryMessage',
     'update-accessory': 'handleUpdateAccessoryDetailsMessage',
+    'update-accessory-status': 'handleUpdateAccessoryStatusMessage',
     'update-characteristic': 'handleUpdateCharacteristicMessage',
     'update-accessory-data': 'handleUpdateAccessoryDataMessage',
     'add-discovered-accessory': 'handleAddDiscoveredAccessoryMessage',
@@ -244,6 +247,10 @@ class Connection extends EventEmitter {
 
     getAccessories(...id: string[]) {
         return this.send('get-accessories', {id});
+    }
+
+    getAccessoriesStatus(...id: string[]) {
+        return this.send('get-accessories-status', {id});
     }
 
     getAccessoriesConfiguration(...id: string[]) {
@@ -631,6 +638,10 @@ class Connection extends EventEmitter {
         this.emit('update-accessory', data.uuid, data.details);
     }
 
+    protected handleUpdateAccessoryStatusMessage(data: UpdateAccessoryStatusMessage) {
+        this.emit('update-accessory-status', data.uuid, data.status);
+    }
+
     protected handleUpdateCharacteristicMessage(data: UpdateCharacteristicMessage) {
         this.emit('update-characteristic', data.accessory_uuid, data.service_id, data.characteristic_id, data.details);
     }
@@ -754,6 +765,7 @@ type ConnectionEvents = {
     'add-accessories': (this: Connection, ids: AddAccessoriesMessage['ids']) => void;
     'remove-accessories': (this: Connection, ids: RemoveAccessoriesMessage['ids']) => void;
     'update-accessory': (this: Connection, uuid: string, details: UpdateAccessoryMessage['details']) => void;
+    'update-accessory-status': (this: Connection, uuid: string, status: AccessoryStatus) => void;
     'update-characteristic': (this: Connection, accessory_uuid: string, service_id: string, characteristic_id: string,
         details: UpdateCharacteristicMessage['details']) => void;
     'update-accessory-data': (this: Connection, uuid: string, data: UpdateAccessoryDataMessage['data']) => void;

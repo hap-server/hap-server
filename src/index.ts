@@ -6,7 +6,8 @@ import TypedEventEmitter from './events/typed-eventemitter';
 
 import Server from './server/server';
 import PluginManager from './server/plugins';
-import {AccessoryEvents, AccessoryStatus} from './server/accessories';
+import {AccessoryEvents} from './server/accessories';
+import {AccessoryStatus} from './common/types/accessories';
 import Logger, {forceColour as forceColourLogs} from './common/logger';
 
 import Automations from './automations';

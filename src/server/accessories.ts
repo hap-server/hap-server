@@ -11,13 +11,14 @@ import Homebridge from './homebridge';
 import Logger from '../common/logger';
 import {
     AddAccessoryEvent, RemoveAccessoryEvent,
-    CharacteristicUpdateEvent, UpdateAccessoryConfigurationEvent,
+    CharacteristicUpdateEvent, UpdateAccessoryConfigurationEvent, UpdateAccessoryStatusEvent,
 } from '../events/server';
 import {
     BridgeConfiguration, AccessoryPlatformConfiguration,
     HomebridgeBridgeConfiguration, HomebridgeAccessoryConfiguration, HomebridgePlatformConfiguration,
 } from '../cli/configuration';
 import {AccessoryType} from '../common/types/storage';
+import {AccessoryStatus} from '../common/types/accessories';
 
 import {Accessory, Service, Characteristic} from '../hap-nodejs';
 import * as hap from '../hap-nodejs';
@@ -711,7 +712,13 @@ export default class AccessoryManager {
     }
 
     handleStatusChange(accessory: PluginAccessory, status: AccessoryStatus) {
-        //
+        this.server.emit(UpdateAccessoryStatusEvent, this.server, accessory, status);
+
+        this.server.sendBroadcast({
+            type: 'update-accessory-status',
+            uuid: accessory.uuid,
+            status,
+        });
     }
 }
 
@@ -1184,19 +1191,6 @@ declare module 'hap-nodejs/lib/Accessory' {
     export interface Accessory {
         [PluginAccessory.symbol]?: PluginAccessory;
     }
-}
-
-export enum AccessoryStatus {
-    /** Initial startup phase - can't be set by accessories */
-    WAITING,
-    READY,
-    NOT_READY,
-    CONNECTING,
-    DISCONNECTING,
-    /** Accessory handler throws - or accessory emits an error?? */
-    ERROR,
-    /** Accessory was removed from the server - can't be set by accessories */
-    DESTROYED,
 }
 
 export class PluginStandaloneAccessory<HasAccessory extends boolean = boolean> extends PluginAccessory<HasAccessory> {

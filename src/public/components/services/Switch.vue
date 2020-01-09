@@ -15,6 +15,7 @@
     import SwitchIcon from '../icons/light-switch.vue';
 
     export const uuid = Service.Switch;
+    export const icon_component = SwitchIcon;
 
     export default {
         mixins: [

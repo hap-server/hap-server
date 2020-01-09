@@ -30,7 +30,6 @@ import Permissions from './permissions';
 import {hapStatus} from './hap-server';
 import {
     PluginAccessory, PluginStandaloneAccessory, PluginAccessoryPlatformAccessory, HomebridgeAccessory,
-    AccessoryStatus,
 } from './accessories';
 
 import Logger from '../common/logger';
@@ -42,6 +41,7 @@ import {
 import {BroadcastMessage} from '../common/types/broadcast-messages';
 import {AccessoryHap, CharacteristicHap} from '../common/types/hap';
 import {AccessoryType} from '../common/types/storage';
+import {AccessoryStatus} from '../common/types/accessories';
 
 const randomBytes = util.promisify(crypto.randomBytes);
 
@@ -417,6 +417,24 @@ export default class Connection {
         }
 
         return hap;
+    }
+
+    /**
+     * Gets the details of accessories.
+     * This is what the accessory exposes.
+     */
+    @messagehandler('get-accessories-status', data => data.id)
+    getAccessoriesStatus(...id: string[]): Promise<ResponseMessages['get-accessories-status']> {
+        return Promise.all(id.map(id => this.getAccessoryStatus(id)));
+    }
+
+    async getAccessoryStatus(uuid: string) {
+        await this.permissions.assertCanGetAccessory(uuid);
+
+        const accessory = this.server.getPluginAccessory(uuid);
+        if (!accessory) return AccessoryStatus.NOT_READY;
+
+        return accessory.status;
     }
 
     /**

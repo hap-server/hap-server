@@ -11,6 +11,7 @@
 
     // This isn't a real service
     export const uuid = '--bridge';
+    export const icon_component = BridgeIcon;
 
     export default {
         components: {

@@ -998,14 +998,13 @@ export default class Permissions {
      * @return {Promise<boolean>}
      */
     async checkShouldReceiveBroadcast(data: BroadcastMessage): Promise<boolean> {
-        if (data.type === 'add-accessories') {
-            return Promise.all(data.ids.map(uuid => this.checkCanGetAccessory(uuid))).then(g => !g.find(g => !g));
-        }
-        if (data.type === 'remove-accessories') {
+        if (data.type === 'add-accessories' || data.type === 'remove-accessories') {
             return Promise.all(data.ids.map(uuid => this.checkCanGetAccessory(uuid))).then(g => !g.find(g => !g));
         }
         if (data.type === 'update-characteristic') return this.checkCanGetAccessory(data.accessory_uuid);
-        if (data.type === 'update-accessory-data') return this.checkCanGetAccessory(data.uuid);
+        if (data.type === 'update-accessory-status' || data.type === 'update-accessory-data') {
+            return this.checkCanGetAccessory(data.uuid);
+        }
         if (data.type === 'update-home-settings') return this.checkCanGetHomeSettings();
         if (data.type === 'add-layout' || data.type === 'update-layout' || data.type === 'remove-layout') {
             return this.checkCanGetLayout(data.uuid);

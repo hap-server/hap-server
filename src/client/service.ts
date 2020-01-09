@@ -10,6 +10,7 @@ import Characteristic, {type_uuids as characteristic_type_uuids} from './charact
 import {ServiceHap} from '../common/types/hap';
 import {ServiceData} from '../common/types/storage';
 import {GetAccessoriesPermissionsResponseMessage} from '../common/types/messages';
+import {AccessoryStatus} from '../common/types/accessories';
 
 class Service extends EventEmitter {
     readonly accessory: Accessory;
@@ -376,7 +377,8 @@ export class UnavailableService extends Service {
         if (!accessories) accessories = {};
         const accessory = accessories[accessory_uuid] ||
             new Accessory(connection, accessory_uuid, {aid: 0, services: []}, {},
-                {get: false, set: false, get_config: false, set_config: false, set_characteristics: {}});
+                {get: false, set: false, get_config: false, set_config: false, set_characteristics: {}},
+                AccessoryStatus.ERROR);
 
         const service = new this(accessory, service_uuid);
 

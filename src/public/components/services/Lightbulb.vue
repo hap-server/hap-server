@@ -16,6 +16,7 @@
     import LightbulbIcon from '../icons/lightbulb.vue';
 
     export const uuid = Service.Lightbulb;
+    export const icon_component = LightbulbIcon;
 
     export default {
         mixins: [

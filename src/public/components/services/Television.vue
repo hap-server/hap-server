@@ -15,6 +15,7 @@
     import TelevisionIcon from '../icons/television.vue';
 
     export const uuid = Service.Television;
+    export const icon_component = TelevisionIcon;
 
     const Active = {
         INACTIVE: 0,

@@ -18,7 +18,50 @@
         <service v-else-if="service.is_unavailable" class="unavailable-accessory"
             :class="{'details-open': details_open}" :service="service" :type="service_name" :error="true"
         >
+            <component :is="default_icon" v-if="default_icon" slot="icon" />
             <p>{{ $t('service_tile.not_available') }}</p>
+        </service>
+
+        <service v-else-if="service.status === AccessoryStatus.WAITING" class="unavailable-accessory"
+            :class="{'details-open': details_open}" :service="service" :type="service_name"
+        >
+            <component :is="default_icon" v-if="default_icon" slot="icon" />
+            <p>{{ $t('service_tile.status_waiting') }}</p>
+        </service>
+
+        <service v-else-if="service.status === AccessoryStatus.DESTROYED" class="unavailable-accessory"
+            :class="{'details-open': details_open}" :service="service" :type="service_name"
+        >
+            <component :is="default_icon" v-if="default_icon" slot="icon" />
+            <p>{{ $t('service_tile.status_destroyed') }}</p>
+        </service>
+
+        <service v-else-if="service.status === AccessoryStatus.ERROR" class="unavailable-accessory"
+            :class="{'details-open': details_open}" :service="service" :type="service_name" :error="true"
+        >
+            <component :is="default_icon" v-if="default_icon" slot="icon" />
+            <p>{{ $t('service_tile.status_error') }}</p>
+        </service>
+
+        <service v-else-if="service.status === AccessoryStatus.CONNECTING" class="unavailable-accessory"
+            :class="{'details-open': details_open}" :service="service" :type="service_name"
+        >
+            <component :is="default_icon" v-if="default_icon" slot="icon" />
+            <p>{{ $t('service_tile.status_connecting') }}</p>
+        </service>
+
+        <service v-else-if="service.status === AccessoryStatus.DISCONNECTING" class="unavailable-accessory"
+            :class="{'details-open': details_open}" :service="service" :type="service_name"
+        >
+            <component :is="default_icon" v-if="default_icon" slot="icon" />
+            <p>{{ $t('service_tile.status_disconnecting') }}</p>
+        </service>
+
+        <service v-else-if="service.status !== AccessoryStatus.READY" class="unavailable-accessory"
+            :class="{'details-open': details_open}" :service="service" :type="service_name" :error="true"
+        >
+            <component :is="default_icon" v-if="default_icon" slot="icon" />
+            <p>{{ $t('service_tile.status_unknown') }}</p>
         </service>
 
         <service v-else :key="service.accessory.uuid + '.' + service.uuid"
@@ -32,6 +75,7 @@
 
 <script>
     import Service, {type_names} from '../../client/service';
+    import {AccessoryStatus} from '../../common/types/accessories';
 
     import {ServiceTileComponents as service_components} from '../component-registry';
     import ServiceComponent from './services/service.vue';
@@ -46,6 +90,8 @@
         },
         data() {
             return {
+                AccessoryStatus,
+
                 details_open: false,
                 touchstart_timeout: null,
             };
@@ -57,7 +103,22 @@
         },
         computed: {
             component() {
-                return service_components.get(this.service.type);
+                const component_details = service_components.get(this.service.type);
+                if (!component_details) return null;
+
+                if (this.service.accessory.status !== AccessoryStatus.READY &&
+                    !component_details.supported_statuses.includes(this.service.accessory.status)
+                ) {
+                    return null;
+                }
+
+                return component_details.component;
+            },
+            default_icon() {
+                const component_details = service_components.get(this.service.type);
+                if (!component_details) return null;
+
+                return component_details.icon_component;
             },
             service_name() {
                 return type_names[this.service.type];
