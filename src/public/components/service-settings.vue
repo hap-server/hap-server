@@ -75,8 +75,8 @@
             changed() {
                 if (!this.service) return false;
 
-                return this.name !== this.service.data.name ||
-                    this.room_name !== this.service.data.room_name;
+                return this.name != this.service.data.name ||
+                    this.room_name != this.service.data.room_name;
             },
             accessory_settings_component() {
                 return accessory_settings_components.get(this.service.type);
