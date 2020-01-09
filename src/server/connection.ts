@@ -431,6 +431,10 @@ export default class Connection {
     async getAccessoryStatus(uuid: string) {
         await this.permissions.assertCanGetAccessory(uuid);
 
+        if (this.server.accessories.bridges.find(b => b.uuid === uuid)) {
+            return AccessoryStatus.READY;
+        }
+
         const accessory = this.server.getPluginAccessory(uuid);
         if (!accessory) return AccessoryStatus.NOT_READY;
 
