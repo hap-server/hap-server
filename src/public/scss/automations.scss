@@ -73,7 +73,7 @@
 
 .automation-settings,
 .scene-settings {
-    .settings-window {
+    :not(.panel-no-frame) > .settings-window {
         max-width: 900px;
     }
 

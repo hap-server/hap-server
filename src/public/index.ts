@@ -35,6 +35,7 @@ const router = new VueRouter({
         {name: 'layout', path: '/layout/:layout_uuid'},
         {name: 'all-accessories', path: '/all-accessories'},
         {name: 'automations', path: '/automations'},
+        {name: 'settings', path: '/settings'},
         {name: 'setup', path: '/setup'},
     ],
 });

@@ -77,24 +77,25 @@ body,
     }
 }
 
-html.modal-window {
-    body,
-    .background {
-        background-color: $light;
-        background-image: none;
-    }
+html.modal-window body,
+html.modal-window .background,
+.root > .background.settings {
+    background-color: $light;
+    background-image: none;
 }
 
 // Can't use @include dark-theme here as this selector references the document root
 @media (prefers-color-scheme: dark) {
     html:not(.theme-light).modal-window body,
-    html:not(.theme-light).modal-window .background {
+    html:not(.theme-light).modal-window .background,
+    html:not(.theme-light) .root > .background.settings {
         background-color: darken($dark, 10%);
     }
 }
 
 html.theme-dark.modal-window body,
-html.theme-dark.modal-window .background {
+html.theme-dark.modal-window .background
+html.theme-dark .root > .background.settings {
     background-color: darken($dark, 10%);
 }
 
@@ -208,6 +209,11 @@ html.theme-dark.modal-window .background {
     .btn-default {
         color: $light;
     }
+}
+
+.panel-no-frame > .settings-window {
+    position: relative;
+    z-index: $main-z-index;
 }
 
 @import 'layout';

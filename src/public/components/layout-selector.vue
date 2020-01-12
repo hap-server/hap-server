@@ -6,10 +6,10 @@
         </template>
 
         <a v-if="authenticatedUser && layouts['Overview.' + authenticatedUser.id]" class="dropdown-item"
-            :class="{active: value && value.uuid === 'Overview.' + authenticatedUser.id && !isPluginRouteActive && !showAutomations}"
+            :class="{active: value && value.uuid === 'Overview.' + authenticatedUser.id && !isSettingsActive && !isPluginRouteActive && !showAutomations}"
             href="#" @click.prevent="setLayout(layouts['Overview.' + authenticatedUser.id])"
         >{{ name || $t('menu.home') }}</a>
-        <a class="dropdown-item" :class="{active: !value && !isPluginRouteActive && !showAutomations}" href="#"
+        <a class="dropdown-item" :class="{active: !value && !isSettingsActive && !isPluginRouteActive && !showAutomations}" href="#"
             @click.prevent="setLayout(null)">{{ $t('menu.all_accessories') }}</a>
 
         <template v-if="Object.values(layouts).length">
@@ -18,11 +18,11 @@
             <!-- eslint-disable-next-line vue/no-use-v-if-with-v-for -->
             <a v-for="layout in layouts" v-if="!authenticatedUser || layout.uuid !== 'Overview.' + authenticatedUser.id"
                 :key="layout.uuid" class="dropdown-item"
-                :class="{active: value && value.uuid === layout.uuid && !isPluginRouteActive && !showAutomations}"
+                :class="{active: value && value.uuid === layout.uuid && !isSettingsActive && !isPluginRouteActive && !showAutomations}"
                 href="#" @click.prevent="setLayout(layout)">{{ layout.name || layout.uuid }}</a>
         </template>
 
-        <template v-if="value && (value.can_set || value.can_delete) && !isPluginRouteActive && !showAutomations">
+        <template v-if="value && (value.can_set || value.can_delete) && !isSettingsActive && !isPluginRouteActive && !showAutomations">
             <div class="dropdown-divider"></div>
 
             <a v-if="value.can_set && (!authenticatedUser || value.uuid !== 'Overview.' + authenticatedUser.id)"
@@ -66,8 +66,8 @@
             <template v-else>{{ $t('menu.login') }}</template>
         </a>
 
-        <a v-if="canAccessServerSettings" class="dropdown-item" href="#"
-            @click.prevent="$emit('modal', {type: 'settings'})">{{ $t('menu.settings') }}</a>
+        <a v-if="canAccessServerSettings" class="dropdown-item" :class="{active: isSettingsActive}" href="#"
+            @click.prevent="$router.push({name: 'settings'})">{{ $t('menu.settings') }}</a>
         <a v-if="canCreate" class="dropdown-item" href="#"
             @click.prevent="$emit('modal', {type: 'new-layout'})">{{ $t('menu.new_layout') }}</a>
     </dropdown>
@@ -97,6 +97,7 @@
             pluginViewTitle: {type: String, default: null},
             showAutomations: Boolean,
             canAccessAutomations: Boolean,
+            isSettingsActive: Boolean,
         },
         data() {
             return {
@@ -105,6 +106,7 @@
         },
         computed: {
             dropdown_label() {
+                if (this.isSettingsActive) return this.$t('menu.settings');
                 if (this.isPluginRouteActive) return this.pluginViewTitle || this.$t('menu.home');
                 if (this.showAutomations) return this.$t('menu.automations');
                 if (!this.value) return this.$t('menu.all_accessories');

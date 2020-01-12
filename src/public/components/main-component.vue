@@ -1,7 +1,9 @@
 <template>
     <div class="root" :class="{scrolled, 'has-open-modals': modal_open}">
         <transition name="fade">
-            <div :key="background_url" class="background" :style="background_url ? {
+            <div :key="is_settings_active ? 'settings' : background_url" class="background" :class="{
+                settings: is_settings_active,
+            }" :style="background_url ? {
                 'background-image': `url(${JSON.stringify(background_url)})`,
                 filter: 'brightness(0.8)',
             } : {
@@ -14,7 +16,8 @@
             </div>
 
             <h1>
-                <span v-if="is_plugin_route_active" class="d-inline d-sm-none">
+                <span v-if="is_settings_active" class="d-inline d-sm-none">{{ $t('main.settings') }}</span>
+                <span v-else-if="is_plugin_route_active" class="d-inline d-sm-none">
                     {{ plugin_view_title || $t('main.home') }}
                 </span>
                 <span v-else-if="show_automations" class="d-inline d-sm-none">{{ $t('main.automations') }}</span>
@@ -32,10 +35,19 @@
                         can_manage_users"
                     :is-plugin-route-active="is_plugin_route_active" :plugin-view-title="plugin_view_title"
                     :show-automations="show_automations" :can-access-automations="can_access_automations"
+                    :is-settings-active="is_settings_active"
                     @edit-layout="$refs.layout.edit = !$refs.layout.edit" @show-automations="show_automations = $event"
                     @modal="modal => modals.add(modal)" />
             </div>
         </div>
+
+        <settings v-if="is_settings_active"
+            :loading-accessories="client.loading_accessories" :can-add-accessories="can_add_accessories"
+            :can-create-bridges="can_create_bridges" :can-open-console="can_open_console"
+            :can-manage-users="can_manage_users" :can-edit-user-permissions="can_manage_permissions"
+            :can-access-server-info="can_access_server_settings" @modal="m => modals.add(m)"
+            @show-accessory-settings="accessory => modals.add({type: 'accessory-settings', accessory})"
+            @refresh-accessories="client.refreshAccessories()" @updated-settings="reload" />
 
         <router-view v-if="is_plugin_route_active" ref="plugin_view" :client="client"
             @title="title => plugin_view_title = title"
@@ -46,7 +58,7 @@
                 @title="title => automations_title = title" />
         </keep-alive>
 
-        <div v-if="!is_plugin_route_active && !show_automations" class="main">
+        <div v-if="!is_settings_active && !is_plugin_route_active && !show_automations" class="main">
             <layout ref="layout" :key="layout ? layout.uuid : ''" :layout="layout"
                 :title="(layout ? authenticated_user && layout.uuid === 'Overview.' + authenticated_user.id ? name : layout.name : name) || $t('main.home')"
                 @modal="modal => modals.add(modal)" @ping="ping" />
@@ -95,6 +107,7 @@
             LayoutSelector,
 
             Automations: () => import(/* webpackChunkName: 'automations' */ '../automations/automations.vue'),
+            Settings: () => import(/* webpackChunkName: 'settings' */ './settings.vue'),
         },
         inject: {
             _native_hook: {from: NativeHookSymbol},
@@ -202,10 +215,18 @@
             is_plugin_route_active() {
                 return this.$route.fullPath.startsWith('/-');
             },
+            is_settings_active() {
+                // return this.$route.path === '/settings' || this.$route.path.startsWith('/settings/');
+                return this.$route.name === 'settings';
+            },
 
             title() {
                 if (this.modals.modal_open) {
                     return this.modals.stack[this.modals.stack.length - 1].title;
+                }
+
+                if (this.is_settings_active) {
+                    return this.$t('main.settings');
                 }
 
                 if (this.is_plugin_route_active) {
@@ -219,6 +240,7 @@
                 return this.name || this.$t('main.home');
             },
             background_url() {
+                if (this.is_settings_active) return;
                 if (this.is_plugin_route_active) return this.plugin_view_background_url;
                 if (this.show_automations) return;
 

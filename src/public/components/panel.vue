@@ -1,5 +1,5 @@
 <template>
-    <div v-if="no_panel_frame" class="panel-no-frame">
+    <div v-if="noFrame || no_panel_frame" class="panel-no-frame">
         <div ref="window" class="settings-window">
             <slot name="container">
                 <div class="settings-container">
@@ -34,6 +34,9 @@
     bouncefix.add('settings-window');
 
     export default {
+        props: {
+            noFrame: Boolean,
+        },
         data() {
             return {
                 show: false,
@@ -50,7 +53,7 @@
         },
         methods: {
             close() {
-                if (this.no_panel_frame) {
+                if (this.noFrame || this.no_panel_frame) {
                     this.$emit('close');
                     return;
                 }

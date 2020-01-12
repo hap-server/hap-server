@@ -34,6 +34,10 @@
         color: $gray-100;
     }
 
+    .root > .panel-no-frame > & {
+        background-color: transparent;
+    }
+
     &.show,
     &.v-enter-active {
         animation: mobile-panel-in 0.3s ease-in forwards;
@@ -51,7 +55,7 @@
 }
 
 @media (min-width: map-get($grid-breakpoints, 'sm')) {
-    .root .settings-window {
+    .root :not(.panel-no-frame) > .settings-window {
         width: 80%;
         max-width: 500px;
         margin-left: auto;
@@ -75,12 +79,12 @@
         }
     }
 
-    .root .home-settings .settings-window,
-    .root .accessory-settings .settings-window {
+    .root .home-settings:not(.panel-no-frame) .settings-window,
+    .root .accessory-settings:not(.panel-no-frame) .settings-window {
         max-width: 626px;
     }
 
-    .root .home-settings.wide .settings-window {
+    .root .home-settings:not(.panel-no-frame).wide .settings-window {
         max-width: 900px;
     }
 }
@@ -172,5 +176,19 @@
 @keyframes panel-out {
     0% {
         margin-top: 0;
+    }
+}
+
+.d-sm-flex > .server-status {
+    margin-bottom: 1rem;
+
+    @media screen and (min-width: map-get($grid-breakpoints, 'sm')) {
+        width: 200px;
+        flex-shrink: 0;
+        margin-right: 1rem;
+        margin-bottom: 0;
+    }
+    @media screen and (min-width: map-get($grid-breakpoints, 'lg')) {
+        width: 300px;
     }
 }

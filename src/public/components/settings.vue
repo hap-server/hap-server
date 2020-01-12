@@ -1,32 +1,39 @@
 <template>
-    <panel ref="panel" class="home-settings" :class="{wide: tab === 'users'}" @close="$emit('close')">
-        <panel-tabs v-model="tab" :tabs="tabs" />
+    <panel ref="panel" class="home-settings wide" no-frame @close="$emit('close')">
+        <div class="d-sm-flex">
+            <keep-alive>
+                <status ref="status" />
+            </keep-alive>
+            <div class="flex-fill">
+                <panel-tabs v-model="tab" :tabs="tabs" />
 
-        <keep-alive>
-            <general v-if="tab === 'general'" ref="general" />
-        </keep-alive>
-        <keep-alive>
-            <users v-if="tab === 'users'" ref="users"
-                :can-edit-user-permissions="canEditUserPermissions" />
-        </keep-alive>
-        <keep-alive>
-            <accessories v-if="tab === 'accessories'" ref="accessories"
-                :can-add-accessories="canAddAccessories"
-                @show-accessory-settings="a => $emit('show-accessory-settings', a)"
-                @show-add-accessory="$emit('modal', {type: 'add-accessory'})" />
-        </keep-alive>
-        <keep-alive>
-            <bridges v-if="tab === 'bridges'" ref="bridges"
-                :can-create-bridges="canCreateBridges"
-                @show-accessory-settings="a => $emit('show-accessory-settings', a)"
-                @show-new-bridge="$emit('modal', {type: 'new-bridge'})" />
-        </keep-alive>
-        <keep-alive v-if="canAccessServerInfo">
-            <server-output v-if="tab === 'output'" ref="output" />
-        </keep-alive>
-        <keep-alive v-if="canOpenConsole">
-            <console v-if="tab === 'console'" ref="console" />
-        </keep-alive>
+                <keep-alive>
+                    <general v-if="tab === 'general'" ref="general" />
+                </keep-alive>
+                <keep-alive>
+                    <users v-if="tab === 'users'" ref="users"
+                        :can-edit-user-permissions="canEditUserPermissions" />
+                </keep-alive>
+                <keep-alive>
+                    <accessories v-if="tab === 'accessories'" ref="accessories"
+                        :can-add-accessories="canAddAccessories"
+                        @show-accessory-settings="a => $emit('show-accessory-settings', a)"
+                        @show-add-accessory="$emit('modal', {type: 'add-accessory'})" />
+                </keep-alive>
+                <keep-alive>
+                    <bridges v-if="tab === 'bridges'" ref="bridges"
+                        :can-create-bridges="canCreateBridges"
+                        @show-accessory-settings="a => $emit('show-accessory-settings', a)"
+                        @show-new-bridge="$emit('modal', {type: 'new-bridge'})" />
+                </keep-alive>
+                <keep-alive v-if="canAccessServerInfo">
+                    <server-output v-if="tab === 'output'" ref="output" />
+                </keep-alive>
+                <keep-alive v-if="canOpenConsole">
+                    <console v-if="tab === 'console'" ref="console" />
+                </keep-alive>
+            </div>
+        </div>
     </panel>
 </template>
 
@@ -61,8 +68,6 @@
             Console,
         },
         props: {
-            connection: Connection,
-            accessories: Object,
             loadingAccessories: Boolean,
             canAddAccessories: Boolean,
             canCreateBridges: Boolean,
@@ -76,7 +81,7 @@
         },
         data() {
             return {
-                tab: 'general',
+                tab_: 'general',
                 tabs: {
                     general: () => this.$t('settings.general'),
                     users: {label: () => this.$t('settings.users'), if: () => this.canManageUsers &&
@@ -89,6 +94,20 @@
             };
         },
         computed: {
+            tab: {
+                get() {
+                    if (this.$route.name === 'settings') return this.$route.query.tab || 'general';
+                    return this.tab_;
+                },
+                set(tab) {
+                    if (this.$route.name === 'settings') {
+                        this.$router.replace({name: 'settings', query: {tab}});
+                    }
+
+                    this.tab_ = tab;
+                },
+            },
+
             loading() {
                 return this.$refs.general && this.$refs.general.loading;
             },

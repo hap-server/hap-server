@@ -19,6 +19,7 @@ export default {
 
     main: {
         home: 'Home',
+        settings: 'Settings',
         automations: 'Automations',
 
         connecting: 'Connecting',
