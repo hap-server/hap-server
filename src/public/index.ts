@@ -126,6 +126,14 @@ modals.i18n = i18n;
 // if (cached_data_json) client.restoreCachedData(cached_data_json);
 // client.on('cached-data', data => localStorage.setItem('CachedData', data));
 
+function getAssetURL(asset: string) {
+    if (native_hook && native_hook.base_url) {
+        return url.resolve(native_hook.base_url, 'assets/' + asset);
+    }
+
+    return '/assets/' + asset;
+}
+
 const errors: {err: Error; vm: Vue; info: string}[] = [];
 
 const vue = new Vue({
@@ -140,18 +148,9 @@ const vue = new Vue({
             [NativeHookSymbol]: native_hook,
             [ModalsSymbol]: modals,
             [ClientSymbol]: client,
-            [GetAssetURLSymbol]: (asset: string) => this.getAssetURL(asset),
-            [ErrorsSymbol]: this.errors,
+            [GetAssetURLSymbol]: (asset: string) => getAssetURL(asset),
+            [ErrorsSymbol]: errors,
         };
-    },
-    methods: {
-        getAssetURL(asset: string) {
-            if (native_hook && native_hook.base_url) {
-                return url.resolve(native_hook.base_url, 'assets/' + asset);
-            }
-
-            return '/assets/' + asset;
-        },
     },
     render(h) {
         return h(MainComponent);
