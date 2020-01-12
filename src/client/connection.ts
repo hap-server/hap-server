@@ -147,7 +147,7 @@ class Connection extends EventEmitter {
                 return;
             }
 
-            if (type === 'error') reject.call(this, data);
+            if (type === 'error') reject.call(this, this.unserialiseError(data));
             else resolve.call(this, data);
 
             this.callbacks.delete(messageid);
@@ -168,6 +168,44 @@ class Connection extends EventEmitter {
         }
 
         console.error('Invalid message');
+    }
+
+    unserialiseError(data: {
+        reject: true;
+        error: boolean;
+        constructor: string;
+        data: any;
+    }) {
+        if (!data.reject) return data;
+
+        if (data.error) {
+            // @ts-ignore
+            const constructor = global[data.constructor];
+            if (!constructor || !(constructor === Error || constructor.prototype instanceof Error)) {
+                return new Error('Error unserialising error - error constructor doesn\'t exist or doesn\'t extend ' +
+                    'Error');
+            }
+
+            const error = new constructor(data.data.message);
+            Object.assign(error, data.data);
+
+            // Add a marker to the stack trace
+            if (error.stack) {
+                const index = error.stack.indexOf('\n');
+                if (index >= 0) {
+                    error.stack = error.stack.substr(0, index) + '\n' +
+                        '    from server ' + this.ws.url +
+                        error.stack.substr(index);
+                } else {
+                    error.stack += '\n' +
+                        '    from server ' + this.ws.url;
+                }
+            }
+
+            return error;
+        }
+
+        return data.data;
     }
 
     protected handleDisconnect(event: CloseEvent): void

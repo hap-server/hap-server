@@ -4,7 +4,7 @@ if (process.env.NODE_ENV === 'development') {
 
 import url from 'url';
 
-import {NativeHookSymbol, ModalsSymbol, ClientSymbol, GetAssetURLSymbol} from './internal-symbols';
+import {NativeHookSymbol, ModalsSymbol, ClientSymbol, GetAssetURLSymbol, ErrorsSymbol} from './internal-symbols';
 import * as InternalSymbols from './internal-symbols';
 import Client from '../client/client';
 import Connection from '../client/connection';
@@ -126,16 +126,22 @@ modals.i18n = i18n;
 // if (cached_data_json) client.restoreCachedData(cached_data_json);
 // client.on('cached-data', data => localStorage.setItem('CachedData', data));
 
+const errors: {err: Error; vm: Vue; info: string}[] = [];
+
 const vue = new Vue({
     router,
     i18n,
 
+    data: {
+        errors,
+    },
     provide() {
         return {
             [NativeHookSymbol]: native_hook,
             [ModalsSymbol]: modals,
             [ClientSymbol]: client,
             [GetAssetURLSymbol]: (asset: string) => this.getAssetURL(asset),
+            [ErrorsSymbol]: this.errors,
         };
     },
     methods: {
@@ -151,6 +157,15 @@ const vue = new Vue({
         return h(MainComponent);
     },
 });
+
+Vue.config.errorHandler = function(err: Error, vm: Vue, info: string) {
+    if (vue.errors.length >= 20) {
+        console.error('Already showing 20 errors, supressing additional error', info, err, vm);
+        return;
+    }
+
+    vue.errors.push({err, vm, info});
+};
 
 vue.$mount(document.body.firstElementChild!);
 

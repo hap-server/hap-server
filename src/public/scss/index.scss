@@ -22,6 +22,7 @@ $main-z-index: 100;
 $header-z-index: 200;
 $modal-z-index: 300;
 $connecting-modal-z-index: 400;
+$errors-modal-z-index: 500;
 
 .custom-select {
     -webkit-appearance: none;
@@ -165,6 +166,7 @@ html.theme-dark .root > .background.settings {
         max-height: calc(100vh - 50px);
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
+        overflow-scrolling: touch;
     }
 
     .btn {
@@ -211,7 +213,7 @@ html.theme-dark .root > .background.settings {
     }
 }
 
-.panel-no-frame > .settings-window {
+.root > .panel-no-frame:not(.errors) > .settings-window {
     position: relative;
     z-index: $main-z-index;
 }
@@ -258,5 +260,38 @@ html.theme-dark .root > .background.settings {
     p {
         text-align: center;
         margin: auto;
+    }
+}
+
+.errors {
+    position: fixed;
+    z-index: $errors-modal-z-index;
+    top: 0;
+    left: 0;
+    width: 100%;
+    max-height: 100%;
+
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overflow-scrolling: touch;
+
+    border-bottom: darken($light, 20%) 1px solid;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+
+    @include dark-theme {
+        border-color: darken($dark, 20%);
+    }
+
+    .error {
+        margin-bottom: 1.2rem;
+        padding: 1.2rem 1.5rem 0;
+
+        @include dark-theme {
+            color: $gray-500;
+        }
+
+        code:first-child {
+            color: $danger;
+        }
     }
 }

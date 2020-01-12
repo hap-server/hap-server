@@ -77,6 +77,18 @@
             <p>{{ has_connected ? $t('main.reconnecting') : $t('main.connecting') }}</p>
         </div>
 
+        <div v-if="errors.length" class="errors panel-no-frame">
+            <div class="settings-window">
+                <div v-for="(error, index) of errors" :key="index" class="error">
+                    <pre class="selectable"><code>Error: {{ error.err.message }}</code><code>{{ error.err.stack.substr(error.err.stack.indexOf('\n')) }}</code></pre>
+
+                    <button class="btn btn-default btn-sm" @click="errors.splice(errors.indexOf(error), 1)">
+                        {{ $t('main.errors.ignore') }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <template v-for="preload_url in preload_urls">
             <link :key="'1-' + preload_url" rel="preload" :href="preload_url" as="image" />
             <link :key="'2-' + preload_url" rel="prefetch" :href="preload_url" />
@@ -92,6 +104,7 @@
         NativeHookSymbol, ModalsSymbol, ClientSymbol, ConnectionSymbol,
         AccessoriesSymbol, BridgeUUIDsSymbol, LayoutsSymbol, ScenesSymbol,
         GetAllDisplayServicesSymbol, GetServiceSymbol, PushModalSymbol, GetAssetURLSymbol,
+        ErrorsSymbol,
     } from '../internal-symbols';
 
     import LayoutComponent from './layout.vue';
@@ -114,6 +127,7 @@
             _modals: {from: ModalsSymbol},
             _client: {from: ClientSymbol},
             getAssetURL: {from: GetAssetURLSymbol},
+            errors: {from: ErrorsSymbol},
         },
         data() {
             return {
@@ -297,7 +311,9 @@
                     this.reload(),
                     this.reloadPermissions(),
                     this.reloadBridges(),
-                ]);
+                ]).catch(err => {
+                    this.errors.push({err, vm: this, info: 'watch authenticated_user'});
+                });
             },
             layout(layout) {
                 // Only save the layout when using running as a web clip

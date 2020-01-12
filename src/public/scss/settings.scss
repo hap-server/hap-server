@@ -34,7 +34,7 @@
         color: $gray-100;
     }
 
-    .root > .panel-no-frame > & {
+    .root > .panel-no-frame:not(.errors) > & {
         background-color: transparent;
     }
 

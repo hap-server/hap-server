@@ -20,3 +20,5 @@ export const LayoutGetCanEditSymbol = Symbol('LayoutGetCanEdit');
 export const LayoutSetEditingSymbol = Symbol('LayoutSetEditing');
 
 export const AutomationSymbol = Symbol('Automation');
+
+export const ErrorsSymbol = Symbol('Errors');

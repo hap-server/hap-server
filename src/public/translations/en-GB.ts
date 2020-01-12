@@ -24,6 +24,10 @@ export default {
 
         connecting: 'Connecting',
         reconnecting: 'Reconnecting',
+
+        errors: {
+            ignore: 'Ignore',
+        },
     },
 
     modal: {
