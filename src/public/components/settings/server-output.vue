@@ -9,7 +9,7 @@
             </dd>
         </dl>
 
-        <terminal :terminal="terminal" />
+        <terminal ref="terminal" :terminal="terminal" />
     </div>
 </template>
 
@@ -81,6 +81,9 @@
                         .then(() => this.terminal.write('\nStarted stdout proxy...\n')),
                 ]);
             }
+        },
+        updated() {
+            this.$refs.terminal.resize();
         },
         async destroyed() {
             if (!this.client.connection) return;

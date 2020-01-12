@@ -15,6 +15,9 @@
             this.terminal.open(this.$el);
             this.resize();
         },
+        activated() {
+            this.resize();
+        },
         destroyed() {
             window.removeEventListener('resize', this.resize);
         },
