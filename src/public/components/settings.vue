@@ -2,229 +2,63 @@
     <panel ref="panel" class="home-settings" :class="{wide: tab === 'users'}" @close="$emit('close')">
         <panel-tabs v-model="tab" :tabs="tabs" />
 
-        <form v-if="tab === 'general'" @submit.prevent="save(true)">
-            <div class="form-group row">
-                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-name'">
-                    {{ $t('settings.name') }}
-                </label>
-                <div class="col-sm-9">
-                    <input :id="_uid + '-name'" v-model="name" type="text" class="form-control form-control-sm"
-                        :placeholder="$t('settings.name')" :disabled="loading || saving" />
-                </div>
-            </div>
-
-            <div class="form-group row">
-                <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-wallpaper'">
-                    {{ $t('settings.wallpaper') }}
-                </label>
-                <div class="col-sm-9">
-                    <div class="custom-file form-control-sm">
-                        <input :id="_uid + '-wallpaper'" ref="file" type="file" class="custom-file-input"
-                            :disabled="loading || saving || uploading" @change="upload" />
-                        <label class="custom-file-label" :for="_uid + '-wallpaper'">
-                            {{ $t('settings.choose_file') }}
-                        </label>
-                    </div>
-                    <div v-if="uploading" class="progress mt-3">
-                        <div class="progress-bar" :class="{'progress-bar-striped': typeof upload_progress !== 'number'}"
-                            :style="{width: typeof upload_progress !== 'number' ? '100%' : upload_progress * 100 + 'px'}"
-                            role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
-
-                    <input v-if="background_url" :id="_uid + '-wallpaper'" :value="background_url" type="text"
-                        class="form-control form-control-sm mt-3" disabled />
-
-                    <img v-if="background_url" class="mt-3" :src="getAssetURL(background_url)"
-                        :style="{maxHeight: '300px', maxWidth: '100%'}" />
-                </div>
-            </div>
-        </form>
-
-        <div v-if="tab === 'users'" class="user-management-container mb-3">
-            <user-list v-model="editing_user" @create="handler => creating_user = handler" />
-
-            <div v-if="editing_user" ref="user" class="user-management-current-user"
-                :class="{scrolled: editing_user_scrolled, 'can-scroll': editing_user_can_scroll}"
-                @scroll="onscrollEditingUser"
-            >
-                <component ref="user-component" :is="editing_user.component"
-                    :user-management-handler="editing_user.user_management_handler" :user="editing_user"
-                    @changed="c => editing_user_changed = c" @saving="s => editing_user_saving = s"
-                >
-                    <template v-slot:info="{id, name}">
-                        <div class="user-management-info">
-                            <div class="user-management-picture" />
-                            <h4 class="user-management-name">
-                                {{ name || editing_user.name || id || editing_user.id }}
-                                <small v-if="name || editing_user.name" class="d-block">
-                                    {{ id || editing_user.id }}
-                                </small>
-                            </h4>
-                        </div>
-                    </template>
-
-                    <template v-slot:location>
-                        <h4>{{ $t('settings.location') }}</h4>
-
-                        <div class="form-group">
-                            <input type="text" class="form-control form-control-sm" disabled />
-
-                            <small class="text-muted">
-                                {{ $t('settings.location_description') }}
-                            </small>
-                        </div>
-                    </template>
-
-                    <template v-if="canEditUserPermissions" v-slot:permissions="{id}">
-                        <user-permissions ref="user-permissions" :id="id || editing_user.id"
-                            @changed="c => editing_user_permissions_changed = c"
-                            @saving="s => editing_user_permissions_saving = s" />
-                    </template>
-                </component>
-            </div>
-
-            <component v-else-if="creating_user" :is="creating_user.create_component" />
-        </div>
-
-        <div v-if="tab === 'accessories'" class="list-group-group">
-            <div v-for="group in accessory_groups" :key="group.name" class="list-group-group-item">
-                <h4 v-if="group.name">{{ group.name }}</h4>
-                <list-group>
-                    <list-item v-for="accessory in group.accessories" :key="accessory.uuid"
-                        @click="$emit('show-accessory-settings', accessory)"
-                    >
-                        {{ accessory.name || accessory.uuid }}
-                        <small v-if="accessory.name" class="text-muted">{{ accessory.uuid }}</small>
-
-                        <p v-if="accessory.display_services.length" class="mb-0">
-                            <small>
-                                <!-- TODO: translate -->
-                                <template v-for="(service, index) in accessory.display_services">{{ service.name }}{{
-                                    accessory.display_services.length - 2 === index ? ' and ' :
-                                    accessory.display_services.length - 1 > index ? ', ' : '' }}</template>
-                            </small>
-                        </p>
-                    </list-item>
-                </list-group>
-            </div>
-        </div>
-
-        <list-group v-if="tab === 'bridges'" class="mb-3">
-            <list-item v-for="bridge_uuid in bridges" :key="bridge_uuid"
-                @click="$emit('show-accessory-settings', accessories[bridge_uuid])"
-            >
-                {{ accessories[bridge_uuid] && accessories[bridge_uuid].name }}
-                <small class="text-muted">{{ bridge_uuid }}</small>
-            </list-item>
-        </list-group>
-
-        <div v-if="tab === 'output'" key="output" class="form-group">
-            <dl v-if="command_line_flags.length" class="row">
-                <dt class="col-sm-3">{{ $t('settings.command') }}</dt>
-                <dd class="col-sm-9 text-right selectable">
-                    <template v-for="arg in command_line_flags">
-                        {{ arg.match(/[^\\]\s/g) ? `"${arg}"` : arg }}
-                    </template>
-                </dd>
-            </dl>
-
-            <terminal :terminal="terminal" />
-        </div>
-
-        <div v-if="tab === 'console'" key="console" class="form-group">
-            <dl v-if="!console" class="row">
-                <dt class="col-sm-3">{{ $t('settings.status') }}</dt>
-                <dd class="col-sm-9 text-right">{{ opening_console ? 'Starting' : 'Stopped' }}</dd>
-            </dl>
-
-            <terminal :terminal="console_terminal" />
-        </div>
-
-        <div class="d-flex">
-            <template v-if="tab === 'accessories'">
-                <button class="btn btn-default btn-sm" type="button" :disabled="!canAddAccessories"
-                    @click="$emit('modal', {type: 'add-accessory'})">{{ $t('settings.add_accessory') }}</button>&nbsp;
-            </template>
-            <template v-if="tab === 'bridges'">
-                <button class="btn btn-default btn-sm" type="button" :disabled="!canCreateBridges"
-                    @click="$emit('modal', {type: 'new-bridge'})">{{ $t('settings.new_bridge') }}</button>&nbsp;
-            </template>
-            <div v-if="loading">{{ $t('settings.loading') }}</div>
-            <div v-else-if="saving">{{ $t('settings.saving') }}</div>
-            <div class="flex-fill"></div>
-            <template v-if="tab === 'accessories'">
-                <button class="btn btn-default btn-sm" type="button" :disabled="loadingAccessories"
-                    @click="$emit('refresh-accessories')">{{ $t('settings.refresh_accessories') }}</button>&nbsp;
-            </template>
-            <template v-if="tab === 'general' && (changed || uploading)">
-                <button class="btn btn-default btn-sm" type="button"
-                    :disabled="saving || uploading || editing_user_saving || editing_user_permissions_saving"
-                    @click="() => $refs.panel.close()">{{ $t('settings.cancel') }}</button>&nbsp;
-                <button key="primary" class="btn btn-primary btn-sm" type="button"
-                    :disabled="loading || saving || uploading"
-                    @click="save(!editing_user_changed && !editing_user_saving && !editing_user_permissions_changed &&
-                        !editing_user_permissions_saving)">{{ $t('settings.save') }}</button>
-            </template>
-            <template v-else-if="tab === 'users' && editing_user && (editing_user_changed || editing_user_saving)">
-                <button class="btn btn-default btn-sm" type="button"
-                    :disabled="saving || uploading || editing_user_saving || editing_user_permissions_saving"
-                    @click="() => $refs.panel.close()">{{ $t('settings.cancel') }}</button>&nbsp;
-                <button key="primary" class="btn btn-primary btn-sm" type="button" :disabled="editing_user_saving"
-                    @click="() => $refs['user-component'].save()">{{ $t('settings.save') }}</button>
-            </template>
-            <template v-else-if="tab === 'users' && editing_user &&
-                (editing_user_permissions_changed || editing_user_permissions_saving)"
-            >
-                <button class="btn btn-default btn-sm" type="button"
-                    :disabled="saving || uploading || editing_user_saving || editing_user_permissions_saving"
-                    @click="() => $refs.panel.close()">{{ $t('settings.cancel') }}</button>&nbsp;
-                <button key="primary" class="btn btn-primary btn-sm" type="button"
-                    :disabled="editing_user_permissions_saving"
-                    @click="() => $refs['user-permissions'].save()">{{ $t('settings.save_permissions') }}</button>
-            </template>
-            <template v-else>
-                <button v-if="changed || editing_user_changed || editing_user_permissions_changed"
-                    class="btn btn-default btn-sm" type="button"
-                    :disabled="saving || uploading || editing_user_saving || editing_user_permissions_saving"
-                    @click="() => $refs.panel.close()">{{ $t('settings.cancel') }}</button>&nbsp;
-                <button key="primary" class="btn btn-primary btn-sm" type="button"
-                    :disabled="changed || editing_user_changed || editing_user_permissions_changed || loading ||
-                        saving || uploading || editing_user_saving || editing_user_permissions_saving"
-                    :title="loading || saving || editing_user_saving || editing_user_permissions_saving ? null :
-                        changed || uploading || editing_user_changed || editing_user_permissions_changed ?
-                            $t('settings.unsaved_in_other_tab') : null"
-                    @click="() => $refs.panel.close()">{{ $t('settings.done') }}</button>
-            </template>
-        </div>
+        <keep-alive>
+            <general v-if="tab === 'general'" ref="general" />
+        </keep-alive>
+        <keep-alive>
+            <users v-if="tab === 'users'" ref="users"
+                :can-edit-user-permissions="canEditUserPermissions" />
+        </keep-alive>
+        <keep-alive>
+            <accessories v-if="tab === 'accessories'" ref="accessories"
+                :can-add-accessories="canAddAccessories"
+                @show-accessory-settings="a => $emit('show-accessory-settings', a)"
+                @show-add-accessory="$emit('modal', {type: 'add-accessory'})" />
+        </keep-alive>
+        <keep-alive>
+            <bridges v-if="tab === 'bridges'" ref="bridges"
+                :can-create-bridges="canCreateBridges"
+                @show-accessory-settings="a => $emit('show-accessory-settings', a)"
+                @show-new-bridge="$emit('modal', {type: 'new-bridge'})" />
+        </keep-alive>
+        <keep-alive v-if="canAccessServerInfo">
+            <server-output v-if="tab === 'output'" ref="output" />
+        </keep-alive>
+        <keep-alive v-if="canOpenConsole">
+            <console v-if="tab === 'console'" ref="console" />
+        </keep-alive>
     </panel>
 </template>
 
 <script>
-    import axios from 'axios';
-    import {Terminal} from 'xterm';
-
     import Connection from '../../client/connection';
-    import {ClientSymbol, GetAssetURLSymbol} from '../internal-symbols';
+    import {ClientSymbol} from '../internal-symbols';
 
     import {UserManagementHandlers as user_management_components} from '../component-registry';
 
     import Panel from './panel.vue';
     import PanelTabs from './panel-tabs.vue';
-    import TerminalComponent from './terminal.vue';
-    import ListGroup from './list-group.vue';
-    import ListItem from './list-item.vue';
-    import UserList from './user-list.vue';
-    import UserPermissions from './user-permissions.vue';
+
+    import Status from './settings/status.vue';
+    import General from './settings/general.vue';
+    import Users from './settings/users.vue';
+    import Accessories from './settings/accessories.vue';
+    import Bridges from './settings/bridges.vue';
+    import ServerOutput from './settings/server-output.vue';
+    import Console from './settings/console.vue';
 
     export default {
         components: {
             Panel,
             PanelTabs,
-            Terminal: TerminalComponent,
-            ListGroup,
-            ListItem,
-            UserList,
-            UserPermissions,
+
+            Status,
+            General,
+            Users,
+            Accessories,
+            Bridges,
+            ServerOutput,
+            Console,
         },
         props: {
             connection: Connection,
@@ -239,17 +73,9 @@
         },
         inject: {
             client: {from: ClientSymbol},
-            getAssetURL: {from: GetAssetURLSymbol},
         },
         data() {
             return {
-                loading: false,
-                saving: false,
-                uploading: false,
-                upload_progress: null,
-
-                command_line_flags: [],
-
                 tab: 'general',
                 tabs: {
                     general: () => this.$t('settings.general'),
@@ -260,58 +86,38 @@
                     output: {label: () => this.$t('settings.output'), if: () => this.canAccessServerInfo},
                     console: {label: () => this.$t('settings.console'), if: () => this.canOpenConsole},
                 },
-
-                terminal: null,
-
-                data: null,
-                name: null,
-                background_url: null,
-                bridges: [],
-
-                opening_console: false,
-                console: null,
-                console_terminal: null,
-
-                editing_user: null,
-                creating_user: null,
-                editing_user_scrolled: false,
-                editing_user_can_scroll: false,
-                editing_user_changed: false,
-                editing_user_saving: false,
-                editing_user_permissions_changed: false,
-                editing_user_permissions_saving: false,
             };
         },
         computed: {
+            loading() {
+                return this.$refs.general && this.$refs.general.loading;
+            },
+            saving() {
+                return this.$refs.general && this.$refs.general.saving;
+            },
+            uploading() {
+                return this.$refs.general && this.$refs.general.uploading;
+            },
             changed() {
-                if (!this.data) return false;
-
-                return this.name !== this.data.name ||
-                    this.background_url !== this.data.background_url;
+                return this.$refs.general && this.$refs.general.changed;
             },
-            accessory_groups() {
-                const groups = {};
 
-                for (const accessory of Object.values(this.accessories)) {
-                    const group = groups[accessory.data.room_name] || (groups[accessory.data.room_name] = {
-                        name: accessory.data.room_name,
-                        accessories: [],
-                    });
-
-                    group.accessories.push(accessory);
-                }
-
-                return Object.values(groups).sort((a, b) => {
-                    if (!a.name && !b.name) return 0;
-                    if (!a.name) return 1;
-                    if (!b.name) return -1;
-
-                    if (a.name < b.name) return -1;
-                    if (a.name > b.name) return 1;
-
-                    return 0;
-                });
+            editing_user() {
+                return this.$refs.users && this.$refs.users.editing_user;
             },
+            editing_user_changed() {
+                return this.$refs.users && this.$refs.users.editing_user_changed;
+            },
+            editing_user_saving() {
+                return this.$refs.users && this.$refs.users.editing_user_saving;
+            },
+            editing_user_permissions_changed() {
+                return this.$refs.users && this.$refs.users.editing_user_permissions_changed;
+            },
+            editing_user_permissions_saving() {
+                return this.$refs.users && this.$refs.users.editing_user_permissions_saving;
+            },
+
             close_with_escape_key() {
                 if (this.tab === 'general') return !this.saving && !this.uploading;
                 if (this.tab === 'users' && this.editing_user &&
@@ -323,204 +129,8 @@
             },
         },
         watch: {
-            async connection(connection, old_connection) {
-                // eslint-disable-next-line curly
-                if (old_connection) old_connection.disableProxyStdout().then(() => {
-                    old_connection.removeListener('stdout', this.stdout);
-                    old_connection.removeListener('stderr', this.stderr);
-                });
-
-                if (connection) {
-                    connection.on('stdout', this.stdout);
-                    connection.on('stderr', this.stderr);
-
-                    await connection.enableProxyStdout().then(() => this.terminal.write('\nStarted stdout proxy...\n'));
-                };
-
-                if (this.console) {
-                    this.console.close();
-                    this.console = null;
-                    this.terminal.setOption('disableStdin', true);
-                }
-
-                if (connection && this.tab === 'console') this.openConsole();
-            },
-            tab(tab) {
-                if (tab === 'console' && !this.console && !this.opening_console) {
-                    this.openConsole();
-                }
-            },
             tab() {
-                this.creating_user = null;
-            },
-            editing_user(editing_user) {
-                this.editing_user_changed = false;
-                this.editing_user_saving = false;
-                this.editing_user_permissions_changed = false;
-                this.editing_user_permissions_saving = false;
-
-                if (editing_user) return this.$nextTick(() => this.onscrollEditingUser({target: this.$refs.user}));
-
-                this.editing_user_scrolled = false;
-                this.editing_user_can_scroll = false;
-            },
-        },
-        async created() {
-            // Register built in components
-            require('./user-management');
-
-            this.terminal = new Terminal({
-                disableStdin: true,
-                fontSize: 12,
-                convertEol: true,
-                columns: 20,
-            });
-            // this.terminal.open(this.$refs.terminal);
-            this.terminal.write('Hello from \x1B[1;3;31mxterm.js\x1B[0m $ ');
-
-            // window.terminal = this.terminal;
-            // this.terminal.element.parentElement.removeChild(this.terminal.element);
-            // this.$refs.terminal.appendChild(this.terminal.element);
-
-            this.connection.on('stdout', this.stdout);
-            this.connection.on('stderr', this.stderr);
-
-            this.console_terminal = new Terminal({
-                disableStdin: true,
-                fontSize: 12,
-                convertEol: true,
-                columns: 20,
-            });
-            this.console_terminal.write('Hello from \x1B[1;3;31mxterm.js\x1B[0m $ ');
-
-            this.console_terminal.onData(data => {
-                this.console.write(data);
-            });
-
-            await Promise.all([
-                this.reload(),
-                this.loadCommandLineFlags(),
-                this.loadBridges(),
-                this.connection.enableProxyStdout().then(() => this.terminal.write('\nStarted stdout proxy...\n')),
-            ]);
-        },
-        destroyed() {
-            // this.connection.removeListener('added-bridge', this.addedBridge);
-            // this.connection.removeListener('removed-bridge', this.removedBridge);
-
-            return Promise.all([
-                this.connection.disableProxyStdout().then(() => {
-                    this.connection.removeListener('stdout', this.stdout);
-                    this.connection.removeListener('stderr', this.stderr);
-                }),
-                this.console ? this.console.close() : null,
-            ]);
-        },
-        methods: {
-            async reload() {
-                if (this.loading) throw new Error('Already loading');
-                this.loading = true;
-
-                try {
-                    const data = await this.connection.getHomeSettings();
-
-                    this.data = data;
-                    this.name = data.name;
-                    this.background_url = data.background_url;
-                } finally {
-                    this.loading = false;
-                }
-            },
-            async loadCommandLineFlags() {
-                this.command_line_flags = await this.connection.getCommandLineFlags();
-            },
-            async loadBridges() {
-                if (this.loading_bridges) throw new Error('Already loading');
-                this.loading_bridges = true;
-
-                try {
-                    this.bridges = await this.connection.listBridges();
-                } finally {
-                    this.loading_bridges = false;
-                }
-            },
-            async save(close) {
-                if (this.saving) throw new Error('Already saving');
-                this.saving = true;
-
-                try {
-                    const data = Object.assign({}, this.data, {
-                        name: this.name,
-                        background_url: this.background_url,
-                    });
-
-                    await this.connection.setHomeSettings(data);
-                    this.$emit('updated-settings', data);
-
-                    if (close) this.$emit('close');
-                } finally {
-                    this.saving = false;
-                }
-            },
-            async upload() {
-                if (this.uploading) throw new Error('Already uploading');
-                this.uploading = true;
-                this.upload_progress = null;
-
-                try {
-                    const form_data = new FormData();
-                    form_data.append('background', this.$refs.file.files[0]);
-
-                    const response = await axios.post(this.getAssetURL('upload-layout-background'), form_data, {
-                        headers: {
-                            'Content-Type': 'multipart/form-data',
-                        },
-                        onUploadProgress: event => {
-                            this.upload_progress = event.loaded / event.total;
-                        },
-                    });
-
-                    this.background_url = response.data.name;
-                } finally {
-                    this.uploading = false;
-                }
-            },
-            onscrollEditingUser(event) {
-                this.editing_user_scrolled = event.target.scrollTop > 0;
-                this.editing_user_can_scroll = event.target.scrollTop <
-                    (event.target.scrollHeight - event.target.clientHeight);
-            },
-            stdout(data) {
-                console.log('stdout', data);
-                this.terminal.write(data);
-            },
-            stderr(data) {
-                console.error('stderr', data);
-                this.terminal.write(data);
-            },
-            async openConsole() {
-                if (this.opening_console) throw new Error('Already opening console');
-                this.opening_console = true;
-
-                try {
-                    this.console = await this.client.openConsole();
-
-                    if (this._isDestroyed) {
-                        await this.console.close();
-                        return;
-                    }
-
-                    this.console.on('out', data => {
-                        this.console_terminal.write(data);
-                    });
-                    this.console.on('err', data => {
-                        this.console_terminal.write(data);
-                    });
-
-                    this.console_terminal.setOption('disableStdin', false);
-                } finally {
-                    this.opening_console = false;
-                }
+                if (this.$refs.users) this.$refs.users.creating_user = null;
             },
         },
     };
