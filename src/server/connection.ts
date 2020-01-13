@@ -156,6 +156,8 @@ export default class Connection {
 
     /* eslint-disable no-invalid-this */
     terminateInterval: NodeJS.Timeout = setInterval(() => {
+        if (this.ws.readyState !== WebSocket.OPEN) return;
+
         this.ws.ping();
 
         // A message was received less than 30 seconds ago
@@ -333,7 +335,7 @@ export default class Connection {
         const asset_token = search_params.token || req.cookies.asset_token;
 
         const connection = [...server.wss.clients].map(s => this.getConnectionForWebSocket(s))
-            .find(c => c && c.asset_token === asset_token);
+            .find(c => c && c.ws.readyState === WebSocket.OPEN && c.asset_token === asset_token);
 
         if (!asset_token || !connection) {
             server.log('Unauthorised asset request', req.url);
@@ -2522,7 +2524,7 @@ export default class Connection {
             const connection = Connection.getConnectionForWebSocket(ws);
             if (!connection) continue;
 
-            if (ws.readyState !== 1 || !connection.authenticated_user ||
+            if (ws.readyState !== WebSocket.OPEN || !connection.authenticated_user ||
                 connection.authenticated_user.id !== user_id
             ) continue;
 

@@ -286,15 +286,17 @@ export default class Server extends Events {
             Logger.wrapConsoleFn(fn, (data: any, ...args: any[]) => {
                 for (const server of Server.instances) {
                     for (const ws of server.wss.clients) {
+                        if (ws.readyState !== WebSocket.OPEN) continue;
+
                         const connection = Connection.getConnectionForWebSocket(ws);
-                        if (connection && connection.enable_proxy_stdout) {
-                            ws.send('**:' + JSON.stringify({
-                                type,
-                                data: util.formatWithOptions ? util.formatWithOptions({
-                                    colors: true,
-                                }, data, ...args) + '\n' : util.format(data, ...args) + '\n',
-                            }));
-                        }
+                        if (!connection || !connection.enable_proxy_stdout) continue;
+
+                        ws.send('**:' + JSON.stringify({
+                            type,
+                            data: util.formatWithOptions ? util.formatWithOptions({
+                                colors: true,
+                            }, data, ...args) + '\n' : util.format(data, ...args) + '\n',
+                        }));
                     }
                 }
             });
@@ -983,16 +985,18 @@ export default class Server extends Events {
         accessory_discovery: AccessoryDiscovery, discovered_accessory: DiscoveredAccessory
     ) {
         for (const ws of this.wss.clients) {
+            if (ws.readyState !== WebSocket.OPEN) continue;
+
             const connection = Connection.getConnectionForWebSocket(ws);
-            if (connection && connection.enable_accessory_discovery) {
-                ws.send('**:' + JSON.stringify({
-                    type: 'add-discovered-accessory',
-                    plugin: accessory_discovery.plugin ? accessory_discovery.plugin.name : null,
-                    accessory_discovery: accessory_discovery.id,
-                    id: discovered_accessory.id,
-                    data: discovered_accessory,
-                }));
-            }
+            if (!connection || !connection.enable_accessory_discovery) continue;
+
+            ws.send('**:' + JSON.stringify({
+                type: 'add-discovered-accessory',
+                plugin: accessory_discovery.plugin ? accessory_discovery.plugin.name : null,
+                accessory_discovery: accessory_discovery.id,
+                id: discovered_accessory.id,
+                data: discovered_accessory,
+            }));
         }
     }
 
@@ -1006,15 +1010,17 @@ export default class Server extends Events {
         accessory_discovery: AccessoryDiscovery, discovered_accessory: DiscoveredAccessory
     ) {
         for (const ws of this.wss.clients) {
+            if (ws.readyState !== WebSocket.OPEN) continue;
+
             const connection = Connection.getConnectionForWebSocket(ws);
-            if (connection && connection.enable_accessory_discovery) {
-                ws.send('**:' + JSON.stringify({
-                    type: 'remove-discovered-accessory',
-                    plugin: accessory_discovery.plugin ? accessory_discovery.plugin.name : null,
-                    accessory_discovery: accessory_discovery.id,
-                    id: discovered_accessory.id,
-                }));
-            }
+            if (!connection || !connection.enable_accessory_discovery) continue;
+
+            ws.send('**:' + JSON.stringify({
+                type: 'remove-discovered-accessory',
+                plugin: accessory_discovery.plugin ? accessory_discovery.plugin.name : null,
+                accessory_discovery: accessory_discovery.id,
+                id: discovered_accessory.id,
+            }));
         }
     }
 
