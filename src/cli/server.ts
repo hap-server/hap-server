@@ -444,6 +444,9 @@ export async function handler(argv: Arguments) {
     } else if (config.bridge || config.accessories || config.platforms) {
         log.info('Loading Homebridge');
         server.accessories.loadHomebridge(config.bridge || {}, config.accessories || [], config.platforms || []);
+
+        // Always publish Homebridge's HAP server as Homebridge cannot be started otherwise
+        server.accessories.homebridge!.publish();
     }
 
     for (const bridge of server.accessories.bridges) {
@@ -462,8 +465,18 @@ export async function handler(argv: Arguments) {
         server.accessories.loadAccessoriesFromStorage(true),
     ]);
 
+    log.info('Loading automations');
+    await server.loadAutomationsFromConfig({
+        automations: config.automations || [],
+        'automation-triggers': config['automation-triggers'] || {},
+        'automation-conditions': config['automation-conditions'] || {},
+        'automation-actions': config['automation-actions'] || {},
+    });
+    await server.loadAutomationsFromStorage();
+    await server.loadScenesFromStorage();
+
     if (server.accessories.homebridge) {
-        if (server.accessories.homebridge.homebridge._asyncCalls !== 0) {
+        if (!server.accessories.homebridge.bridge._server?._httpServer._tcpServer.listening) {
             log.info('Waiting for Homebridge to finish loading');
             await new Promise<number>(rs => server.accessories.homebridge.bridge.once('listening', rs));
         }
@@ -485,16 +498,8 @@ export async function handler(argv: Arguments) {
     server.on(UpdateAccessoryConfigurationEvent, saveCachedAccessories);
     server.on(RemoveAccessoryEvent, saveCachedAccessories);
 
-    log.info('Starting automations');
-    await server.loadAutomationsFromConfig({
-        automations: config.automations || [],
-        'automation-triggers': config['automation-triggers'] || {},
-        'automation-conditions': config['automation-conditions'] || {},
-        'automation-actions': config['automation-actions'] || {},
-    });
-    await server.loadAutomationsFromStorage();
-    await server.loadScenesFromStorage();
     if (argv.enableAutomations) {
+        log.info('Starting automations');
         await server.automations.start();
     }
 

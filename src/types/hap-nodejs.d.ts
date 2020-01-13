@@ -419,6 +419,8 @@ declare module 'hap-nodejs/lib/Accessory' {
     import {Service} from 'hap-nodejs/lib/Service';
     import {ToHapOptions} from 'hap-nodejs/lib/Characteristic';
     import {Camera} from 'hap-nodejs/lib/Camera';
+    import {HAPServer} from 'hap-nodejs/lib/HAPServer';
+    import {Advertiser} from 'hap-nodejs/lib/Advertiser';
     import {AccessoryInfo} from 'hap-nodejs/lib/model/AccessoryInfo';
     import {IdentifierCache} from 'hap-nodejs/lib/model/IdentifierCache';
 
@@ -493,6 +495,8 @@ declare module 'hap-nodejs/lib/Accessory' {
 
         _accessoryInfo?: AccessoryInfo;
         _identifierCache?: IdentifierCache;
+        _advertiser?: Advertiser;
+        _server?: HAPServer;
 
         publish(info: PublishInfo /* , allowInsecureRequest?: boolean */): void;
         destroy(): void;

@@ -16,6 +16,7 @@ homebridge_logger.prefix = 'Homebridge';
 
 export default class Homebridge extends Bridge {
     readonly homebridge: HomebridgeServer;
+    private _started: boolean;
 
     constructor(server: Server, log: Logger, config: any, unauthenticated_access = false) {
         // @ts-ignore
@@ -44,6 +45,7 @@ export default class Homebridge extends Bridge {
         });
 
         this.homebridge = homebridge;
+        this._started = false;
     }
 
     protected _createBridge(config: {homebridge: HomebridgeServer}) {
@@ -74,11 +76,17 @@ export default class Homebridge extends Bridge {
     }
 
     publish() {
+        if (this._started) return;
+
         this.homebridge.run();
+        this._started = true;
     }
 
     unpublish() {
+        if (!this._started) return;
+
         this.homebridge._teardown();
+        this._started = false;
     }
 
     get hap_server(): HAPServer {
