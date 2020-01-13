@@ -11,11 +11,12 @@
         <div class="accessory-details-lightbulb-sections">
             <div class="accessory-details-lightbulb-sections-scroll-wrapper">
                 <div class="accessory-details-lightbulb-power d-flex flex-column clickable"
+                    style="min-height: 200px;"
                     @click.stop="service.setCharacteristicByName('On', !on)"
                 >
                     <div class="flex-fill"></div>
 
-                    <p @click.stop="setOn(!on)">{{ $t('services.outlet.' + (on ? 'on' : 'off')) }}</p>
+                    <p @click.stop="on = !on">{{ $t('services.outlet.' + (on ? 'on' : 'off')) }}</p>
 
                     <div v-if="service.getCharacteristicByName('Brightness')" style="flex: 1 1 10%;" />
 
@@ -100,8 +101,13 @@
                 return !!this.subscribedCharacteristics.find(c => c && c.changed);
             },
 
-            on() {
-                return this.service.getCharacteristicValueByName('On');
+            on: {
+                get() {
+                    return this.service.getCharacteristicValueByName('On');
+                },
+                set(on) {
+                    this.service.setCharacteristicByName('On', on);
+                },
             },
             brightness: {
                 get() {
