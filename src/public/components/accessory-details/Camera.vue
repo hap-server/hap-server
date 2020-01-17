@@ -10,7 +10,7 @@
 <script>
     import Service from '../../../client/service';
     import AccessoryDetails from './accessory-details.vue';
-    import Camera from '../layout-sections/cameras/camera.vue';
+    import Camera from '../camera.vue';
 
     export const uuid = 'CollapsedService.' + Service.CameraRTPStreamManagement;
 

@@ -57,11 +57,11 @@
 </template>
 
 <script>
-    import Service, {type_names} from '../../../../client/service';
-    import {AccessoryStatus} from '../../../../common/types/accessories';
+    import Service, {type_names} from '../../client/service';
+    import {AccessoryStatus} from '../../common/types/accessories';
 
-    import WarningIcon from '../../icons/warning.vue';
-    import Spinner from '../../icons/spinner.vue';
+    import WarningIcon from './icons/warning.vue';
+    import Spinner from './icons/spinner.vue';
 
     export default {
         components: {
@@ -106,6 +106,11 @@
                 if (status !== AccessoryStatus.READY) return;
 
                 this.updateSnapshotImage();
+            },
+            snapshot_age(age) {
+                if (!this.loading_snapshot && age >= 20) {
+                    this.updateSnapshotImage();
+                }
             },
         },
         created() {

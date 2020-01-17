@@ -30,7 +30,7 @@
     import {ConnectionSymbol, GetServiceSymbol, LayoutSymbol} from '../../internal-symbols';
 
     import LayoutSectionComponent from '../layout-section.vue';
-    import Camera from './cameras/camera.vue';
+    import Camera from '../camera.vue';
     import Sortable from '../sortable.vue';
 
     export const type = 'Cameras';
