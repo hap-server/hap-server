@@ -64,7 +64,7 @@
             effective_accessories_order: {
                 get() {
                     return this.effective_cameras_order
-                        .map(u => u + '.CollapsedService.' + type_uuids.CameraRTPStreamManagement);
+                        .map(u => u + '.' + type_uuids.CameraRTPStreamManagement);
                 },
                 set(cameras_order) {
                     this.effective_cameras_order = cameras_order.filter(u =>
