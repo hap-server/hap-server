@@ -116,7 +116,7 @@ A lot.
     - "Turn the lights off in 10 minutes."
 - [ ] Cameras
     - [x] Basic support (use with HomeKit)
-    - [ ] Snapshots in the web interface
+    - [x] Snapshots in the web interface
     - [ ] Live streaming in the web interface
     - HomeKit Secure Video??
     - Recording??

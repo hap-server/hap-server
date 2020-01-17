@@ -43,7 +43,7 @@
         </service-container>
 
         <cameras v-if="show_all_accessories && camera_accessories.length" :section="all_cameras_section"
-            :accessories="accessories" />
+            :accessories="accessories" @modal="m => $emit('modal', m)" />
 
         <!-- <h2>Display services</h2>
 
