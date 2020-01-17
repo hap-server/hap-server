@@ -3,7 +3,7 @@
         :name="service.name || service.accessory.name" hide-name hide-icon
         @show-settings="$emit('show-settings')"
     >
-        <camera :service="service" />
+        <camera :service="service" @click.native.stop />
     </accessory-details>
 </template>
 

@@ -11,4 +11,26 @@
     .service-wrapper {
         margin: 0;
     }
+
+    @media (orientation: landscape) {
+        .accessory-details-container {
+            flex-direction: row;
+        }
+
+        .accessory-details-footer {
+            margin-top: 1em;
+        }
+
+        .service-wrapper {
+            width: auto;
+        }
+
+        .service {
+            .camera-image-wrapper,
+            .camera-error-wrapper {
+                width: calc(((100vh - 7.5rem - 1px) / 9) * 16);
+                height: calc(100vh - 7.5rem - 1px);
+            }
+        }
+    }
 }
