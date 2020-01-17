@@ -29,10 +29,10 @@
                     <div class="flex-fill" />
 
                     <div class="camera-error">
-                        <p v-if="snapshot_error && snapshot_error.message === 'ReferenceError: Can\'t find variable: createImageBitmap'">
+                        <p v-if="snapshot_error && snapshot_error.message.match(/Can\'t find variable: createImageBitmap/)">
                             {{ $t('services.camera.unsupported_browser') }}
                         </p>
-                        <p v-if="snapshot_error">{{ $t('services.camera.draw_error') }}</p>
+                        <p v-else-if="snapshot_error">{{ $t('services.camera.draw_error') }}</p>
                         <p v-else class="service-status">
                             {{ $t('service_tile.' + (service.is_unavailable ? 'not_available' : 'status_' + (
                                 service.accessory.status === AccessoryStatus.WAITING ? 'waiting' :
