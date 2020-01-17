@@ -163,24 +163,37 @@
                     const buffer = await this.service.accessory.connection.requestSnapshot(this.service.accessory.uuid,
                         1080, 720);
 
-                    const blob = new Blob([buffer], {type: 'image/jpeg'});
-                    const bitmap = await createImageBitmap(blob);
+                    const image = typeof createImageBitmap !== 'undefined' ?
+                        await createImageBitmap(new Blob([buffer], {type: 'image/jpeg'})) :
+                        await this.getImage(buffer, 'image/jpeg');
 
                     const ctx = this.$refs.canvas.getContext('2d');
                     ctx.imageSmoothingQuality = 'high';
 
-                    ctx.drawImage(bitmap,
-                        0, 0, bitmap.width, bitmap.height,
+                    ctx.drawImage(image,
+                        0, 0, image.width, image.height,
                         0, 0, this.$refs.canvas.width, this.$refs.canvas.height);
 
-                    console.log('Drawing snapshot image', buffer, blob, bitmap, ctx);
+                    console.log('Drawing snapshot image', buffer, image, ctx);
                     this.snapshot_time = Date.now();
                 } catch (err) {
                     this.snapshot_time = Date.now();
                     this.snapshot_error = err;
+
+                    console.error('Error drawing snapshot image', err);
                 } finally {
                     this.loading_snapshot = false;
                 }
+            },
+            async getImage(buffer, type) {
+                const image = new Image();
+
+                return new Promise((rs, rj) => {
+                    image.onerror = rj;
+                    image.onload = () => rs(image);
+
+                    image.src = 'data:' + type + ';base64,' + buffer.toString('base64');
+                });
             },
         },
     };
