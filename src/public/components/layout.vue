@@ -42,6 +42,9 @@
             </template>
         </service-container>
 
+        <cameras v-if="show_all_accessories && camera_accessories.length" :section="all_cameras_section"
+            :accessories="accessories" />
+
         <!-- <h2>Display services</h2>
 
         <service-container v-for="accessory in accessories" v-if="accessory.display_services.length" :key="'1-' + accessory.uuid" :title="accessory.name">
@@ -79,6 +82,7 @@
 
     import ServiceComponent from './service.vue';
     import ServiceContainer from './service-container.vue';
+    import Cameras from './layout-sections/cameras.vue';
 
     export default {
         components: {
@@ -86,6 +90,7 @@
             Service: ServiceComponent,
             ServiceContainer,
             Draggable: () => import(/* webpackChunkName: 'layout-editor' */ 'vuedraggable'),
+            Cameras,
         },
         props: {
             layout: Layout,
@@ -134,6 +139,11 @@
             show_all_accessories() {
                 return !this.layout;
             },
+            camera_accessories() {
+                return [...Object.values(this.accessories)].filter(a =>
+                    a.display_services.find(s => s.collapsed_service_type === Service.CameraRTPStreamManagement))
+                    .map(a => a.uuid + '.CollapsedService.' + Service.CameraRTPStreamManagement);
+            },
             effective_sections: {
                 get() {
                     if (this.show_all_accessories && !this.edit) return [this.all_accessories_section];
@@ -170,6 +180,9 @@
             },
             all_accessories_section() {
                 return new LayoutSection(this.layout, 'AllAccessories', {accessories: this.getAllServices()});
+            },
+            all_cameras_section() {
+                return new LayoutSection(this.layout, 'AllCameraAccessories', {accessories: this.camera_accessories});
             },
             other_accessories() {
                 return this.getAllServices().filter(uuid => this.getService(uuid) && !Object.values(this.sections)

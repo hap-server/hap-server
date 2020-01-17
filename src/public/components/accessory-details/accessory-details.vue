@@ -3,13 +3,13 @@
         <div class="accessory-details-scroll-wrapper">
             <div class="accessory-details-container">
                 <slot name="container">
-                    <div class="accessory-details-icon">
+                    <div v-if="!hideIcon" class="accessory-details-icon">
                         <slot name="icon">
                             <home-icon />
                         </slot>
                     </div>
 
-                    <h4>{{ name || service.name || service.accessory.name }}</h4>
+                    <h4 v-if="!hideName">{{ name || service.name || service.accessory.name }}</h4>
 
                     <slot name="status" />
 
@@ -52,6 +52,8 @@
             active: Boolean,
             updating: Boolean,
             name: {type: String, default: null},
+            hideName: Boolean,
+            hideIcon: Boolean,
         },
         inject: [
             'service',

@@ -39,6 +39,7 @@ import {
     AuthenticateRequestMessage, UserManagementRequestMessage,
 } from '../common/types/messages';
 import {BroadcastMessage} from '../common/types/broadcast-messages';
+import BinaryMessageType from '../common/types/binary-messages';
 import {AccessoryHap, CharacteristicHap} from '../common/types/hap';
 import {AccessoryType} from '../common/types/storage';
 import {AccessoryStatus} from '../common/types/accessories';
@@ -193,6 +194,16 @@ export default class Connection {
 
             this.last_message = Date.now();
 
+            if (message instanceof Buffer) {
+                this.log.info('Received binary message');
+                const messageid = message.readUInt32BE(0);
+                const type = message.readUInt16BE(4);
+                const data = message.slice(6);
+
+                this.handleBinaryMessage(messageid, type, data);
+                return;
+            }
+
             // this.server.log.debug('Received', this.id, message);
 
             if (message === 'pong') {
@@ -284,7 +295,17 @@ export default class Connection {
             }
         }
 
-        this.ws.send((error ? '!' : '*') + messageid + ':' + JSON.stringify(data));
+        if (data instanceof Buffer) {
+            const header = Buffer.alloc(6);
+            const flags = error ? 1 : 0;
+
+            header.writeUInt32BE(messageid, 0);
+            header.writeUInt16BE(flags, 4);
+
+            this.ws.send(Buffer.concat([header, data]));
+        } else {
+            this.ws.send((error ? '!' : '*') + messageid + ':' + JSON.stringify(data));
+        }
     }
 
     sendProgress(messageid: number, data: ProgressMessage) {
@@ -319,6 +340,10 @@ export default class Connection {
         } catch (err) {
             this.log.error('Error in message handler', data.type, err);
         }
+    }
+
+    handleBinaryMessage(messageid: number, type: BinaryMessageType, data: Buffer) {
+        //
     }
 
     async getAssetToken() {
@@ -810,6 +835,24 @@ export default class Connection {
 
         characteristic.unsubscribe();
         this.events.delete(event_name);
+    }
+
+    /**
+     * Requests a snapshot image.
+     */
+    @messagehandler('request-snapshot', data => [data.id, data.request])
+    async requestSnapshot(accessory_uuid: string, request: import('hap-nodejs/lib/Camera').SnapshotRequest) {
+        await this.permissions.assertCanGetAccessory(accessory_uuid);
+
+        const accessory = this.server.getAccessory(accessory_uuid);
+        if (!accessory) return this.log.warn('Unknown accessory %s', accessory_uuid);
+        if (!accessory.cameraSource) return this.log.warn('Accessory %s doesn\'t have a camera source', accessory_uuid);
+
+        return await new Promise<Buffer>((rs, rj) => {
+            accessory.cameraSource!.handleSnapshotRequest(request, (err: Error | null, data?: Buffer | null) => {
+                err ? rj(err) : rs(data!);
+            });
+        });
     }
 
     /**

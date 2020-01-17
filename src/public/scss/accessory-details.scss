@@ -63,7 +63,7 @@
         }
 
         .accessory-details-icon,
-        .icon {
+        :not(.service-status-icon) > .icon {
             height: 30px;
         }
 

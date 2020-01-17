@@ -63,6 +63,11 @@
     @media (max-width: 209px) {
         @include tile-size(1);
     }
+
+    &.service-wrapper-camera {
+        width: calc(100vw - 2rem);
+        height: auto;
+    }
 }
 
 .service {
@@ -122,6 +127,10 @@
 
         display: flex;
         flex-direction: column;
+
+        .service-wrapper-camera & {
+            padding: 0;
+        }
     }
 
     .service-top {
@@ -133,7 +142,10 @@
         .icon {
             width: 30px;
         }
+    }
 
+    .service-top,
+    .service-info {
         .service-status-icon .icon-warning {
             width: 20px;
         }
@@ -163,6 +175,11 @@
 
     .service-info {
         flex: 0 0 auto;
+
+        .service-wrapper-camera & {
+            padding: 0.9em;
+            display: flex;
+        }
     }
 
     h5 {
@@ -180,12 +197,35 @@
     }
 
     &.unsupported-service,
-    &.unavailable-accessory {
+    &.unavailable-accessory,
+    .camera-error-wrapper {
         .service-status {
             color: $red;
             font-weight: 600;
+        }
+    }
+    &.unsupported-service,
+    &.unavailable-accessory {
+        .service-status {
             font-size: 11px;
         }
+    }
+
+    .service-wrapper-camera & .camera-image-wrapper,
+    .service-wrapper-camera & .camera-error-wrapper {
+        height: calc(((100vw - 2rem) / 16) * 9);
+    }
+
+    .service-wrapper-camera & canvas {
+        width: 100%;
+        height: 100%;
+    }
+
+    .camera-error-wrapper {
+        display: flex;
+        flex-direction: column;
+        padding: 0 0.9em 0.9em;
+        text-align: center;
     }
 
     &.active {
@@ -246,6 +286,9 @@
     .service-wrapper-editing & {
         animation: shake 0.3s ease infinite;
     }
+    .service-wrapper-editing.service-wrapper-camera & {
+        animation-name: shake-camera;
+    }
 }
 
 @keyframes shake {
@@ -259,6 +302,19 @@
 
     75% {
         transform: rotate(3deg);
+    }
+}
+@keyframes shake-camera {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    25% {
+        transform: rotate(-1deg);
+    }
+
+    75% {
+        transform: rotate(1deg);
     }
 }
 

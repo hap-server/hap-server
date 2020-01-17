@@ -439,6 +439,7 @@ export const collapsed_services: {
     [collapsed_service_type: string]: string[] | {(service: Service): boolean};
 } = {
     [type_uuids.StatelessProgrammableSwitch]: [type_uuids.StatelessProgrammableSwitch],
+    [type_uuids.CameraRTPStreamManagement]: [type_uuids.CameraRTPStreamManagement],
 };
 
 // @ts-ignore

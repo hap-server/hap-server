@@ -20,6 +20,7 @@ import {
     UpdatePairingsMessage, UpdatePairingDataMessage,
     UpdatePermissionsMessage, StdoutMessage, StderrMessage, ConsoleOutputMessage,
 } from '../common/types/broadcast-messages';
+import {BinaryMessageTypeMap} from '../common/types/binary-messages';
 import {Home, Scene} from '../common/types/storage';
 import {AccessoryStatus} from '../common/types/accessories';
 
@@ -113,8 +114,43 @@ class Connection extends EventEmitter {
         return location.protocol.replace('http', 'ws') + '//' + location.host + '/websocket';
     }
 
-    protected handleData(data: string) {
+    protected async handleData(data: string | Buffer | Blob) {
         // console.log('Received', message);
+
+        if (data instanceof Blob) {
+            const file_reader = new FileReader();
+
+            file_reader.readAsArrayBuffer(data);
+
+            data = await new Promise<Buffer>(rs => {
+                file_reader.onload = event => {
+                    const array_buffer = file_reader.result as ArrayBuffer;
+                    rs(Buffer.from(array_buffer));
+                };
+            });
+        }
+
+        if (data instanceof Buffer) {
+            const messageid = data.readUInt32BE(0);
+            const flags = data.readUInt16BE(4);
+            const body = data.slice(6);
+
+            const type = flags & 1 ? 'error' : 'success';
+
+            if (!this.callbacks.has(messageid)) {
+                console.error('Unknown messageid');
+                return;
+            }
+
+            const [resolve, reject, progress] = this.callbacks.get(messageid)!;
+
+            if (type === 'error') reject.call(this, body);
+            else resolve.call(this, body);
+
+            this.callbacks.delete(messageid);
+
+            return;
+        }
 
         if (data === 'ping') {
             console.log('Received ping request, sending ping response');
@@ -242,7 +278,16 @@ class Connection extends EventEmitter {
         return new Promise((resolve, reject) => {
             const messageid = this.messageid++;
 
-            this.ws.send('*' + messageid + ':' + JSON.stringify(data));
+            if (data instanceof Buffer) {
+                const header = Buffer.alloc(6);
+                header.writeUInt32BE(messageid, 0);
+                // @ts-ignore
+                header.writeUInt16BE(BinaryMessageTypeMap[type as keyof BinaryMessageTypeMap], 4);
+
+                this.ws.send(Buffer.concat([header, data]));
+            } else {
+                this.ws.send('*' + messageid + ':' + JSON.stringify(data));
+            }
 
             this.callbacks.set(messageid, progress ? [resolve, reject, progress] : [resolve, reject]);
         });
@@ -341,6 +386,10 @@ class Connection extends EventEmitter {
 
     unsubscribeCharacteristic(accessory_uuid: string, service_id: string, characteristic_id: string) {
         return this.unsubscribeCharacteristics([accessory_uuid, service_id, characteristic_id]);
+    }
+
+    requestSnapshot(id: string, width: number, height: number) {
+        return this.send('request-snapshot', {id, request: {width, height}});
     }
 
     getAccessoriesData(...id: string[]) {

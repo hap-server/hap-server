@@ -1,3 +1,5 @@
+/// <reference path="../../types/hap-nodejs.d.ts" />
+
 import {AccessoryHap, CharacteristicHap} from './hap';
 import {
     AccessoryData, Home, Layout, LayoutSection, Automation, Scene, Bridge, Pairing, Permissions, AccessoryType,
@@ -119,6 +121,13 @@ export interface UnsubscribeCharacteristicsRequestMessage {
     ids: [string, string, string][];
 }
 export type UnsubscribeCharacteristicsResponseMessage = void[];
+
+export interface RequestSnapshotRequestMessage {
+    type: 'request-snapshot';
+    id: string;
+    request: import('hap-nodejs/lib/Camera').SnapshotRequest;
+}
+export type RequestSnapshotResponseMessage = Buffer;
 
 export interface GetHistoryRecordsRequestMessage {
     type: 'get-history-records';
@@ -621,6 +630,7 @@ export interface DefinedRequestResponseMessages {
     'unsubscribe-characteristics': [
         UnsubscribeCharacteristicsRequestMessage, UnsubscribeCharacteristicsResponseMessage,
     ];
+    'request-snapshot': [RequestSnapshotRequestMessage, RequestSnapshotResponseMessage];
     'get-history-records': [GetHistoryRecordsRequestMessage, GetHistoryRecordsResponseMessage];
     'get-accessories-data': [GetAccessoriesDataRequestMessage, GetAccessoriesDataResponseMessage];
     'set-accessories-data': [SetAccessoriesDataRequestMessage, SetAccessoriesDataResponseMessage];

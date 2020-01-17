@@ -53,6 +53,7 @@ export default {
 
     layout_section: {
         accessories: 'Accessories',
+        cameras: 'Cameras',
 
         edit: 'Edit',
         add_section: 'Add section',
@@ -151,6 +152,12 @@ export default {
             off: 'Off',
             updating: 'Updating',
             input: 'Input',
+        },
+
+        camera: {
+            camera: 'Camera',
+            unsupported_browser: 'This browser doesn\'t support drawing snapshot images.',
+            draw_error: 'Error drawing snapshot',
         },
     },
 
