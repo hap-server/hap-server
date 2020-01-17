@@ -28,8 +28,8 @@
         .service {
             .camera-image-wrapper,
             .camera-error-wrapper {
-                width: calc(((100vh - 7.5rem - 1px) / 9) * 16);
-                height: calc(100vh - 7.5rem - 1px);
+                width: calc(((100vh - 7.5rem - -3px) / 9) * 16);
+                height: calc(100vh - 7.5rem - -3px);
             }
         }
     }

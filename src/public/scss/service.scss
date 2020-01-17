@@ -179,6 +179,7 @@
         .service-wrapper-camera & {
             padding: 0.9em;
             display: flex;
+            height: 3em;
         }
     }
 
@@ -219,6 +220,8 @@
     .service-wrapper-camera & canvas {
         width: 100%;
         height: 100%;
+        border-bottom-left-radius: 0.8em;
+        border-bottom-right-radius: 0.8em;
     }
 
     .camera-error-wrapper {
