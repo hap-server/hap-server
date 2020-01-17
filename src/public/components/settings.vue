@@ -2,7 +2,7 @@
     <panel ref="panel" class="home-settings wide" no-frame @close="$emit('close')">
         <div class="d-sm-flex">
             <keep-alive>
-                <status ref="status" />
+                <status v-if="canAccessServerInfo" ref="status" />
             </keep-alive>
             <div class="flex-fill">
                 <panel-tabs v-model="tab" :tabs="tabs" />

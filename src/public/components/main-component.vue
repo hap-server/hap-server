@@ -311,6 +311,8 @@
                     this.reload(),
                     this.reloadPermissions(),
                     this.reloadBridges(),
+                    this.client.system_information_dependencies.size ?
+                        this.client.connection.subscribeSystemInformation() : null,
                 ]).catch(err => {
                     this.errors.push({err, vm: this, info: 'watch authenticated_user'});
                 });

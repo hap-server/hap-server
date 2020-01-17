@@ -554,6 +554,18 @@ class Connection extends EventEmitter {
         return this.send('disable-proxy-stdout');
     }
 
+    getSystemInformation() {
+        return this.send('get-system-information');
+    }
+
+    subscribeSystemInformation() {
+        return this.send('subscribe-system-information');
+    }
+
+    unsubscribeSystemInformation() {
+        return this.send('unsubscribe-system-information');
+    }
+
     listBridges(include_homebridge = false) {
         return this.send('list-bridges', {include_homebridge});
     }

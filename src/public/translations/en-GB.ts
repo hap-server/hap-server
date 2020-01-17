@@ -395,6 +395,75 @@ export default {
         status: 'Status',
     },
 
+    server_status: {
+        loading: 'Loading',
+
+        system_uptime: 'System uptime',
+        hapserver_uptime: 'Uptime',
+        days: '{n} day | {n} days',
+        hours: '{n} hour | {n} hours',
+        minutes: '{n} minute | {n} minutes',
+        seconds: '{n} second | {n} seconds',
+
+        system_model: 'System model',
+        os: 'OS',
+        os_version: 'OS version',
+        hapserver_version: 'Version',
+        homebridge_version: 'Homebridge version',
+        hapnodejs_version: 'hap-nodejs version',
+        nodejs_version: 'Node.js version',
+        npm_version: 'npm version',
+        update_to: 'update to {v}',
+        update_available: 'update available',
+
+        hostname: 'Hostname',
+        ip_addresses: 'IP address | IP addresses',
+        network_interface_x_ip_addresses: '{name} IP address | {name} IP addresses',
+        network_interface_info:
+            'Name: {iface}\n' +
+            'MAC address: {mac}\n' +
+            'Type: {type}\n' +
+            'MTU: {mtu}',
+
+        memory_usage: 'Memory usage',
+        memory_usage_info:
+            'Free (unused): {free}\n' +
+            'Used: {used}\n' +
+            'Active: {active}\n' +
+            'Buffers/cache: {buffers_cached}\n' +
+            'Swap: {swapused} / {swaptotal}',
+
+        filesystem_x: 'Filesystem {name}',
+        filesystem_root: 'Root filesystem',
+        filesystem_data: 'Data filesystem',
+        filesystem_swap: 'Swap filesystem',
+        filesystem_info:
+            'Device: {fs}\n' +
+            'Format: {type}\n' +
+            'Mount point: {mount}',
+
+        size_in_bytes: '{x} bytes',
+        size_in_kb: '{x} kB',
+        size_in_kib: '{x} KB',
+        size_in_mb: '{x} MB',
+        size_in_gb: '{x} GB',
+        size_in_tb: '{x} TB',
+        size_in_pb: '{x} PB',
+        size_in_eb: '{x} EB',
+        size_in_zb: '{x} ZB',
+        size_in_yb: '{x} YB',
+
+        battery: 'Battery',
+        battery_x: 'Battery #{x}',
+        battery_info:
+            'Manufacturer: {manufacturer}\n' +
+            'Charge cycles: {cyclecount}\n' +
+            'Current capacity: {currentcapacity}\n' +
+            'Maximum capacity: {maxcapacity}',
+        battery_charging: 'charging',
+        battery_powered: 'plugged in',
+    },
+
     accessory_settings: {
         delete_bridge_info: 'Are you sure you want to delete this bridge?',
 

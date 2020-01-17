@@ -4,6 +4,7 @@ import {
 } from './storage';
 import {GetHomePermissionsResponseMessage} from './messages';
 import {AccessoryStatus} from '../../common/types/accessories';
+import {SystemInformationData} from '../../server/system-information';
 
 export interface AddAccessoriesMessage {
     type: 'add-accessories';
@@ -182,6 +183,11 @@ export interface StderrMessage {
     data: string;
 }
 
+export interface UpdateSystemInformationMessage {
+    type: 'update-system-information';
+    data: Partial<SystemInformationData>;
+}
+
 export interface ConsoleOutputMessage {
     type: 'console-output';
     id: number;
@@ -203,4 +209,5 @@ export type SendableBroadcastMessage =
     SceneProgressMessage |
     UpdatePairingsMessage | UpdatePairingDataMessage;
 export type BroadcastMessage =
-    SendableBroadcastMessage | UpdatePermissionsMessage | StdoutMessage | StderrMessage | ConsoleOutputMessage;
+    SendableBroadcastMessage | UpdatePermissionsMessage | StdoutMessage | StderrMessage |
+    UpdateSystemInformationMessage | ConsoleOutputMessage;

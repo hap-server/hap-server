@@ -4,6 +4,7 @@ import {
 } from './storage';
 import {Record} from '../../history';
 import {AccessoryStatus} from '../../common/types/accessories';
+import {SystemInformationData} from '../../server/system-information';
 
 export interface ErrorResponse {
     reject: true;
@@ -390,6 +391,21 @@ export interface DisableProxyStdoutRequestMessage {
 }
 export type DisableProxyStdoutResponseMessage = void;
 
+export interface GetSystemInformationRequestMessage {
+    type: 'get-system-information';
+}
+export type GetSystemInformationResponseMessage = SystemInformationData;
+
+export interface SubscribeSystemInformationRequestMessage {
+    type: 'subscribe-system-information';
+}
+export type SubscribeSystemInformationResponseMessage = void;
+
+export interface UnsubscribeSystemInformationRequestMessage {
+    type: 'unsubscribe-system-information';
+}
+export type UnsubscribeSystemInformationResponseMessage = void;
+
 export interface ListBridgesRequestMessage {
     type: 'list-bridges';
     include_homebridge?: boolean;
@@ -654,6 +670,13 @@ export interface DefinedRequestResponseMessages {
     'get-command-line-flags': [GetCommandLineFlagsRequestMessage, GetCommandLineFlagsResponseMessage];
     'enable-proxy-stdout': [EnableProxyStdoutRequestMessage, EnableProxyStdoutResponseMessage];
     'disable-proxy-stdout': [DisableProxyStdoutRequestMessage, DisableProxyStdoutResponseMessage];
+    'get-system-information': [GetSystemInformationRequestMessage, GetSystemInformationResponseMessage];
+    'subscribe-system-information': [
+        SubscribeSystemInformationRequestMessage, SubscribeSystemInformationResponseMessage,
+    ];
+    'unsubscribe-system-information': [
+        UnsubscribeSystemInformationRequestMessage, UnsubscribeSystemInformationResponseMessage,
+    ];
 
     'list-bridges': [ListBridgesRequestMessage, ListBridgesResponseMessage];
     'create-bridges': [CreateBridgesRequestMessage, CreateBridgesResponseMessage];

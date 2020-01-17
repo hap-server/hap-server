@@ -42,6 +42,7 @@ import {BroadcastMessage} from '../common/types/broadcast-messages';
 import {AccessoryHap, CharacteristicHap} from '../common/types/hap';
 import {AccessoryType} from '../common/types/storage';
 import {AccessoryStatus} from '../common/types/accessories';
+import SystemInformation, {SystemInformationData} from './system-information';
 
 const randomBytes = util.promisify(crypto.randomBytes);
 
@@ -243,6 +244,8 @@ export default class Connection {
                 this.server.decrementAccessoryDiscoveryCounter();
             }
 
+            SystemInformation.unsubscribe(this);
+
             await Promise.all(this.uploads.map(file => new Promise((rs, rj) =>
                 fs.unlink(file.filepath, err => err ? rj(err) : rs()))));
         });
@@ -258,6 +261,13 @@ export default class Connection {
 
     sendBroadcast(data: BroadcastMessage) {
         this.ws.send('**:' + JSON.stringify(data));
+    }
+
+    updateSystemInformation(data: Partial<SystemInformationData>) {
+        this.sendBroadcast({
+            type: 'update-system-information',
+            data,
+        });
     }
 
     async respond(messageid: number, data: ResponseMessage, error?: boolean): Promise<void>
@@ -1899,6 +1909,33 @@ export default class Connection {
 
         this.log.info('Disabling stdout proxy for', this.id);
         this.enable_proxy_stdout = false;
+    }
+
+    @messagehandler('get-system-information')
+    async getSystemInformation(): Promise<ResponseMessages['get-system-information']> {
+        await this.permissions.assertCanAccessServerRuntimeInfo();
+
+        this.log.info('Getting system information');
+
+        return SystemInformation.getSystemInformation();
+    }
+
+    @messagehandler('subscribe-system-information')
+    async subscribeSystemInformation(): Promise<ResponseMessages['subscribe-system-information']> {
+        await this.permissions.assertCanAccessServerRuntimeInfo();
+
+        this.log.info('Subscribing to system information');
+
+        SystemInformation.subscribe(this);
+    }
+
+    @messagehandler('unsubscribe-system-information')
+    async unsubscribeSystemInformation(): Promise<ResponseMessages['unsubscribe-system-information']> {
+        await this.permissions.assertCanAccessServerRuntimeInfo();
+
+        this.log.info('Unsubscribing from system information');
+
+        SystemInformation.unsubscribe(this);
     }
 
     /**

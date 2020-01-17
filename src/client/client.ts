@@ -11,6 +11,7 @@ import Scene from './scene';
 import {GetHomePermissionsResponseMessage} from '../common/types/messages';
 import {BroadcastMessage} from '../common/types/broadcast-messages';
 import {Home} from '../common/types/storage';
+import {SystemInformationData} from '../server/system-information';
 
 export function $set<T>(object: any, key: string, value: T): T {
     try {
@@ -50,18 +51,21 @@ class Client extends EventEmitter {
     layouts: {[key: string]: Layout} | null = null;
     automations: {[key: string]: Automation} | null = null;
     scenes: {[key: string]: Scene} | null = null;
+    system_information: SystemInformationData | null = null;
 
     loading_home_settings = false;
     loading_accessories = false;
     loading_layouts = false;
     loading_automations = false;
     loading_scenes = false;
+    loading_system_information = false;
 
-    private home_settings_dependencies: Set<any> = new Set();
-    private accessories_dependencies: Map<any, string[] | boolean> = new Map();
-    private layouts_dependencies: Map<any, string[] | boolean> = new Map();
-    private automations_dependencies: Map<any, string[] | boolean> = new Map();
-    private scenes_dependencies: Map<any, string[] | boolean> = new Map();
+    private home_settings_dependencies = new Set<any>();
+    private accessories_dependencies = new Map<any, string[] | boolean>();
+    private layouts_dependencies = new Map<any, string[] | boolean>();
+    private automations_dependencies = new Map<any, string[] | boolean>();
+    private scenes_dependencies = new Map<any, string[] | boolean>();
+    private system_information_dependencies = new Set<any>();
 
     private _handleBroadcastMessage: any;
     private _handleDisconnected: any;
@@ -237,6 +241,11 @@ class Client extends EventEmitter {
                 scene.connection = connection;
             }
 
+            // Resubscribe to system information
+            // if (this.system_information_dependencies.size) {
+            //     connection.subscribeSystemInformation();
+            // }
+
             connection.on('received-broadcast', this._handleBroadcastMessage);
             connection.on('disconnected', this._handleDisconnected);
 
@@ -276,6 +285,8 @@ class Client extends EventEmitter {
             this.layouts ? this.refreshLayouts() : null,
             this.automations ? this.refreshAutomations() : null,
             this.scenes ? this.refreshScenes() : null,
+            this.system_information || this.system_information_dependencies.size ?
+                this.refreshSystemInformation() : null,
         ]).then(() => {
             this.updateCachedData();
         });
@@ -607,6 +618,13 @@ class Client extends EventEmitter {
             if (!scene) return;
 
             scene._handleProgress(data);
+        }
+
+        if (this.system_information && data.type === 'update-system-information') {
+            for (const [key, d] of Object.entries(data.data) as [keyof SystemInformationData, any][]) {
+                this.system_information[key] = d;
+                this.emit('update-system-information', key, d);
+            }
         }
     }
 
@@ -1298,6 +1316,46 @@ class Client extends EventEmitter {
         }
     }
 
+    loadSystemInformation(dep?: any) {
+        if (dep) {
+            this.system_information_dependencies.add(dep);
+        }
+
+        if (this.connection) {
+            return Promise.all([
+                this.connection.subscribeSystemInformation(),
+                this.refreshSystemInformation(),
+            ]);
+        }
+    }
+
+    unloadSystemInformation(dep?: any) {
+        if (dep) {
+            this.system_information_dependencies.delete(dep);
+
+            // If there are more dependencies don't unload system information yet
+            if (this.system_information_dependencies.size) return;
+        }
+
+        this.system_information = null;
+
+        if (this.connection) {
+            return this.connection.unsubscribeSystemInformation();
+        }
+    }
+
+    async refreshSystemInformation() {
+        if (!this.connection) throw new Error('Not connected');
+        if (this.loading_system_information) throw new Error('Already loading system information');
+        this.loading_system_information = true;
+
+        try {
+            this.system_information = await this.connection.getSystemInformation();
+        } finally {
+            this.loading_system_information = false;
+        }
+    }
+
     async openConsole() {
         if (!this.connection) throw new Error('Not connected');
 
@@ -1343,6 +1401,9 @@ type ClientEvents = {
     'removed-scene': (this: Client, scene: Scene) => void;
     'removed-scenes': (this: Client, scenes: Scene[]) => void;
     'updated-scenes': (this: Client, added: Scene[], removed: Scene[]) => void;
+
+    'update-system-information': <K extends keyof SystemInformationData = keyof SystemInformationData>(this: Client,
+        key: K, data: SystemInformationData[K]) => void;
 };
 
 interface Client {
