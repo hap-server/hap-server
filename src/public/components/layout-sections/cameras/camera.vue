@@ -29,7 +29,7 @@
                     <div class="flex-fill" />
 
                     <div class="camera-error">
-                        <p v-if="snapshot_error && snapshot_error.message.match(/Can\'t find variable: createImageBitmap/)">
+                        <p v-if="snapshot_error && snapshot_error.message && snapshot_error.message.match(/Can\'t find variable/)">
                             {{ $t('services.camera.unsupported_browser') }}
                         </p>
                         <p v-else-if="snapshot_error">{{ $t('services.camera.draw_error') }}</p>
