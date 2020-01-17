@@ -68,7 +68,7 @@
                 },
                 set(cameras_order) {
                     this.effective_cameras_order = cameras_order.filter(u =>
-                        u.substr(u.indexOf('.')) === '.CollapsedService.' + type_uuids.CameraRTPStreamManagement)
+                        u.substr(u.indexOf('.')) === '.' + type_uuids.CameraRTPStreamManagement)
                         .map(u => u.substr(0, u.indexOf('.')));
                 },
             },
@@ -91,7 +91,7 @@
                         this.staged_cameras_order = cameras_order;
                         return this.section.updateData(Object.assign({}, this.section.data, {
                             accessories: cameras_order
-                                .map(u => u + '.CollapsedService.' + type_uuids.CameraRTPStreamManagement),
+                                .map(u => u + '.' + type_uuids.CameraRTPStreamManagement),
                         }));
                     }).catch(() => null).then(() => {
                         if (updating_cameras_order !== this.updating_cameras_order) return;
@@ -108,7 +108,7 @@
                 const accessory = this.accessories[uuid];
                 const service = accessory && accessory.display_services.find(s =>
                     s.collapsed_service_type === type_uuids.CameraRTPStreamManagement);
-                
+
                 if (service) return service;
 
                 return this.section.unavailable_service_placeholders[uuid] ||
