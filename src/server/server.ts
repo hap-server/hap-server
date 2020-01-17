@@ -182,9 +182,9 @@ export default class Server extends Events {
             const webpack = require('webpack'); // eslint-disable-line @typescript-eslint/no-var-requires
             const devmiddleware = require('webpack-dev-middleware'); // eslint-disable-line @typescript-eslint/no-var-requires
             const hotmiddleware = require('webpack-hot-middleware'); // eslint-disable-line @typescript-eslint/no-var-requires
-            require('babel-register');
+            require('ts-node/register');
 
-            const compiler = webpack(require('../../gulpfile.babel').webpack_hot_config);
+            const compiler = webpack(require('../../gulpfile').webpack_hot_config);
 
             this.app.use(devmiddleware(compiler));
             this.app.use(hotmiddleware(compiler));
