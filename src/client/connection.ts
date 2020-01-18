@@ -254,6 +254,10 @@ class Connection extends EventEmitter {
         }
     }
 
+    get connected() {
+        return this.ws.readyState === (this.ws.constructor as typeof WebSocket | typeof import('ws')).OPEN;
+    }
+
     send<T extends MessageTypes, R = DefinedRequestMessages[T]>(
         type: T, data: {
             [K in keyof R]: K extends 'type' ? T | undefined : R[K];

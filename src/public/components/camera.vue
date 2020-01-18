@@ -165,6 +165,7 @@
                 this.snapshot_error = null;
 
                 try {
+                    if (!this.service.accessory.connection.connected) throw new Error('Not connected');
                     const buffer = await this.service.accessory.connection.requestSnapshot(this.service.accessory.uuid,
                         1080, 720);
 
