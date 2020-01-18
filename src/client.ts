@@ -46,7 +46,7 @@ export {
 
 export const DEVELOPMENT = true;
 
-export const package_json = require('./package');
+export const package_json = DEVELOPMENT ? require('../package') : require('./package');
 export const version: string = package_json.version;
 export const package_path: string = DEVELOPMENT ? require('path').resolve(__dirname, '..') : __dirname;
 export const path: string = __dirname;
