@@ -79,9 +79,7 @@
             </dd>
 
             <!-- eslint-disable-next-line vue/no-use-v-if-with-v-for -->
-            <template v-for="(ni, index) in si.network"
-                v-if="ni.info.operstate === 'up' && !ni.info.internal && ni.ip_addresses.length"
-            >
+            <template v-for="(ni, index) in si.network" v-if="ni.info.operstate === 'up' && !ni.info.internal && ni.ip_addresses.length">
                 <dt v-if="si.network.length === 1" :key="'networkinterface-' + index + '-key'" class="col-12">
                     {{ $tc('server_status.ip_addresses', ni.ip_addresses.length) }}
                 </dt>
