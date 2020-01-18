@@ -43,6 +43,10 @@
                                 'unknown'
                             ))) }}
                         </p>
+
+                        <button class="btn btn-default btn-sm mt-3" @click="updateSnapshotImage">
+                            {{ $t('services.camera.retry') }}
+                        </button>
                     </div>
 
                     <div class="flex-fill" />

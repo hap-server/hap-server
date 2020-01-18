@@ -159,6 +159,7 @@ export default {
             camera: 'Camera',
             unsupported_browser: 'This browser doesn\'t support drawing snapshot images.',
             draw_error: 'Error drawing snapshot',
+            retry: 'Retry',
         },
     },
 
