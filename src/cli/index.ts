@@ -259,18 +259,32 @@ yargs.command('validate-configuration <config>', 'Validates a configuration file
     if (errors.find(e => argv.strict || !(e instanceof Warning))) return process.exit(1);
 });
 
-function homebridgeApiVersion() {
-    const match = require('homebridge/lib/api').API.toString()
-        .match(/\.(\s|\n)*version(\s|\n)*=(\s|\n)*([0-9]+(\.[0-9]+)?)(;|$)/m);
+yargs.command('version', 'Show version number', yargs => {
+    yargs.option('check', {
+        describe: 'Check for updates',
+        type: 'boolean',
+        default: false,
+    });
+}, async argv => {
+    const {default: SystemInformation} = await import('../server/system-information');
 
-    return match ? parseFloat(match[4]) : null;
-}
+    const versions = SystemInformation.getVersions();
+    const updates = argv.check ? await SystemInformation.getUpdates() : {};
 
-yargs.command('version', 'Show version number', yargs => {}, async argv => {
-    console.log('hap-server version %s %s', version, DEVELOPMENT ? chalk.red('development') : chalk.grey('production'));
-    console.log('homebridge version %s, API %s', require('homebridge/package').version,
-        homebridgeApiVersion() || chalk.yellow('unknown'));
-    console.log('hap-nodejs version %s', require('hap-nodejs/package').version);
+    console.log('hap-server version %s%s %s', version,
+        updates['hap-server'] ? ' ' + chalk.magenta(`(update to ${updates['hap-server']})`) : '',
+        DEVELOPMENT ? chalk.red('development') : chalk.grey('release'));
+    console.log('homebridge version %s%s, API %s', versions.homebridge,
+        updates.homebridge ? ' ' + chalk.magenta(`(update to ${updates.homebridge})`) : '',
+        versions.homebridgeApi || chalk.yellow('unknown'));
+    console.log('hap-nodejs version %s%s', versions['hap-nodejs'],
+        updates['hap-nodejs'] ? ' ' + chalk.magenta(`(update to ${updates['hap-nodejs']})`) : '');
+
+    console.log('Node.js version %s%s, v8 %s, native modules %s', versions.nodejs,
+        updates.nodejs ? ' ' + chalk.magenta(`(update to ${updates.nodejs})`) : '',
+        versions.v8, versions.modules);
+    console.log('npm version %s%s', versions.npm,
+        updates.npm ? ' ' + chalk.magenta(`(update to ${updates.npm})`) : '');
 });
 
 yargs.scriptName('hap-server').help().version(false).showHelpOnFail(false, 'Specify --help for available options');
