@@ -986,7 +986,7 @@ export class PluginAccessory<HasAccessory extends boolean = true> {
     readonly data: any;
     readonly cached_data: any;
 
-    private _status = AccessoryStatus.NOT_READY;
+    protected _status = AccessoryStatus.NOT_READY;
 
     constructor(
         server: Server, accessory: HasAccessory extends true ? Accessory : string, plugin: Plugin | null, data?: any
@@ -1283,7 +1283,8 @@ export class PluginStandaloneAccessory<HasAccessory extends boolean = boolean> e
         const init = Promise.resolve().then(() =>
             accessory_handler.call(plugin, config, cached_accessory ? cached_accessory.accessory : undefined));
 
-        this.updateStatus(AccessoryStatus.WAITING);
+        this._status = AccessoryStatus.WAITING;
+        this.server.accessories.handleStatusChange(this as PluginAccessory<true>, AccessoryStatus.WAITING);
 
         this._initialising = init.then(accessory => {
             if (!(accessory instanceof Accessory)) throw new Error('Accessory handler didn\'t return an Accessory');
