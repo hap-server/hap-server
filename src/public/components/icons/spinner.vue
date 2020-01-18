@@ -1,7 +1,9 @@
 <!-- https://codepen.io/jmak/pen/LsCet -->
 
 <template>
-    <div class="icon icon-spinner spinner">
+    <div class="icon icon-spinner spinner" :class="{'spinner-light': light}" :style="{
+        'font-size': typeof size === 'number' ? size + 'px' : size,
+    }">
         <div class="spinner-blade"></div>
         <div class="spinner-blade"></div>
         <div class="spinner-blade"></div>
@@ -18,12 +20,23 @@
 </template>
 
 <script>
-    export default {};
+    export default {
+        props: {
+            light: Boolean,
+            size: {
+                default: null,
+                validator(size) {
+                    return typeof size === 'number' || typeof size === 'string';
+                },
+            },
+        },
+    };
 </script>
 
 <style lang="scss">
     $spinner-size: 48px !default;
     $spinner-colour: #69717d !default;
+    $spinner-light-colour: #eeeeee !default;
 
     .spinner {
         font-size: $spinner-size;
@@ -64,11 +77,23 @@
                 }
             }
         }
+
+        &.spinner-light .spinner-blade {
+            animation-name: spinner-light-fade;
+        }
     }
 
     @keyframes spinner-fade {
         0% {
             background-color: $spinner-colour;
+        }
+        100% {
+            background-color: transparent;
+        }
+    }
+    @keyframes spinner-light-fade {
+        0% {
+            background-color: $spinner-light-colour;
         }
         100% {
             background-color: transparent;

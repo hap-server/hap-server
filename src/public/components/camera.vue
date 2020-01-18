@@ -13,7 +13,7 @@
                     <div class="flex-fill" />
 
                     <div v-if="loading_snapshot" class="service-status-icon service-updating-spinner">
-                        <spinner />
+                        <spinner light />
                     </div>
                     <div v-else-if="snapshot_error || service.is_unavailable || ![AccessoryStatus.WAITING, AccessoryStatus.DESTROYED, AccessoryStatus.CONNECTING, AccessoryStatus.DISCONNECTING, AccessoryStatus.READY].includes(service.accessory.status)" class="service-status-icon service-status-error">
                         <warning-icon />

@@ -59,9 +59,17 @@
         </keep-alive>
 
         <div v-if="!is_settings_active && !is_plugin_route_active && !show_automations" class="main">
-            <layout ref="layout" :key="layout ? layout.uuid : ''" :layout="layout"
+            <layout v-if="has_loaded" ref="layout" :key="layout ? layout.uuid : ''" :layout="layout"
                 :title="(layout ? authenticated_user && layout.uuid === 'Overview.' + authenticated_user.id ? name : layout.name : name) || $t('main.home')"
                 @modal="modal => modals.add(modal)" @ping="ping" />
+
+            <template v-else>
+                <h1>{{ title || $t('main.home') }}</h1>
+
+                <div class="section">
+                    <p><spinner size="inherit" light /> {{ $t('main.loading') }}</p>
+                </div>
+            </template>
         </div>
 
         <component v-if="modals.component" :is="modals.component" ref="modals" :modals="modals" :client="client"
@@ -110,6 +118,8 @@
     import LayoutComponent from './layout.vue';
     import LayoutSelector from './layout-selector.vue';
 
+    import Spinner from './icons/spinner.vue';
+
     export const instances = new Set();
 
     document.cookie = 'asset_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
@@ -118,6 +128,8 @@
         components: {
             Layout: LayoutComponent,
             LayoutSelector,
+
+            Spinner,
 
             Automations: () => import(/* webpackChunkName: 'automations' */ '../automations/automations.vue'),
             Settings: () => import(/* webpackChunkName: 'settings' */ './settings.vue'),
@@ -139,6 +151,7 @@
 
                 connection: null,
                 has_connected: false,
+                has_loaded: false,
                 loading: false,
                 should_open_setup: false,
 
@@ -315,6 +328,8 @@
                         this.client.connection.subscribeSystemInformation() : null,
                 ]).catch(err => {
                     this.errors.push({err, vm: this, info: 'watch authenticated_user'});
+                }).then(() => {
+                    this.has_loaded = true;
                 });
             },
             layout(layout) {

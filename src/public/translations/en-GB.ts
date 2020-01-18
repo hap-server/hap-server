@@ -22,6 +22,7 @@ export default {
         settings: 'Settings',
         automations: 'Automations',
 
+        loading: 'Loading.',
         connecting: 'Connecting',
         reconnecting: 'Reconnecting',
 
