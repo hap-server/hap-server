@@ -17,11 +17,12 @@ import {
     AuthenticatedUser as BaseAuthenticatedUser,
     UserManagementHandler as BaseUserManagementHandler,
 } from '@hap-server/hap-server/server/plugins';
-import {AccessoryEvents, AccessoryStatus} from '@hap-server/hap-server/server/accessories';
+import {AccessoryEvents} from '@hap-server/hap-server/server/accessories';
 import AutomationTrigger from '@hap-server/hap-server/automations/trigger';
 import AutomationCondition from '@hap-server/hap-server/automations/condition';
 import AutomationAction from '@hap-server/hap-server/automations/action';
 import Logger from '@hap-server/hap-server/common/logger';
+import {AccessoryStatus} from '@hap-server/hap-server/common/types/accessories';
 import Module from 'module';
 import {Accessory} from '@hap-server/hap-server/hap-nodejs';
 
