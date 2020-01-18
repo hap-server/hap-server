@@ -622,6 +622,7 @@ class Client extends EventEmitter {
 
         if (this.system_information && data.type === 'update-system-information') {
             for (const [key, d] of Object.entries(data.data) as [keyof SystemInformationData, any][]) {
+                // @ts-ignore
                 this.system_information[key] = d;
                 this.emit('update-system-information', key, d);
             }
