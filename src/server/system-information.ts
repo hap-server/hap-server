@@ -11,6 +11,12 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 const start_time = Date.now();
+const DEVELOPMENT = true;
+
+export enum BuildType {
+    DEVELOPMENT,
+    RELEASE,
+}
 
 export interface Versions {
     'hap-server': string;
@@ -45,6 +51,7 @@ export interface NetworkInterface {
 }
 
 export interface SystemInformationData {
+    build: keyof typeof BuildType;
     versions: Versions;
     updates: Partial<Versions>;
     system: systeminformation.SystemData;
@@ -75,6 +82,7 @@ export class SystemInformation {
         ]);
 
         return {
+            build: BuildType[this.getHapServerBuildType()] as keyof typeof BuildType,
             versions: versions as Versions,
             updates,
             system,
@@ -155,6 +163,10 @@ export class SystemInformation {
             modules: process.versions.modules,
             npm: this.getNpmVersion(),
         };
+    }
+
+    getHapServerBuildType(): BuildType {
+        return DEVELOPMENT ? BuildType.DEVELOPMENT : BuildType.RELEASE;
     }
 
     getHomebridgeApiVersion() {

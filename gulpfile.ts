@@ -367,7 +367,7 @@ gulp.task('build-backend-release', function() {
                     '!src/public/**/*.ts', 'src/public/plugins.ts', 'src/public/mixins/**/*.ts',
                 ], {base: 'src'}),
                 replace(/\bDEVELOPMENT\s*=\s*true\b/gi, 'DEVELOPMENT = false'),
-                replace(/\bDEVELOPMENT(?!\s*=)\b/gi, 'false'),
+                replace(/\bDEVELOPMENT(?!\s*[=,:;'"])\b/gi, 'false'),
                 tsProject(),
                 // Fix relative references as TypeScript rewrites them so they work properly
                 // In the development build this is fine as the src directory still exists but in the release build it
