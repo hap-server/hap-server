@@ -3,10 +3,10 @@
     width: $size;
     height: $size;
 
-    margin-top: $margin;
-    margin-right: $margin;
-
     @if $margin != 1rem {
+        margin-top: $margin;
+        margin-right: $margin;
+
         @for $i from 1 through $number {
             &:nth-child(#{$i}) {
                 margin-top: 1rem;
@@ -17,6 +17,28 @@
             margin-right: 1rem;
         }
     }
+}
+@mixin tile-width($number, $margin: 1rem) {
+    $size: calc(((100vw - 2rem) / #{$number}) - (#{$margin} / #{$number} * #{$number - 1}));
+    width: $size;
+
+    @if $margin != 1rem {
+        margin-top: $margin;
+        margin-right: $margin;
+
+        @for $i from 1 through $number {
+            &:nth-child(#{$i}) {
+                margin-top: 1rem;
+            }
+        }
+
+        &:nth-child(#{$number}n) {
+            margin-right: 1rem;
+        }
+    }
+}
+@mixin camera-tile-inner-height($number, $wr, $hr, $margin: 0.8rem) {
+    height: calc(((((100vw - 2rem) / #{$wr}) * #{$hr}) / #{$number}) - (#{$margin} / #{$number} * #{$number - 1}));
 }
 
 .service-wrapper {
@@ -67,6 +89,22 @@
     &.service-wrapper-camera {
         width: calc(100vw - 2rem);
         height: auto;
+
+        @media (min-width: 768px) {
+            @include tile-width(2);
+        }
+        @media (min-width: 1024px) {
+            @include tile-width(3);
+        }
+        @media (min-width: 1440px) {
+            @include tile-width(4);
+        }
+        @media (min-width: 1920px) {
+            @include tile-width(5);
+        }
+        @media (min-width: 2480px) {
+            @include tile-width(6);
+        }
     }
 }
 
@@ -215,6 +253,22 @@
     .service-wrapper-camera & .camera-image-wrapper,
     .service-wrapper-camera & .camera-error-wrapper {
         height: calc(((100vw - 2rem) / 16) * 9);
+
+        @media (min-width: 768px) {
+            @include camera-tile-inner-height(2, 16, 9);
+        }
+        @media (min-width: 1024px) {
+            @include camera-tile-inner-height(3, 16, 9);
+        }
+        @media (min-width: 1440px) {
+            @include camera-tile-inner-height(4, 16, 9);
+        }
+        @media (min-width: 1920px) {
+            @include camera-tile-inner-height(5, 16, 9);
+        }
+        @media (min-width: 2480px) {
+            @include camera-tile-inner-height(6, 16, 9);
+        }
     }
 
     .service-wrapper-camera & canvas {
