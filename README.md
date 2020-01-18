@@ -21,6 +21,7 @@ A lot.
     - [x] Layouts
         - Customisable by dragging sections and accessories in the web interface.
         - [x] Scenes
+        - [x] Cameras
         - [x] [Custom sections with plugins](docs/plugins.md#uipluginregisterlayoutsectioncomponent)
         - [ ] Service groups (one tile controls multiple accessories)
             - Group services into a single service with merged values
@@ -49,9 +50,9 @@ A lot.
     - [x] Dark theme [(system wide)](https://caniuse.com/#search=prefers-color-scheme)
     - [ ] Notifications
     - Configuration
-        - [ ] Add + configure accessories in the web interface
+        - [x] Add + configure accessories in the web interface
             - [x] Set home/accessory/service names
-        - [x] Server output
+        - [x] Server status and output
         - [x] Custom layouts
         - [x] Manage users/permissions
         - [x] Manage HomeKit bridges + choose accessories to expose
@@ -142,7 +143,7 @@ A lot.
         - [x] Basic accessory control
         - [x] Accessory control
         - [x] Accessory + accessory platform discovery + setup
-        - [ ] Accessory + accessory platform configuration
+        - [x] Accessory + accessory platform configuration
         - [x] Authentication
         - [x] User management
         - [x] Automation trigger configuration
