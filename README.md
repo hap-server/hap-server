@@ -159,10 +159,16 @@ A lot.
         - [x] Automation actions
     - [ ] Install + manage plugins in the web interface?
         - Like server output???
-- Internal features
+- Performance and stability features
     - [x] Cached accessories
         - Accessory configuration can be cached so the server can run immediately and have accessories load in the
             background.
+        - This works differently to Homebridge - plugins can just create accessories as normal instead of restoring
+            event handlers to a restored accessory object. Plugins can use the restored accessory object if they
+            want to though.
+    - HAP time warnings
+        - hap-server will output a warning when an accessory takes more than 2 seconds to get a value, or 5 seconds
+            to set a value.
 - [x] Configuration reloading
     - Global plugin configuration cannot be reloaded.
     - [x] Accessories + accessory platforms

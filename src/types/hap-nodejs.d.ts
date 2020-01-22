@@ -391,7 +391,7 @@ declare module 'hap-nodejs/lib/Camera' {
             [sessionID: string]: SessionInfo | undefined;
         };
         readonly ongoingSessions: {
-            [sessionID: string]: import('child_process').ChildProcessWithoutNullStreams | undefined;
+            [sessionID: string]: import('child_process').ChildProcess | undefined;
         };
 
         constructor();
@@ -822,9 +822,13 @@ declare module 'hap-nodejs/lib/util/once' {
 }
 
 declare module 'hap-nodejs/lib/util/uuid' {
-    export function generate(data: import('crypto').BinaryLike): string;
+    type BinaryLike = string | Buffer | NodeJS.TypedArray | DataView;
+
+    export function generate(data: BinaryLike): string;
     export function isValid(UUID: string): boolean;
     export function unparse(buf: Buffer, offset?: number): string;
+
+    export {};
 }
 
 declare module 'hap-nodejs/lib/util/tlv' {
@@ -860,7 +864,9 @@ declare module 'hap-nodejs/lib/util/encryption' {
 }
 
 declare module 'hap-nodejs/lib/util/hkdf' {
-    import {BinaryLike} from 'crypto';
+    type BinaryLike = string | Buffer | NodeJS.TypedArray | DataView;
 
     export function HKDF(hashAlg: string, salt: BinaryLike, ikm: BinaryLike, info: Buffer, size: number): Buffer;
+
+    export {};
 }

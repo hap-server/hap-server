@@ -11,6 +11,11 @@ import Logger from '../common/logger';
 import {PluginAccessory} from './accessories';
 import {AccessoryStatus} from '../common/types/accessories';
 
+const GET_TIMEOUT_WARNING_THRESHOLD = 2000;
+const GET_TIMEOUT_WARNING_DISPLAY_THRESHOLD = '2 seconds';
+const SET_TIMEOUT_WARNING_THRESHOLD = 5000;
+const SET_TIMEOUT_WARNING_DISPLAY_THRESHOLD = '5 seconds';
+
 export function hapStatus(err: any): number {
     let value = 0;
 
@@ -486,10 +491,17 @@ export default class Server {
         const context = events;
 
         try {
-            // Set the value and wait for success
+            const warning_timeout = setTimeout(() => {
+                this.log.warn('Characteristic "%s" of accessory "%s" too more than %s to respond',
+                    characteristic.displayName, accessory.displayName, GET_TIMEOUT_WARNING_DISPLAY_THRESHOLD);
+            }, GET_TIMEOUT_WARNING_THRESHOLD);
+
+            // Get the value
             const value = await new Promise((rs, rj) => characteristic.getValue((err: any, value: any) => {
                 err ? rj(err) : rs(value);
             }, context, connection_id));
+
+            clearTimeout(warning_timeout);
 
             this.log.debug('Got characteristic "%s"', characteristic.displayName, value);
 
@@ -593,10 +605,17 @@ export default class Server {
             this.log.debug('Setting characteristic "%s"', characteristic.displayName, value);
 
             try {
+                const warning_timeout = setTimeout(() => {
+                    this.log.warn('Characteristic "%s" of accessory "%s" too more than %s to respond',
+                        characteristic.displayName, accessory.displayName, SET_TIMEOUT_WARNING_DISPLAY_THRESHOLD);
+                }, SET_TIMEOUT_WARNING_THRESHOLD);
+
                 // Set the value and wait for success
                 await new Promise((rs, rj) => characteristic.setValue(value, (err?, value?) => {
                     err ? rj(err) : rs(value);
                 }, context, connection_id));
+
+                clearTimeout(warning_timeout);
 
                 return {
                     aid, iid,

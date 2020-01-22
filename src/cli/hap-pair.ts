@@ -3,7 +3,7 @@ import {connect, log, GlobalArguments} from '.';
 import {HttpClient} from 'hap-controller';
 import read from 'read';
 import util from 'util';
-const prompt = util.promisify(read);
+const prompt = util.promisify(read) as (opts: read.Options) => Promise<string>;
 
 export const command = 'hap-pair <host> <port>';
 export const describe = 'Pair with a HomeKit accessory';
