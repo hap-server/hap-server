@@ -144,7 +144,8 @@
     },
     "scripts": {
         "build": "gulp build",
-        "prepare": "gulp build build-example-plugins"
+        "prepare": "gulp build build-example-plugins",
+        "test": "exit 0"
     },
     "bin": {
         "hap-server": "bin/hap-server",

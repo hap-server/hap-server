@@ -49,6 +49,72 @@ build:
         variables:
             - $NPM_AUDIT_SCHEDULE_SKIP_BUILD
 
+# test-node-v10:
+#     stage: test
+#     image: node:10
+#     script:
+#         - npm --color="always" install
+#         - npm run test
+#     only:
+#         changes:
+#             - .gitlab-ci.yml
+#             - package-lock.json
+#             - src/**/*.js
+#             - src/**/*.ts
+#             - src/**/*.vue
+#             - example-plugins/src/**/*.js
+#     except:
+#         variables:
+#             - $NPM_AUDIT_SCHEDULE_SKIP_BUILD
+#     cache:
+#         key: node-v10
+#         paths:
+#             - node_modules/
+
+# test-node-v12:
+#     stage: test
+#     image: node:12
+#     script:
+#         - npm --color="always" install
+#         - npm run test
+#     only:
+#         changes:
+#             - .gitlab-ci.yml
+#             - package-lock.json
+#             - src/**/*.js
+#             - src/**/*.ts
+#             - src/**/*.vue
+#             - example-plugins/src/**/*.js
+#     except:
+#         variables:
+#             - $NPM_AUDIT_SCHEDULE_SKIP_BUILD
+#     cache:
+#         paths:
+#             - node_modules/
+#         policy: pull
+
+# test-node-v13:
+#     stage: test
+#     image: node:13
+#     script:
+#         - npm --color="always" install
+#         - npm run test
+#     only:
+#         changes:
+#             - .gitlab-ci.yml
+#             - package-lock.json
+#             - src/**/*.js
+#             - src/**/*.ts
+#             - src/**/*.vue
+#             - example-plugins/src/**/*.js
+#     except:
+#         variables:
+#             - $NPM_AUDIT_SCHEDULE_SKIP_BUILD
+#     cache:
+#         key: node-v13
+#         paths:
+#             - node_modules/
+
 lint:
     stage: test
     script:
@@ -90,6 +156,7 @@ audit:
         changes:
             - .gitlab-ci.yml
             - package-lock.json
+    dependencies: []
     cache:
         paths:
             - node_modules/

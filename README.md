@@ -319,9 +319,11 @@ To show the version number run `hap-server version`.
 
 ```
 Samuels-MacBook-Air:~ samuel$ hap-server version
-hap-server version 0.8.0 production
+hap-server version 0.11.0 release
 homebridge version 0.4.50, API 2.4
 hap-nodejs version 0.4.51
+Node.js version 12.10.0, v8 7.6.303.29-node.16, native modules 72
+npm version 6.11.3
 ```
 
 Configuration
