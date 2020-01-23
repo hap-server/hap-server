@@ -20,9 +20,6 @@ interface HAPNodeJS {
 // @ts-ignore
 const hap: HAPNodeJS = require('hap-nodejs');
 
-import './patches/hap-nodejs-security';
-import './patches/hap-nodejs-async';
-
 export const init = hap.init;
 export const Accessory = hap.Accessory;
 export const Bridge = hap.Bridge;
@@ -41,3 +38,6 @@ export type Service = import('hap-nodejs/lib/Service').Service;
 export type Characteristic = import('hap-nodejs/lib/Characteristic').Characteristic;
 export type StreamController = import('hap-nodejs/lib/StreamController').StreamController;
 export type HAPServer = import('hap-nodejs/lib/HAPServer').HAPServer;
+
+require('./patches/hap-nodejs-security');
+require('./patches/hap-nodejs-async');
