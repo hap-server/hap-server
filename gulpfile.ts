@@ -228,6 +228,9 @@ gulp.task('build-backend', function() {
                 gulp.src([
                     'src/**/*.ts',
                     '!src/public/**/*.ts', 'src/public/plugins.ts', 'src/public/mixins/**/*.ts',
+                    'src/public/modals.ts', 'src/public/window-modals.ts',
+                    'src/public/internal-symbols.ts',
+                    'src/public/native-hook.ts',
                 ], {base: 'src'}),
                 sourcemaps.init(),
                 tsProject(),
@@ -284,6 +287,9 @@ gulp.task('watch-backend', gulp.parallel('watch-backend-no-ts', function() {
             gulp.src([
                 'src/**/*.ts',
                 '!src/public/**/*.ts', 'src/public/plugins.ts', 'src/public/mixins/**/*.ts',
+                'src/public/modals.ts', 'src/public/window-modals.ts',
+                'src/public/internal-symbols.ts',
+                'src/public/native-hook.ts',
             ], {base: 'src'}),
             sourcemaps.init(),
             tsProject(),
@@ -365,6 +371,9 @@ gulp.task('build-backend-release', function() {
                 gulp.src([
                     'src/**/*.ts',
                     '!src/public/**/*.ts', 'src/public/plugins.ts', 'src/public/mixins/**/*.ts',
+                    'src/public/modals.ts', 'src/public/window-modals.ts',
+                    'src/public/internal-symbols.ts',
+                    'src/public/native-hook.ts',
                 ], {base: 'src'}),
                 replace(/\bDEVELOPMENT\s*=\s*true\b/gi, 'DEVELOPMENT = false'),
                 replace(/\bDEVELOPMENT(?!\s*[=,:;'"])\b/gi, 'false'),

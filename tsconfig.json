@@ -15,7 +15,11 @@
     "include": [
         "src/**/*.ts",
         "src/public/plugins.ts",
-        "src/public/mixins/**/*.ts"
+        "src/public/mixins/**/*.ts",
+        "src/public/modals.ts",
+        "src/public/window-modals.ts",
+        "src/public/internal-symbols.ts",
+        "src/public/native-hook.ts"
     ],
     "exclude": [
         "dist",
