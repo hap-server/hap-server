@@ -1,4 +1,4 @@
-import EventEmitter from 'events';
+import {EventEmitter} from 'events';
 import Connection from './connection';
 
 import {Scene as SceneData} from '../common/types/storage';

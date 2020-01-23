@@ -1,18 +1,15 @@
-import path from 'path';
-import process from 'process';
-import fs from 'fs';
-import util from 'util';
-import os from 'os';
+import * as path from 'path';
+import * as process from 'process';
+import {promises as fs, readFileSync} from 'fs';
+import * as os from 'os';
 
-import yargs from 'yargs';
+import yargs = require('yargs');
 import chalk from 'chalk';
-import yaml from 'yaml';
+import * as yaml from 'yaml';
 
 import {PluginManager, Logger, forceColourLogs, version} from '..';
 
 export const log = new Logger();
-
-const readFile = util.promisify(fs.readFile);
 
 const DEVELOPMENT = true;
 
@@ -80,7 +77,7 @@ export function getConfig(argv: GlobalArguments): ConfigData {
             }
 
             try {
-                const config_string = fs.readFileSync(config_path, 'utf-8');
+                const config_string = readFileSync(config_path, 'utf-8');
 
                 if (['.yml', '.yaml'].includes(path.extname(config_path))) {
                     return config_cache[config_path] = yaml.parse(config_string, {
@@ -176,7 +173,7 @@ interface ConnectionData extends ConfigData {
 
 export async function connect(argv: GlobalArguments): Promise<ConnectionData> {
     const {default: Connection} = await import('../client/connection');
-    const {default: WebSocket} = await import('ws');
+    const WebSocket = await import('ws');
 
     const {config, config_path, data_path} = await getConfig(argv);
 
@@ -186,11 +183,11 @@ export async function connect(argv: GlobalArguments): Promise<ConnectionData> {
 
     log.debug('Arguments', argv);
 
-    const cli_auth_token_bytes = await readFile(path.join(data_path, 'cli-token'));
+    const cli_auth_token_bytes = await fs.readFile(path.join(data_path, 'cli-token'));
     const cli_auth_token = cli_auth_token_bytes.toString('hex');
 
-    const server_pid = parseInt(await readFile(path.join(data_path, 'hap-server.pid'), 'utf-8'));
-    const http_port = parseInt(await readFile(path.join(data_path, 'hap-server-port'), 'utf-8'));
+    const server_pid = parseInt(await fs.readFile(path.join(data_path, 'hap-server.pid'), 'utf-8') as string);
+    const http_port = parseInt(await fs.readFile(path.join(data_path, 'hap-server-port'), 'utf-8') as string);
 
     const http_host = config.http_host && !['::', '0.0.0.0'].includes(config.http_host) ?
         config.http_host.match(/[^0-9.]/) ? `[${config.http_host}]` : config.http_host : '127.0.0.1';

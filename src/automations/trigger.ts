@@ -1,4 +1,4 @@
-import cron, {ScheduledTask} from 'node-cron';
+import * as cron from 'node-cron';
 import {Timezone} from 'tz-offset';
 
 import Events, {EventListener} from '../events';
@@ -141,7 +141,7 @@ export interface CronTriggerConfiguration extends AutomationTriggerConfiguration
 export class CronTrigger extends AutomationTrigger {
     readonly config!: CronTriggerConfiguration;
 
-    private task: ScheduledTask | null = null;
+    private task: cron.ScheduledTask | null = null;
 
     onstart() {
         if (this.task) this.task.destroy(), this.task = null;

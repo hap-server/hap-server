@@ -1,6 +1,6 @@
 /// <reference path="../types/hap-nodejs.d.ts" />
 
-import EventEmitter from 'events';
+import {EventEmitter} from 'events';
 import Client from './client';
 
 import {Characteristic as HAPCharacteristic, PredefinedCharacteristic} from 'hap-nodejs/lib/Characteristic';

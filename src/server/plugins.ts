@@ -1,15 +1,15 @@
 /// <reference path="../types/homebridge.d.ts" />
 
-import Module from 'module';
-import fs from 'fs';
-import path from 'path';
-import util from 'util';
-import crypto from 'crypto';
-import EventEmitter from 'events';
+import Module = require('module');
+import {promises as fs, statSync} from 'fs';
+import * as path from 'path';
+import * as util from 'util';
+import * as crypto from 'crypto';
+import {EventEmitter} from 'events';
 
-import semver from 'semver';
-import persist from 'node-persist';
-import express from 'express';
+import * as semver from 'semver';
+import * as persist from 'node-persist';
+import express = require('express');
 import * as hap from '../hap-nodejs';
 
 import {Plugin as HomebridgePluginManager} from 'homebridge/lib/plugin';
@@ -28,13 +28,10 @@ import AutomationAction from '../automations/action';
 import Server from './server';
 import Connection from './connection';
 import {AccessoryConfiguration, AccessoryPlatformConfiguration} from '../cli/configuration';
-import http from 'http';
+import * as http from 'http';
 import {Accessory} from '../hap-nodejs';
 
 import {events, version as hap_server_version} from '..';
-
-const fs_stat = util.promisify(fs.stat);
-const fs_readdir = util.promisify(fs.readdir);
 
 const log = new Logger('Plugins');
 
@@ -218,7 +215,7 @@ export class PluginManager extends Events {
     async loadPlugin(plugin_path: string) {
         plugin_path = path.resolve(plugin_path);
 
-        const stat = await fs_stat(plugin_path);
+        const stat = await fs.stat(plugin_path);
         let package_json;
 
         if (stat.isDirectory()) {
@@ -314,7 +311,7 @@ export class PluginManager extends Events {
         this.plugin_paths.unshift(path);
 
         try {
-            const stat = fs.statSync(path);
+            const stat = statSync(path);
             // eslint-disable-next-line no-throw-literal
             if (!stat.isDirectory()) throw {code: 'ENOTDIR'};
 
@@ -340,7 +337,7 @@ export class PluginManager extends Events {
     private async _loadPlugin(plugin_path: string, scoped_packages = false): Promise<void> {
         if (!scoped_packages) {
             try {
-                const stat = await fs_stat(plugin_path);
+                const stat = await fs.stat(plugin_path);
 
                 if (stat.isFile()) {
                     await this.loadPlugin(plugin_path);
@@ -352,16 +349,16 @@ export class PluginManager extends Events {
 
             try {
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                const package_stat = await fs_stat(path.join(plugin_path, 'package.json'));
+                const package_stat = await fs.stat(path.join(plugin_path, 'package.json'));
 
                 await this.loadPlugin(plugin_path);
                 return;
             } catch (err) {}
         }
 
-        await Promise.all((await fs_readdir(plugin_path)).map(async dir => {
+        await Promise.all((await fs.readdir(plugin_path)).map(async dir => {
             const plugin_dir = path.join(plugin_path, dir);
-            const stat = await fs_stat(plugin_dir);
+            const stat = await fs.stat(plugin_dir);
             if (!stat.isDirectory()) return log.error(plugin_dir, 'is not a directory');
 
             try {

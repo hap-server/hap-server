@@ -1,8 +1,8 @@
 import {connect, log, GlobalArguments} from '.';
 
 import {HttpClient} from 'hap-controller';
-import read from 'read';
-import util from 'util';
+import * as read from 'read';
+import * as util from 'util';
 const prompt = util.promisify(read) as (opts: read.Options) => Promise<string>;
 
 export const command = 'hap-pair <host> <port>';

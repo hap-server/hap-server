@@ -1,4 +1,4 @@
-import EventEmitter from 'events';
+import {EventEmitter} from 'events';
 
 import Events from '../events';
 import {AutomationTriggerEvent, AutomationRunningEvent} from '../events/server';

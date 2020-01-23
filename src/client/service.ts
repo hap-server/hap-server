@@ -1,6 +1,6 @@
 /// <reference path="../types/hap-nodejs.d.ts" />
 
-import EventEmitter from 'events';
+import {EventEmitter} from 'events';
 
 import {$set, $delete} from './client';
 import Connection from './connection';

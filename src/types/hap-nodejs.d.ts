@@ -837,7 +837,7 @@ declare module 'hap-nodejs/lib/util/tlv' {
 }
 
 declare module 'hap-nodejs/lib/util/encryption' {
-    import nacl from 'tweetnacl';
+    import nacl = require('tweetnacl');
 
     interface Counter {
         value: number;

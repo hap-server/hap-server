@@ -1,10 +1,10 @@
 /// <reference path="../types/qrcode-terminal.d.ts" />
 /// <reference path="../types/hap-nodejs.d.ts" />
 
-import os from 'os';
-import crypto from 'crypto';
+import * as os from 'os';
+import * as crypto from 'crypto';
 import chalk from 'chalk';
-import qrcode from 'qrcode-terminal';
+import * as qrcode from 'qrcode-terminal';
 import {Accessory, Service, Characteristic} from '../hap-nodejs';
 import {Bridge as HAPBridge} from 'hap-nodejs/lib/Bridge';
 import HAPServer from './hap-server';

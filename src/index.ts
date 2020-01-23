@@ -1,5 +1,3 @@
-import './server/hap-async';
-
 import Events, {Event, ExtendableEvent, EventListeners} from './events';
 import * as ServerEvents from './events/server';
 import TypedEventEmitter from './events/typed-eventemitter';

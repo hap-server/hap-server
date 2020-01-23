@@ -3,8 +3,8 @@ import {AutomationRunner} from '.';
 import AutomationCondition from './condition';
 import PluginManager from '../server/plugins';
 
-import EventEmitter from 'events';
-import vm from 'vm';
+import {EventEmitter} from 'events';
+import * as vm from 'vm';
 
 import Server from '../server/server';
 import Automations from '.';

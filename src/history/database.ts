@@ -1,9 +1,9 @@
-import sqlite from 'sqlite';
+import * as sqlite from 'sqlite';
 import sql from 'sql-template-strings';
 import {promises as fs} from 'fs';
-import path from 'path';
-import util from 'util';
-import _mkdirp from 'mkdirp';
+import * as path from 'path';
+import * as util from 'util';
+import _mkdirp = require('mkdirp');
 
 import {create_schema} from './schema';
 import TypedEventEmitter from '../events/typed-eventemitter';

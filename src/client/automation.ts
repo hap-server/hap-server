@@ -1,5 +1,5 @@
-import EventEmitter from 'events';
-import isEqual from 'lodash.isequal';
+import {EventEmitter} from 'events';
+import isEqual = require('lodash.isequal');
 import Connection from './connection';
 
 import {Automation as AutomationData} from '../common/types/storage';

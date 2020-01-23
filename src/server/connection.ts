@@ -1,27 +1,27 @@
 
 /* eslint valid-jsdoc: 'off' */
 
-import process from 'process';
-import crypto from 'crypto';
-import path from 'path';
-import url from 'url';
-import querystring from 'querystring';
-import fs from 'fs';
-import util from 'util';
-import stream from 'stream';
-import repl from 'repl';
-import child_process from 'child_process';
-import genuuid from 'uuid/v4';
-import mkdirp from 'mkdirp';
+import * as process from 'process';
+import * as crypto from 'crypto';
+import * as path from 'path';
+import * as url from 'url';
+import * as querystring from 'querystring';
+import {promises as fs, createReadStream} from 'fs';
+import * as util from 'util';
+import * as stream from 'stream';
+import * as repl from 'repl';
+import * as child_process from 'child_process';
+import genuuid = require('uuid/v4');
+import _mkdirp = require('mkdirp');
 import chalk from 'chalk';
-import WebSocket from 'ws';
-import http from 'http';
-import persist from 'node-persist';
+import WebSocket = require('ws');
+import * as http from 'http';
+import * as persist from 'node-persist';
 
 import * as hap from '../hap-nodejs';
 import {Accessory, HAPServer} from '../hap-nodejs';
 
-import isEqual from 'lodash.isequal';
+import isEqual = require('lodash.isequal');
 
 import Server from './server';
 import PluginManager, {AuthenticatedUser} from './plugins';
@@ -46,6 +46,7 @@ import {AccessoryStatus} from '../common/types/accessories';
 import SystemInformation, {SystemInformationData} from './system-information';
 
 const randomBytes = util.promisify(crypto.randomBytes);
+const mkdirp = util.promisify(_mkdirp);
 
 /**
  * Get/generate an Organisationally Unique Identifier for generating MAC addresses.
@@ -257,8 +258,7 @@ export default class Connection {
 
             SystemInformation.unsubscribe(this);
 
-            await Promise.all(this.uploads.map(file => new Promise((rs, rj) =>
-                fs.unlink(file.filepath, err => err ? rj(err) : rs()))));
+            await Promise.all(this.uploads.map(file => fs.unlink(file.filepath)));
         });
 
         // ws.send('ping');
@@ -1174,8 +1174,7 @@ export default class Connection {
             }
 
             // Delete the old background image as no other layout is using it
-            await new Promise((rs, rj) => fs.unlink(path.join(this.server.assets_path, previous_data.background_url),
-                err => err ? rj(err) : rs()));
+            await fs.unlink(path.join(this.server.assets_path, previous_data.background_url));
         }
     }
 
@@ -1318,8 +1317,7 @@ export default class Connection {
             }
 
             // Delete the old background image as no other layout is using it
-            await new Promise((rs, rj) => fs.unlink(path.join(this.server.assets_path, previous_data.background_url),
-                err => err ? rj(err) : rs()));
+            await fs.unlink(path.join(this.server.assets_path, previous_data.background_url));
         }
     }
 
@@ -1346,7 +1344,7 @@ export default class Connection {
         } catch (err) {
             connection.log.error('Error uploading layout background', err);
 
-            await new Promise((rs, rj) => fs.unlink(req.file.path, err => err ? rj(err) : rs()));
+            await fs.unlink(req.file.path);
 
             res.writeHead(500, {'Content-Type': 'text/plain'});
             res.end('Error');
@@ -1361,7 +1359,7 @@ export default class Connection {
     }, res: http.ServerResponse) {
         this.log(req.file);
 
-        const stream = fs.createReadStream(req.file.path);
+        const stream = createReadStream(req.file.path);
         const hash = crypto.createHash('sha1');
         hash.setEncoding('hex');
 
@@ -1378,16 +1376,16 @@ export default class Connection {
         const filename = filehash + path.extname(req.file.originalname);
         const filepath = path.join(this.server.assets_path, filename);
 
-        if (await new Promise((rs, rj) => fs.stat(filepath, (err, stat) => err ? rs(false) : rs(true)))) {
-            await new Promise((rs, rj) => fs.unlink(req.file.path, err => err ? rj(err) : rs()));
+        if (await fs.stat(filepath).then(stat => true, err => false)) {
+            await fs.unlink(req.file.path);
 
             return {
                 name: filename,
             };
         }
 
-        await new Promise((rs, rj) => mkdirp(this.server.assets_path, err => err ? rj(err) : rs()));
-        await new Promise((rs, rj) => fs.rename(req.file.path, filepath, err => err ? rj(err) : rs()));
+        await mkdirp(this.server.assets_path);
+        await fs.rename(req.file.path, filepath);
 
         this.uploads.push({
             filename,
@@ -1448,8 +1446,7 @@ export default class Connection {
             }
 
             // Delete the background image as no other layout is using it
-            await new Promise((rs, rj) => fs.unlink(path.join(this.server.assets_path, data.background_url),
-                err => err ? rj(err) : rs()));
+            await fs.unlink(path.join(this.server.assets_path, data.background_url));
         }
     }
 

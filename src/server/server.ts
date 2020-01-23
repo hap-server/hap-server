@@ -1,22 +1,22 @@
 /// <reference path="../types/express-csp.d.ts" />
 
-import http from 'http';
-import https from 'https';
-import net from 'net';
-import url from 'url';
-import path from 'path';
-import fs from 'fs';
-import os from 'os';
-import util from 'util';
+import * as http from 'http';
+import * as https from 'https';
+import * as net from 'net';
+import * as url from 'url';
+import * as path from 'path';
+import {promises as fs} from 'fs';
+import * as os from 'os';
+import * as util from 'util';
 
-import express from 'express';
-import WebSocket from 'ws';
-import persist from 'node-persist';
-import csp from 'express-csp';
-import cookieParser from 'cookie-parser';
-import multer from 'multer';
+import express = require('express');
+import WebSocket = require('ws');
+import persist = require('node-persist');
+import csp = require('express-csp');
+import cookieParser = require('cookie-parser');
+import multer = require('multer');
 
-import isEqual from 'lodash.isequal';
+import isEqual = require('lodash.isequal');
 
 import Events from '../events';
 import {
@@ -1272,14 +1272,11 @@ export default class Server extends Events {
             .map((uuid: string) => this.storage.getItem('Layout.' + uuid)));
         const background_urls = [...new Set(layouts.map(l => l && l.background_url).filter(b => b))];
 
-        const assets = await new Promise<string[]>((rs, rj) =>
-            fs.readdir(this.assets_path, (err, dir) => err ? rj(err) : rs(dir)));
+        const assets = await fs.readdir(this.assets_path);
         const unused_assets = assets.filter(a => !(home_settings && home_settings.background_url === a) &&
             !background_urls.includes(a));
 
-        await Promise.all(unused_assets.map(asset => {
-            return new Promise((rs, rj) => fs.unlink(path.join(this.assets_path, asset), err => err ? rj(err) : rs()));
-        }));
+        await Promise.all(unused_assets.map(asset => fs.unlink(path.join(this.assets_path, asset))));
 
         return {
             assets,

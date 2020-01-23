@@ -1,10 +1,10 @@
 
 import {parseAddress, addressToString, normaliseAddress} from './server';
 
-import path from 'path';
+import * as path from 'path';
 import {promises as fs, statSync} from 'fs';
-import process from 'process';
-import os from 'os';
+import * as process from 'process';
+import * as os from 'os';
 
 import * as hap from '../hap-nodejs';
 

@@ -1,21 +1,21 @@
 /// <reference path="../types/homebridge.d.ts" />
 /// <reference path="../types/xkcd-password.d.ts" />
 
-import path from 'path';
-import process from 'process';
-import os from 'os';
-import fs from 'fs';
-import crypto from 'crypto';
-import util from 'util';
-import net from 'net';
-import http from 'http';
+import * as path from 'path';
+import * as process from 'process';
+import * as os from 'os';
+import {promises as fs} from 'fs';
+import * as crypto from 'crypto';
+import * as util from 'util';
+import * as net from 'net';
+import * as http from 'http';
 
 import {Plugin as HomebridgePluginManager} from 'homebridge/lib/plugin';
 import {User as HomebridgeUser} from 'homebridge/lib/user';
-import HomebridgeLogger from 'homebridge/lib/logger';
+import * as HomebridgeLogger from 'homebridge/lib/logger';
 import * as hap from '../hap-nodejs';
 
-import isEqual from 'lodash.isequal';
+import isEqual = require('lodash.isequal');
 
 import {Server, PluginManager, Logger, forceColourLogs, events} from '..';
 import {
@@ -30,9 +30,6 @@ import ConfigurationFile, {
 import {PluginStandaloneAccessory} from '../server/accessories';
 
 const randomBytes = util.promisify(crypto.randomBytes);
-const readFile = util.promisify(fs.readFile);
-const writeFile = util.promisify(fs.writeFile);
-const unlink = util.promisify(fs.unlink);
 
 const DEVELOPMENT = true;
 
@@ -197,7 +194,7 @@ function getCertificates(certificates: string | [string, string], base_path: str
     return Promise.all(([] as string[]).concat(certificates || []).map(async certificate => {
         if (certificate.startsWith('-----')) return certificate;
 
-        return readFile(path.resolve(base_path, certificate), 'utf-8');
+        return fs.readFile(path.resolve(base_path, certificate), 'utf-8');
     }));
 }
 
@@ -303,8 +300,8 @@ export async function handler(argv: Arguments) {
     const cli_auth_token_bytes = await randomBytes(48);
     const cli_auth_token = cli_auth_token_bytes.toString('hex');
 
-    await writeFile(path.join(data_path, 'cli-token'), cli_auth_token_bytes);
-    await writeFile(path.join(data_path, 'hap-server.pid'), process.pid);
+    await fs.writeFile(path.join(data_path, 'cli-token'), cli_auth_token_bytes);
+    await fs.writeFile(path.join(data_path, 'hap-server.pid'), process.pid);
 
     const server = await Server.createServer({
         hostname: config.hostname,
@@ -417,12 +414,12 @@ export async function handler(argv: Arguments) {
             log.info(`Listening on ${address[1]} port ${http_port}`);
 
             if (address[1] === '::' && !wrote_port_file) {
-                await writeFile(path.join(data_path, 'hap-server-port'), http_port);
+                await fs.writeFile(path.join(data_path, 'hap-server-port'), http_port);
                 wrote_port_file = true;
             }
         } else if (address[0] === 'unix') {
             try {
-                await unlink(address[1]);
+                await fs.unlink(address[1]);
             } catch (err) {}
             await new Promise((rs, rj) => listening_server.listen(address[1], () => rs()));
 
@@ -532,7 +529,7 @@ export async function handler(argv: Arguments) {
 
     if (!await server.storage.getItem('HasCompletedSetup')) {
         // const password = new (require('xkcd-password'))();
-        const {default: XkcdPassword} = await import('xkcd-password');
+        const XkcdPassword = await import('xkcd-password');
         const password = new XkcdPassword();
 
         const setup_token = server.setup_token = await password.generate({
@@ -582,9 +579,9 @@ export async function handler(argv: Arguments) {
             }
 
             await Promise.all([
-                unlink(path.join(data_path, 'hap-server.pid')),
-                wrote_port_file ? unlink(path.join(data_path, 'hap-server-port')) : null,
-                unlink(path.join(data_path, 'cli-token')),
+                fs.unlink(path.join(data_path, 'hap-server.pid')),
+                wrote_port_file ? fs.unlink(path.join(data_path, 'hap-server-port')) : null,
+                fs.unlink(path.join(data_path, 'cli-token')),
 
                 server.automations.stop(),
 
@@ -851,9 +848,9 @@ async function enableAdvertising(
     argv: Arguments, server: Server, data_path: string, listen_addresses: ListenAddresses,
     https_addresses: HttpsAddresses
 ): Promise<[import('bonjour').Bonjour, string]> {
-    const {default: bonjour} = await import('bonjour');
-    const {default: genuuid} = await import('uuid/v4');
-    const {default: _mkdirp} = await import('mkdirp');
+    const bonjour = await import('bonjour');
+    const genuuid = await import('uuid/v4');
+    const _mkdirp = await import('mkdirp');
     const forge = await import('node-forge');
 
     const mkdirp = util.promisify(_mkdirp);
@@ -884,7 +881,7 @@ async function enableAdvertising(
 
     let private_key;
     try {
-        const key_file = await readFile(bonjour_secure_server_certificate_key_path, 'utf-8');
+        const key_file = await fs.readFile(bonjour_secure_server_certificate_key_path, 'utf-8') as string;
         private_key = forge.pki.privateKeyFromPem(key_file);
     } catch (err) {
         if (err.code !== 'ENOENT') throw err;
@@ -893,7 +890,7 @@ async function enableAdvertising(
 
         const keypair = forge.pki.rsa.generateKeyPair(2048);
         const pem = forge.pki.privateKeyToPem(keypair.privateKey);
-        await writeFile(bonjour_secure_server_certificate_key_path, pem, 'utf-8');
+        await fs.writeFile(bonjour_secure_server_certificate_key_path, pem, 'utf-8');
         private_key = keypair.privateKey;
     }
 
@@ -903,7 +900,8 @@ async function enableAdvertising(
     let certificate;
     let certificate_pem: string;
     try {
-        const certificate_file = certificate_pem = await readFile(bonjour_secure_server_certificate_path, 'utf-8');
+        const certificate_file = certificate_pem =
+            await fs.readFile(bonjour_secure_server_certificate_path, 'utf-8') as string;
         certificate = forge.pki.certificateFromPem(certificate_file);
     } catch (err) {
         if (err.code !== 'ENOENT') throw err;
@@ -953,7 +951,7 @@ async function enableAdvertising(
         certificate.sign(private_key);
 
         const pem = certificate_pem = forge.pki.certificateToPem(certificate);
-        await writeFile(bonjour_secure_server_certificate_path, pem, 'utf-8');
+        await fs.writeFile(bonjour_secure_server_certificate_path, pem, 'utf-8');
     }
 
     const sha256 = forge.md.sha256.create();

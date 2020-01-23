@@ -1,5 +1,3 @@
-import './hap-async';
-
 import Server from './server';
 import {
     PluginAccessory, PluginStandaloneAccessory, PluginAccessoryPlatformAccessory, HomebridgeAccessory,

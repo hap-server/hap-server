@@ -1,6 +1,6 @@
 declare module 'hap-controller' {
-    import HttpClient from 'hap-controller/lib/transport/ip/http-client';
-    import IPDiscovery from 'hap-controller/lib/transport/ip/ip-discovery';
+    import HttpClient = require('hap-controller/lib/transport/ip/http-client');
+    import IPDiscovery = require('hap-controller/lib/transport/ip/ip-discovery');
 
     export {
         HttpClient,
@@ -148,11 +148,11 @@ declare module 'hap-controller/lib/protocol/pairing-protocol' {
 }
 
 declare module 'hap-controller/lib/transport/ip/http-client' {
-    import EventEmitter from 'events';
+    import {EventEmitter} from 'events';
 
     import {AccessoryHap} from '@hap-server/types/hap';
-    import HttpConnection from 'hap-controller/lib/transport/ip/http-connection';
-    import PairingProtocol, {PairingData, SessionKeys} from 'hap-controller/lib/protocol/pairing-protocol';
+    import HttpConnection = require('hap-controller/lib/transport/ip/http-connection');
+    import PairingProtocol = require('hap-controller/lib/protocol/pairing-protocol');
 
     interface AccessoriesHap {
         accessories: AccessoryHap[];
@@ -181,13 +181,13 @@ declare module 'hap-controller/lib/transport/ip/http-client' {
         port: number;
         pairingProtocol: PairingProtocol;
 
-        constructor(deviceId: string, address: string, port: number, pairingData?: PairingData);
-        getLongTermData(): PairingData;
+        constructor(deviceId: string, address: string, port: number, pairingData?: PairingProtocol.PairingData);
+        getLongTermData(): PairingProtocol.PairingData;
 
         identify(): Promise<void>;
 
         pairSetup(pin: string): Promise<void>;
-        protected _pairVerify(connection: any): Promise<SessionKeys>;
+        protected _pairVerify(connection: any): Promise<PairingProtocol.SessionKeys>;
 
         removePairing(identifier: string): Promise<void>;
         addPairing(identifier: string, ltpk: Buffer, isAdmin: boolean): Promise<void>;
@@ -204,8 +204,8 @@ declare module 'hap-controller/lib/transport/ip/http-client' {
 }
 
 declare module 'hap-controller/lib/transport/ip/http-connection' {
-    import EventEmitter from 'events';
-    import net from 'net';
+    import {EventEmitter} from 'events';
+    import * as net from 'net';
 
     import {SessionKeys} from 'hap-controller/lib/protocol/pairing-protocol';
 

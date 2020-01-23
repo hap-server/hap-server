@@ -1,4 +1,4 @@
-import EventEmitter from 'events';
+import {EventEmitter} from 'events';
 
 import Connection, {Console} from './connection';
 import Accessory from './accessory';
