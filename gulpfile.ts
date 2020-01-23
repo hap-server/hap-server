@@ -28,8 +28,8 @@ import VueLoaderPlugin = require('vue-loader/lib/plugin');
 import HtmlWebpackPlugin = require('html-webpack-plugin');
 import SriPlugin = require('webpack-subresource-integrity');
 import ScriptExtHtmlPlugin = require('script-ext-html-webpack-plugin');
-import MiniCssExtractPlugin from 'mini-css-extract-plugin';
-import TerserPlugin from 'terser-webpack-plugin';
+import MiniCssExtractPlugin = require('mini-css-extract-plugin');
+import TerserPlugin = require('terser-webpack-plugin');
 import OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 import HotModuleReplacementPlugin = require('webpack/lib/HotModuleReplacementPlugin');
 

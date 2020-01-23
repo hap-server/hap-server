@@ -20,12 +20,12 @@ declare module 'script-ext-html-webpack-plugin' {
 
 declare module 'mini-css-extract-plugin' {
     const MiniCssExtractPlugin: any;
-    export default MiniCssExtractPlugin;
+    export = MiniCssExtractPlugin;
 }
 
 declare module 'terser-webpack-plugin' {
     const TerserPlugin: any;
-    export default TerserPlugin;
+    export = TerserPlugin;
 }
 
 declare module 'optimize-css-assets-webpack-plugin' {
