@@ -23,7 +23,7 @@ import AutomationCondition from '@hap-server/hap-server/automations/condition';
 import AutomationAction from '@hap-server/hap-server/automations/action';
 import Logger from '@hap-server/hap-server/common/logger';
 import {AccessoryStatus} from '@hap-server/hap-server/common/types/accessories';
-import Module from 'module';
+import Module = require('module');
 import {Accessory} from '@hap-server/hap-server/hap-nodejs';
 
 declare module '@hap-server/api' {

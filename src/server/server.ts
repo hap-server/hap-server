@@ -28,7 +28,7 @@ import AccessoryManager from './accessories';
 import {HAPIP as HAPIPDiscovery, HAPBLE as HAPBLEDiscovery} from '../accessory-discovery';
 
 import Connection from './connection';
-import PluginManager, {ServerPlugin, DiscoveredAccessory} from './plugins';
+import PluginManager, {ServerPlugin, ServerPluginHandler, DiscoveredAccessory} from './plugins';
 import Logger from '../common/logger';
 import {Accessory, Characteristic} from '../hap-nodejs';
 
@@ -373,7 +373,7 @@ export default class Server extends Events {
      * @param {object} [config]
      * @return {Promise}
      */
-    async loadPlugin(server_plugin: typeof ServerPlugin, config?: any) {
+    async loadPlugin(server_plugin: ServerPluginHandler, config?: any) {
         if (typeof server_plugin !== 'function' || !(server_plugin.prototype instanceof ServerPlugin)) {
             throw new Error('server_plugin must be a class that extends ServerPlugin');
         }
@@ -382,7 +382,6 @@ export default class Server extends Events {
             throw new Error('Already have a server plugin with the ID "' + server_plugin.id + '"');
         }
 
-        // @ts-ignore
         const instance = new server_plugin(this, config); // eslint-disable-line new-cap
 
         this.plugins.set(server_plugin.id, instance);
@@ -396,10 +395,12 @@ export default class Server extends Events {
      * @param {(function|number)} id A class that extends ServerPlugin or an ID
      * @return {ServerPlugin}
      */
-    getPlugin(id: ServerPlugin | typeof ServerPlugin | number): ServerPlugin | null {
+    getPlugin(
+        id: ServerPlugin | ServerPluginHandler | number
+    ): ServerPlugin | null {
         if (typeof id === 'function' || typeof id === 'object') id = id.id;
 
-        return this.plugins.get(id as number) || null;
+        return this.plugins.get(id) || null;
     }
 
     loadBridgesFromConfig(bridges: BridgeConfiguration[]) {

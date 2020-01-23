@@ -468,7 +468,7 @@ export class Plugin extends Events {
     readonly accessories: Map<string, (config: any, cached_accessory?: Accessory) => (Promise<Accessory> |
         Accessory)> = new Map(); // eslint-disable-line @typescript-eslint/indent
     readonly accessory_platforms: Map<string, typeof AccessoryPlatform> = new Map();
-    readonly server_plugins: Set<typeof ServerPlugin> = new Set();
+    readonly server_plugins: Set<ServerPluginHandler> = new Set();
     readonly web_interface_plugins: Set<WebInterfacePlugin> = new Set();
     readonly accessory_discovery: Map<string, AccessoryDiscovery> = new Map();
     readonly accessory_setup: Map<string, AccessorySetup> = new Map();
@@ -577,7 +577,7 @@ export class Plugin extends Events {
         }
     }
 
-    registerServerPlugin(handler: typeof ServerPlugin) {
+    registerServerPlugin(handler: ServerPluginHandler) {
         if (!(handler.prototype instanceof ServerPlugin)) {
             throw new Error('handler must be a class that extends ServerPlugin');
         }
@@ -848,7 +848,7 @@ export abstract class ServerPlugin {
         Object.defineProperty(this, 'config', {enumerable: true, value: config});
     }
 
-    static get id() {
+    static get id(): number {
         if (typeof this._id !== 'undefined') return this._id;
 
         return Object.defineProperty(this, '_id', {value: ServerPlugin.next_id++})._id;
@@ -859,6 +859,11 @@ export abstract class ServerPlugin {
     }
 
     abstract async load(): Promise<void>;
+}
+
+export interface ServerPluginHandler {
+    new (server: Server, config: any): ServerPlugin;
+    id: number;
 }
 
 export class WebInterfacePlugin {
@@ -1117,7 +1122,7 @@ export class DiscoveredAccessory {
 
     readonly plugin!: Plugin | null;
     readonly id!: number;
-    readonly accessory_discovery!: AccessoryDiscovery
+    readonly accessory_discovery!: AccessoryDiscovery;
 
     readonly [key: string]: any;
 
@@ -1381,7 +1386,7 @@ export class PluginAPI {
         return this.registerAccessoryPlatform(name, AccessoryPlatform.withDynamicHandler(handler));
     }
 
-    registerServerPlugin(handler: typeof ServerPlugin) {
+    registerServerPlugin(handler: ServerPluginHandler) {
         return this.plugin.registerServerPlugin(handler);
     }
 

@@ -1,3 +1,4 @@
 import persist from 'node-persist';
 
-export default persist;
+declare const storage: persist.LocalStorage;
+export default storage;
