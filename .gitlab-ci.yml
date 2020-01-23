@@ -41,7 +41,7 @@ build:
         changes:
             - .gitlab-ci.yml
             - package-lock.json
-            - gulpfile.babel.js
+            - gulpfile.ts
             - .babelrc
             - src/**/*
             - example-plugins/src/**/*
