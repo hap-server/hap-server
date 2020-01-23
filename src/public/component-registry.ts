@@ -1,3 +1,4 @@
+import {Connection} from '../client';
 import {UserManagementHandler} from './plugins';
 import {Component} from 'vue';
 
@@ -37,7 +38,10 @@ export const AuthenticationHandlerComponents = new ComponentRegistry<UIPlugin, {
     component: Component;
     name: string;
 }>();
-export const UserManagementHandlers = new ComponentRegistry<UIPlugin, typeof UserManagementHandler>();
+// eslint-disable-next-line func-call-spacing
+export const UserManagementHandlers = new ComponentRegistry<UIPlugin, {
+    new (connection: Connection): UserManagementHandler;
+}>();
 export const AutomationTriggerComponents = new ComponentRegistry<UIPlugin, {
     component: Component;
     plugin: string | null;

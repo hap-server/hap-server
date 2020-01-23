@@ -1,4 +1,4 @@
-import querystring from 'querystring';
+import * as querystring from 'querystring';
 import Modals, {Modal} from './modals';
 
 const modal_windows = new WeakMap<Modal, Window>();

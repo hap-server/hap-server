@@ -1,9 +1,9 @@
 /// <reference path="../types/vuedraggable.d.ts" />
 /// <reference path="../types/vue-codemirror.d.ts" />
 
-import path from 'path';
-import url from 'url';
-import EventEmitter from 'events';
+import * as path from 'path';
+import * as url from 'url';
+import {EventEmitter} from 'events';
 import axios from 'axios';
 
 import Vue, {Component} from 'vue';
@@ -756,7 +756,7 @@ export class PluginAPI {
      * @param {function} handler A class that extends UserManagementHandler
      * @param {string} [name]
      */
-    registerUserManagementHandler<H extends typeof UserManagementHandler>(localid: string, handler: H, name: string) {
+    registerUserManagementHandler(localid: string, handler: {new (connection: Connection): UserManagementHandler}, name: string) {
         const id = this.ui_plugin.plugin_user_management_handlers[localid];
 
         if (typeof id === 'undefined') {

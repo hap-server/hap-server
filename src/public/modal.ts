@@ -2,7 +2,9 @@ if (process.env.NODE_ENV === 'development') {
     require('@vue/devtools');
 }
 
-import url from 'url';
+import * as url from 'url';
+
+import './native-hook';
 
 import {NativeHookSymbol, ModalsSymbol, ClientSymbol, GetAssetURLSymbol} from './internal-symbols';
 import * as InternalSymbols from './internal-symbols';
@@ -64,7 +66,6 @@ const i18n = new VueI18n({
 
 import PluginManager from './plugins';
 
-// @ts-ignore
 const native_hook = global.__HAP_SERVER_NATIVE_HOOK__ ? global.__HAP_SERVER_NATIVE_HOOK__({
     InternalSymbols,
     PluginManager,

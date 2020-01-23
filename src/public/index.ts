@@ -2,7 +2,9 @@ if (process.env.NODE_ENV === 'development') {
     require('@vue/devtools');
 }
 
-import url from 'url';
+import * as url from 'url';
+
+import './native-hook';
 
 import {NativeHookSymbol, ModalsSymbol, ClientSymbol, GetAssetURLSymbol, ErrorsSymbol} from './internal-symbols';
 import * as InternalSymbols from './internal-symbols';
@@ -83,14 +85,6 @@ PluginManager.on('add-plugin-routes', routes => {
     router.addRoutes(routes);
 });
 
-interface NativeHook {
-    Client?: typeof Client;
-    Modals?: {new (client: Client): Modals};
-    base_url?: string;
-    router_mode?: VueRouterMode;
-}
-
-// @ts-ignore
 const native_hook = global.__HAP_SERVER_NATIVE_HOOK__ ? global.__HAP_SERVER_NATIVE_HOOK__({
     InternalSymbols,
     PluginManager,
@@ -101,12 +95,12 @@ const native_hook = global.__HAP_SERVER_NATIVE_HOOK__ ? global.__HAP_SERVER_NATI
     router,
     Modals,
     ModalsComponent,
-}) as NativeHook : null;
+}) : null;
 
 if (native_hook && native_hook.router_mode !== default_router_mode) {
     // Re-initialise the router using the hash mode
     // @ts-ignore
-    router.options.mode = 'hash';
+    router.options.mode = native_hook.router_mode || 'hash';
     // @ts-ignore
     router.constructor.call(router, router.options);
 }
