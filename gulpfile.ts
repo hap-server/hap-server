@@ -4,34 +4,34 @@
 /// <reference path="types/gulpfile/transform-markdown-links.d.ts" />
 /// <reference path="types/gulpfile/webpack.d.ts" />
 
-import path from 'path';
-import url from 'url';
+import * as path from 'path';
+import * as url from 'url';
 
-import gulp from 'gulp';
-import pump from 'pump';
-import watch from 'gulp-watch';
-import plumber from 'gulp-plumber';
-import sourcemaps from 'gulp-sourcemaps';
-import babel from 'gulp-babel';
-import typescript from 'gulp-typescript';
-import webpack from 'webpack-stream';
-import json from 'gulp-json-editor';
-import file from 'gulp-file';
-import minify from 'gulp-minify';
-import replace from 'gulp-replace';
-// import filter from 'gulp-filter';
-import merge from 'merge2';
-import del from 'del';
-import markdownlinks from 'transform-markdown-links';
+import gulp = require('gulp');
+import pump = require('pump');
+import watch = require('gulp-watch');
+import plumber = require('gulp-plumber');
+import * as sourcemaps from 'gulp-sourcemaps';
+import babel = require('gulp-babel');
+import typescript = require('gulp-typescript');
+import webpack = require('webpack-stream');
+import json = require('gulp-json-editor');
+import file = require('gulp-file');
+import minify = require('gulp-minify');
+import replace = require('gulp-replace');
+// import filter = require('gulp-filter');
+import merge = require('merge2');
+import del = require('del');
+import markdownlinks = require('transform-markdown-links');
 
-import VueLoaderPlugin from 'vue-loader/lib/plugin';
-import HtmlWebpackPlugin from 'html-webpack-plugin';
-import SriPlugin from 'webpack-subresource-integrity';
-import ScriptExtHtmlPlugin from 'script-ext-html-webpack-plugin';
+import VueLoaderPlugin = require('vue-loader/lib/plugin');
+import HtmlWebpackPlugin = require('html-webpack-plugin');
+import SriPlugin = require('webpack-subresource-integrity');
+import ScriptExtHtmlPlugin = require('script-ext-html-webpack-plugin');
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import TerserPlugin from 'terser-webpack-plugin';
-import OptimizeCSSAssetsPlugin from 'optimize-css-assets-webpack-plugin';
-import HotModuleReplacementPlugin from 'webpack/lib/HotModuleReplacementPlugin';
+import OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
+import HotModuleReplacementPlugin = require('webpack/lib/HotModuleReplacementPlugin');
 
 declare module 'gulp-sourcemaps' {
     interface WriteOptions {
