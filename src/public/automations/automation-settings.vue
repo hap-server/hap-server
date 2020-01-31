@@ -18,8 +18,19 @@
                     {{ $t('automation_settings.group') }}
                 </label>
                 <div class="col-sm-9">
-                    <input :id="_uid + '-group'" v-model="automation.data.group_name" type="text"
-                        class="form-control form-control-sm" :disabled="saving" />
+                    <div class="input-group">
+                        <input :id="_uid + '-group'" v-model="automation.data.group_name" type="text"
+                            class="form-control form-control-sm" :disabled="saving" />
+
+                        <dropdown v-if="group_names.length" ref="group_names_dropdown" class="input-group-append"
+                            button-class="btn-outline-secondary" align="right"
+                            :label="$t('automation_settings.recents')"
+                        >
+                            <button v-for="group_name in group_names" :key="group_name" class="dropdown-item"
+                                @click.prevent="automation.data.group_name = group_name, $refs.group_names_dropdown.open = false"
+                            >{{ group_name }}</button>
+                        </dropdown>
+                    </div>
                 </div>
             </div>
         </form>
@@ -227,6 +238,17 @@
             };
         },
         computed: {
+            group_names() {
+                const group_names = [];
+
+                for (const automation of Object.values(this.client.automations || {})) {
+                    if (!automation.data.group_name || group_names.includes(automation.data.group_name)) continue;
+
+                    group_names.push(automation.data.group_name);
+                }
+
+                return group_names;
+            },
             other_automation_triggers() {
                 return Object.values(this.client.automations || {}).filter(other_automation => {
                     if (other_automation.uuid === this.automation.uuid) return false;

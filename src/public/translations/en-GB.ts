@@ -207,6 +207,7 @@ export default {
         // General
         name: 'Name',
         group: 'Group',
+        recents: 'Recents',
 
         // Triggers
         triggers_description: 'The automation will run when any of these triggers run.',

@@ -1,7 +1,7 @@
 <template>
     <div :class="['drop' + type, {show: open}]">
         <slot name="button">
-            <button :id="_uid + '-dropdown'" ref="toggle" class="btn btn-sm dropdown-toggle" :class="['btn-' + colour]"
+            <button :id="_uid + '-dropdown'" ref="toggle" class="btn btn-sm dropdown-toggle" :class="['btn-' + colour, buttonClass]"
                 type="button" data-toggle="dropdown" aria-haspopup="true" :aria-expanded="open ? 'true' : 'false'"
                 :disabled="disabled" @click.stop="open = !open"
             >
@@ -9,7 +9,7 @@
             </button>
         </slot>
 
-        <div ref="menu" class="dropdown-menu" :class="{show: open, 'dropdown-menu-right': align === 'right'}"
+        <div ref="menu" class="dropdown-menu" :class="[{show: open, 'dropdown-menu-right': align === 'right'}, menuClass]"
             :aria-labelledby="_uid + '-dropdown'"
         >
             <slot />
@@ -25,6 +25,8 @@
             colour: {type: String, validator: value => ['default', 'dark'].includes(value), default: 'default'},
             type: {type: String, validator: value => ['down', 'up', 'left', 'right'].includes(value), default: 'down'},
             align: {type: String, validator: value => ['left', 'right'].includes(value), default: 'left'},
+            buttonClass: {default: () => ({})},
+            menuClass: {default: () => ({})},
         },
         data() {
             return {
