@@ -98,7 +98,8 @@
                 const groups = {};
 
                 for (const automation of Object.values(this.client.automations)) {
-                    const group = groups[automation.data.group_name] || (groups[automation.data.group_name] = {
+                    const key = automation.data.group_name || '';
+                    const group = groups[key] || (groups[key] = {
                         name: automation.data.group_name,
                         automations: [],
                     });
