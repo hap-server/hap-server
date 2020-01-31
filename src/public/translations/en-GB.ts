@@ -268,6 +268,18 @@ export default {
             timezone: 'Timezone',
         },
 
+        sunrise: {
+            latitude: 'Latitude',
+            longitude: 'Longitude',
+            next_run_info: 'Next run at {time}.',
+        },
+
+        sunset: {
+            latitude: 'Latitude',
+            longitude: 'Longitude',
+            next_run_info: 'Next run at {time}.',
+        },
+
         scene: {
             scene: 'Scene',
         },

@@ -1,6 +1,12 @@
 import * as cron from 'node-cron';
 import {Timezone} from 'tz-offset';
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const {getSunrise, getSunset} = require('sunrise-sunset-js') as {
+    getSunrise(latitude: number, longitude: number, date?: Date): Date;
+    getSunset(latitude: number, longitude: number, date?: Date): Date;
+};
+
 import Events, {EventListener} from '../events';
 import {AutomationTriggerEvent as TriggerEvent, SceneActivatedEvent} from '../events/server';
 
@@ -160,6 +166,118 @@ export class CronTrigger extends AutomationTrigger {
 }
 
 AutomationTrigger.types.Cron = CronTrigger;
+
+export interface SunriseTriggerConfiguration extends AutomationTriggerConfiguration {
+    readonly plugin: undefined;
+    readonly trigger: 'Sunrise';
+
+    readonly latitude: number;
+    readonly longitude: number;
+}
+
+export class SunriseTrigger extends AutomationTrigger {
+    readonly config!: SunriseTriggerConfiguration;
+
+    private timeout: NodeJS.Timeout | null = null;
+    // eslint-disable-next-line no-invalid-this
+    private timeout_callback = this.timeoutCallback.bind(this);
+
+    onstart() {
+        if (this.timeout) clearTimeout(this.timeout), this.timeout = null;
+
+        const next_sunrise_time = this.getNextSunrise();
+        this.log.debug('Next sunrise at %s', next_sunrise_time.toString());
+
+        this.timeout = setTimeout(this.timeout_callback, next_sunrise_time.getTime() - Date.now());
+    }
+
+    getNextSunrise() {
+        const next_sunrise_time = getSunrise(this.config.latitude, this.config.longitude);
+
+        if (Date.now() > next_sunrise_time.getTime()) {
+            // Sunrise already passed this day
+            const DAY = 1000 * 60 * 60 * 24; // 1 second * in 1 minute * in 1 hour * in 1 day
+            return getSunrise(this.config.latitude, this.config.longitude, new Date(Date.now() + DAY));
+        }
+
+        return next_sunrise_time;
+    }
+
+    timeoutCallback() {
+        this.trigger();
+
+        const next_sunrise_time = this.getNextSunrise();
+        this.log.debug('Triggered sunrise event, next sunrise at %s', next_sunrise_time.toString());
+
+        clearTimeout(this.timeout!);
+        this.timeout = setTimeout(this.timeout_callback, next_sunrise_time.getTime() - Date.now());
+    }
+
+    onstop() {
+        if (!this.timeout) return;
+
+        clearTimeout(this.timeout);
+        this.timeout = null;
+    }
+}
+
+AutomationTrigger.types.Sunrise = SunriseTrigger;
+
+export interface SunsetTriggerConfiguration extends AutomationTriggerConfiguration {
+    readonly plugin: undefined;
+    readonly trigger: 'Sunset';
+
+    readonly latitude: number;
+    readonly longitude: number;
+}
+
+export class SunsetTrigger extends AutomationTrigger {
+    readonly config!: SunsetTriggerConfiguration;
+
+    private timeout: NodeJS.Timeout | null = null;
+    // eslint-disable-next-line no-invalid-this
+    private timeout_callback = this.timeoutCallback.bind(this);
+
+    onstart() {
+        if (this.timeout) clearTimeout(this.timeout), this.timeout = null;
+
+        const next_sunset_time = this.getNextSunset();
+        this.log.debug('Next sunset at %s', next_sunset_time.toString());
+
+        this.timeout = setTimeout(this.timeout_callback, next_sunset_time.getTime() - Date.now());
+    }
+
+    getNextSunset() {
+        const next_sunset_time = getSunset(this.config.latitude, this.config.longitude);
+
+        if (Date.now() >= next_sunset_time.getTime()) {
+            // Sunset already passed this day
+            const DAY = 1000 * 60 * 60 * 24; // 1 second * in 1 minute * in 1 hour * in 1 day
+            return getSunset(this.config.latitude, this.config.longitude, new Date(Date.now() + DAY));
+        }
+
+        return next_sunset_time;
+    }
+
+    timeoutCallback() {
+        this.trigger();
+
+        const next_sunset_time = this.getNextSunset();
+        this.log.debug('Triggered sunset event, next sunset at %s', next_sunset_time.toString());
+
+        clearTimeout(this.timeout!);
+        this.timeout = setTimeout(this.timeout_callback, next_sunset_time.getTime() - Date.now());
+    }
+
+    onstop() {
+        if (!this.timeout) return;
+
+        clearTimeout(this.timeout);
+        this.timeout = null;
+    }
+}
+
+AutomationTrigger.types.Sunset = SunsetTrigger;
 
 type SceneTriggerType = 'Scene';
 

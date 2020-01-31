@@ -43,6 +43,7 @@
         "semver": "^5.7.1",
         "sql-template-strings": "^2.2.2",
         "sqlite": "^3.0.3",
+        "sunrise-sunset-js": "^2.1.1",
         "systeminformation": "^4.19.2",
         "tslib": "^1.10.0",
         "uuid": "^3.4.0",
