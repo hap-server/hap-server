@@ -7,7 +7,7 @@
             <div class="col-sm-9">
                 <input :id="_uid + '-latitude'" v-model="latitude" type="text"
                     class="form-control form-control-sm" pattern="^-?\d+(\.\d+)?$" required
-                    :disabled="saving" @blur="blur" @paste="blur" />
+                    :disabled="!editable || saving" @blur="blur" @paste="blur" />
             </div>
         </div>
 
@@ -18,14 +18,25 @@
             <div class="col-sm-9">
                 <input :id="_uid + '-longitude'" v-model="longitude" type="text"
                     class="form-control form-control-sm" pattern="^-?\d+(\.\d+)?$" required
-                    :disabled="saving" @blur="blur" @paste="blur" />
+                    :disabled="!editable || saving" @blur="blur" @paste="blur" />
             </div>
         </div>
 
         <div v-if="next_time" class="form-group row">
             <div class="col-sm-3" />
             <div class="col-sm-9">
-                <p>{{ $t('automation_triggers.sunset.next_run_info', {time: next_time}) }}</p>
+                <small class="form-text">
+                    {{ $t('automation_triggers.sunset.next_run_info', {time: next_time}) }}
+                </small>
+            </div>
+        </div>
+
+        <div v-if="is_geolocation_available" class="form-group row">
+            <div class="col-sm-3" />
+            <div class="col-sm-9">
+                <button class="btn btn-default btn-sm" :disabled="!editable || is_locating" @click="useCurrentLocation">
+                    {{ $t('automation_triggers.sunset.use_current_location') }}
+                </button>
             </div>
         </div>
     </automation-trigger>
@@ -50,7 +61,16 @@
             editable: Boolean,
             saving: Boolean,
         },
+        data() {
+            return {
+                is_locating: false,
+            };
+        },
         computed: {
+            is_geolocation_available() {
+                return window.isSecureContext && 'geolocation' in window.navigator;
+            },
+
             latitude: {
                 get() {
                     return typeof this.trigger.latitude === 'number' ? '' + this.trigger.latitude : '';
@@ -106,6 +126,23 @@
 
                         break;
                     }
+                }
+            },
+            async useCurrentLocation() {
+                if (this.is_locating) throw new Error('Already getting location');
+                this.is_locating = true;
+
+                try {
+                    const position = await new Promise((rs, rj) => navigator.geolocation.getCurrentPosition(rs, rj, {
+                        enableHighAccuracy: false,
+                        timeout: 5000,
+                        maximumAge: 0,
+                    }));
+
+                    this.latitude = position.coords.latitude;
+                    this.longitude = position.coords.longitude;
+                } finally {
+                    this.is_locating = false;
                 }
             },
         },

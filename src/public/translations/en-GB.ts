@@ -272,12 +272,14 @@ export default {
             latitude: 'Latitude',
             longitude: 'Longitude',
             next_run_info: 'Next run at {time}.',
+            use_current_location: 'Use current location',
         },
 
         sunset: {
             latitude: 'Latitude',
             longitude: 'Longitude',
             next_run_info: 'Next run at {time}.',
+            use_current_location: 'Use current location',
         },
 
         scene: {
