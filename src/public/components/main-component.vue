@@ -88,7 +88,7 @@
         <div v-if="errors.length" class="errors panel-no-frame">
             <div class="settings-window">
                 <div v-for="(error, index) of errors" :key="index" class="error">
-                    <pre class="selectable"><code>Error: {{ error.err.message }}</code><code>{{ error.err.stack.substr(error.err.stack.indexOf('\n')) }}</code></pre>
+                    <pre class="selectable"><code>Error: {{ error.err.message }}</code><code v-if="error.err.stack">{{ error.err.stack.substr(error.err.stack.indexOf('\n')) }}</code></pre>
 
                     <button class="btn btn-default btn-sm" @click="errors.splice(errors.indexOf(error), 1)">
                         {{ $t('main.errors.ignore') }}
