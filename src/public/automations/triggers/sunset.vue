@@ -1,22 +1,24 @@
 <template>
     <automation-trigger :id="id" :trigger="trigger" :editable="editable" :saving="saving" @delete="$emit('delete')">
-        <div class="form-group row">
+        <div class="form-group row show-invalid-fields">
             <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-latitude'">
                 {{ $t('automation_triggers.sunset.latitude') }}
             </label>
             <div class="col-sm-9">
                 <input :id="_uid + '-latitude'" v-model="latitude" type="text"
-                    class="form-control form-control-sm" :disabled="saving" />
+                    class="form-control form-control-sm" pattern="^-?\d+(\.\d+)?$" required
+                    :disabled="saving" @blur="blur" @paste="blur" />
             </div>
         </div>
 
-        <div class="form-group row">
+        <div class="form-group row show-invalid-fields">
             <label class="col-sm-3 col-form-label col-form-label-sm" :for="_uid + '-longitude'">
                 {{ $t('automation_triggers.sunset.longitude') }}
             </label>
             <div class="col-sm-9">
                 <input :id="_uid + '-longitude'" v-model="longitude" type="text"
-                    class="form-control form-control-sm" :disabled="saving" />
+                    class="form-control form-control-sm" pattern="^-?\d+(\.\d+)?$" required
+                    :disabled="saving" @blur="blur" @paste="blur" />
             </div>
         </div>
 
@@ -31,6 +33,7 @@
 
 <script>
     import AutomationTrigger from '../trigger.vue';
+    import map_urls from './map-urls';
 
     import {getSunset} from 'sunrise-sunset-js';
 
@@ -81,6 +84,29 @@
                 }
 
                 return next_sunset_time;
+            },
+        },
+        methods: {
+            blur(event) {
+                const value = event.clipboardData ? event.clipboardData.getData('text') : event.target.value;
+
+                for (let regex of map_urls) {
+                    let latitude_index = 1;
+                    let longitude_index = 2;
+                    if (!(regex instanceof RegExp)) [regex, latitude_index, longitude_index] = regex;
+
+                    const match = value.match(regex);
+
+                    if (match) {
+                        this.latitude = match[1];
+                        this.longitude = match[2];
+
+                        if (event.clipboardData) event.preventDefault();
+                        this.$forceUpdate();
+
+                        break;
+                    }
+                }
             },
         },
     };

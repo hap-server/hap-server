@@ -36,6 +36,12 @@ $errors-modal-z-index: 500;
     }
 }
 
+.show-invalid-fields {
+    input:invalid {
+        @extend .is-invalid;
+    }
+}
+
 html,
 body,
 .root {
