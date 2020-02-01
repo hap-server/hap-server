@@ -27,9 +27,8 @@ import {PairingData} from 'hap-controller/lib/protocol/pairing-protocol';
 import {HapService} from 'hap-controller/lib/transport/ip/ip-discovery';
 
 const log = new Logger('HAP IP Accessory');
-const IID = Symbol('IID');
-const ServiceMap = Symbol('ServiceMap');
-const CharacteristicMap = Symbol('CharacteristicMap');
+
+import {IID, ServiceMap, CharacteristicMap} from './hap-ip-types';
 
 // Types
 import {
@@ -40,30 +39,6 @@ import {
 
 interface AccessoriesHap {
     accessories: AccessoryHap[];
-}
-
-declare module 'hap-nodejs/lib/Accessory' {
-    interface Accessory {
-        [IID]?: number;
-        [ServiceMap]?: Map</** iid */ number, Service>;
-        [CharacteristicMap]?: Map</** iid */ number, Characteristic>;
-    }
-}
-
-declare module 'hap-nodejs/lib/Service' {
-    interface Service {
-        [IID]?: number;
-        [ServiceMap]?: Map</** iid */ number, Service>;
-        [CharacteristicMap]?: Map</** iid */ number, Characteristic>;
-    }
-}
-
-declare module 'hap-nodejs/lib/Characteristic' {
-    interface Characteristic {
-        [IID]?: number;
-        [ServiceMap]?: Map</** iid */ number, Service>;
-        [CharacteristicMap]?: Map</** iid */ number, Characteristic>;
-    }
 }
 
 const APPLE_BASE_UUID = '-0000-1000-8000-0026BB765291';
