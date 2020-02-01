@@ -179,6 +179,7 @@ export default {
         title: 'Automations',
         new_automation: 'New automation',
         new_button: 'New',
+        loading: 'Loading',
 
         automation_row_x_triggers_x_actions: '{triggers} and {actions}.',
         automation_row_x_triggers_x_conditions_x_actions: '{triggers}, {conditions} and {actions}.',

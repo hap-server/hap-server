@@ -4,9 +4,15 @@
             <h1>{{ $t('automations.title') }}</h1>
 
             <div class="section">
-                <button class="btn btn-default btn-sm mt-3" @click="createAutomation">
-                    {{ $t('automations.new_button') }}
-                </button>
+                <p>
+                    <button class="btn btn-default btn-sm" @click="createAutomation">
+                        {{ $t('automations.new_button') }}
+                    </button>
+
+                    <span v-if="client.loading_automations">
+                        <spinner size="inherit" light /> {{ $t('automations.loading') }}
+                    </span>
+                </p>
             </div>
 
             <div class="automation-groups-list">
@@ -70,10 +76,12 @@
     import Automation from '../../client/automation';
 
     import AutomationSettings from './automation-settings.vue';
+    import Spinner from '../components/icons/spinner.vue';
 
     export default {
         components: {
             AutomationSettings,
+            Spinner,
         },
         props: {
             client: Client,
