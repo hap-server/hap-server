@@ -12,12 +12,12 @@
 
         <p v-else>{{ $t('automation_actions.conditional.no_condition') }}</p>
 
-        <template v-for="(child, id) in action.actions || {}">
+        <template v-for="(child, index) in action.actions || []">
             <component
                 v-if="action_components.find(c => c.plugin === child.plugin && c.type === child.action)"
                 :is="action_components.find(c => c.plugin === child.plugin && c.type === child.action).component"
-                :key="id" :id="id" :action="child" :editable="editable" :saving="saving"
-                @delete="$delete(action.actions, id); $forceUpdate()" />
+                :key="index" :id="'' + index" :action="child" :editable="editable" :saving="saving"
+                @delete="action.actions.splice(index, 1); $forceUpdate()" />
         </template>
 
         <template v-if="editable" slot="header-right">
@@ -69,13 +69,13 @@
         },
         methods: {
             addAction(data) {
-                if (!this.action.actions) this.$set(this.action, 'actions', {});
+                if (!this.action.actions) this.$set(this.action, 'actions', []);
 
-                let id = 0;
-                while (this.action.actions[id]) id++;
+                // let id = 0;
+                // while (this.action.actions[id]) id++;
 
-                this.$set(this.action.actions, id, data || {});
-                this.$forceUpdate();
+                this.action.actions.push(data || {});
+                // this.$forceUpdate();
             },
         },
     };
