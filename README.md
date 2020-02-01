@@ -15,8 +15,6 @@ All Homebridge plugins are supported.
 
 ### TODO
 
-A lot.
-
 - Web interface
     - [x] Layouts
         - Customisable by dragging sections and accessories in the web interface.
@@ -70,7 +68,7 @@ A lot.
             (when plugins (usually incorrectly) update without any subscribed clients, when controlled in hap-server
             or when a controller is subscribed to changes) and from all accessories.
     - [ ] Elgato Eve???
-- [ ] Security
+- Security
     - [x] Web interface authentication
         - Completely handled by plugins.
     - [x] Permissions
@@ -95,9 +93,10 @@ A lot.
         - TODO:
             - [ ] Better error handling
             - [x] Handle triggers/conditions/actions that don't have an editor component
-            - [ ] Set characteristic action editor
+            - [x] Set characteristic action editor
     - [x] Triggers
         - [x] Cron expressions
+        - [x] Sunrise/sunset
         - [ ] Characteristic changes
             - [ ] Any change
             - [ ] Set to value

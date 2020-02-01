@@ -1,13 +1,14 @@
 {
     "name": "@hap-server/hap-server",
     "version": "0.11.0",
-    "description": "Home automation system based on HomeKit.",
+    "description": "Home automation system based on Homebridge.",
     "keywords": [
         "homekit",
         "apple-homekit",
         "iot",
         "hap",
-        "hap-nodejs"
+        "hap-nodejs",
+        "homebridge"
     ],
     "license": "MIT",
     "author": {
@@ -139,7 +140,7 @@
         "xterm": "^3.14.5"
     },
     "peerDependencies": {
-        "@hap-server/authenticate-pam": "^0.3.1",
+        "@hap-server/authenticate-pam": "^0.5.0",
         "hap-controller": "^0.1.9",
         "ts-node": "^8.5.4"
     },
