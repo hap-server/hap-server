@@ -195,10 +195,10 @@
                 if (this.si.os.platform === 'darwin') {
                     if (fs.mount === '/System/Volumes/Data') return this.$t('server_status.filesystem_data');
                     if (fs.mount === '/private/var/vm') return this.$t('server_status.filesystem_swap');
-                    if (fs.fs.startsWith('/dev/disk')) return this.$t('server_status.filesystem_x', fs.fs.substr(5));
+                    if (fs.fs.startsWith('/dev/disk')) return this.$t('server_status.filesystem_x', {name: fs.fs.substr(5)});
                 }
 
-                return this.$t('server_status.filesystem_x', fs.fs);
+                return this.$t('server_status.filesystem_x', {name: fs.fs});
             },
             getHumanReadableSize(size, b = 1000) {
                 if (size < b) return this.$t('server_status.size_in_bytes', {x: size});
