@@ -70,13 +70,6 @@ export default class Server extends Events {
 
     readonly accessories!: AccessoryManager;
     readonly history!: History | null;
-    // readonly accessories!: PluginAccessory[];
-    // readonly accessory_platforms!: AccessoryPlatform[];
-    // readonly cached_accessories!: PluginAccessory[];
-    // readonly bridges!: Bridge[];
-
-    // readonly homebridge: Homebridge | null = null;
-    readonly plugins!: Map<number, ServerPlugin>;
 
     private accessory_discovery_counter!: number;
     private readonly accessory_discovery_handlers!: Set<AccessoryDiscovery>;
@@ -88,14 +81,7 @@ export default class Server extends Events {
     readonly wss!: WebSocket.Server;
     readonly multer!: multer.Instance;
 
-    // private readonly characteristic_change_handlers!: WeakMap<typeof Accessory, Function>;
-    // readonly _handleCharacteristicUpdate: any;
-    // private readonly configuration_change_handlers!: WeakMap<typeof Accessory, Function>;
-    // private readonly _handleConfigurationChange: any;
-
-    // private readonly _handleRegisterHomebridgePlatformAccessories: any;
-    // private readonly _handleUnregisterHomebridgePlatformAccessories: any;
-    // private readonly _handleRegisterExternalHomebridgeAccessories: any;
+    readonly plugins!: Map<number, ServerPlugin>;
 
     /**
      * Creates a Server.
@@ -120,12 +106,7 @@ export default class Server extends Events {
 
         Object.defineProperty(this, 'accessories', {value: new AccessoryManager(this)});
         Object.defineProperty(this, 'history', {configurable: true, value: null});
-        // Object.defineProperty(this, 'accessories', {value: []});
-        // Object.defineProperty(this, 'accessory_platforms', {value: []});
-        // Object.defineProperty(this, 'cached_accessories', {value: []});
-        // Object.defineProperty(this, 'bridges', {value: []});
 
-        // Object.defineProperty(this, 'homebridge', {writable: true});
         Object.defineProperty(this, 'config_automation_triggers', {writable: true});
         Object.defineProperty(this, 'config_automation_conditions', {writable: true});
         Object.defineProperty(this, 'config_automation_actions', {writable: true});
