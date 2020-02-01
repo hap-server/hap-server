@@ -14,21 +14,18 @@ export default class Modals {
                 throw new Error('Invalid modal');
             }
 
-            this.stack.push(data);
-            data.onopen();
             this._add(data);
             return data;
         } else {
             const modal = new (Modal.types[data.type] || Modal)(this, data);
-            this.stack.push(modal);
-            modal.onopen();
             this._add(modal);
             return modal;
         }
     }
 
     _add(modal: Modal) {
-        //
+        this.stack.push(modal);
+        modal.onopen();
     }
 
     remove(modal: Modal) {

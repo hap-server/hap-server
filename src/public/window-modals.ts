@@ -24,6 +24,9 @@ const external_types = [
 
 export class WindowModals extends Modals {
     _add(modal: Modal) {
+        this.stack.push(modal);
+        modal.onopen();
+
         if (modal_windows.has(modal)) {
             modal_windows.get(modal)!.focus();
             return;
@@ -107,8 +110,7 @@ export class ModalWindowModals extends Modals {
 
     set stack(stack: Modal[]) {}
 
-    // @ts-ignore
-    add(modal) {
+    _add(modal: Modal) {
         window.opener.postMessage({
             type: 'modal',
             modal: Object.assign({
