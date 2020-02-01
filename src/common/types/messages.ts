@@ -210,6 +210,7 @@ export type GetHomePermissionsResponseMessage = {
     server: boolean;
     users: boolean;
     permissions: boolean;
+    plugins: boolean;
     console: boolean;
 };
 

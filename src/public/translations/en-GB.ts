@@ -9,6 +9,7 @@ export default {
         delete_layout: 'Delete layout',
 
         automations: 'Automations',
+        plugins: 'Plugins',
 
         authenticated_as: 'Authenticated as {name}',
         login: 'Login',
@@ -21,6 +22,7 @@ export default {
         home: 'Home',
         settings: 'Settings',
         automations: 'Automations',
+        plugins: 'Plugins',
 
         loading: 'Loading.',
         connecting: 'Connecting',
@@ -329,6 +331,10 @@ export default {
             increase_by: 'Increase by',
             decrease_by: 'Decrease by',
         },
+    },
+
+    plugins: {
+        plugins: 'Plugins',
     },
 
     modals: {

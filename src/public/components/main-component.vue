@@ -21,6 +21,7 @@
                     {{ plugin_view_title || $t('main.home') }}
                 </span>
                 <span v-else-if="show_automations" class="d-inline d-sm-none">{{ $t('main.automations') }}</span>
+                <span v-else-if="show_plugins" class="d-inline d-sm-none">{{ $t('main.plugins') }}</span>
                 <span v-else-if="layout && !(authenticated_user && layout.uuid === 'Overview.' + authenticated_user.id)"
                     class="d-inline d-sm-none">{{ layout.name || $t('main.home') }}</span>
                 <span v-else class="d-inline d-sm-none">{{ name || $t('main.home') }}</span>
@@ -35,6 +36,7 @@
                         can_manage_users"
                     :is-plugin-route-active="is_plugin_route_active" :plugin-view-title="plugin_view_title"
                     :show-automations="show_automations" :can-access-automations="can_access_automations"
+                    :show-plugins="show_plugins" :can-access-plugins="can_access_plugins"
                     :is-settings-active="is_settings_active"
                     @edit-layout="$refs.layout.edit = !$refs.layout.edit" @show-automations="show_automations = $event"
                     @modal="modal => modals.add(modal)" />
@@ -54,11 +56,15 @@
             @background-url="background_url => plugin_view_background_url = background_url" />
 
         <keep-alive>
-            <automations v-if="!is_plugin_route_active && show_automations" ref="automations" :client="client"
+            <plugins v-if="show_plugins" ref="plugins" :client="client" @title="title => plugins_title = title" />
+        </keep-alive>
+
+        <keep-alive>
+            <automations v-if="show_automations" ref="automations" :client="client"
                 @title="title => automations_title = title" />
         </keep-alive>
 
-        <div v-if="!is_settings_active && !is_plugin_route_active && !show_automations" class="main">
+        <div v-if="show_layout" class="main">
             <layout v-if="has_loaded" ref="layout" :key="layout ? layout.uuid : ''" :layout="layout"
                 :title="(layout ? authenticated_user && layout.uuid === 'Overview.' + authenticated_user.id ? name : layout.name : name) || $t('main.home')"
                 @modal="modal => modals.add(modal)" @ping="ping" />
@@ -132,6 +138,7 @@
             Spinner,
 
             Automations: () => import(/* webpackChunkName: 'automations' */ '../automations/automations.vue'),
+            Plugins: () => import(/* webpackChunkName: 'plugins' */ '../plugin-management/plugins.vue'),
             Settings: () => import(/* webpackChunkName: 'settings' */ './settings.vue'),
         },
         inject: {
@@ -163,6 +170,9 @@
 
                 plugin_view_title: null,
                 plugin_view_background_url: null,
+
+                plugins_title: null,
+                can_access_plugins: false,
 
                 automations_title: null,
                 can_access_automations: false,
@@ -231,6 +241,10 @@
                     this.layout_uuid = layout ? layout.uuid : null;
                 },
             },
+            show_layout() {
+                return !this.is_settings_active && !this.is_plugin_route_active && !this.show_automations &&
+                    !this.show_plugins;
+            },
             show_automations: {
                 get() {
                     return this.$route.name === 'automations';
@@ -239,6 +253,9 @@
                     if (show_automations) this.$router.push({name: 'automations'});
                     else this.layout_uuid = this.last_layout_uuid;
                 },
+            },
+            show_plugins() {
+                return ['plugins', 'plugin'].includes(this.$route.name);
             },
             is_plugin_route_active() {
                 return this.$route.fullPath.startsWith('/-');
@@ -265,12 +282,17 @@
                     return this.automations_title || this.$t('main.automations');
                 }
 
+                if (this.show_plugins) {
+                    return this.plugins_title || this.$t('main.plugins');
+                }
+
                 return this.name || this.$t('main.home');
             },
             background_url() {
                 if (this.is_settings_active) return;
                 if (this.is_plugin_route_active) return this.plugin_view_background_url;
                 if (this.show_automations) return;
+                if (this.show_plugins) return;
 
                 if (this.layout && this.layout.background_url) return this.getAssetURL(this.layout.background_url);
                 if (this.default_background_url) return this.getAssetURL(this.default_background_url);
@@ -569,6 +591,7 @@
                 this.can_access_automations = permissions.has_automations || permissions.create_automations;
                 this.can_manage_users = !!permissions.users;
                 this.can_manage_permissions = !!permissions.permissions;
+                this.can_access_plugins = !!permissions.plugins;
             },
             async loadAccessoryUIs() {
                 if (this.loading_accessory_uis) throw new Error('Already loading accessory UIs');

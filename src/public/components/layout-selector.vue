@@ -6,10 +6,10 @@
         </template>
 
         <a v-if="authenticatedUser && layouts['Overview.' + authenticatedUser.id]" class="dropdown-item"
-            :class="{active: value && value.uuid === 'Overview.' + authenticatedUser.id && !isSettingsActive && !isPluginRouteActive && !showAutomations}"
+            :class="{active: value && value.uuid === 'Overview.' + authenticatedUser.id && show_layout}"
             href="#" @click.prevent="setLayout(layouts['Overview.' + authenticatedUser.id])"
         >{{ name || $t('menu.home') }}</a>
-        <a class="dropdown-item" :class="{active: !value && !isSettingsActive && !isPluginRouteActive && !showAutomations}" href="#"
+        <a class="dropdown-item" :class="{active: !value && show_layout}" href="#"
             @click.prevent="setLayout(null)">{{ $t('menu.all_accessories') }}</a>
 
         <template v-if="Object.values(layouts).length">
@@ -18,11 +18,11 @@
             <!-- eslint-disable-next-line vue/no-use-v-if-with-v-for -->
             <a v-for="layout in layouts" v-if="!authenticatedUser || layout.uuid !== 'Overview.' + authenticatedUser.id"
                 :key="layout.uuid" class="dropdown-item"
-                :class="{active: value && value.uuid === layout.uuid && !isSettingsActive && !isPluginRouteActive && !showAutomations}"
+                :class="{active: value && value.uuid === layout.uuid && show_layout}"
                 href="#" @click.prevent="setLayout(layout)">{{ layout.name || layout.uuid }}</a>
         </template>
 
-        <template v-if="value && (value.can_set || value.can_delete) && !isSettingsActive && !isPluginRouteActive && !showAutomations">
+        <template v-if="value && (value.can_set || value.can_delete) && !show_layout">
             <div class="dropdown-divider"></div>
 
             <a v-if="value.can_set && (!authenticatedUser || value.uuid !== 'Overview.' + authenticatedUser.id)"
@@ -35,11 +35,13 @@
                 class="dropdown-item" href="#" @click.prevent="showLayoutDelete">{{ $t('menu.delete_layout') }}</a>
         </template>
 
-        <template v-if="canAccessAutomations">
+        <template v-if="canAccessAutomations || canAccessPlugins">
             <div class="dropdown-divider"></div>
 
-            <a class="dropdown-item" :class="{active: showAutomations}" href="#"
+            <a v-if="canAccessAutomations" class="dropdown-item" :class="{active: showAutomations}" href="#"
                 @click.prevent="$emit('show-automations', true)">{{ $t('menu.automations') }}</a>
+            <a v-if="canAccessPlugins" class="dropdown-item" :class="{active: showPlugins}" href="#"
+                @click.prevent="$router.push({name: 'plugins'})">{{ $t('menu.plugins') }}</a>
         </template>
 
         <template v-for="[category, items] in plugin_items">
@@ -98,6 +100,8 @@
             showAutomations: Boolean,
             canAccessAutomations: Boolean,
             isSettingsActive: Boolean,
+            showPlugins: Boolean,
+            canAccessPlugins: Boolean,
         },
         data() {
             return {
@@ -109,6 +113,7 @@
                 if (this.isSettingsActive) return this.$t('menu.settings');
                 if (this.isPluginRouteActive) return this.pluginViewTitle || this.$t('menu.home');
                 if (this.showAutomations) return this.$t('menu.automations');
+                if (this.showPlugins) return this.$t('menu.plugins');
                 if (!this.value) return this.$t('menu.all_accessories');
 
                 if (this.authenticatedUser && this.value.uuid === 'Overview.' + this.authenticatedUser.id) {
@@ -116,6 +121,10 @@
                 }
 
                 return this.value.name || this.value.uuid;
+            },
+            show_layout() {
+                return !this.isSettingsActive && !this.isPluginRouteActive && !this.showAutomations &&
+                    !this.showPlugins;
             },
             categorised_plugin_items() {
                 const categories = new Map();

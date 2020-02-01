@@ -1118,7 +1118,7 @@ export default class Connection {
     async getHomePermissions(): Promise<ResponseMessages['get-home-permissions']> {
         const [
             get, set, add_accessories, create_layouts, has_automations, create_automations, create_bridges,
-            server, users, permissions, console,
+            server, users, permissions, plugins, console,
         ] = await Promise.all([
             this.permissions.checkCanGetHomeSettings(),
             this.permissions.checkCanSetHomeSettings(),
@@ -1130,12 +1130,13 @@ export default class Connection {
             this.permissions.checkCanAccessServerRuntimeInfo(),
             this.permissions.checkCanManageUsers(),
             this.permissions.checkCanManagePermissions(),
+            this.permissions.checkCanManagePlugins(),
             this.permissions.checkCanOpenWebConsole(),
         ]);
 
         return {
             get, set, add_accessories, create_layouts, has_automations, create_automations, create_bridges,
-            server, users, permissions, console,
+            server, users, permissions, plugins, console,
         };
     }
 

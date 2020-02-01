@@ -168,6 +168,7 @@ export default class Server extends Events {
                 req.url.match(/^\/all-accessories$/) ||
                 req.url.match(/^\/automations$/) ||
                 req.url.match(/^\/settings(\?.*)?$/) ||
+                req.url.match(/^\/plugins(\/[^/]+)?$/) ||
                 req.url.match(/^\/setup(\?.*)?$/) ||
                 req.url.match(/^\/-\/.*$/)) req.url = '/index.html';
 

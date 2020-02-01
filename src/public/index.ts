@@ -38,6 +38,8 @@ const router = new VueRouter({
         {name: 'all-accessories', path: '/all-accessories'},
         {name: 'automations', path: '/automations'},
         {name: 'settings', path: '/settings'},
+        {name: 'plugins', path: '/plugins'},
+        {name: 'plugin', path: '/plugins/:plugin_name'},
         {name: 'setup', path: '/setup'},
     ],
 });

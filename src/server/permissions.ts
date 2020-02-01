@@ -969,6 +969,30 @@ export default class Permissions {
     }
 
     /**
+     * Check if the user can manage plugins.
+     *
+     * @return {Promise<boolean>}
+     */
+    async checkCanManagePlugins(): Promise<boolean> {
+        return false;
+
+        if (DEVELOPMENT && (this as any).__development_allow_local()) return true;
+
+        if (!this.user) return false;
+
+        const permissions = await this.permissions || {} as UserPermissions;
+        if (permissions['*']) return true;
+
+        // return permissions.manage_plugins || false;
+    }
+
+    async assertCanManagePlugins(): Promise<void> {
+        if (!await this.checkCanManagePlugins()) {
+            throw new Error('You don\'t have permission to manage plugins');
+        }
+    }
+
+    /**
      * Check if the user can use web consoles.
      *
      * @return {Promise<boolean>}
