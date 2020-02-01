@@ -396,6 +396,7 @@
             window.addEventListener('scroll', this.onscroll);
             window.addEventListener('touchmove', this.onscroll);
             document.scrollingElement.scrollTo(0, 0);
+            document.title = this.title;
 
             this.client.on('connected', this.connected);
             this.client.on('disconnected', this.disconnected);
