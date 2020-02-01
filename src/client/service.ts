@@ -245,8 +245,8 @@ class Service extends EventEmitter {
         return system_types.includes(this.type);
     }
 
-    get type_name() {
-        return type_names[this.type];
+    get type_name(): string | null {
+        return type_names[this.type] || null;
     }
 
     static get types() {

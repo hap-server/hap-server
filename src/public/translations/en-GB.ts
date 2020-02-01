@@ -316,6 +316,18 @@ export default {
             no_automations: 'You have no other automations.',
             skip_conditions: 'Skip conditions',
         },
+
+        set_characteristic: {
+            type: 'Type',
+            type_set: 'Set',
+            type_increase: 'Increase',
+            type_decrease: 'Decrease',
+            value: 'Value',
+            true: 'True',
+            false: 'False',
+            increase_by: 'Increase by',
+            decrease_by: 'Decrease by',
+        },
     },
 
     modals: {

@@ -70,8 +70,8 @@ class Characteristic extends EventEmitter {
         return this.details.type;
     }
 
-    get type_name(): string {
-        return type_names[this.type];
+    get type_name(): string | null {
+        return type_names[this.type] || null;
     }
 
     get perms(): CharacteristicPerms[] {
