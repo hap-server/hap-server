@@ -27,7 +27,7 @@
                             :label="$t('automation_settings.recents')"
                         >
                             <button v-for="group_name in group_names" :key="group_name" class="dropdown-item"
-                                @click.prevent="automation.data.group_name = group_name, $refs.group_names_dropdown.open = false"
+                                @click.prevent="$set(automation.data, 'group_name', group_name), $refs.group_names_dropdown.open = false"
                             >{{ group_name }}</button>
                         </dropdown>
                     </div>
