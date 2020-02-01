@@ -150,6 +150,7 @@
                 client: this._client,
 
                 connection: null,
+                last_connection: null,
                 has_connected: false,
                 has_loaded: false,
                 loading: false,
@@ -281,7 +282,7 @@
                     (this.show_automations && this.$refs.automations && this.$refs.automations.open_automation);
             },
             authenticated_user() {
-                return this.connection ? this.connection.authenticated_user : undefined;
+                return this.last_connection ? this.last_connection.authenticated_user : undefined;
             },
             preload_urls() {
                 const preload_urls = [require('../../../assets/default-wallpaper.jpg')];
@@ -448,6 +449,8 @@
                         }
                     })),
                 ]);
+
+                this.last_connection = connection;
             },
             disconnected() {
                 this.connection = null;
