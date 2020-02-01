@@ -694,7 +694,6 @@ export function getDefaultConfigPath(platform = process.platform, _default?: str
 }
 
 async function isdir(path: string) {
-    console.log('Checking if %s is a directory', path);
     try {
         const stat = await fs.stat(path);
 
@@ -707,7 +706,6 @@ async function isdir(path: string) {
 }
 
 function isdirSync(path: string) {
-    console.log('Checking if %s is a directory', path);
     try {
         const stat = statSync(path);
 

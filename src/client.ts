@@ -15,6 +15,15 @@ import {
     DefinedRequestResponseMessages, DefinedRequestMessages, DefinedResponseMessages,
     RequestMessage, ResponseMessage,
 } from './common/types/messages';
+import * as BinaryMessageTypes from './common/types/binary-messages';
+import * as BroadcastMessageTypes from './common/types/broadcast-messages';
+import * as MessageTypes from './common/types/messages';
+import * as HapTypes from './common/types/hap';
+
+import * as configuration from './cli/configuration';
+import {getConfig, connect} from './cli';
+
+const cliutil = {getConfig, connect};
 
 import * as util from './util';
 
@@ -40,6 +49,13 @@ export {
     DefinedResponseMessages as ResponseMessages,
     RequestMessage,
     ResponseMessage,
+    BinaryMessageTypes,
+    BroadcastMessageTypes,
+    MessageTypes,
+    HapTypes,
+
+    configuration,
+    cliutil,
 
     util,
 };

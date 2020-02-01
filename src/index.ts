@@ -4,14 +4,28 @@ import TypedEventEmitter from './events/typed-eventemitter';
 
 import Server from './server/server';
 import PluginManager from './server/plugins';
-import {AccessoryEvents} from './server/accessories';
-import {AccessoryStatus} from './common/types/accessories';
 import Logger, {forceColour as forceColourLogs} from './common/logger';
 
-import Automations from './automations';
+import {AccessoryEvents} from './server/accessories';
+import {AccessoryStatus} from './common/types/accessories';
+import {
+    DefinedRequestResponseMessages, DefinedRequestMessages, DefinedResponseMessages,
+    RequestMessage, ResponseMessage,
+} from './common/types/messages';
+import * as BinaryMessageTypes from './common/types/binary-messages';
+import * as BroadcastMessageTypes from './common/types/broadcast-messages';
+import * as MessageTypes from './common/types/messages';
+import * as HapTypes from './common/types/hap';
+
+import Automations, {Automation, AutomationRunner} from './automations';
 import AutomationTrigger from './automations/trigger';
 import AutomationCondition from './automations/condition';
 import AutomationAction from './automations/action';
+
+import * as configuration from './cli/configuration';
+import {getConfig, connect} from './cli';
+
+const cliutil = {getConfig, connect};
 
 import * as util from './util';
 
@@ -30,11 +44,25 @@ export {
 
     AccessoryEvents,
     AccessoryStatus,
+    DefinedRequestResponseMessages as RequestResponseMessages,
+    DefinedRequestMessages as RequestMessages,
+    DefinedResponseMessages as ResponseMessages,
+    RequestMessage,
+    ResponseMessage,
+    BinaryMessageTypes,
+    BroadcastMessageTypes,
+    MessageTypes,
+    HapTypes,
 
     Automations,
+    Automation,
+    AutomationRunner,
     AutomationTrigger,
     AutomationCondition,
     AutomationAction,
+
+    configuration,
+    cliutil,
 
     util,
 };
