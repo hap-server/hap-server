@@ -20,10 +20,10 @@ import * as BroadcastMessageTypes from './common/types/broadcast-messages';
 import * as MessageTypes from './common/types/messages';
 import * as HapTypes from './common/types/hap';
 
-import * as configuration from './cli/configuration';
-import {getConfig, connect} from './cli';
+// import * as configuration from './cli/configuration';
+// import {getConfig, connect} from './cli';
 
-const cliutil = {getConfig, connect};
+// const cliutil = {getConfig, connect};
 
 import * as util from './util';
 
@@ -54,8 +54,8 @@ export {
     MessageTypes,
     HapTypes,
 
-    configuration,
-    cliutil,
+    // configuration,
+    // cliutil,
 
     util,
 };
