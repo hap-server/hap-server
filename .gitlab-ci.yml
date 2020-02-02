@@ -13,6 +13,10 @@ include:
     - template: Dependency-Scanning.gitlab-ci.yml
     - template: SAST.gitlab-ci.yml
 
+dependency_scanning:
+    before_script:
+        - npm --color="always" install
+
 build:
     stage: build
     script:
