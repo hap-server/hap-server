@@ -13,9 +13,24 @@ include:
     - template: Dependency-Scanning.gitlab-ci.yml
     - template: SAST.gitlab-ci.yml
 
-dependency_scanning:
+variables:
+    DS_DISABLE_DIND: "true"
+    SAST_DISABLE_DIND: "true"
+
+retire-js-dependency_scanning:
+    cache:
+        policy: pull
     before_script:
         - npm --color="always" install
+
+sast:
+    cache:
+        key: none
+    dependencies: []
+    before_script:
+        - rm -rf node_modules/ || true
+        - rm -rf dist/ || true
+        - rm -rf release/ || true
 
 build:
     stage: build
