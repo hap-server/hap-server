@@ -233,6 +233,21 @@ Run this to configure `npm` to use GitHub Package Registry for `@hap-server` sco
 echo "@hap-server:registry=https://npm.pkg.github.com" >> `npm --global prefix`/etc/npmrc
 ```
 
+### GitLab Package Registry (https://gitlab.com)
+
+You can also configure `npm` to install hap-server from GitLab Package Registry by adding this to your
+[`npmrc`](https://docs.npmjs.com/files/npmrc):
+
+```
+@hap-server:registry=https://gitlab.com/api/v4/packages/npm/
+```
+
+Run this to configure `npm` to use GitLab Package Registry for `@hap-server` scoped packages globally:
+
+```
+echo "@hap-server:registry=https://gitlab.com/api/v4/packages/npm/" >> `npm --global prefix`/etc/npmrc
+```
+
 Usage
 ---
 

@@ -219,3 +219,31 @@ publish-github:
         paths:
             - node_modules/
         policy: pull
+
+publish-gitlab:
+    stage: deploy
+    script:
+        - cd release/hap-server
+        - echo "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/npm/:_authToken=${CI_JOB_TOKEN}" | sed s/^https:// > .npmrc
+        - npm --color="always" --registry=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/npm/ publish
+
+        - cd ../api-types
+        - cp ../hap-server/.npmrc .
+        - npm --color="always" --registry=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/npm/ publish
+
+        - cd ../ui-api-types
+        - cp ../hap-server/.npmrc .
+        - npm --color="always" --registry=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/npm/ publish
+    dependencies:
+        - build
+    only:
+        refs:
+            - /^v.*$/
+        variables:
+            - $GITLAB_NPM_PUBLISH
+    except:
+        - branches
+    cache:
+        paths:
+            - node_modules/
+        policy: pull
