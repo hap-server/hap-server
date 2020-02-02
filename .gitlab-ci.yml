@@ -21,7 +21,7 @@ retire-js-dependency_scanning:
     cache:
         policy: pull
     before_script:
-        - npm --color="always" install
+        - npm --color="always" install @hap-server/authenticate-pam
 
 sast:
     cache:
@@ -31,6 +31,7 @@ sast:
         - rm -rf node_modules/ || true
         - rm -rf dist/ || true
         - rm -rf release/ || true
+        - rm types/node_modules/@hap-server/types || true
 
 build:
     stage: build
