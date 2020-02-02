@@ -9,6 +9,10 @@ cache:
     paths:
         - node_modules/
 
+include:
+    - template: Dependency-Scanning.gitlab-ci.yml
+    - template: SAST.gitlab-ci.yml
+
 build:
     stage: build
     script:
