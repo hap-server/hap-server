@@ -7,11 +7,14 @@ import {
 import * as os from 'os';
 import * as semver from 'semver';
 import * as https from 'https';
-import * as fs from 'fs';
 import * as path from 'path';
 
 const start_time = Date.now();
 const DEVELOPMENT = true;
+
+const NPM_REGISTRY_PACKAGE_URL = (name: string) => `https://registry.npmjs.org/${name}`;
+const NODEJS_VERSIONS_URL = 'https://nodejs.org/dist/index.json';
+const NODEJS_RELEASE_SCHEDULE_URL = 'https://raw.githubusercontent.com/nodejs/Release/master/schedule.json';
 
 export enum BuildType {
     DEVELOPMENT,
@@ -27,6 +30,18 @@ export interface Versions {
     v8: string;
     modules: string;
     npm: string | null;
+}
+
+export interface LatestVersions extends Partial<Versions> {
+    /** All current/LTS versions */
+    nodejs_all?: {
+        current: string;
+        /** Maps LTS codenames to the latest version */
+        lts: Record<string, string>;
+    };
+    nodejs_schedule?: NodeJsScheduledReleases;
+    /** Maps active LTS codenames to the latest version */
+    nodejs_lts?: Record<string, string>;
 }
 
 export interface Battery {
@@ -69,6 +84,32 @@ export interface SystemInformationData {
 
 interface SystemInformationSubscriber {
     updateSystemInformation(data: Partial<SystemInformationData>): void;
+}
+
+interface NodeJsRelease {
+    version: string;
+    date: string;
+    files: string[];
+    npm?: string; // Only versions older than v0.6.2 don't include npm
+    v8: string;
+    uv?: string;
+    zlib?: string;
+    openssl?: string;
+    modules?: string;
+    lts: string | false;
+    security: boolean;
+}
+
+interface NodeJsScheduledRelease {
+    start: string;
+    lts?: string;
+    maintenance?: string;
+    end: string;
+    codename?: string;
+}
+
+interface NodeJsScheduledReleases {
+    [key: string]: NodeJsScheduledRelease;
 }
 
 export class SystemInformation {
@@ -198,8 +239,28 @@ export class SystemInformation {
 
         const updates: Partial<Versions> = {};
 
+        if (installed_versions.nodejs && latest_versions.nodejs && latest_versions.nodejs_lts) {
+            const nodejs_major = semver.coerce(installed_versions.nodejs)!.major;
+            let is_active_lts: string | null = null;
+
+            for (const [codename, latest_version] of Object.entries(latest_versions.nodejs_lts)) {
+                const lts_major = semver.coerce(latest_version)!.major;
+                if (lts_major !== nodejs_major) continue;
+
+                is_active_lts = codename;
+                if (semver.gt(latest_version, installed_versions.nodejs)) updates.nodejs = latest_version;
+            }
+
+            if (!is_active_lts && semver.gt(latest_versions.nodejs, installed_versions.nodejs)) {
+                updates.nodejs = latest_versions.nodejs;
+            }
+        }
+
         for (const [name, latest_version] of Object.entries(latest_versions) as [keyof Versions, string][]) {
+            if (name === 'nodejs') continue;
+
             const installed_version = installed_versions[name];
+            if (installed_version || latest_version) continue;
 
             if (installed_version && semver.gt(latest_version, '' + installed_version, {
                 loose: true,
@@ -215,7 +276,7 @@ export class SystemInformation {
     private latest_versions_expire: number | null = null;
     private latest_versions_ttl = 60000 * 60; // 1 hour
 
-    async getLatestVersions(): Promise<Partial<Versions>> {
+    async getLatestVersions(): Promise<LatestVersions> {
         if (this.latest_versions && (!this.latest_versions_expire || this.latest_versions_expire > Date.now())) {
             return this.latest_versions;
         }
@@ -230,30 +291,63 @@ export class SystemInformation {
         });
     }
 
-    private async _getLatestVersions(): Promise<Partial<Versions>> {
-        const [hapserver, homebridge, hapnodejs, nodejs, npm] = await Promise.all([
-            require('..').private ? undefined :
-                this.getLatestNpmPackageVersion(require('..').name).catch(e => undefined),
-            require('homebridge/package').private ? undefined :
-                this.getLatestNpmPackageVersion('homebridge').catch(e => undefined),
-            require('hap-nodejs/package').private ? undefined :
-                this.getLatestNpmPackageVersion('hap-nodejs').catch(e => undefined),
+    private async _getLatestVersions(): Promise<LatestVersions> {
+        const err = (name: string) => (err: Error) => {
+            console.error('Error getting latest %s version', name, err);
+            return undefined;
+        };
 
-            this.getLatestNodeJsVersion().catch(e => undefined),
-            this.getLatestNpmPackageVersion('npm').catch(e => undefined),
+        const [hapserver, homebridge, hapnodejs, nodejs, nodejs_schedule, npm] = await Promise.all([
+            require('..').private ? undefined :
+                this.getLatestNpmPackageVersion(require('..').name).catch(err('hap-server')),
+            require('homebridge/package').private ? undefined :
+                this.getLatestNpmPackageVersion('homebridge').catch(err('Homebridge')),
+            require('hap-nodejs/package').private ? undefined :
+                this.getLatestNpmPackageVersion('hap-nodejs').catch(err('hap-nodejs')),
+
+            this.getLatestNodeJsVersions().catch(err('Node.js')),
+            this.getNodeJsScheduledReleases().catch(err('Node.js')),
+            this.getLatestNpmPackageVersion('npm').catch(err('npm')),
         ]);
+
+        // Get the supported LTS versions
+        const nodejs_lts = !nodejs || !nodejs_schedule ? undefined :
+            this.objectFromEntries(Object.entries(nodejs!.lts).filter(([codename, latest_version]) => {
+                const lts_release_key = Object.keys(nodejs_schedule!)
+                    .find(v => semver.satisfies(latest_version, v));
+                if (!lts_release_key) return false;
+                const schedule = nodejs_schedule![lts_release_key];
+
+                return schedule.codename &&
+                    (new Date(schedule.start)).getTime() < Date.now() &&
+                    (new Date(schedule.end)).getTime() > Date.now();
+            }));
 
         return {
             'hap-server': hapserver,
             homebridge,
             'hap-nodejs': hapnodejs,
-            nodejs,
+            nodejs: nodejs?.current,
+            nodejs_all: nodejs,
+            nodejs_schedule,
+            nodejs_lts,
             npm,
         };
     }
 
+    private objectFromEntries<K extends string | number | symbol, V>(entries: [K, V][]) {
+        const object = {} as Record<K, V>;
+
+        for (const [key, value] of entries) {
+            object[key] = value;
+        }
+
+        return object;
+    }
+
     async getLatestNpmPackageVersion(name: string): Promise<string> {
-        return new Promise<string>((rs, rj) => https.get(`https://registry.npmjs.org/${name}`, res => {
+        // eslint-disable-next-line new-cap
+        return new Promise<string>((rs, rj) => https.get(NPM_REGISTRY_PACKAGE_URL(name), res => {
             let data = '';
             res.on('data', chunk => data += chunk.toString('utf-8'));
             res.on('end', () => {
@@ -270,26 +364,57 @@ export class SystemInformation {
         }));
     }
 
-    async getLatestNodeJsVersion(): Promise<string> {
-        return new Promise<string>((rs, rj) => https.get('https://nodejs.org/dist/latest/', res => {
+    async getLatestNodeJsVersions(): Promise<{current: string; lts: Record<string, string>}> {
+        return new Promise<{current: string; lts: Record<string, string>}>((rs, rj) => https.get(NODEJS_VERSIONS_URL, res => {
             let data = '';
             res.on('data', chunk => data += chunk.toString('utf-8'));
             res.on('end', () => {
                 try {
                     if (res.statusCode !== 200) return rj(new Error('Received status code ' + res.statusCode));
 
-                    const regex = /node-v(\d+\.\d+\.\d+)-([a-z]+)-([a-z0-9]+)\./g;
-                    let match;
+                    const releases = JSON.parse(data) as NodeJsRelease[];
+                    let current: string | null = null;
+                    const lts: Record<string, string> = {};
+                    const platform = process.platform === 'darwin' ? 'osx' :
+                        process.platform === 'win32' ? 'win' :
+                            process.platform;
 
-                    while (match = regex.exec(data)) {
-                        const [, version, platform, arch] = match;
-                        if (process.platform === 'win32' ? platform !== 'win' : process.platform !== platform) continue;
-                        if (process.arch !== arch) continue;
+                    for (const release of releases) {
+                        if (!release.files.find(f => f === platform + '-' + process.arch ||
+                            f.substr(0, f.lastIndexOf('-')) === platform + '-' + process.arch)) continue;
 
-                        return rs(version);
+                        if (!current) {
+                            current = semver.coerce(release.version)?.toString() || null;
+                        }
+
+                        if (release.lts && !lts[release.lts]) {
+                            const v = semver.coerce(release.version)?.toString();
+                            if (v) lts[release.lts] = v;
+                        }
                     }
 
+                    if (current) return rs({current, lts});
+
                     rj(new Error('No versions available for the current platform'));
+                } catch (err) {
+                    rj(err);
+                }
+            });
+        }).on('error', err => {
+            rj(err);
+        }));
+    }
+
+    async getNodeJsScheduledReleases(): Promise<NodeJsScheduledReleases> {
+        return new Promise<NodeJsScheduledReleases>((rs, rj) => https.get(NODEJS_RELEASE_SCHEDULE_URL, res => {
+            let data = '';
+            res.on('data', chunk => data += chunk.toString('utf-8'));
+            res.on('end', () => {
+                try {
+                    if (res.statusCode !== 200) return rj(new Error('Received status code ' + res.statusCode));
+
+                    const releases = JSON.parse(data) as NodeJsScheduledReleases;
+                    rs(releases);
                 } catch (err) {
                     rj(err);
                 }
