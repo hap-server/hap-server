@@ -166,6 +166,7 @@ export default class Server extends Events {
             const hotmiddleware = require('webpack-hot-middleware'); // eslint-disable-line @typescript-eslint/no-var-requires
             require('ts-node/register');
 
+            // @ts-ignore
             const compiler = webpack(require('../../gulpfile').webpack_hot_config);
 
             this.app.use(devmiddleware(compiler));

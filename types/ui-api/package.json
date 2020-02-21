@@ -12,6 +12,7 @@
         "codemirror": "*",
         "vue": "*",
         "vue-color": "*",
-        "vue-codemirror": "*"
+        "vue-codemirror": "*",
+        "vue-router": "*"
     }
 }

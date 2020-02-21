@@ -8,12 +8,15 @@
     "private": true,
     "dependencies": {
         "@hap-server/hap-server": "*",
+        "@types/bonjour": "*",
         "@types/express": "*",
         "@types/multer": "*",
         "@types/node": "*",
         "@types/node-persist": "*",
         "@types/tz-offset": "*",
+        "@types/uuid": "*",
         "@types/ws": "*",
+        "@types/yargs": "*",
         "hap-nodejs": "*"
     }
 }
