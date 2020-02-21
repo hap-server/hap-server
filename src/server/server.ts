@@ -79,7 +79,7 @@ export default class Server extends Events {
 
     readonly app!: express.Application;
     readonly wss!: WebSocket.Server;
-    readonly multer!: multer.Instance;
+    readonly multer!: unknown;
 
     readonly plugins!: Map<number, ServerPlugin>;
 
@@ -141,6 +141,7 @@ export default class Server extends Events {
             next();
         }, express.static(this.assets_path));
 
+        // @ts-ignore
         this.app.post('/assets/upload-layout-background', this.multer.single('background'),
             Connection.handleUploadLayoutBackground.bind(Connection, this) as any);
 

@@ -611,7 +611,7 @@ export default class Server {
                 }, SET_TIMEOUT_WARNING_THRESHOLD);
 
                 // Set the value and wait for success
-                await new Promise((rs, rj) => characteristic.setValue(value, (err?, value?) => {
+                await new Promise((rs, rj) => characteristic.setValue(value, (err?, value?: any) => {
                     err ? rj(err) : rs(value);
                 }, context, connection_id));
 
