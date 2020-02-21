@@ -1,6 +1,6 @@
 {
     "name": "@hap-server/hap-server",
-    "version": "0.11.1",
+    "version": "0.11.2",
     "description": "Home automation system based on Homebridge.",
     "keywords": [
         "homekit",
