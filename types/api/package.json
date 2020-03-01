@@ -13,6 +13,7 @@
         "@types/multer": "*",
         "@types/node": "*",
         "@types/node-persist": "*",
+        "@types/plist": "*",
         "@types/tz-offset": "*",
         "@types/uuid": "*",
         "@types/ws": "*",
