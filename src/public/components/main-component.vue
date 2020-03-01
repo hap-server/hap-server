@@ -70,7 +70,7 @@
                 @modal="modal => modals.add(modal)" @ping="ping" />
 
             <template v-else>
-                <h1>{{ title || $t('main.home') }}</h1>
+                <h1>{{ name || $t('main.home') }}</h1>
 
                 <div class="section">
                     <p><spinner size="inherit" light /> {{ $t('main.loading') }}</p>
