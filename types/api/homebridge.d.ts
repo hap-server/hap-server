@@ -11,6 +11,7 @@ export type InitFunction = (homebridge: import('homebridge/lib/api').API) => voi
 export type Logger = import('homebridge/lib/logger').CallableLogger;
 export type User = import('homebridge/lib/user').User;
 export type PlatformAccessory = import('homebridge/lib/platformAccessory').PlatformAccessory;
+export type API = import('homebridge/lib/api').API;
 export type AccessoryConstructor = import('homebridge/lib/api').AccessoryConstructor;
 export type AccessoryInstance = import('homebridge/lib/api').AccessoryInstance;
 export type PlatformConstructor = import('homebridge/lib/api').PlatformConstructor;
