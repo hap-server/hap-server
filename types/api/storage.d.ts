@@ -1,4 +1,4 @@
-import persist from 'node-persist';
+import {LocalStorage} from 'node-persist';
 
-declare const storage: persist.LocalStorage;
+declare const storage: LocalStorage;
 export default storage;
