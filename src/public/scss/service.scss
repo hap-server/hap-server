@@ -198,7 +198,7 @@
     }
 
     img.icon {
-        filter: brightness(0) opacity(0.7);
+        filter: opacity(0.7);
     }
 
     @include dark-theme {
@@ -207,7 +207,7 @@
         }
 
         img.icon {
-            filter: brightness(0) opacity(0.7) invert(1);
+            filter: opacity(0.7) invert(1);
         }
     }
 
