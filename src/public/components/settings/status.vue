@@ -89,7 +89,7 @@
                 <dd :key="'networkinterface-' + index + '-value'" class="col-12 text-right selectable"
                     :title="$t('server_status.network_interface_info', ni.info)"
                 >
-                    <template v-for="(address, index) in ni.ip_addresses">
+                    <template v-for="(address, index) in ni.ip_addresses.filter(a => a.family === 'IPv6')">
                         <br v-if="index !== 0" :key="index" />
                         <template v-if="address.address.match(/^fe80:(:|(:[0-9a-f]{1,4}){1,4})/i)">
                             {{ address.address }}%{{ ni.name }}
