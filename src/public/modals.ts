@@ -53,6 +53,7 @@ export default class Modals {
 export class Modal {
     static readonly types: {[key: string]: typeof Modal} = {};
 
+    instance: Vue | null = null;
     [key: string]: any;
 
     constructor(readonly modals: Modals, data: object) {

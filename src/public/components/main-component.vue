@@ -1,11 +1,15 @@
 <template>
-    <div class="root" :class="{scrolled, 'has-open-modals': modal_open}">
+    <div class="root" :class="{
+        scrolled,
+        'has-open-modals': modal_open,
+        'has-accessory-details-open': accessory_details_open,
+    }">
         <transition name="fade">
             <div :key="is_settings_active ? 'settings' : background_url" class="background" :class="{
                 settings: is_settings_active,
+                'has-image': background_url,
             }" :style="background_url ? {
                 'background-image': `url(${JSON.stringify(background_url)})`,
-                filter: 'brightness(0.8)',
             } : {
                 'background-image': 'none',
             }" />
@@ -302,6 +306,10 @@
             modal_open() {
                 return this.connecting || this.modals.modal_open ||
                     (this.show_automations && this.$refs.automations && this.$refs.automations.open_automation);
+            },
+            accessory_details_open() {
+                return this.connecting || !!this.modals.getDisplayModals().find(m =>
+                    m.type === 'accessory-details' && (!m.instance || m.instance.show));
             },
             authenticated_user() {
                 return this.last_connection ? this.last_connection.authenticated_user : undefined;

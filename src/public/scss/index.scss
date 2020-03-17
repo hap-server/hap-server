@@ -83,6 +83,9 @@ body,
         background-color: $dark;
     }
 }
+.background.has-image {
+    filter: brightness(0.8);
+}
 
 html.modal-window body,
 html.modal-window .background,
@@ -233,6 +236,25 @@ html.theme-dark .root > .background.settings {
 @import 'accessory-details/index';
 @import 'accessory-settings/index';
 @import 'automations';
+
+@supports not (-webkit-backdrop-filter: blur(2px)) {
+    .background.has-image,
+    .header > *,
+    .main {
+        transition: filter 0.1s ease;
+    }
+
+    .root.has-accessory-details-open {
+        .background.has-image {
+            filter: brightness(0.8) blur(2px);
+        }
+
+        .header > *,
+        .main {
+            filter: blur(10px);
+        }
+    }
+}
 
 .connecting {
     position: fixed;

@@ -71,6 +71,8 @@
         created() {
             // Register built in components
             require('./accessory-details');
+
+            this.modal.instance = this;
         },
         mounted() {
             this.show = true;
