@@ -22,7 +22,7 @@
                 href="#" @click.prevent="setLayout(layout)">{{ layout.name || layout.uuid }}</a>
         </template>
 
-        <template v-if="value && (value.can_set || value.can_delete) && !show_layout">
+        <template v-if="value && (value.can_set || value.can_delete) && show_layout">
             <div class="dropdown-divider"></div>
 
             <a v-if="value.can_set && (!authenticatedUser || value.uuid !== 'Overview.' + authenticatedUser.id)"
