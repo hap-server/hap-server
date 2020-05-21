@@ -23,6 +23,8 @@ class Accessory extends EventEmitter {
     private _permissions!: GetAccessoriesPermissionsResponseMessage[0];
     private _status!: AccessoryStatus;
 
+    private readonly service_components: ComponentRegistry<unknown, any> | null = null;
+
     /**
      * Creates an Accessory.
      *
@@ -32,12 +34,16 @@ class Accessory extends EventEmitter {
      * @param {object} data Configuration data stored by the web UI (read/write)
      * @param {object} permissions
      * @param {number} status
+     * @param {ComponentRegistry} [service_components]
      */
     constructor(
         connection: Connection, uuid: string, details: AccessoryHap, data: AccessoryData,
-        permissions: GetAccessoriesPermissionsResponseMessage[0], status: AccessoryStatus
+        permissions: GetAccessoriesPermissionsResponseMessage[0], status: AccessoryStatus,
+        service_components?: ComponentRegistry<unknown, any> | null
     ) {
         super();
+
+        this.service_components = service_components ?? null;
 
         this.connection = connection;
         this.uuid = uuid;
@@ -47,14 +53,6 @@ class Accessory extends EventEmitter {
         this._setData(data || {});
         this._setDetails(details || {aid: 0, services: []});
         this._setStatus(status);
-    }
-
-    static get service_components(): ComponentRegistry<unknown, any> | Map<string | number, any> {
-        try {
-            return require('../public/component-registry').ServiceTileComponents;
-        } catch (err) {
-            return new Map();
-        }
     }
 
     get details(): AccessoryHap {
@@ -227,7 +225,7 @@ class Accessory extends EventEmitter {
         const removed_collapsed_service_types: any = {}; // TODO: what was this for?
 
         for (const service of added_services) {
-            if ((this.constructor as typeof Accessory).service_components.has(service.type)) {
+            if (this.service_components?.has(service.type)) {
                 added_display_services.push(service);
                 continue;
             }
@@ -251,7 +249,7 @@ class Accessory extends EventEmitter {
         }
 
         for (const service of removed_services) {
-            if ((this.constructor as typeof Accessory).service_components.has(service.type)) {
+            if (this.service_components?.has(service.type)) {
                 removed_display_services.push(service);
                 continue;
             }

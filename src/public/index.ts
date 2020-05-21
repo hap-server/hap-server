@@ -11,6 +11,8 @@ import * as InternalSymbols from './internal-symbols';
 import Client from '../client/client';
 import Connection from '../client/connection';
 
+import {ServiceTileComponents} from './component-registry';
+
 import Vue from 'vue';
 import VueRouter from 'vue-router';
 import VueI18n from 'vue-i18n';
@@ -113,7 +115,8 @@ Object.defineProperty(PluginManager, 'base_url', {
     get: () => native_hook && native_hook.base_url || '/',
 });
 
-const client = new (native_hook && native_hook.Client ? native_hook.Client : Client)();
+const client = new (native_hook && native_hook.Client ? native_hook.Client : Client)(
+    undefined, undefined, ServiceTileComponents);
 const modals = new (native_hook && native_hook.Modals ? native_hook.Modals : Modals)(client);
 modals.component = ModalsComponent;
 modals.i18n = i18n;

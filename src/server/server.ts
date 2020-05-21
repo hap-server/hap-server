@@ -253,6 +253,8 @@ export default class Server extends Events {
         const storage = persist.create({
             dir: ui_storage_path,
             stringify: data => JSON.stringify(data, null, 4),
+            // hap-server doesn't use TTLs
+            expiredInterval: 0,
         });
 
         await storage.init();

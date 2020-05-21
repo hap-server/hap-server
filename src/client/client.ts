@@ -13,6 +13,8 @@ import {BroadcastMessage} from '../common/types/broadcast-messages';
 import {Home} from '../common/types/storage';
 import {SystemInformationData} from '../server/system-information';
 
+import ComponentRegistry from '../common/component-registry';
+
 export function $set<T>(object: any, key: string, value: T): T {
     try {
         // @ts-ignore
@@ -46,6 +48,8 @@ class Client extends EventEmitter {
     WebSocket: typeof import('ws') | undefined;
     is_ws: boolean;
 
+    private service_components: ComponentRegistry<unknown, any> | null = null;
+
     home_settings: Home | null = null;
     accessories: {[key: string]: Accessory} | null = null;
     layouts: {[key: string]: Layout} | null = null;
@@ -74,15 +78,17 @@ class Client extends EventEmitter {
     private _disconnect: Promise<void> | null = null;
     old_connection: Connection | null = null;
 
-    constructor(url?: string, _WebSocket?: typeof import('ws')) {
+    constructor(url?: string, _WebSocket?: typeof import('ws'), service_components?: ComponentRegistry<unknown, any>) {
         super();
 
         // @ts-ignore
         global.client = this;
 
-        this.url = url || Connection.getDefaultURL();
+        this.url = url ?? Connection.getDefaultURL();
         this.WebSocket = _WebSocket;
         this.is_ws = !!_WebSocket;
+
+        this.service_components = service_components ?? null;
 
         this._handleBroadcastMessage = this.handleBroadcastMessage.bind(this);
         this._handleDisconnected = this.handleDisconnected.bind(this);
@@ -100,7 +106,8 @@ class Client extends EventEmitter {
                 if (this.accessories && this.accessories[accessory_data.uuid]) continue;
 
                 const accessory = new Accessory(this.connection!, accessory_data.uuid, accessory_data.details,
-                    accessory_data.data, accessory_data.permissions, accessory_data.status ?? 0
+                    accessory_data.data, accessory_data.permissions, accessory_data.status ?? 0,
+                    this.service_components
                 );
 
                 $set(this.accessories, accessory.uuid, accessory);
@@ -387,8 +394,9 @@ class Client extends EventEmitter {
             ]);
 
             const accessories = accessory_uuids.map((uuid, index) => new Accessory(this.connection!, uuid,
-                accessory_details[index], accessory_data[index], accessory_permissions[index], accessory_status[index]
-            )) as Accessory[];
+                accessory_details[index], accessory_data[index], accessory_permissions[index], accessory_status[index],
+                this.service_components
+            ));
 
             for (const accessory of accessories) {
                 $set(this.accessories, accessory.uuid, accessory);
@@ -734,7 +742,7 @@ class Client extends EventEmitter {
 
             const added_accessories = new_accessories.map((uuid, index) => new Accessory(this.connection!, uuid,
                 new_accessory_details[index], new_accessory_data[index], new_accessory_permissions[index],
-                new_accessory_status[index]
+                new_accessory_status[index], this.service_components
             ));
 
             for (const accessory of added_accessories) {
