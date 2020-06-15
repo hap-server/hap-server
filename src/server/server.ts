@@ -348,7 +348,12 @@ export default class Server extends Events {
 
     async loadPlugins() {
         for (const server_plugin of PluginManager.getServerPlugins()) {
-            await this.loadPlugin(server_plugin);
+            const config = server_plugin.plugin.config['server-plugins']?.[server_plugin.name] ??
+                server_plugin.plugin.config['server-plugins']?.['*'];
+
+            if (config === false) continue;
+
+            await this.loadPlugin(server_plugin, typeof config === 'object' ? config : null);
         }
     }
 

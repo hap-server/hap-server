@@ -149,7 +149,7 @@ export class PluginManager extends Events {
                 default: new PluginAPI(plugin, parent),
                 log: new Logger(plugin.name),
                 AccessoryPlatform: this.bindConstructor(AccessoryPlatform, plugin),
-                ServerPlugin: this.bindConstructor(ServerPlugin, plugin),
+                ServerPlugin: ServerPlugin.use(plugin),
                 WebInterfacePlugin: this.bindConstructor(WebInterfacePlugin, plugin),
                 AccessoryUI: this.bindConstructor(WebInterfacePlugin, plugin),
                 AccessoryDiscovery: this.bindConstructor(AccessoryDiscovery, plugin),
@@ -836,6 +836,7 @@ export abstract class ServerPlugin {
 
     // static readonly id: number;
     private static readonly _id: number;
+
     readonly instance_id!: number;
     readonly plugin!: Plugin;
     readonly server!: Server;
@@ -858,12 +859,31 @@ export abstract class ServerPlugin {
         return (this.constructor as typeof ServerPlugin).id;
     }
 
+    get name() {
+        return this.constructor.name;
+    }
+
+    static use(plugin: Plugin): ServerPluginHandler {
+        // @ts-ignore
+        const bound: ServerPluginHandler = this.bind(this, plugin);
+
+        // @ts-ignore
+        bound.__proto__ = Object.create(this);
+
+        bound.plugin = plugin;
+        Object.defineProperty(bound, 'prototype', {configurable: true, value: Object.create(this.prototype)});
+        bound.prototype.constructor = bound;
+
+        return bound;
+    }
+
     abstract async load(): Promise<void>;
 }
 
-export interface ServerPluginHandler {
-    new (server: Server, config: any): ServerPlugin;
+export interface ServerPluginHandler<T extends ServerPlugin = ServerPlugin> {
+    new (server: Server, config: any): T;
     id: number;
+    plugin: Plugin;
 }
 
 export class WebInterfacePlugin {
