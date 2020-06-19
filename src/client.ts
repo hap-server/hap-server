@@ -6,7 +6,7 @@ import Accessory from './client/accessory';
 import Service from './client/service';
 import CollapsedService from './client/collapsed-service';
 import Characteristic from './client/characteristic';
-import Layout from './client/layout';
+import Layout, {LayoutSection} from './client/layout';
 import Automation from './client/automation';
 import Scene from './client/scene';
 
@@ -40,6 +40,7 @@ export {
     Characteristic,
 
     Layout,
+    LayoutSection,
     Automation,
     Scene,
 
