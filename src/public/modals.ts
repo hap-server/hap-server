@@ -1,14 +1,14 @@
 
-import {Component} from 'vue';
+import Vue, {Component} from 'vue';
 import VueI18n from 'vue-i18n';
 
-export default class Modals {
-    protected stack: Modal[] = [];
-    component?: Component = undefined;
+export default class Modals<C = Component, I = Vue> {
+    protected stack: Modal<I>[] = [];
+    component?: C = undefined;
 
     i18n?: VueI18n = undefined;
 
-    add(data: Modal | (object & {type: string})) {
+    add(data: Modal<I> | (object & {type: string})) {
         if (data instanceof Modal) {
             if (data.modals !== this) {
                 throw new Error('Invalid modal');
@@ -23,12 +23,12 @@ export default class Modals {
         }
     }
 
-    _add(modal: Modal) {
+    _add(modal: Modal<I>) {
         this.stack.push(modal);
         modal.onopen();
     }
 
-    remove(modal: Modal) {
+    remove(modal: Modal<I>) {
         let index;
         while ((index = this.stack.indexOf(modal)) > -1) {
             this.stack.splice(index, 1);
@@ -37,7 +37,7 @@ export default class Modals {
         this._remove(modal);
     }
 
-    _remove(modal: Modal) {
+    _remove(modal: Modal<I>) {
         //
     }
 
@@ -45,18 +45,18 @@ export default class Modals {
         return !!this.getDisplayModals().length;
     }
 
-    getDisplayModals() {
+    getDisplayModals(): Modal<I>[] {
         return this.stack;
     }
 }
 
-export class Modal {
+export class Modal<I = Vue> {
     static readonly types: {[key: string]: typeof Modal} = {};
 
-    instance: Vue | null = null;
+    instance: I | null = null;
     [key: string]: any;
 
-    constructor(readonly modals: Modals, data: object) {
+    constructor(readonly modals: Modals<any, I>, data: object) {
         Object.assign(this, data);
     }
 
@@ -72,7 +72,7 @@ export class Modal {
     onclose() {}
 }
 
-export class AuthenticateModal extends Modal {
+export class AuthenticateModal<I = Vue> extends Modal<I> {
     get title() {
         return this.modals.i18n!.t('modals.login');
     }
@@ -80,7 +80,7 @@ export class AuthenticateModal extends Modal {
 
 Modal.types.authenticate = AuthenticateModal;
 
-export class SettingsModal extends Modal {
+export class SettingsModal<I = Vue> extends Modal<I> {
     get title() {
         return this.modals.i18n!.t('modals.settings');
     }
@@ -88,7 +88,7 @@ export class SettingsModal extends Modal {
 
 Modal.types.settings = SettingsModal;
 
-export class AddAccessoryModal extends Modal {
+export class AddAccessoryModal<I = Vue> extends Modal<I> {
     get title() {
         return this.modals.i18n!.t('modals.add_accessory');
     }
@@ -96,7 +96,7 @@ export class AddAccessoryModal extends Modal {
 
 Modal.types['add-accessory'] = AddAccessoryModal;
 
-export class LayoutSettingsModal extends Modal {
+export class LayoutSettingsModal<I = Vue> extends Modal<I> {
     get title() {
         return this.modals.i18n!.t('modals.layout_settings', {name: this.layout.name});
     }
@@ -104,7 +104,7 @@ export class LayoutSettingsModal extends Modal {
 
 Modal.types['layout-settings'] = LayoutSettingsModal;
 
-export class NewLayoutModal extends Modal {
+export class NewLayoutModal<I = Vue> extends Modal<I> {
     get title() {
         return this.modals.i18n!.t('modals.new_layout');
     }
@@ -112,7 +112,7 @@ export class NewLayoutModal extends Modal {
 
 Modal.types['new-layout'] = NewLayoutModal;
 
-export class DeleteLayoutModal extends LayoutSettingsModal {
+export class DeleteLayoutModal<I = Vue> extends LayoutSettingsModal<I> {
     get title() {
         return this.modals.i18n!.t('modals.delete_layout', {name: this.layout.name});
     }
@@ -120,7 +120,7 @@ export class DeleteLayoutModal extends LayoutSettingsModal {
 
 Modal.types['delete-layout'] = DeleteLayoutModal;
 
-export class AccessorySettingsModal extends Modal {
+export class AccessorySettingsModal<I = Vue> extends Modal<I> {
     get title() {
         return this.modals.i18n!.t('modals.accessory_settings', {name: this.accessory.name});
     }
@@ -128,7 +128,7 @@ export class AccessorySettingsModal extends Modal {
 
 Modal.types['accessory-settings'] = AccessorySettingsModal;
 
-export class AccessoryPlatformSettingsModal extends Modal {
+export class AccessoryPlatformSettingsModal<I = Vue> extends Modal<I> {
     get title() {
         return this.modals.i18n!.t('modals.accessory_platform_settings', {uuid: this.uuid});
     }
@@ -136,7 +136,7 @@ export class AccessoryPlatformSettingsModal extends Modal {
 
 Modal.types['accessory-platform-settings'] = AccessoryPlatformSettingsModal;
 
-export class NewBridgeModal extends Modal {
+export class NewBridgeModal<I = Vue> extends Modal<I> {
     get title() {
         return this.modals.i18n!.t('modals.new_bridge');
     }
@@ -144,7 +144,7 @@ export class NewBridgeModal extends Modal {
 
 Modal.types['new-bridge'] = NewBridgeModal;
 
-export class DeleteBridgeModal extends AccessorySettingsModal {
+export class DeleteBridgeModal<I = Vue> extends AccessorySettingsModal<I> {
     get title() {
         return this.modals.i18n!.t('modals.delete_bridge', {name: this.accessory.name});
     }
@@ -152,7 +152,7 @@ export class DeleteBridgeModal extends AccessorySettingsModal {
 
 Modal.types['delete-bridge'] = DeleteBridgeModal;
 
-export class PairingSettingsModal extends Modal {
+export class PairingSettingsModal<I = Vue> extends Modal<I> {
     get title() {
         return this.modals.i18n!.t('modals.pairing_settings', {
             name: (this.data && this.data.name) || this.pairing.id,
@@ -162,7 +162,7 @@ export class PairingSettingsModal extends Modal {
 
 Modal.types['pairing-settings'] = PairingSettingsModal;
 
-export class ServiceSettingsModal extends Modal {
+export class ServiceSettingsModal<I = Vue> extends Modal<I> {
     get title() {
         return this.modals.i18n!.t('modals.service_settings', {
             name: this.service.name || this.service.accessory.name,
@@ -172,7 +172,7 @@ export class ServiceSettingsModal extends Modal {
 
 Modal.types['service-settings'] = ServiceSettingsModal;
 
-export class AccessoryDetailsModal extends Modal {
+export class AccessoryDetailsModal<I = Vue> extends Modal<I> {
     get title() {
         return this.service.name || this.service.accessory.name;
     }
@@ -180,7 +180,7 @@ export class AccessoryDetailsModal extends Modal {
 
 Modal.types['accessory-details'] = AccessoryDetailsModal;
 
-export class SceneSettingsModal extends Modal {
+export class SceneSettingsModal<I = Vue> extends Modal<I> {
     get title() {
         return this.modals.i18n!.t('modals.scene_settings', {
             name: this.scene.data.name || this.scene.uuid,
@@ -190,7 +190,7 @@ export class SceneSettingsModal extends Modal {
 
 Modal.types['scene-settings'] = SceneSettingsModal;
 
-export class NewSceneModal extends Modal {
+export class NewSceneModal<I = Vue> extends Modal<I> {
     get title() {
         return this.modals.i18n!.t('modals.new_scene');
     }
@@ -198,7 +198,7 @@ export class NewSceneModal extends Modal {
 
 Modal.types['new-scene'] = NewSceneModal;
 
-export class SetupModal extends Modal {
+export class SetupModal<I = Vue> extends Modal<I> {
     get title() {
         return this.modals.i18n!.t('modals.setup');
     }

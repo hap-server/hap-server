@@ -72,6 +72,10 @@ const webpack_config: import('webpack').Configuration = {
             path.join(__dirname, 'src/public/scss/index.scss'),
             path.join(__dirname, 'src/public/modal.ts'),
         ],
+        react: [
+            path.join(__dirname, 'src/public/scss/index.scss'),
+            path.join(__dirname, 'src/public/react.tsx'),
+        ],
     },
     module: {
         rules: [
@@ -114,7 +118,7 @@ const webpack_config: import('webpack').Configuration = {
         new VueLoaderPlugin(),
         new HtmlWebpackPlugin({
             template: 'src/public/index.html',
-            chunks: ['runtime', 'vendors', 'main'],
+            chunks: ['runtime', 'vendors', 'react'],
         }),
         new HtmlWebpackPlugin({
             template: 'src/public/app.html',
@@ -181,6 +185,11 @@ export const webpack_hot_config = Object.assign({}, webpack_config, {
             'webpack-hot-middleware/client',
             path.join(__dirname, 'src/public/scss/index.scss'),
             path.join(__dirname, 'src/public/modal.ts'),
+        ],
+        react: [
+            'webpack-hot-middleware/client',
+            path.join(__dirname, 'src/public/scss/index.scss'),
+            path.join(__dirname, 'src/public/react.tsx'),
         ],
     },
     module: Object.assign({}, webpack_config.module, {

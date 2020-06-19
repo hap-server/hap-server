@@ -1,9 +1,9 @@
 import {EventEmitter} from 'events';
 
-type EventMap<E> = {
+export type EventMap<E> = {
     [K in keyof E]: E[K];
 };
-type EventListener<T extends EventEmitter, A extends any[]> = (this: T, ...args: A) => void;
+export type EventListener<T extends EventEmitter, A extends any[]> = (this: T, ...args: A) => void;
 
 export default class TypedEventEmitter<
     T extends EventEmitter,

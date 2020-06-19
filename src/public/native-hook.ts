@@ -11,7 +11,7 @@ type VueRouterMode = 'history' | 'hash';
 
 export interface NativeHook {
     Client?: typeof Client;
-    Modals?: {new (client: Client): Modals};
+    Modals?: {new <C = Component>(client: Client): Modals<C>};
     base_url?: string;
     router_mode?: VueRouterMode;
 }

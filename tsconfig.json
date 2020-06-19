@@ -4,6 +4,7 @@
         "target": "es6",
         "experimentalDecorators": true,
         "module": "commonjs",
+        "jsx": "react",
         "declaration": true,
         "importHelpers": true,
         "incremental": true,
@@ -14,6 +15,7 @@
     },
     "include": [
         "src/**/*.ts",
+        "src/**/*.tsx",
         "src/public/plugins.ts",
         "src/public/mixins/**/*.ts",
         "src/public/modals.ts",
