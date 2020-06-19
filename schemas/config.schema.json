@@ -243,7 +243,117 @@
 		},
 		"plugins": {
 			"type": "object",
-			"description": "Plugin configuration."
+			"description": "Plugins configuration.",
+			"properties": {
+				"*": {
+					"description": "Default plugin configuration."
+				}
+			},
+			"patternProperties": {
+				".*": {
+					"oneOf": [
+						{
+							"type": "boolean",
+							"description": "Plugin enabled/disabled."
+						},
+						{
+							"$ref": "#/properties/plugins/definitions/plugin-configuration"
+						}
+					]
+				}
+			},
+			"definitions": {
+				"plugin-configuration": {
+					"type": "object",
+					"description": "Plugin configuration.",
+					"properties": {
+						"accessory-discovery": {
+							"$ref": "#/properties/plugins/definitions/accessory-discovery"
+						},
+						"accessory-setup": {
+							"$ref": "#/properties/plugins/definitions/accessory-setup"
+						},
+						"server-plugins": {
+							"$ref": "#/properties/plugins/definitions/server-plugins"
+						}
+					}
+				},
+				"accessory-discovery": {
+					"description": "Accessory discovery handlers configuration.",
+					"properties": {
+						"*": {
+							"description": "Default accessory discovery handler configuration."
+						}
+					},
+					"patternProperties": {
+						".*": {
+							"oneOf": [
+								{
+									"type": "boolean",
+									"description": "Accessory discovery handler enabled/disabled."
+								},
+								{
+									"$ref": "#/properties/plugins/definitions/accessory-discovery-configuration"
+								}
+							]
+						}
+					}
+				},
+				"accessory-discovery-configuration": {
+					"type": "object",
+					"description": "Accessory discovery configuration."
+				},
+				"accessory-setup": {
+					"description": "Accessory setup handlers configuration.",
+					"properties": {
+						"*": {
+							"description": "Default accessory setup handler configuration."
+						}
+					},
+					"patternProperties": {
+						".*": {
+							"oneOf": [
+								{
+									"type": "boolean",
+									"description": "Accessory setup handler enabled/disabled."
+								},
+								{
+									"$ref": "#/properties/plugins/definitions/accessory-setup-configuration"
+								}
+							]
+						}
+					}
+				},
+				"accessory-setup-configuration": {
+					"type": "object",
+					"description": "Accessory setup handler configuration."
+				},
+				"server-plugins": {
+					"description": "Server plugins configuration.",
+					"properties": {
+						"*": {
+							"description": "Default server plugin configuration."
+						}
+					},
+					"patternProperties": {
+						".*": {
+							"oneOf": [
+								{
+									"type": "boolean",
+									"description": "Server plugin enabled/disabled."
+								},
+								{
+									"$ref": "#/properties/plugins/definitions/server-plugin-configuration"
+								}
+							]
+						}
+					}
+				},
+				"server-plugin-configuration": {
+					"type": "object",
+					"description": "Server plugin configuration."
+				}
+			}
 		},
 		"bridge": {
 			"type": "object",
