@@ -1053,6 +1053,8 @@ export class AuthenticatedUser {
     readonly token?: string;
     readonly asset_token?: string;
 
+    name?: string;
+
     constructor(authentication_handler_id: number, id: string) {
         Object.defineProperty(this, 'authentication_handler_id', {value: authentication_handler_id});
         Object.defineProperty(this, 'id', {value: id});

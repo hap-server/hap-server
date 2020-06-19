@@ -321,7 +321,7 @@ export class BridgeService extends Service {
 
     static for(accessory: Accessory) {
         const services = this.services || (this.services = new WeakMap());
-        if (services.has(accessory)) return services.get(accessory);
+        if (services.has(accessory)) return services.get(accessory)!;
 
         const service = new this(accessory);
         services.set(accessory, service);
@@ -347,7 +347,7 @@ export class UnsupportedService extends Service {
 
     static for(accessory: Accessory) {
         const services = this.services || (this.services = new WeakMap());
-        if (services.has(accessory)) return services.get(accessory);
+        if (services.has(accessory)) return services.get(accessory)!;
 
         const service = new this(accessory);
         services.set(accessory, service);
