@@ -1,6 +1,6 @@
 import {EventEmitter} from 'events';
 
-import {$set, $delete} from './client';
+import {$set, $delete} from './util';
 import Connection from './connection';
 import CollapsedService from './collapsed-service';
 import Service, {type_uuids as service_types} from './service';

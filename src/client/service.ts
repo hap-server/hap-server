@@ -2,7 +2,7 @@
 
 import {EventEmitter} from 'events';
 
-import {$set, $delete} from './client';
+import {$set, $delete} from './util';
 import Connection from './connection';
 import Accessory from './accessory';
 import Characteristic, {type_uuids as characteristic_type_uuids} from './characteristic';

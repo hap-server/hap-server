@@ -1,6 +1,6 @@
 import {EventEmitter} from 'events';
 
-import {$set, $delete} from './client';
+import {$set, $delete} from './util';
 import Connection from './connection';
 
 import {Layout as LayoutData, LayoutSection as LayoutSectionData} from '../common/types/storage';
