@@ -1,4 +1,3 @@
-/// <reference path="../types/vuedraggable.d.ts" />
 /// <reference path="../types/vue-codemirror.d.ts" />
 
 import * as path from 'path';
