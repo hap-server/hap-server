@@ -248,6 +248,42 @@ Run this to configure `npm` to use GitLab Package Registry for `@hap-server` sco
 echo "@hap-server:registry=https://gitlab.com/api/v4/packages/npm/" >> `npm --global prefix`/etc/npmrc
 ```
 
+### GitLab Package Registry (https://gitlab.fancy.org.uk)
+
+You can also configure `npm` to install hap-server from GitLab Package Registry by adding this to your
+[`npmrc`](https://docs.npmjs.com/files/npmrc):
+
+```
+@hap-server:registry=https://gitlab.fancy.org.uk/api/v4/packages/npm/
+```
+
+Run this to configure `npm` to use GitLab Package Registry for `@hap-server` scoped packages globally:
+
+```
+echo "@hap-server:registry=https://gitlab.fancy.org.uk/api/v4/packages/npm/" >> `npm --global prefix`/etc/npmrc
+```
+
+### Development builds
+
+Every change to the `main` branch is published to the `next` tag on GitLab Package Registry
+(on https://gitlab.com and https://gitlab.fancy.org.uk). After configuring `npm` to install from one of
+those registries, you can install from `main` with this:
+
+```
+npm install -g @hap-server/hap-server@next
+```
+
+Alternatively you can install from the git repository (or a mirror). When installing from git `npm` will build
+hap-server locally.
+
+```
+npm install -g git+https://gitlab.fancy.org.uk/hap-server/hap-server.git
+# Or from GitHub
+npm install -g git+https://github.com/hap-server/hap-server.git
+# Or from gitlab.com
+npm install -g git+https://gitlab.com/hap-server/hap-server.git
+```
+
 Usage
 ---
 
