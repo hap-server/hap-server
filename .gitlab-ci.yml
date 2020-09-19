@@ -44,7 +44,7 @@ build:
         - REVISION=`expr $(git rev-list --count HEAD) - $(git rev-list --count v$LAST_VERSION)`; if [ "$?" != "0" ]; then REVISION="0"; fi
         # If there's no commits since that version, use that version number, otherwise add a -next prerelease tag and
         # the short commit hash
-        - export VERSION=`if [ "$CI_COMMIT_BRANCH" = "main" || "$CI_COMMIT_TAG" != "" ]; then if [ "$REVISION" = "0" ]; then echo "$LAST_VERSION"; else echo "$LAST_VERSION-next.\`expr "$REVISION" - 1\`+sha.\`echo $CI_COMMIT_SHA | head -c 7\`"; fi; else echo "$LAST_VERSION"; fi`
+        - export VERSION=`if [ "$CI_COMMIT_BRANCH" = "main" -a "$REVISION" != "0" ]; then echo "$LAST_VERSION-next.\`expr "$REVISION" - 1\`+sha.\`echo $CI_COMMIT_SHA | head -c 7\`"; else echo "$LAST_VERSION"; fi`
         - echo "Building version $VERSION (from $LAST_VERSION, revision $REVISION, commit $CI_COMMIT_SHA, branch $CI_COMMIT_BRANCH)"
 
         - npm --color="always" install
@@ -56,7 +56,7 @@ build:
         - cd release/hap-server
 
         # Update the package.json
-        - "node -e \"fs.writeFileSync('package.json', JSON.stringify((json => {json.version = process.env.VERSION; return json;})(JSON.parse(fs.readFileSync('package.json', 'utf-8'))), null, 4) + '\\n', 'utf-8')\""
+        - "[ \"$CI_COMMIT_BRANCH\" != \"main\" ] || node -e \"fs.writeFileSync('package.json', JSON.stringify((json => {json.version = process.env.VERSION; return json;})(JSON.parse(fs.readFileSync('package.json', 'utf-8'))), null, 4) + '\\n', 'utf-8')\""
 
         - PACKAGE_PATH=`npm --color="always" pack`
         - mv $PACKAGE_PATH ../../hap-server-release.tgz
@@ -64,7 +64,7 @@ build:
         - cd ../api-types
 
         # Update the package.json
-        - "node -e \"fs.writeFileSync('package.json', JSON.stringify((json => {json.version = process.env.VERSION; return json;})(JSON.parse(fs.readFileSync('package.json', 'utf-8'))), null, 4) + '\\n', 'utf-8')\""
+        - "[ \"$CI_COMMIT_BRANCH\" != \"main\" ] || node -e \"fs.writeFileSync('package.json', JSON.stringify((json => {json.version = process.env.VERSION; return json;})(JSON.parse(fs.readFileSync('package.json', 'utf-8'))), null, 4) + '\\n', 'utf-8')\""
 
         - PACKAGE_PATH=`npm --color="always" pack`
         - mv $PACKAGE_PATH ../../hap-server-api-types-release.tgz
@@ -72,7 +72,7 @@ build:
         - cd ../ui-api-types
 
         # Update the package.json
-        - "node -e \"fs.writeFileSync('package.json', JSON.stringify((json => {json.version = process.env.VERSION; return json;})(JSON.parse(fs.readFileSync('package.json', 'utf-8'))), null, 4) + '\\n', 'utf-8')\""
+        - "[ \"$CI_COMMIT_BRANCH\" != \"main\" ] || node -e \"fs.writeFileSync('package.json', JSON.stringify((json => {json.version = process.env.VERSION; return json;})(JSON.parse(fs.readFileSync('package.json', 'utf-8'))), null, 4) + '\\n', 'utf-8')\""
 
         - PACKAGE_PATH=`npm --color="always" pack`
         - mv $PACKAGE_PATH ../../hap-server-ui-api-types-release.tgz
