@@ -1126,10 +1126,10 @@ export default class Server extends Events {
      * @return {http.Server}
      */
     createServer(
-        options: http.ServerOptions,
-        middleware?: (req: http.IncomingMessage, res: http.ServerResponse, next: () => void) => void
+        options: http.ServerOptions | null,
+        middleware?: ((req: http.IncomingMessage, res: http.ServerResponse, next: () => void) => void) | null
     ) {
-        const server = http.createServer(options);
+        const server = http.createServer(options || {});
 
         server.on('request', middleware ? (req, res) => {
             middleware(req, res, () => this.handle(req, res));
@@ -1147,10 +1147,10 @@ export default class Server extends Events {
      * @return {https.Server}
      */
     createSecureServer(
-        options: http.ServerOptions,
-        middleware?: (req: http.IncomingMessage, res: http.ServerResponse, next: () => void) => void
+        options: https.ServerOptions | null,
+        middleware?: ((req: http.IncomingMessage, res: http.ServerResponse, next: () => void) => void) | null
     ) {
-        const server = https.createServer(options);
+        const server = https.createServer(options || {});
 
         server.on('request', middleware ? (req, res) => {
             middleware(req, res, () => this.handle(req, res));

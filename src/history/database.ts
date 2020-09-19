@@ -1,4 +1,5 @@
 import * as sqlite from 'sqlite';
+import {Database as driver} from 'sqlite3';
 import sql from 'sql-template-strings';
 import {promises as fs} from 'fs';
 import * as path from 'path';
@@ -41,7 +42,10 @@ export default class HistoryDatabase extends TypedEventEmitter<HistoryDatabase, 
         try {
             const filename = path.join(directory, 'data-1-0.sqlite');
             await fs.stat(filename);
-            const database = await sqlite.open(filename);
+            const database = await sqlite.open({
+                filename,
+                driver,
+            });
 
             return new HistoryDatabase(database);
         } catch (err) {
@@ -50,14 +54,20 @@ export default class HistoryDatabase extends TypedEventEmitter<HistoryDatabase, 
             try {
                 const filename = path.join(directory, 'data-1-0.sqlite');
                 await fs.stat(filename);
-                const database = await sqlite.open(filename);
+                const database = await sqlite.open({
+                    filename,
+                    driver,
+                });
 
                 return new HistoryDatabase(database);
             } catch (err) {
                 // Latest database doesn't exist and there wasn't anything to migrate
                 // Create a new database
                 const filename = path.join(directory, 'data-1-0.sqlite');
-                const database = await sqlite.open(filename);
+                const database = await sqlite.open({
+                    filename,
+                    driver,
+                });
 
                 try {
                     await database.exec(create_schema);
@@ -127,10 +137,10 @@ export default class HistoryDatabase extends TypedEventEmitter<HistoryDatabase, 
                     .append(typeof service_subtype === 'string' ? sql`${service_subtype}` : `NULL`)
                     .append(sql`, ${characteristic_uuid})`));
 
-            this.emit('assigned-characteristic-id', statement.lastID,
+            this.emit('assigned-characteristic-id', statement.lastID!,
                 [accessory_uuid, service_uuid, service_subtype, characteristic_uuid]);
 
-            return statement.lastID;
+            return statement.lastID!;
         }
 
         return characteristic.i as number;
@@ -185,9 +195,9 @@ export default class HistoryDatabase extends TypedEventEmitter<HistoryDatabase, 
         const statement = await this.database.run(
             sql`INSERT INTO u (t, u, n) VALUES (${type}, ${id}, ${name})`);
 
-        this.emit('assigned-user-id', statement.lastID, type, id);
+        this.emit('assigned-user-id', statement.lastID!, type, id);
 
-        return statement.lastID;
+        return statement.lastID!;
     }
 
     private _getUserPromise = new Map<number, Promise<User | null>>();
@@ -252,7 +262,7 @@ export default class HistoryDatabase extends TypedEventEmitter<HistoryDatabase, 
             sql`INSERT INTO r (c, v, u, d) VALUES (${characteristic_id}, ${value}, ${user_id}, ${date})`);
 
         const record = {
-            i: statement.lastID,
+            i: statement.lastID!,
             c: characteristic_id,
             v: value,
             u: user_id || null,

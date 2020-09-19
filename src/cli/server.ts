@@ -382,7 +382,7 @@ export async function handler(argv: Arguments) {
             ca: https_require_client_certificate || https_request_client_certificate ?
                 // @ts-ignore
                 await getCertificates(https_require_client_certificate || https_request_client_certificate, data_path) :
-                null,
+                undefined,
             cert: (await getCertificates(https as string | [string, string], data_path))
                 .filter(c => (c as string).match(/CERTIFICATE/i)),
             key: (await getCertificates(https as string | [string, string], data_path))
@@ -438,9 +438,9 @@ export async function handler(argv: Arguments) {
 
     if (!argv.enableHomebridge) {
         log.info('Not loading Homebridge as it was disabled on the command line');
-    } else if (config.bridge || config.accessories || config.platforms) {
+    } else if (config.bridge) {
         log.info('Loading Homebridge');
-        server.accessories.loadHomebridge(config.bridge || {}, config.accessories || [], config.platforms || []);
+        server.accessories.loadHomebridge(config.bridge, config.accessories || [], config.platforms || []);
 
         // Always publish Homebridge's HAP server as Homebridge cannot be started otherwise
         server.accessories.homebridge!.publish();
@@ -475,7 +475,7 @@ export async function handler(argv: Arguments) {
     if (server.accessories.homebridge) {
         if (!server.accessories.homebridge.bridge._server?._httpServer._tcpServer.listening) {
             log.info('Waiting for Homebridge to finish loading');
-            await new Promise<number>(rs => server.accessories.homebridge.bridge.once('listening', rs));
+            await new Promise<number>(rs => server.accessories.homebridge!.bridge.once('listening', rs));
         }
 
         log.info('Loading accessories from Homebridge');
@@ -532,11 +532,12 @@ export async function handler(argv: Arguments) {
         const XkcdPassword = await import('xkcd-password');
         const password = new XkcdPassword();
 
-        const setup_token = server.setup_token = await password.generate({
+        const setup_token = await password.generate({
             numWords: 4,
             minLength: 5,
             maxLength: 8,
         });
+        server.setup_token = setup_token.join(' ');
 
         if (web_interface_address) {
             log.info('Setup hap-server in the web interface at %s',
@@ -585,7 +586,7 @@ export async function handler(argv: Arguments) {
 
                 server.automations.stop(),
 
-                new Promise((rs, rj) => server.wss.close((err: Error) => err ? rj(err) : rs())),
+                new Promise((rs, rj) => server.wss.close(err => err ? rj(err) : rs())),
             ]);
 
             server.removeListener(AddAccessoryEvent, saveCachedAccessories);

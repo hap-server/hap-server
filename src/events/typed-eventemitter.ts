@@ -5,15 +5,19 @@ type EventMap<E> = {
 };
 type EventListener<T extends EventEmitter, A extends any[]> = (this: T, ...args: A) => void;
 
+// @ts-ignore
 export default class TypedEventEmitter<
     T extends EventEmitter,
     E extends any = Record<string | symbol, any[]>,
+    // @ts-ignore
     Events extends Record<string | symbol, any[]> = EventMap<E>
 > extends EventEmitter {}
 
+// @ts-ignore
 export default interface TypedEventEmitter<
     T extends EventEmitter,
     E extends any = Record<string | symbol, any[]>,
+    // @ts-ignore
     Events extends Record<string | symbol, any[]> = EventMap<E>
 > {
     addListener<E extends keyof Events>(event: E, listener: EventListener<T, Events[E]>): this;

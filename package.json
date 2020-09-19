@@ -46,6 +46,7 @@
         "simple-plist": "^1.1.0",
         "sql-template-strings": "^2.2.2",
         "sqlite": "^4.0.14",
+        "sqlite3": "^5.0.0",
         "sunrise-sunset-js": "^2.1.2",
         "systeminformation": "^4.27.5",
         "tslib": "^1.13.0",
