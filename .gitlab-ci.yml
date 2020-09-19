@@ -1,7 +1,7 @@
 # This file is a template, and might need editing before it works on your project.
 # Official framework image. Look for the different tagged releases at:
 # https://hub.docker.com/r/library/node/tags/
-image: node:12
+image: node:14
 
 # This folder is cached between builds
 # http://docs.gitlab.com/ce/ci/yaml/README.html#cache
@@ -36,6 +36,8 @@ sast:
 build:
     stage: build
     script:
+        - apt-get update && apt-get install -qq git && apt-get clean
+
         - "LAST_VERSION=`git log --tags --no-walk --pretty=\"format:%D\" | egrep \"^tag: v\\d+\\.\\d+\\.\\d+$\" | head -n 1 | sed s/tag:\\ v//`; if [ \"$LAST_VERSION\" = \"\" ]; then LAST_VERSION=`node -e \"console.log(JSON.parse(fs.readFileSync('package.json', 'utf-8')).version)\"`; fi"
         - REVISION=`expr $(git rev-list --count HEAD) - $(git rev-list --count v$LAST_VERSION)`; if [ "$?" != "0" ]; then REVISION="0"; fi
         - export VERSION=`if [ "$REVISION" = "0" ]; then echo "$LAST_VERSION"; else echo "$LAST_VERSION-next.\`expr "$REVISION" - 1\`"; fi`
