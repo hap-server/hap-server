@@ -36,10 +36,9 @@ sast:
 build:
     stage: build
     script:
-        - apt-get update && apt-get install -qq git && apt-get clean
-
+        - TAGS=`git log --tags --no-walk --pretty="format:%D"`
         - |
-            LAST_VERSION=`git log --tags --no-walk --pretty="format:%D" | egrep "^tag: v\d+\.\d+\.\d+$" | head -n 1 | sed s/tag:\ v//`
+            LAST_VERSION=`echo $TAGS | grep -E "^tag: v\d+\.\d+\.\d+$" | head -n 1 | sed s/tag:\ v//`
             if [ "$LAST_VERSION" = "" ]; then LAST_VERSION=`node -e "console.log(JSON.parse(fs.readFileSync('package.json', 'utf-8')).version)"`; fi
         - |
             REVISION=`expr $(git rev-list --count HEAD) - $(git rev-list --count v$LAST_VERSION)`
