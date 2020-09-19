@@ -53,27 +53,24 @@ build:
 
         - cd release/hap-server
 
-        # Update the package.json and package-lock.json
+        # Update the package.json
         - "node -e \"fs.writeFileSync('package.json', JSON.stringify((json => {json.version = process.env.VERSION; return json;})(JSON.parse(fs.readFileSync('package.json', 'utf-8'))), null, 4) + '\\n', 'utf-8')\""
-        - "node -e \"fs.writeFileSync('package-lock.json', JSON.stringify((json => {json.version = process.env.VERSION; return json;})(JSON.parse(fs.readFileSync('package-lock.json', 'utf-8'))), null, 4) + '\\n', 'utf-8')\""
 
         - PACKAGE_PATH=`npm --color="always" pack`
         - mv $PACKAGE_PATH ../../hap-server-release.tgz
 
         - cd ../api-types
 
-        # Update the package.json and package-lock.json
+        # Update the package.json
         - "node -e \"fs.writeFileSync('package.json', JSON.stringify((json => {json.version = process.env.VERSION; return json;})(JSON.parse(fs.readFileSync('package.json', 'utf-8'))), null, 4) + '\\n', 'utf-8')\""
-        - "node -e \"fs.writeFileSync('package-lock.json', JSON.stringify((json => {json.version = process.env.VERSION; return json;})(JSON.parse(fs.readFileSync('package-lock.json', 'utf-8'))), null, 4) + '\\n', 'utf-8')\""
 
         - PACKAGE_PATH=`npm --color="always" pack`
         - mv $PACKAGE_PATH ../../hap-server-api-types-release.tgz
 
         - cd ../ui-api-types
 
-        # Update the package.json and package-lock.json
+        # Update the package.json
         - "node -e \"fs.writeFileSync('package.json', JSON.stringify((json => {json.version = process.env.VERSION; return json;})(JSON.parse(fs.readFileSync('package.json', 'utf-8'))), null, 4) + '\\n', 'utf-8')\""
-        - "node -e \"fs.writeFileSync('package-lock.json', JSON.stringify((json => {json.version = process.env.VERSION; return json;})(JSON.parse(fs.readFileSync('package-lock.json', 'utf-8'))), null, 4) + '\\n', 'utf-8')\""
 
         - PACKAGE_PATH=`npm --color="always" pack`
         - mv $PACKAGE_PATH ../../hap-server-ui-api-types-release.tgz
