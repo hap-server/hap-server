@@ -37,7 +37,7 @@ build:
     stage: build
     script:
         - TAGS=`git log --tags --no-walk --pretty="format:%D"`; echo $TAGS
-        - "echo `echo $TAGS | grep -E \"^tag: v\\d+\\.\\d+\\.\\d+$\" | head -n 1 | sed s/tag:\\ v//`"
+        - "echo `echo $TAGS | grep -E \"^tag: v\\d+\\.\\d+\\.\\d+$\"`"
         - "LAST_VERSION=`echo $TAGS | grep -E \"^tag: v\\d+\\.\\d+\\.\\d+$\" | head -n 1 | sed s/tag:\\ v//`"
         - if [ "$LAST_VERSION" = "" ]; then LAST_VERSION=`node -e "console.log(JSON.parse(fs.readFileSync('package.json', 'utf-8')).version)"`; fi
         - |
