@@ -273,6 +273,12 @@ those registries, you can install from `main` with this:
 npm install -g @hap-server/hap-server@next
 ```
 
+To switch back to the latest stable version specify the `latest` tag:
+
+```
+npm install -g @hap-server/hap-server@latest
+```
+
 Alternatively you can install from the git repository (or a mirror). When installing from git `npm` will build
 hap-server locally.
 
