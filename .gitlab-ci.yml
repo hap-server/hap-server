@@ -42,15 +42,34 @@ build:
         - npx gulp --color build-api-types build-ui-api-types
         - npx gulp --color build-example-plugins
 
+        - "LAST_VERSION=`git log --tags --no-walk --pretty=\"format:%D\" | egrep \"^tag: v\d+\.\d+\.\d+$\" | head -n 1 | sed s/tag:\\ v/`; if [ \"$LAST_VERSION\" = \"\" ]; then LAST_VERSION=`node -e \"console.log(JSON.parse(fs.readFileSync('package.json', 'utf-8')).version)\"`; fi"
+        - REVISION=`expr $(git rev-list --count HEAD) - $(git rev-list --count v$LAST_VERSION)`; if [ "$?" != "0" ]; then REVISION="0"; fi
+        - export VERSION=`if [ "$REVISION" = "0" ]; then echo "$LAST_VERSION"; else echo "$LAST_VERSION-next.\`expr "$REVISION" - 1\`"; fi`
+
         - cd release/hap-server
+
+        # Update the package.json and package-lock.json
+        - "node -e \"fs.writeFileSync('package.json', JSON.stringify((json => {json.version = process.env.VERSION; return json;})(JSON.parse(fs.readFileSync('package.json', 'utf-8'))), null, 4) + '\\n', 'utf-8')\""
+        - "node -e \"fs.writeFileSync('package-lock.json', JSON.stringify((json => {json.version = process.env.VERSION; return json;})(JSON.parse(fs.readFileSync('package-lock.json', 'utf-8'))), null, 4) + '\\n', 'utf-8')\""
+
         - PACKAGE_PATH=`npm --color="always" pack`
         - mv $PACKAGE_PATH ../../hap-server-release.tgz
 
         - cd ../api-types
+
+        # Update the package.json and package-lock.json
+        - "node -e \"fs.writeFileSync('package.json', JSON.stringify((json => {json.version = process.env.VERSION; return json;})(JSON.parse(fs.readFileSync('package.json', 'utf-8'))), null, 4) + '\\n', 'utf-8')\""
+        - "node -e \"fs.writeFileSync('package-lock.json', JSON.stringify((json => {json.version = process.env.VERSION; return json;})(JSON.parse(fs.readFileSync('package-lock.json', 'utf-8'))), null, 4) + '\\n', 'utf-8')\""
+
         - PACKAGE_PATH=`npm --color="always" pack`
         - mv $PACKAGE_PATH ../../hap-server-api-types-release.tgz
 
         - cd ../ui-api-types
+
+        # Update the package.json and package-lock.json
+        - "node -e \"fs.writeFileSync('package.json', JSON.stringify((json => {json.version = process.env.VERSION; return json;})(JSON.parse(fs.readFileSync('package.json', 'utf-8'))), null, 4) + '\\n', 'utf-8')\""
+        - "node -e \"fs.writeFileSync('package-lock.json', JSON.stringify((json => {json.version = process.env.VERSION; return json;})(JSON.parse(fs.readFileSync('package-lock.json', 'utf-8'))), null, 4) + '\\n', 'utf-8')\""
+
         - PACKAGE_PATH=`npm --color="always" pack`
         - mv $PACKAGE_PATH ../../hap-server-ui-api-types-release.tgz
     artifacts:
@@ -226,6 +245,37 @@ publish-gitlab:
             - $GITLAB_NPM_PUBLISH
     except:
         - branches
+    cache:
+        paths:
+            - node_modules/
+        policy: pull
+
+publish-next-gitlab:
+    stage: deploy
+    script:
+        - cd release/hap-server
+
+        - node -e "if (JSON.parse(fs.readFileSync('package.json', 'utf-8')).version.match(/^\d+\.\d+\.\d+-next\.\d+$/)) process.exit(0); else process.exit(1);"; if [ "$?" != "0" ]; then echo "Build does not have a -next prerelease tag."; exit 0; fi
+
+        - echo "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/npm/:_authToken=${CI_JOB_TOKEN}" | sed s/^https:// > .npmrc
+        - npm --color="always" --registry=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/npm/ publish --tag next
+
+        - cd ../api-types
+        - cp ../hap-server/.npmrc .
+        - npm --color="always" --registry=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/npm/ publish --tag next
+
+        - cd ../ui-api-types
+        - cp ../hap-server/.npmrc .
+        - npm --color="always" --registry=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/npm/ publish --tag next
+    dependencies:
+        - build
+    only:
+        refs:
+            - main
+        variables:
+            - $GITLAB_NPM_PUBLISH_NEXT
+    except:
+        - tags
     cache:
         paths:
             - node_modules/
