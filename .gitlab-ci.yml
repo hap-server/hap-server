@@ -26,7 +26,7 @@ retire-js-dependency_scanning:
 sast:
     cache:
         key: none
-    dependencies: []
+    needs: []
     before_script:
         - rm -rf node_modules/ || true
         - rm -rf dist/ || true
@@ -36,14 +36,16 @@ sast:
 build:
     stage: build
     script:
-        # - TAGS=`git log --tags --no-walk --pretty="format:%D"`; echo "$TAGS"
-        # - |
-        #     echo "$TAGS" | grep -E "^tag: v\d+\.\d+\.\d+"
-        # - "LAST_VERSION=`echo $TAGS | grep -E \"^tag: v\\d+\\.\\d+\\.\\d+$\" | head -n 1 | sed s/tag:\\ v//`"
+        # Get the last tagged version from the commit history
+        - "LAST_VERSION=`node -e \"console.log((process.argv[1].match(/^tag: v(\\d+\\.\\d+\\.\\d+)$/m) || ['', ''])[1])\" \"\\`git log --tags --no-walk --pretty=\"format:%D\"\\`\"`"
+        # If that fails, use the version in the package.json
         - if [ "$LAST_VERSION" = "" ]; then LAST_VERSION=`node -e "console.log(JSON.parse(fs.readFileSync('package.json', 'utf-8')).version)"`; fi
+        # Get the revision number (the number of commits since that version)
         - REVISION=`expr $(git rev-list --count HEAD) - $(git rev-list --count v$LAST_VERSION)`; if [ "$?" != "0" ]; then REVISION="0"; fi
-        - export VERSION=`if [ "$REVISION" = "0" ]; then echo "$LAST_VERSION"; else echo "$LAST_VERSION-next.\`expr "$REVISION" - 1\`"; fi`
-        - echo "Building version $VERSION"
+        # If there's no commits since that version, use that version number, otherwise add a -next prerelease tag and
+        # the short commit hash
+        - export VERSION=`if [ "$CI_COMMIT_BRANCH" = "main" || "$CI_COMMIT_TAG" != "" ]; then if [ "$REVISION" = "0" ]; then echo "$LAST_VERSION"; else echo "$LAST_VERSION-next.\`expr "$REVISION" - 1\`+sha.\`echo $CI_COMMIT_SHA | head -c 7\`"; fi; else echo "$LAST_VERSION"; fi`
+        - echo "Building version $VERSION (from $LAST_VERSION, revision $REVISION, commit $CI_COMMIT_SHA, branch $CI_COMMIT_BRANCH)"
 
         - npm --color="always" install
         - npx gulp --color build
@@ -94,30 +96,32 @@ build:
         variables:
             - $NPM_AUDIT_SCHEDULE_SKIP_BUILD
 
-# test:
-#     stage: test
-#     image: node:$NODE_VERSION
-#     script:
-#         - npm --color="always" install
-#         - npm run test
-#     only:
-#         changes:
-#             - .gitlab-ci.yml
-#             - package-lock.json
-#             - src/**/*.js
-#             - src/**/*.ts
-#             - src/**/*.vue
-#             - example-plugins/src/**/*.js
-#     except:
-#         variables:
-#             - $NPM_AUDIT_SCHEDULE_SKIP_BUILD
-#     cache:
-#         key: node-v$NODE_VERSION
-#         paths:
-#             - node_modules/
-#     parallel:
-#         matrix:
-#             - NODE_VERSION: [10, 12, 14]
+.test:
+    stage: test
+    image: node:$NODE_VERSION
+    script:
+        - npm --color="always" install
+        - npm run test
+    only:
+        changes:
+            - .gitlab-ci.yml
+            - package-lock.json
+            - src/**/*.js
+            - src/**/*.ts
+            - src/**/*.vue
+            - example-plugins/src/**/*.js
+    except:
+        variables:
+            - $NPM_AUDIT_SCHEDULE_SKIP_BUILD
+    needs:
+        - build
+    cache:
+        key: node-v$NODE_VERSION
+        paths:
+            - node_modules/
+    parallel:
+        matrix:
+            - NODE_VERSION: [10, 12, 14]
 
 lint:
     stage: test
@@ -128,6 +132,7 @@ lint:
         - npx eslint --ext .vue --color src ; VUE_EXIT_CODE="$?"
         - FORCE_COLOR=1 npx sass-lint -v ; SASS_EXIT_CODE="$?"
         - sh -c "exit `expr $JS_EXIT_CODE + $TS_EXIT_CODE + $VUE_EXIT_CODE + $SASS_EXIT_CODE`"
+    needs: []
     only:
         changes:
             - .gitlab-ci.yml
@@ -156,11 +161,11 @@ audit:
         paths:
             - npm-audit.json
         when: always
+    needs: []
     only:
         changes:
             - .gitlab-ci.yml
             - package-lock.json
-    dependencies: []
     cache:
         paths:
             - node_modules/
@@ -257,7 +262,7 @@ publish-next-gitlab:
     script:
         - cd release/hap-server
 
-        - node -e "if (JSON.parse(fs.readFileSync('package.json', 'utf-8')).version.match(/^\d+\.\d+\.\d+-next\.\d+$/)) process.exit(0); else process.exit(1);"; if [ "$?" != "0" ]; then echo "Build does not have a -next prerelease tag."; exit 0; fi
+        - node -e "if (JSON.parse(fs.readFileSync('package.json', 'utf-8')).version.match(/^\d+\.\d+\.\d+-next\.\d+\+sha\.[0-9a-f]{7}$/)) process.exit(0); else process.exit(1);"; if [ "$?" != "0" ]; then echo "Build does not have a -next prerelease tag."; exit 0; fi
 
         - echo "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/npm/:_authToken=${CI_JOB_TOKEN}" | sed s/^https:// > .npmrc
         - npm --color="always" --registry=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/npm/ publish --tag next
@@ -278,6 +283,7 @@ publish-next-gitlab:
             - $GITLAB_NPM_PUBLISH_NEXT
     except:
         - tags
+        - schedules
     cache:
         paths:
             - node_modules/
