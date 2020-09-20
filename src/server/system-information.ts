@@ -260,9 +260,9 @@ export class SystemInformation {
             if (name === 'nodejs') continue;
 
             const installed_version = installed_versions[name];
-            if (installed_version || latest_version) continue;
+            if (!installed_version || !latest_version) continue;
 
-            if (installed_version && semver.gt(latest_version, '' + installed_version, {
+            if (semver.gt(latest_version, '' + installed_version, {
                 loose: true,
             })) {
                 updates[name] = latest_version;
@@ -298,8 +298,8 @@ export class SystemInformation {
         };
 
         const [hapserver, homebridge, hapnodejs, nodejs, nodejs_schedule, npm] = await Promise.all([
-            require('..').private ? undefined :
-                this.getLatestNpmPackageVersion(require('..').name).catch(err('hap-server')),
+            require('..').package_json.private ? undefined :
+                this.getLatestNpmPackageVersion(require('..').package_json.name).catch(err('hap-server')),
             require('homebridge/package').private ? undefined :
                 this.getLatestNpmPackageVersion('homebridge').catch(err('Homebridge')),
             require('hap-nodejs/package').private ? undefined :
