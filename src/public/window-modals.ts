@@ -104,10 +104,10 @@ export class WindowModals extends Modals {
 }
 
 export class ModalWindowModals extends Modals {
+    // @ts-expect-error
     get stack(): Modal[] {
         throw new Error('Cannot read modal stack from child windows');
     }
-
     set stack(stack: Modal[]) {}
 
     _add(modal: Modal) {
