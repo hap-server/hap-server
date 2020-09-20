@@ -194,7 +194,7 @@ function getCertificates(certificates: string | [string, string], base_path: str
     return Promise.all(([] as string[]).concat(certificates || []).map(async certificate => {
         if (certificate.startsWith('-----')) return certificate;
 
-        return fs.readFile(path.resolve(base_path, certificate), 'utf-8');
+        return fs.readFile(path.resolve(base_path, certificate), 'utf-8') as Promise<string>;
     }));
 }
 
@@ -301,7 +301,7 @@ export async function handler(argv: Arguments) {
     const cli_auth_token = cli_auth_token_bytes.toString('hex');
 
     await fs.writeFile(path.join(data_path, 'cli-token'), cli_auth_token_bytes);
-    await fs.writeFile(path.join(data_path, 'hap-server.pid'), process.pid);
+    await fs.writeFile(path.join(data_path, 'hap-server.pid'), '' + process.pid);
 
     const server = await Server.createServer({
         hostname: config.hostname,
@@ -386,7 +386,7 @@ export async function handler(argv: Arguments) {
             cert: (await getCertificates(https as string | [string, string], data_path))
                 .filter(c => (c as string).match(/CERTIFICATE/i)),
             key: (await getCertificates(https as string | [string, string], data_path))
-                .filter(c => (c as string).match(/PRIVATE KEY/i)),
+                .filter(c => c.match(/PRIVATE KEY/i)).join('\n'),
             crl: await getCertificates(https_crl, data_path),
             passphrase: https_passphrase,
 
@@ -410,11 +410,11 @@ export async function handler(argv: Arguments) {
             await new Promise((rs, rj) => listening_server.listen(address[2], address[1], () => rs()));
 
             // @ts-ignore
-            const http_port = listening_server.address().port;
+            const http_port: number = listening_server.address().port;
             log.info(`Listening on ${address[1]} port ${http_port}`);
 
             if (address[1] === '::' && !wrote_port_file) {
-                await fs.writeFile(path.join(data_path, 'hap-server-port'), http_port);
+                await fs.writeFile(path.join(data_path, 'hap-server-port'), '' + http_port);
                 wrote_port_file = true;
             }
         } else if (address[0] === 'unix') {
