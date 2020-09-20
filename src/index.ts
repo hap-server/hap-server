@@ -1,6 +1,5 @@
 import Events, {Event, ExtendableEvent, EventListeners} from './events';
 import * as ServerEvents from './events/server';
-import TypedEventEmitter from './events/typed-eventemitter';
 
 import Server from './server/server';
 import PluginManager from './server/plugins';
@@ -35,7 +34,6 @@ export {
     ServerEvents,
     ExtendableEvent,
     EventListeners,
-    TypedEventEmitter,
 
     Server,
     PluginManager,

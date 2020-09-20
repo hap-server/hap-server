@@ -69,7 +69,7 @@ declare module 'homebridge/lib/api' {
     import {PlatformAccessory} from 'homebridge/lib/platformAccessory';
     import {CallableLogger} from 'homebridge/lib/logger';
     import {Service} from 'hap-nodejs/lib/Service';
-    import TypedEventEmitter from '@hap-server/types/typed-eventemitter';
+    import {TypedEmitter} from 'tiny-typed-emitter';
 
     type AccessoryConstructor = {
         new (log: CallableLogger, config: any): AccessoryInstance;
@@ -95,13 +95,13 @@ declare module 'homebridge/lib/api' {
     }
 
     interface Events {
-        'publishExternalAccessories': [PlatformAccessory[]];
-        'registerPlatformAccessories': [PlatformAccessory[]];
-        'updatePlatformAccessories': [PlatformAccessory[]];
-        'unregisterPlatformAccessories': [PlatformAccessory[]];
+        'publishExternalAccessories': (this: API, accessories: PlatformAccessory[]) => void;
+        'registerPlatformAccessories': (this: API, accessories: PlatformAccessory[]) => void;
+        'updatePlatformAccessories': (this: API, accessories: PlatformAccessory[]) => void;
+        'unregisterPlatformAccessories': (this: API, accessories: PlatformAccessory[]) => void;
     }
 
-    export class API extends TypedEventEmitter<API, Events> {
+    export class API extends TypedEmitter<Events> {
         readonly _accessories: Record<string, AccessoryConstructor | undefined>;
         readonly _platforms: Record<string, PlatformConstructor | undefined>;
 

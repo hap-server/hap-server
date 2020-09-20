@@ -11,7 +11,7 @@ import * as util from 'util';
 import * as stream from 'stream';
 import * as repl from 'repl';
 import * as child_process from 'child_process';
-import genuuid = require('uuid/v4');
+import {v4 as genuuid} from 'uuid';
 import _mkdirp = require('mkdirp');
 import chalk from 'chalk';
 import WebSocket = require('ws');

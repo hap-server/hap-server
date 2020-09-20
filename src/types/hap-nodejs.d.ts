@@ -24,7 +24,7 @@ declare module 'hap-nodejs/lib/HAPServer' {
     import {
         AccessoryHap, CharacteristicHap,
     } from '@hap-server/types/hap';
-    import TypedEventEmitter from '@hap-server/types/typed-eventemitter';
+    import {TypedEmitter} from 'tiny-typed-emitter';
     import {EventedHTTPServer} from 'hap-nodejs/lib/util/eventedhttp';
     import {AccessoryInfo} from 'hap-nodejs/lib/model/AccessoryInfo';
 
@@ -50,16 +50,18 @@ declare module 'hap-nodejs/lib/HAPServer' {
     type ResourceRequestData = unknown;
 
     interface Events {
-        'listening': [/** port */ number];
-        'session-close': [/** sessionID */ string, /** events */ object];
-        'identify': [(err?: Error | null) => void];
-        'pair': [/** clientUsername */ string, /** clientLTPK */ Buffer, (err?: Error | null) => void];
-        'unpair': [/** clientUsername */ string, (err?: Error | null) => void];
-        'accessories': [{
+        'listening': (this: HAPServer, port: number) => void;
+        'session-close': (this: HAPServer, sessionID: string, events: object) => void;
+        'identify': (this: HAPServer, callback: (err?: Error | null) => void) => void;
+        'pair': (
+            this: HAPServer, clientUsername: string, clientLTPK: Buffer, callback: (err?: Error | null) => void
+        ) => void;
+        'unpair': (this: HAPServer, clientUsername: string, callback: (err?: Error | null) => void) => void;
+        'accessories': (this: HAPServer, callback: {
             (err: Error, accessories?: null): void;
             (err: null, accessories: {accessories: AccessoryHap[]}): void;
-        }];
-        'get-characteristics': [GetCharacteristicData[], object, {
+        }) => void;
+        'get-characteristics': (this: HAPServer, request: GetCharacteristicData[], events: object, callback: {
             (err: Error, characteristics?: null): void;
             (err: null, characteristics: {characteristics: ({
                 aid: number;
@@ -67,22 +69,22 @@ declare module 'hap-nodejs/lib/HAPServer' {
                 value?: string | number | boolean;
                 status?: number;
             } & CharacteristicHap)[];}): void;
-        }, /** remote */ boolean, /** sessionID */ string | undefined];
-        'set-characteristics': [SetCharacteristicData[], object, {
+        }, remote: boolean, sessionID: string | undefined) => void;
+        'set-characteristics': (this: HAPServer, request: SetCharacteristicData[], events: object, callback: {
             (err: Error, characteristics?: null): void;
             (err: null, characteristics: {
                 aid: number;
                 iid: number;
                 status?: number;
             }[]): void;
-        }, /** remote */ boolean, /** sessionID */ string | undefined];
-        'request-resource': [ResourceRequestData, {
+        }, remote: boolean, sessionID: string | undefined) => void;
+        'request-resource': (this: HAPServer, request: ResourceRequestData, callback: {
             (err: Error, resource?: Buffer): void;
             (err: null, resource: Buffer): void;
-        }];
+        }) => void;
     }
 
-    export class HAPServer extends TypedEventEmitter<HAPServer, Events> {
+    export class HAPServer extends TypedEmitter<Events> {
         static readonly handlers: typeof Handlers;
         static readonly Types: typeof Types;
         static readonly Codes: typeof Codes;
@@ -180,17 +182,24 @@ declare module 'hap-nodejs/lib/HAPServer' {
 }
 
 declare module 'hap-nodejs/lib/util/eventedhttp' {
-    import TypedEventEmitter from '@hap-server/types/typed-eventemitter';
+    import {TypedEmitter} from 'tiny-typed-emitter';
 
     interface Events {
-        'listening': [number];
-        'request': [import('http').IncomingMessage, import('http').ServerResponse, Session, object];
-        'encrypt': [Buffer, {data: Buffer | null}, Session];
-        'decrypt': [Buffer, {data: Buffer | null}, Session];
-        'session-close': [/** sessionID */ string, /** events */ object];
+        'listening': (this: EventedHTTPServer, port: number) => void;
+        'request': (
+            this: EventedHTTPServer, req: import('http').IncomingMessage, res: import('http').ServerResponse,
+            session: Session, events: object
+        ) => void;
+        'encrypt': (
+            this: EventedHTTPServer, toEncrypt: Buffer, result: {data: Buffer | null}, session: Session
+        ) => void;
+        'decrypt': (
+            this: EventedHTTPServer, toDecrypt: Buffer, result: {data: Buffer | null}, session: Session
+        ) => void;
+        'session-close': (this: EventedHTTPServer, sessionID: string, events: object) => void;
     }
 
-    export class EventedHTTPServer extends TypedEventEmitter<EventedHTTPServer, Events> {
+    export class EventedHTTPServer extends TypedEmitter<Events> {
         readonly _tcpServer: import('net').Server;
         readonly _connections: EventedHTTPServerConnection[];
 
@@ -231,13 +240,20 @@ declare module 'hap-nodejs/lib/util/eventedhttp' {
     }
 
     interface ConnectionEvents {
-        'request': [import('http').IncomingMessage, import('http').ServerResponse, Session, object];
-        'encrypt': [Buffer, {data: Buffer | null}, Session];
-        'decrypt': [Buffer, {data: Buffer | null}, Session];
-        'close': [/** events */ object];
+        'request': (
+            this: EventedHTTPServerConnection, req: import('http').IncomingMessage, res: import('http').ServerResponse,
+            session: Session, events: object
+        ) => void;
+        'encrypt': (
+            this: EventedHTTPServerConnection, toEncrypt: Buffer, result: {data: Buffer | null}, session: Session
+        ) => void;
+        'decrypt': (
+            this: EventedHTTPServerConnection, toDecrypt: Buffer, result: {data: Buffer | null}, session: Session
+        ) => void;
+        'close': (this: EventedHTTPServerConnection, events: object) => void;
     }
 
-    class EventedHTTPServerConnection extends TypedEventEmitter<EventedHTTPServerConnection, ConnectionEvents> {
+    class EventedHTTPServerConnection extends TypedEmitter<ConnectionEvents> {
         readonly sessionID: string;
 
         /** Cache because it becomes undefined in 'onClientSocketClose' */
@@ -415,7 +431,7 @@ declare module 'hap-nodejs/lib/StreamController' {
 }
 
 declare module 'hap-nodejs/lib/Accessory' {
-    import TypedEventEmitter from '@hap-server/types/typed-eventemitter';
+    import {TypedEmitter} from 'tiny-typed-emitter';
     import {Service} from 'hap-nodejs/lib/Service';
     import {ToHapOptions} from 'hap-nodejs/lib/Characteristic';
     import {Camera} from 'hap-nodejs/lib/Camera';
@@ -425,10 +441,10 @@ declare module 'hap-nodejs/lib/Accessory' {
     import {IdentifierCache} from 'hap-nodejs/lib/model/IdentifierCache';
 
     interface Events {
-        'identify': [/** paired */ boolean, (err?: Error) => void];
-        'service-configurationChange': [{accessory: Accessory; service: Service}];
-        'service-characteristic-change': [never & {service: Service}];
-        'listening': [/** port */ number];
+        'identify': (this: Accessory, paired: boolean, callback: (err?: Error) => void) => void;
+        'service-configurationChange': (this: Accessory, change: {accessory: Accessory; service: Service}) => void;
+        'service-characteristic-change': (this: Accessory, change: never & {service: Service}) => void;
+        'listening': (this: Accessory, port: number) => void;
     }
 
     interface PublishInfo {
@@ -440,7 +456,7 @@ declare module 'hap-nodejs/lib/Accessory' {
         mdns?: unknown;
     }
 
-    export class Accessory extends TypedEventEmitter<Accessory, Events> {
+    export class Accessory extends TypedEmitter<Events> {
         static readonly Categories: typeof Category;
 
         readonly displayName: string;
@@ -519,15 +535,15 @@ declare module 'hap-nodejs/lib/Accessory' {
         private _generateSetupID;
     }
 
-    interface Accessory {
+    export interface Accessory {
         constructor: typeof Accessory;
     }
 
-    namespace Accessory {
+    export namespace Accessory {
         type Categories = Category;
     }
 
-    enum Category {
+    export const enum Category {
         OTHER = 1,
         BRIDGE = 2,
         FAN = 3,
@@ -572,20 +588,20 @@ declare module 'hap-nodejs/lib/Accessory' {
 }
 
 declare module 'hap-nodejs/lib/Service' {
-    import TypedEventEmitter from '@hap-server/types/typed-eventemitter';
+    import {TypedEmitter} from 'tiny-typed-emitter';
     import {Characteristic, ToHapOptions, CharacteristicGetContext} from 'hap-nodejs/lib/Characteristic';
 
     interface Events<T = string | number | boolean> {
-        'characteristic-change': [{
+        'characteristic-change': (this: Service, change: {
             oldValue: T | null;
             newValue: T;
             context: CharacteristicGetContext;
             characteristic: Characteristic<T>;
-        }];
-        'service-configurationChange': [{service: Service}];
+        }) => void;
+        'service-configurationChange': (this: Service, change: {service: Service}) => void;
     }
 
-    export class Service extends TypedEventEmitter<Service, Events> {
+    export class Service extends TypedEmitter<Events> {
         readonly displayName: string | undefined;
         readonly UUID: string;
         readonly subtype: string | undefined;
@@ -636,7 +652,7 @@ declare module 'hap-nodejs/lib/Service' {
 }
 
 declare module 'hap-nodejs/lib/Characteristic' {
-    import TypedEventEmitter from '@hap-server/types/typed-eventemitter';
+    import {TypedEmitter} from 'tiny-typed-emitter';
     import {
         CharacteristicFormat, CharacteristicUnit, CharacteristicPerms,
     } from '@hap-server/types/hap';
@@ -649,14 +665,19 @@ declare module 'hap-nodejs/lib/Characteristic' {
     type CharacteristicUpdateContext = object;
 
     interface Events<T = string | number | boolean> {
-        'subscribe': [];
-        'unsubscribe': [];
-        'get': [{
+        'subscribe': (this: Characteristic<T>) => void;
+        'unsubscribe': (this: Characteristic<T>) => void;
+        'get': (this: Characteristic<T>, callback: {
             (err: Error): void;
             (err: null, newValue: T): void;
-        }, CharacteristicGetContext | undefined, string | undefined];
-        'set': [T, (err?: Error) => void, CharacteristicGetContext | undefined, string | undefined];
-        'change': [{oldValue: T | null; newValue: T; context: CharacteristicGetContext}];
+        }, context?: CharacteristicGetContext, connectionID?: string) => void;
+        'set': (
+            this: Characteristic<T>, value: T, callback: (err?: Error) => void,
+            context?: CharacteristicGetContext, connectionID?: string
+        ) => void;
+        'change': (this: Characteristic<T>, change: {
+            oldValue: T | null; newValue: T; context: CharacteristicGetContext
+        }) => void;
     }
 
     export interface CharacteristicProps {
@@ -674,7 +695,7 @@ declare module 'hap-nodejs/lib/Characteristic' {
         omitValues?: boolean;
     }
 
-    export class Characteristic<T = string | number | boolean> extends TypedEventEmitter<Characteristic<T>, Events<T>> {
+    export class Characteristic<T = string | number | boolean> extends TypedEmitter<Events<T>> {
         static readonly Formats: typeof CharacteristicFormat;
         static readonly Units: typeof CharacteristicUnit;
         static readonly Perms: typeof CharacteristicPerms;

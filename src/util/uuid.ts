@@ -1,13 +1,13 @@
 /// <reference path="../types/hap-nodejs.d.ts" />
 
 import * as uuid from 'hap-nodejs/lib/util/uuid';
-import genuuid = require('uuid/v4');
+import {v4 as genuuid} from 'uuid';
 
 export const fromString = uuid.generate;
 export const fromBuffer = uuid.unparse;
 export const validate = uuid.isValid;
 
-export const generate = genuuid;
+export const generate: () => string = genuuid;
 
 const SHORT_FORM_REGEX = /^0*([0-9a-f]{1,8})-([0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 

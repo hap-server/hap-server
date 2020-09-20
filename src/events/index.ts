@@ -453,7 +453,7 @@ export default class Events extends EventEmitter {
      * @param {function} listener
      * @return {Events}
      */
-    removeListener(type: typeof Event | string | symbol, listener: (...args: any[]) => void) {
+    removeListener(type: typeof Event | string | symbol, listener: (...args: any[]) => void): this {
         // @ts-ignore
         if (type.prototype instanceof Event) {
             type = (type as typeof Event).type;

@@ -150,21 +150,25 @@ export class StagedAutomation extends Automation {
         return this;
     }
 
+    // @ts-expect-error
     get id() {
         return this.automation.id;
     }
     set id(id) {}
 
+    // @ts-expect-error
     get connection() {
         return this.automation.connection;
     }
     set connection(connection) {}
 
+    // @ts-expect-error
     get uuid() {
         return this.automation.uuid;
     }
     set uuid(uuid) {}
 
+    // @ts-expect-error
     get _permissions() {
         return this.automation._permissions;
     }

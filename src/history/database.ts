@@ -7,19 +7,24 @@ import * as util from 'util';
 import _mkdirp = require('mkdirp');
 
 import {create_schema} from './schema';
-import TypedEventEmitter from '../events/typed-eventemitter';
+import {TypedEmitter} from 'tiny-typed-emitter';
 
 const mkdirp = util.promisify(_mkdirp);
 
 interface Events {
-    'close': [];
+    'close': (this: HistoryDatabase) => void;
 
-    'assigned-characteristic-id': [number, [string, string, string | null, string]];
-    'assigned-user-id': [number, UserType, string];
-    'record': [Record];
+    'assigned-characteristic-id': (this: HistoryDatabase, id: number, data: [
+        /** Accessory UUID */ string, /** Service UUID */ string, /** Service subtype */ string | null,
+        /** Characteristic UUID */ string
+    ]) => void;
+    'assigned-user-id': (
+        this: HistoryDatabase, /** Record ID */ rid: number, type: UserType, /** User/pairing ID */ upid: string
+    ) => void;
+    'record': (this: HistoryDatabase, record: Record) => void;
 }
 
-export default class HistoryDatabase extends TypedEventEmitter<HistoryDatabase, Events> {
+export default class HistoryDatabase extends TypedEmitter<Events> {
     private readonly database: sqlite.Database;
 
     constructor(database: sqlite.Database) {

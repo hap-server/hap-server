@@ -1183,9 +1183,9 @@ export type AccessoryEvents = typeof AccessoryEvents[keyof typeof AccessoryEvent
 
 declare module 'hap-nodejs/lib/Accessory' {
     interface Events {
-        [AccessoryEvents.DESTROY]: [];
-        [AccessoryEvents.RELOAD]: [any];
-        [AccessoryEvents.STATUS]: [AccessoryStatus];
+        [AccessoryEvents.DESTROY]: (this: Accessory) => void;
+        [AccessoryEvents.RELOAD]: (this: Accessory, config: any) => void;
+        [AccessoryEvents.STATUS]: (this: Accessory, status: AccessoryStatus) => void;
     }
 
     export interface Accessory {

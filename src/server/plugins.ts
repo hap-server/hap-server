@@ -57,6 +57,8 @@ export class PluginManager extends Events {
     readonly plugin_config: Map<string, any>;
     default_plugin_config: any;
 
+    parent_emitter = events;
+
     constructor() {
         super();
 
@@ -66,10 +68,6 @@ export class PluginManager extends Events {
         this.plugin_storage = new Map();
         this.plugin_config = new Map();
         this.default_plugin_config = {};
-    }
-
-    get parent_emitter() {
-        return events;
     }
 
     static get instance() {

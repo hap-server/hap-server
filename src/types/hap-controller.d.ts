@@ -261,7 +261,7 @@ declare module 'hap-controller/lib/transport/ip/http-connection' {
 }
 
 declare module 'hap-controller/lib/transport/ip/ip-discovery' {
-    import TypedEventEmitter from '@hap-server/types/typed-eventemitter';
+    import {TypedEmitter} from 'tiny-typed-emitter';
 
     interface HapService {
         /** Accessory display name */
@@ -293,11 +293,11 @@ declare module 'hap-controller/lib/transport/ip/ip-discovery' {
     }
 
     interface Events {
-        'serviceUp': [HapService];
-        'serviceDown': [HapService];
+        'serviceUp': (this: IPDiscovery, service: HapService) => void;
+        'serviceDown': (this: IPDiscovery, service: HapService) => void;
     }
 
-    class IPDiscovery extends TypedEventEmitter<IPDiscovery, Events> {
+    class IPDiscovery extends TypedEmitter<Events> {
         browser: unknown;
 
         constructor();

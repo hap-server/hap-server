@@ -850,7 +850,7 @@ async function enableAdvertising(
     https_addresses: HttpsAddresses
 ): Promise<[import('bonjour').Bonjour, string]> {
     const bonjour = await import('bonjour');
-    const genuuid = await import('uuid/v4');
+    const {v4: genuuid} = await import('uuid');
     const _mkdirp = await import('mkdirp');
     const forge = await import('node-forge');
 
