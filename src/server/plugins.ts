@@ -230,13 +230,13 @@ export class PluginManager extends Events {
 
             try {
                 if (!semver.satisfies(hap_server_version, package_json.engines['@hap-server/hap-server'])) {
-                    throw new Error('"' + package_json.name + '" requires a hap-server version of '
-                        + package_json.engines['@hap-server/hap-server'] + ' - you have version ' + hap_server_version);
+                    throw new Error('"' + package_json.name + '" requires a hap-server version of ' +
+                        package_json.engines['@hap-server/hap-server'] + ' - you have version ' + hap_server_version);
                 }
 
                 if (package_json.engines.node && !semver.satisfies(process.version, package_json.engines.node)) {
-                    log.warn('"' + package_json.name + '" requires a Node.js version of '
-                        + package_json.engines.node + ' - you have version ' + process.version);
+                    log.warn('"' + package_json.name + '" requires a Node.js version of ' +
+                        package_json.engines.node + ' - you have version ' + process.version);
                 }
             } catch (err) {
                 log.error('Error loading plugin', package_json && package_json.name || plugin_path, err);
@@ -1149,8 +1149,8 @@ export class DiscoveredAccessory {
         Object.defineProperty(this, 'id', {value: DiscoveredAccessory.id++});
 
         Object.defineProperty(this, 'accessory_discovery',
-            accessory_discovery && accessory_discovery instanceof AccessoryDiscovery
-                ? {value: accessory_discovery} : {configurable: true, value: null});
+            accessory_discovery && accessory_discovery instanceof AccessoryDiscovery ?
+                {value: accessory_discovery} : {configurable: true, value: null});
 
         Object.assign(this, data);
     }
@@ -1259,8 +1259,8 @@ export class AuthenticationHandler {
 
         if (response instanceof AuthenticatedUser) {
             if (response.authentication_handler && response.authentication_handler !== this) {
-                throw new Error('The authentication handler returned an AuthenticatedUser object that belongs to'
-                    + ' another authentication handler');
+                throw new Error('The authentication handler returned an AuthenticatedUser object that belongs to' +
+                    ' another authentication handler');
             }
 
             Object.defineProperty(response, 'authentication_handler', {value: this});
@@ -1327,8 +1327,8 @@ export class AuthenticatedUser {
         Object.defineProperty(this, 'id', {value: id});
 
         Object.defineProperty(this, 'authentication_handler',
-            authentication_handler && authentication_handler instanceof AuthenticationHandler
-                ? {value: authentication_handler} : {configurable: true, value: null});
+            authentication_handler && authentication_handler instanceof AuthenticationHandler ?
+                {value: authentication_handler} : {configurable: true, value: null});
 
         Object.defineProperty(this, 'token', {configurable: true, value: null});
 

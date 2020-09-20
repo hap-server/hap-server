@@ -38,8 +38,8 @@ export const AuthenticationHandlerComponents = new ComponentRegistry<UIPlugin, {
     component: Component;
     name: string;
 }>();
-// eslint-disable-next-line func-call-spacing
 export const UserManagementHandlers = new ComponentRegistry<UIPlugin, {
+    // eslint-disable-next-line func-call-spacing
     new (connection: Connection): UserManagementHandler;
 }>();
 export const AutomationTriggerComponents = new ComponentRegistry<UIPlugin, {

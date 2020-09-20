@@ -82,8 +82,8 @@
                 if (this.authentication_handlers.length === 1) this.selected = this.authentication_handlers[0];
             },
             selected(id, old_id) {
-                this.authentication_handler_connection = typeof id !== 'undefined'
-                    ? new AuthenticationHandlerConnection(this.connection, id) : null;
+                this.authentication_handler_connection = typeof id !== 'undefined' ?
+                    new AuthenticationHandlerConnection(this.connection, id) : null;
                 this.authenticating = false;
             },
             connection(connection) {

@@ -314,7 +314,7 @@ export default class Connection {
 
     serialiseError(err: any) {
         return {
-            reject: true as true,
+            reject: true as const,
             error: err instanceof Error,
             constructor: err.constructor.name,
             data: err ? Object.assign({message: err.message, code: err.code, stack: err.stack}, err) : err,

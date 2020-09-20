@@ -14,6 +14,7 @@ module.exports = {
     },
     rules: {
         'indent': 'off',
+        'camelcase': 'off',
         '@typescript-eslint/indent': ['error', 4],
         '@typescript-eslint/camelcase': 'off',
         'max-len': ['warn', {code: 120, ignoreComments: true}],
@@ -27,7 +28,17 @@ module.exports = {
         '@typescript-eslint/no-use-before-define': 'off',
         '@typescript-eslint/no-empty-function': 'warn',
 
-        '@typescript-eslint/ban-ts-ignore': 'warn',
+        // '@typescript-eslint/ban-ts-ignore': 'warn',
+        '@typescript-eslint/ban-ts-comment': 'warn',
+        '@typescript-eslint/ban-types': 'warn',
+
+        'comma-dangle': ['error', {
+            arrays: 'always-multiline',
+            objects: 'always-multiline',
+            imports: 'always-multiline',
+            exports: 'always-multiline',
+            functions: 'never',
+        }],
 
         'spaced-comment': 'warn',
         '@typescript-eslint/triple-slash-reference': 'off',

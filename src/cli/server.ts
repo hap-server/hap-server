@@ -65,8 +65,8 @@ export function builder(yargs: typeof import('yargs')) {
     });
     yargs.option('plugin-path', {
         alias: 'P',
-        describe: 'Additional paths to look for plugins at as well as the default location'
-            + ' ([path] can also point to a single plugin)',
+        describe: 'Additional paths to look for plugins at as well as the default location' +
+            ' ([path] can also point to a single plugin)',
         type: 'array',
     });
 
@@ -964,8 +964,8 @@ async function enableAdvertising(
 
     const htmlencode = (format: TemplateStringsArray, ...args: any[]) => {
         return format.map((f, i) => i === 0 ? f : args[i - 1]
-            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
-        + f).join('');
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') +
+        f).join('');
     };
 
     const bonjour_http_service = bonjour_instance!.publish({

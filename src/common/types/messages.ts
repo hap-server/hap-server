@@ -574,13 +574,13 @@ export type UserManagementResponseMessage = any;
 export interface GetUsersPermissionsRequestMessage {
     type: 'get-users-permissions';
     id: string[];
-};
+}
 export type GetUsersPermissionsResponseMessage = Permissions[];
 
 export interface SetUsersPermissionsRequestMessage {
     type: 'set-users-permissions';
     id_data: [string, Permissions][];
-};
+}
 export type SetUsersPermissionsResponseMessage = void[];
 
 export interface AccessorySetupRequestMessage {

@@ -386,9 +386,7 @@ export default class Server extends Events {
      * @param {(function|number)} id A class that extends ServerPlugin or an ID
      * @return {ServerPlugin}
      */
-    getPlugin(
-        id: ServerPlugin | ServerPluginHandler | number
-    ): ServerPlugin | null {
+    getPlugin(id: ServerPlugin | ServerPluginHandler | number): ServerPlugin | null {
         if (typeof id === 'function' || typeof id === 'object') id = id.id;
 
         return this.plugins.get(id) || null;

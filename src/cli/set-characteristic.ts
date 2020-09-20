@@ -47,8 +47,8 @@ export async function handler(argv: Arguments) {
     log.withPrefix('Characteristic').debug(characteristic);
     log.withPrefix('Characteristic').info((characteristic.description || 'Value') + ':', characteristic.value);
 
-    const formatted_value = characteristic.format === 'bool' ? argv.value.match(/(t|y)/i) ? true : false
-        : argv.value;
+    const formatted_value = characteristic.format === 'bool' ?
+        argv.value.match(/(t|y)/i) ? true : false : argv.value;
 
     log.withPrefix('Characteristic').info('Setting value to', {value: argv.value, formatted_value});
 

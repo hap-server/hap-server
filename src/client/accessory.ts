@@ -113,8 +113,8 @@ class Accessory extends EventEmitter {
                 service_uuid.substr(service_uuid.indexOf('.') + 1) : undefined;
 
             // Service still exists
-            if (details.services && details.services.find(s => s.type === service_type
-                && (!s.subtype && !service_subtype) || s.subtype === service_subtype)) continue;
+            if (details.services && details.services.find(s => s.type === service_type &&
+                (!s.subtype && !service_subtype) || s.subtype === service_subtype)) continue;
 
             removed_service_ids.push(service_uuid);
         }

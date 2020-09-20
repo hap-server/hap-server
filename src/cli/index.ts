@@ -153,9 +153,9 @@ export function getConfig(argv: GlobalArguments): ConfigData {
      */
 
     // @ts-ignore
-    const data_path = argv.dataPath ? path.resolve(process.cwd(), argv.dataPath)
-        : config['data-path'] ? path.resolve(path.dirname(config_path), config['data-path'])
-            : path.dirname(config_path);
+    const data_path = argv.dataPath ? path.resolve(process.cwd(), argv.dataPath) :
+        config['data-path'] ? path.resolve(path.dirname(config_path), config['data-path']) :
+            path.dirname(config_path);
 
     return {config, config_path, data_path};
 }
