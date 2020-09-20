@@ -39,13 +39,16 @@ build:
         # Get the last tagged version from the commit history
         - "LAST_VERSION=`node -e \"console.log((process.argv[1].match(/^tag: v(\\d+\\.\\d+\\.\\d+)$/m) || ['', ''])[1])\" \"\\`git log --tags --no-walk --pretty=\"format:%D\"\\`\"`"
         # If that fails, use the version in the package.json
-        - if [ "$LAST_VERSION" = "" ]; then LAST_VERSION=`node -e "console.log(JSON.parse(fs.readFileSync('package.json', 'utf-8')).version)"`; fi
+        - PACKAGE_JSON_VERSION=`node -e "console.log(JSON.parse(fs.readFileSync('package.json', 'utf-8')).version)"`
+        - if [ "$LAST_VERSION" = "" ]; then LAST_VERSION="$PACKAGE_JSON_VERSION"; fi
         # Get the revision number (the number of commits since that version)
         - REVISION=`expr $(git rev-list --count HEAD) - $(git rev-list --count v$LAST_VERSION)`; if [ "$?" != "0" ]; then REVISION="0"; fi
+        # If the last git tag doesn't match the version in the package.json, don't change the version
+        - if [ "$LAST_VERSION" != "$PACKAGE_JSON_VERSION" ]; then LAST_VERSION="$PACKAGE_JSON_VERSION"; REVISION="0"; fi
         # If there's no commits since that version, use that version number, otherwise add a -next prerelease tag and
         # the short commit hash
         - export VERSION=`if [ "$CI_COMMIT_BRANCH" = "main" -a "$REVISION" != "0" ]; then echo "$LAST_VERSION-next.\`expr "$REVISION" - 1\`+sha.\`echo $CI_COMMIT_SHA | head -c 7\`"; else echo "$LAST_VERSION"; fi`
-        - echo "Building version $VERSION (from $LAST_VERSION, revision $REVISION, commit $CI_COMMIT_SHA, branch $CI_COMMIT_BRANCH)"
+        - echo "Building version $VERSION (from $LAST_VERSION, revision $REVISION, commit $CI_COMMIT_SHA)"
 
         - npm --color="always" install
         - npx gulp --color build
