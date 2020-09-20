@@ -1,11 +1,11 @@
-import {EventEmitter} from 'events';
+import {TypedEmitter} from 'tiny-typed-emitter';
 import Characteristic from './characteristic';
 
 // Types
-import {
+import type {
     MessageTypes, OptionalDataMessageTypes, DefinedRequestMessages, DefinedResponseMessages, UIPlugin, RequestMessages,
 } from '../common/types/messages';
-import {
+import type {
     BroadcastMessage,
     AddAccessoriesMessage, RemoveAccessoriesMessage, UpdateAccessoryMessage, UpdateAccessoryStatusMessage,
     UpdateCharacteristicMessage,
@@ -20,9 +20,9 @@ import {
     UpdatePairingsMessage, UpdatePairingDataMessage,
     UpdatePermissionsMessage, StdoutMessage, StderrMessage, ConsoleOutputMessage,
 } from '../common/types/broadcast-messages';
-import {BinaryMessageTypeMap} from '../common/types/binary-messages';
-import {Home, Scene} from '../common/types/storage';
-import {AccessoryStatus} from '../common/types/accessories';
+import type {BinaryMessageTypeMap} from '../common/types/binary-messages';
+import type {Home, Scene} from '../common/types/storage';
+import type {AccessoryStatus} from '../common/types/accessories';
 
 const broadcast_message_methods = {
     'add-accessory': 'handleAddAccessoryMessage',
@@ -59,7 +59,7 @@ const broadcast_message_methods = {
     'console-output': 'handleConsoleOutput',
 };
 
-class Connection extends EventEmitter {
+export default class Connection extends TypedEmitter<ConnectionEvents> {
     ws: WebSocket | import('ws');
     private messageid = 0;
     private callbacks: Map<number, ((v: any) => void)[]> = new Map();
@@ -247,6 +247,7 @@ class Connection extends EventEmitter {
     protected handleDisconnect(event: CloseEvent): void
     protected handleDisconnect(code: number, reason: string): void
     protected handleDisconnect(event: any) {
+        // @ts-ignore
         this.emit('disconnected', event);
 
         for (const [, reject] of this.callbacks.values()) {
@@ -858,7 +859,7 @@ class Connection extends EventEmitter {
     }
 }
 
-type ConnectionEvents = {
+interface ConnectionEvents {
     'received-broadcast': (this: Connection, data: BroadcastMessage) => void;
     'disconnected': {
         (this: Connection, event: CloseEvent): void;
@@ -907,29 +908,9 @@ type ConnectionEvents = {
     'stderr': (this: Connection, data: string) => void;
 
     'console-output': (this: Connection, id: number, stream: ConsoleOutputMessage['stream'], data: string) => void;
-};
-
-interface Connection {
-    addListener<E extends keyof ConnectionEvents>(event: E, listener: ConnectionEvents[E]): this;
-    on<E extends keyof ConnectionEvents>(event: E, listener: ConnectionEvents[E]): this;
-    once<E extends keyof ConnectionEvents>(event: E, listener: ConnectionEvents[E]): this;
-    prependListener<E extends keyof ConnectionEvents>(event: E, listener: ConnectionEvents[E]): this;
-    prependOnceListener<E extends keyof ConnectionEvents>(event: E, listener: ConnectionEvents[E]): this;
-    removeListener<E extends keyof ConnectionEvents>(event: E, listener: ConnectionEvents[E]): this;
-    off<E extends keyof ConnectionEvents>(event: E, listener: ConnectionEvents[E]): this;
-    removeAllListeners<E extends keyof ConnectionEvents>(event: E): this;
-    listeners<E extends keyof ConnectionEvents>(event: E): ConnectionEvents[E][];
-    rawListeners<E extends keyof ConnectionEvents>(event: E): ConnectionEvents[E][];
-
-    emit<E extends keyof ConnectionEvents>(event: E, ...data: any[]): boolean;
-
-    eventNames(): (keyof ConnectionEvents)[];
-    listenerCount<E extends keyof ConnectionEvents>(type: E): number;
 }
 
-export default Connection;
-
-class Console extends EventEmitter {
+export class Console extends TypedEmitter<ConsoleEvents> {
     readonly connection!: Connection;
     readonly id!: number;
 
@@ -984,19 +965,22 @@ class Console extends EventEmitter {
     }
 }
 
-interface Console {
-    addListener(event: 'out' | 'err', listener: (this: Console, data: string) => void): this;
-    on(event: 'out' | 'err', listener: (this: Console, data: string) => void): this;
-    once(event: 'out' | 'err', listener: (this: Console, data: string) => void): this;
-    prependListener(event: 'out' | 'err', listener: (this: Console, data: string) => void): this;
-    prependOnceListener(event: 'out' | 'err', listener: (this: Console, data: string) => void): this;
-    removeListener(event: 'out' | 'err', listener: (this: Console, data: string) => void): this;
-    off(event: 'out' | 'err', listener: (this: Console, data: string) => void): this;
-    removeAllListeners(event: 'out' | 'err'): this;
-    emit(event: 'out' | 'err', data: string): boolean;
+interface ConsoleEvents {
+    out: (this: Console, data: string) => void;
+    err: (this: Console, data: string) => void;
 }
 
-export {Console};
+// interface Console {
+//     addListener(event: 'out' | 'err', listener: (this: Console, data: string) => void): this;
+//     on(event: 'out' | 'err', listener: (this: Console, data: string) => void): this;
+//     once(event: 'out' | 'err', listener: (this: Console, data: string) => void): this;
+//     prependListener(event: 'out' | 'err', listener: (this: Console, data: string) => void): this;
+//     prependOnceListener(event: 'out' | 'err', listener: (this: Console, data: string) => void): this;
+//     removeListener(event: 'out' | 'err', listener: (this: Console, data: string) => void): this;
+//     off(event: 'out' | 'err', listener: (this: Console, data: string) => void): this;
+//     removeAllListeners(event: 'out' | 'err'): this;
+//     emit(event: 'out' | 'err', data: string): boolean;
+// }
 
 export class AuthenticationHandlerConnection {
     readonly connection!: Connection;

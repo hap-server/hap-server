@@ -1,13 +1,14 @@
-import {EventEmitter} from 'events';
+import {TypedEmitter} from 'tiny-typed-emitter';
 import Connection from './connection';
 
-import {Scene as SceneData} from '../common/types/storage';
-import {CheckScenesActiveResponseMessage, GetScenesPermissionsResponseMessage} from '../common/types/messages';
-import {
-    SceneActivatingMessage, SceneActivatedMessage, SceneDeactivatingMessage, SceneDeactivatedMessage, SceneProgressMessage,
+import type {Scene as SceneData} from '../common/types/storage';
+import type {CheckScenesActiveResponseMessage, GetScenesPermissionsResponseMessage} from '../common/types/messages';
+import type {
+    SceneActivatingMessage, SceneActivatedMessage, SceneDeactivatingMessage, SceneDeactivatedMessage,
+    SceneProgressMessage,
 } from '../common/types/broadcast-messages';
 
-class Scene extends EventEmitter {
+export default class Scene extends TypedEmitter<SceneEvents> {
     connection: Connection;
     readonly uuid: string;
 
@@ -162,7 +163,7 @@ class Scene extends EventEmitter {
     }
 }
 
-type SceneEvents = {
+interface SceneEvents {
     'updated-data': (this: Scene, data: SceneData) => void;
     'updated-permissions': (this: Scene, permissions: GetScenesPermissionsResponseMessage[0]) => void;
 
@@ -172,23 +173,4 @@ type SceneEvents = {
     'deactivated': (this: Scene) => void;
     'activating-progress': (this: Scene, progress: number) => void;
     'deactivating-progress': (this: Scene, progress: number) => void;
-};
-
-interface Scene {
-    addListener<E extends keyof SceneEvents>(event: E, listener: SceneEvents[E]): this;
-    on<E extends keyof SceneEvents>(event: E, listener: SceneEvents[E]): this;
-    once<E extends keyof SceneEvents>(event: E, listener: SceneEvents[E]): this;
-    prependListener<E extends keyof SceneEvents>(event: E, listener: SceneEvents[E]): this;
-    prependOnceListener<E extends keyof SceneEvents>(event: E, listener: SceneEvents[E]): this;
-    removeListener<E extends keyof SceneEvents>(event: E, listener: SceneEvents[E]): this;
-    off<E extends keyof SceneEvents>(event: E, listener: SceneEvents[E]): this;
-    removeAllListeners<E extends keyof SceneEvents>(event: E): this;
-    listeners<E extends keyof SceneEvents>(event: E): SceneEvents[E][];
-    rawListeners<E extends keyof SceneEvents>(event: E): SceneEvents[E][];
-
-    emit<E extends keyof SceneEvents>(event: E, ...data: any[]): boolean;
-
-    listenerCount<E extends keyof SceneEvents>(type: E): number;
 }
-
-export default Scene;

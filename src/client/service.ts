@@ -1,6 +1,6 @@
 /// <reference path="../types/hap-nodejs.d.ts" />
 
-import {EventEmitter} from 'events';
+import {TypedEmitter, ListenerSignature} from 'tiny-typed-emitter';
 
 import {$set, $delete} from './client';
 import Connection from './connection';
@@ -12,7 +12,7 @@ import {ServiceData} from '../common/types/storage';
 import {GetAccessoriesPermissionsResponseMessage} from '../common/types/messages';
 import {AccessoryStatus} from '../common/types/accessories';
 
-class Service extends EventEmitter {
+export default class Service extends TypedEmitter<ServiceEvents> {
     readonly accessory: Accessory;
     readonly uuid: string;
     readonly characteristics: {[key: string]: Characteristic};
@@ -266,7 +266,7 @@ class Service extends EventEmitter {
     }
 }
 
-export type ServiceEvents = {
+export interface ServiceEvents {
     'details-updated': (this: Service) => void;
     'updated': (this: Service, here?: boolean) => void;
 
@@ -275,7 +275,7 @@ export type ServiceEvents = {
      * @param {Service} service The service that was unlinked
      * @param {boolean} removed true if the service was removed from the accessory
      */
-    'remove-linked-service': (this: Service, service: Service) => void;
+    'remove-linked-service': (this: Service, service: Service, removed: boolean) => void;
 
     'new-characteristic': (this: Service, characteristic: Characteristic) => void;
     'new-characteristics': (this: Service, characteristics: Characteristic[]) => void;
@@ -286,26 +286,7 @@ export type ServiceEvents = {
     'data-updated': (this: Service, here: boolean) => void;
     'permissions-updated':
         (this: Service, permissions: GetAccessoriesPermissionsResponseMessage[0]['set_characteristics'][0]) => void; // eslint-disable-line @typescript-eslint/indent
-};
-
-interface Service {
-    addListener<E extends keyof ServiceEvents>(event: E, listener: ServiceEvents[E]): this;
-    on<E extends keyof ServiceEvents>(event: E, listener: ServiceEvents[E]): this;
-    once<E extends keyof ServiceEvents>(event: E, listener: ServiceEvents[E]): this;
-    prependListener<E extends keyof ServiceEvents>(event: E, listener: ServiceEvents[E]): this;
-    prependOnceListener<E extends keyof ServiceEvents>(event: E, listener: ServiceEvents[E]): this;
-    removeListener<E extends keyof ServiceEvents>(event: E, listener: ServiceEvents[E]): this;
-    off<E extends keyof ServiceEvents>(event: E, listener: ServiceEvents[E]): this;
-    removeAllListeners<E extends keyof ServiceEvents>(event: E): this;
-    listeners<E extends keyof ServiceEvents>(event: E): ServiceEvents[E][];
-    rawListeners<E extends keyof ServiceEvents>(event: E): ServiceEvents[E][];
-
-    emit<E extends keyof ServiceEvents>(event: E, ...data: any[]): boolean;
-
-    listenerCount<E extends keyof ServiceEvents>(type: E): number;
 }
-
-export default Service;
 
 export class BridgeService extends Service {
     private static services = new WeakMap<Accessory, BridgeService>();

@@ -1,4 +1,4 @@
-import {EventEmitter} from 'events';
+import {TypedEmitter} from 'tiny-typed-emitter';
 
 import {$set, $delete} from './client';
 import Connection from './connection';
@@ -6,7 +6,7 @@ import Connection from './connection';
 import {Layout as LayoutData, LayoutSection as LayoutSectionData} from '../common/types/storage';
 import {GetLayoutsPermissionsResponseMessage} from '../common/types/messages';
 
-class Layout extends EventEmitter {
+export default class Layout extends TypedEmitter<LayoutEvents> {
     connection: Connection;
     readonly uuid: string;
     sections: {[key: string]: LayoutSection};
@@ -146,31 +146,12 @@ class Layout extends EventEmitter {
     }
 }
 
-type LayoutEvents = {
+interface LayoutEvents {
     'updated-data': (this: Layout, data: LayoutData) => void;
     'updated-permissions': (this: Layout, permissions: GetLayoutsPermissionsResponseMessage[0]) => void;
-};
-
-interface Layout {
-    addListener<E extends keyof LayoutEvents>(event: E, listener: LayoutEvents[E]): this;
-    on<E extends keyof LayoutEvents>(event: E, listener: LayoutEvents[E]): this;
-    once<E extends keyof LayoutEvents>(event: E, listener: LayoutEvents[E]): this;
-    prependListener<E extends keyof LayoutEvents>(event: E, listener: LayoutEvents[E]): this;
-    prependOnceListener<E extends keyof LayoutEvents>(event: E, listener: LayoutEvents[E]): this;
-    removeListener<E extends keyof LayoutEvents>(event: E, listener: LayoutEvents[E]): this;
-    off<E extends keyof LayoutEvents>(event: E, listener: LayoutEvents[E]): this;
-    removeAllListeners<E extends keyof LayoutEvents>(event: E): this;
-    listeners<E extends keyof LayoutEvents>(event: E): LayoutEvents[E][];
-    rawListeners<E extends keyof LayoutEvents>(event: E): LayoutEvents[E][];
-
-    emit<E extends keyof LayoutEvents>(event: E, ...data: any[]): boolean;
-
-    listenerCount<E extends keyof LayoutEvents>(type: E): number;
 }
 
-export default Layout;
-
-class LayoutSection extends EventEmitter {
+export class LayoutSection extends TypedEmitter<LayoutSectionEvents> {
     readonly layout: Layout;
     readonly uuid: string;
     readonly unavailable_service_placeholders: {};
@@ -230,25 +211,6 @@ class LayoutSection extends EventEmitter {
     }
 }
 
-type LayoutSectionEvents = {
+interface LayoutSectionEvents {
     'updated-data': (this: Layout, data: LayoutSectionData) => void;
-};
-
-interface LayoutSection {
-    addListener<E extends keyof LayoutSectionEvents>(event: E, listener: LayoutSectionEvents[E]): this;
-    on<E extends keyof LayoutSectionEvents>(event: E, listener: LayoutSectionEvents[E]): this;
-    once<E extends keyof LayoutSectionEvents>(event: E, listener: LayoutSectionEvents[E]): this;
-    prependListener<E extends keyof LayoutSectionEvents>(event: E, listener: LayoutSectionEvents[E]): this;
-    prependOnceListener<E extends keyof LayoutSectionEvents>(event: E, listener: LayoutSectionEvents[E]): this;
-    removeListener<E extends keyof LayoutSectionEvents>(event: E, listener: LayoutSectionEvents[E]): this;
-    off<E extends keyof LayoutSectionEvents>(event: E, listener: LayoutSectionEvents[E]): this;
-    removeAllListeners<E extends keyof LayoutSectionEvents>(event: E): this;
-    listeners<E extends keyof LayoutSectionEvents>(event: E): LayoutSectionEvents[E][];
-    rawListeners<E extends keyof LayoutSectionEvents>(event: E): LayoutSectionEvents[E][];
-
-    emit<E extends keyof LayoutSectionEvents>(event: E, ...data: any[]): boolean;
-
-    listenerCount<E extends keyof LayoutSectionEvents>(type: E): number;
 }
-
-export {LayoutSection};

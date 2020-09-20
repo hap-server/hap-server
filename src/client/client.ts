@@ -1,4 +1,4 @@
-import {EventEmitter} from 'events';
+import {TypedEmitter} from 'tiny-typed-emitter';
 
 import Connection, {Console} from './connection';
 import Accessory from './accessory';
@@ -40,7 +40,7 @@ export function $delete(object: any, key: string) {
     delete object[key];
 }
 
-class Client extends EventEmitter {
+export default class Client extends TypedEmitter<ClientEvents> {
     readonly url: string;
     connection: Connection | null = null;
     connected = false;
@@ -647,7 +647,7 @@ class Client extends EventEmitter {
         this.connected = false;
         this.connect_error = event;
 
-        this.emit('disconnected', event);
+        this.emit('disconnected');
     }
 
     /**
@@ -1374,7 +1374,7 @@ class Client extends EventEmitter {
     }
 }
 
-type ClientEvents = {
+interface ClientEvents {
     'connected': (this: Client, connection: Connection) => void;
     'disconnected': (this: Client) => void;
     'received-broadcast': (this: Client, data: BroadcastMessage) => void;
@@ -1413,24 +1413,4 @@ type ClientEvents = {
 
     'update-system-information': <K extends keyof SystemInformationData = keyof SystemInformationData>(this: Client,
         key: K, data: SystemInformationData[K]) => void;
-};
-
-interface Client {
-    addListener<E extends keyof ClientEvents>(event: E, listener: ClientEvents[E]): this;
-    on<E extends keyof ClientEvents>(event: E, listener: ClientEvents[E]): this;
-    once<E extends keyof ClientEvents>(event: E, listener: ClientEvents[E]): this;
-    prependListener<E extends keyof ClientEvents>(event: E, listener: ClientEvents[E]): this;
-    prependOnceListener<E extends keyof ClientEvents>(event: E, listener: ClientEvents[E]): this;
-    removeListener<E extends keyof ClientEvents>(event: E, listener: ClientEvents[E]): this;
-    off<E extends keyof ClientEvents>(event: E, listener: ClientEvents[E]): this;
-    removeAllListeners<E extends keyof ClientEvents>(event: E): this;
-    listeners<E extends keyof ClientEvents>(event: E): ClientEvents[E][];
-    rawListeners<E extends keyof ClientEvents>(event: E): ClientEvents[E][];
-
-    emit<E extends keyof ClientEvents>(event: E, ...data: any[]): boolean;
-
-    eventNames(): (keyof ClientEvents)[];
-    listenerCount<E extends keyof ClientEvents>(type: E): number;
 }
-
-export default Client;

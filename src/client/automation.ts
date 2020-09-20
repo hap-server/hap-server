@@ -1,4 +1,4 @@
-import {EventEmitter} from 'events';
+import {TypedEmitter} from 'tiny-typed-emitter';
 import isEqual = require('lodash.isequal');
 import Connection from './connection';
 
@@ -7,7 +7,7 @@ import {GetAutomationsPermissionsResponseMessage} from '../common/types/messages
 
 let id = 0;
 
-class Automation extends EventEmitter {
+export default class Automation extends TypedEmitter<AutomationEvents> {
     readonly id: number;
     connection: Connection;
     readonly uuid: string;
@@ -66,7 +66,7 @@ class Automation extends EventEmitter {
 
         this._data = Object.freeze(data);
 
-        this.emit('data-updated');
+        this.emit('data-updated', false);
     }
 
     async updateData(data: AutomationData) {
@@ -101,30 +101,10 @@ class Automation extends EventEmitter {
     }
 }
 
-type AutomationEvents = {
+interface AutomationEvents {
     'data-updated': (this: Automation, here: boolean) => void;
     'permissions-updated': (this: Automation, permissions: GetAutomationsPermissionsResponseMessage[0]) => void;
-};
-
-interface Automation {
-    addListener<E extends keyof AutomationEvents>(event: E, listener: AutomationEvents[E]): this;
-    on<E extends keyof AutomationEvents>(event: E, listener: AutomationEvents[E]): this;
-    once<E extends keyof AutomationEvents>(event: E, listener: AutomationEvents[E]): this;
-    prependListener<E extends keyof AutomationEvents>(event: E, listener: AutomationEvents[E]): this;
-    prependOnceListener<E extends keyof AutomationEvents>(event: E, listener: AutomationEvents[E]): this;
-    removeListener<E extends keyof AutomationEvents>(event: E, listener: AutomationEvents[E]): this;
-    off<E extends keyof AutomationEvents>(event: E, listener: AutomationEvents[E]): this;
-    removeAllListeners<E extends keyof AutomationEvents>(event: E): this;
-    listeners<E extends keyof AutomationEvents>(event: E): AutomationEvents[E][];
-    rawListeners<E extends keyof AutomationEvents>(event: E): AutomationEvents[E][];
-
-    emit<E extends keyof AutomationEvents>(event: E, ...data: any[]): boolean;
-
-    eventNames(): (keyof AutomationEvents)[];
-    listenerCount<E extends keyof AutomationEvents>(type: E): number;
 }
-
-export default Automation;
 
 export class StagedAutomation extends Automation {
     readonly automation!: Automation;
@@ -150,30 +130,6 @@ export class StagedAutomation extends Automation {
         return this;
     }
 
-    // @ts-expect-error
-    get id() {
-        return this.automation.id;
-    }
-    set id(id) {}
-
-    // @ts-expect-error
-    get connection() {
-        return this.automation.connection;
-    }
-    set connection(connection) {}
-
-    // @ts-expect-error
-    get uuid() {
-        return this.automation.uuid;
-    }
-    set uuid(uuid) {}
-
-    // @ts-expect-error
-    get _permissions() {
-        return this.automation._permissions;
-    }
-    set _permissions(_permissions) {}
-
     _setData(data: AutomationData) {
         this._data = data;
     }
@@ -187,4 +143,14 @@ export class StagedAutomation extends Automation {
 
         return this.automation.updateData(JSON.parse(JSON.stringify(this.data)));
     }
+}
+
+for (const key of ['id', 'connection', 'uuid', '_permissions'] as const) {
+    Object.defineProperty(StagedAutomation.prototype, key, {
+        configurable: true,
+        get(this: StagedAutomation): unknown {
+            return this.automation[key];
+        },
+        set(this: StagedAutomation, value: unknown) {},
+    });
 }

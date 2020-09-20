@@ -1,6 +1,6 @@
 /// <reference path="../types/hap-nodejs.d.ts" />
 
-import {EventEmitter} from 'events';
+import {TypedEmitter} from 'tiny-typed-emitter';
 import Client from './client';
 
 import {Characteristic as HAPCharacteristic, PredefinedCharacteristic} from 'hap-nodejs/lib/Characteristic';
@@ -9,7 +9,7 @@ import Service from './service';
 
 import {CharacteristicHap, CharacteristicPerms, CharacteristicFormat} from '../common/types/hap';
 
-class Characteristic extends EventEmitter {
+export default class Characteristic extends TypedEmitter<CharacteristicEvents> {
     static Formats: {[key: string]: string};
     static Units: {[key: string]: string};
     static Perms: {[key: string]: string};
@@ -302,32 +302,12 @@ class Characteristic extends EventEmitter {
     }
 }
 
-type CharacteristicEvents = {
+interface CharacteristicEvents {
     'value-updated': (this: Characteristic, value: any, old_value: any) => void;
     'details-updated': (this: Characteristic) => void;
     'updated': (this: Characteristic) => void;
     'permissions-updated': (this: Characteristic, permissions: boolean) => void;
-};
-
-interface Characteristic {
-    addListener<E extends keyof CharacteristicEvents>(event: E, listener: CharacteristicEvents[E]): this;
-    on<E extends keyof CharacteristicEvents>(event: E, listener: CharacteristicEvents[E]): this;
-    once<E extends keyof CharacteristicEvents>(event: E, listener: CharacteristicEvents[E]): this;
-    prependListener<E extends keyof CharacteristicEvents>(event: E, listener: CharacteristicEvents[E]): this;
-    prependOnceListener<E extends keyof CharacteristicEvents>(event: E, listener: CharacteristicEvents[E]): this;
-    removeListener<E extends keyof CharacteristicEvents>(event: E, listener: CharacteristicEvents[E]): this;
-    off<E extends keyof CharacteristicEvents>(event: E, listener: CharacteristicEvents[E]): this;
-    removeAllListeners<E extends keyof CharacteristicEvents>(event: E): this;
-    listeners<E extends keyof CharacteristicEvents>(event: E): CharacteristicEvents[E][];
-    rawListeners<E extends keyof CharacteristicEvents>(event: E): CharacteristicEvents[E][];
-
-    emit<E extends keyof CharacteristicEvents>(event: E, ...data: any[]): boolean;
-
-    eventNames(): (keyof CharacteristicEvents)[];
-    listenerCount<E extends keyof CharacteristicEvents>(type: E): number;
 }
-
-export default Characteristic;
 
 const subscribed_characteristics = new Map();
 

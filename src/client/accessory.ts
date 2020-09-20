@@ -1,4 +1,4 @@
-import {EventEmitter} from 'events';
+import {TypedEmitter} from 'tiny-typed-emitter';
 
 import {$set, $delete} from './client';
 import Connection from './connection';
@@ -12,7 +12,7 @@ import {AccessoryData, ServiceData} from '../common/types/storage';
 import {GetAccessoriesPermissionsResponseMessage} from '../common/types/messages';
 import {AccessoryStatus} from '../common/types/accessories';
 
-class Accessory extends EventEmitter {
+export default class Accessory extends TypedEmitter<AccessoryEvents> {
     connection: Connection;
     readonly uuid: string;
     readonly services: {[key: string]: Service};
@@ -499,7 +499,7 @@ class Accessory extends EventEmitter {
     }
 }
 
-type AccessoryEvents = {
+interface AccessoryEvents {
     'details-updated': (this: Accessory) => void;
     'updated': (this: Accessory, here?: boolean) => void;
     'new-service': (this: Accessory, service: Service) => void;
@@ -518,24 +518,4 @@ type AccessoryEvents = {
     'data-updated': (this: Accessory, here: boolean) => void;
     'permissions-updated': (this: Accessory, permissions: GetAccessoriesPermissionsResponseMessage[0]) => void;
     'status-updated': (this: Accessory, status: AccessoryStatus) => void;
-};
-
-interface Accessory {
-    addListener<E extends keyof AccessoryEvents>(event: E, listener: AccessoryEvents[E]): this;
-    on<E extends keyof AccessoryEvents>(event: E, listener: AccessoryEvents[E]): this;
-    once<E extends keyof AccessoryEvents>(event: E, listener: AccessoryEvents[E]): this;
-    prependListener<E extends keyof AccessoryEvents>(event: E, listener: AccessoryEvents[E]): this;
-    prependOnceListener<E extends keyof AccessoryEvents>(event: E, listener: AccessoryEvents[E]): this;
-    removeListener<E extends keyof AccessoryEvents>(event: E, listener: AccessoryEvents[E]): this;
-    off<E extends keyof AccessoryEvents>(event: E, listener: AccessoryEvents[E]): this;
-    removeAllListeners<E extends keyof AccessoryEvents>(event: E): this;
-    listeners<E extends keyof AccessoryEvents>(event: E): AccessoryEvents[E][];
-    rawListeners<E extends keyof AccessoryEvents>(event: E): AccessoryEvents[E][];
-
-    emit<E extends keyof AccessoryEvents>(event: E, ...data: any[]): boolean;
-
-    eventNames(): (keyof AccessoryEvents)[];
-    listenerCount<E extends keyof AccessoryEvents>(type: E): number;
 }
-
-export default Accessory;
