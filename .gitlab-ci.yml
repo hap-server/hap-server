@@ -54,7 +54,8 @@ build:
         - npx gulp --color build
         - npx gulp --color build-release
         - npx gulp --color build-api-types build-ui-api-types
-        - npx gulp --color build-example-plugins
+        - npx tsc --project example-plugins/fake-accessories
+        - npx tsc --project example-plugins/virtual-switches
 
         - cd release/hap-server
 
@@ -84,7 +85,7 @@ build:
         paths:
             - dist
             - release
-            - example-plugins/dist
+            - example-plugins/*/dist
             - hap-server-release.tgz
             - hap-server-api-types-release.tgz
             - hap-server-ui-api-types-release.tgz
@@ -113,7 +114,8 @@ build:
             - src/**/*.js
             - src/**/*.ts
             - src/**/*.vue
-            - example-plugins/src/**/*.js
+            - example-plugins/**/*.js
+            - example-plugins/**/*.ts
     except:
         variables:
             - $NPM_AUDIT_SCHEDULE_SKIP_BUILD
@@ -148,7 +150,8 @@ lint:
             - src/**/*.ts
             - src/**/*.vue
             - src/**/*.scss
-            - example-plugins/src/**/*.js
+            - example-plugins/**/*.js
+            - example-plugins/**/*.ts
     except:
         variables:
             - $NPM_AUDIT_SCHEDULE_SKIP_BUILD

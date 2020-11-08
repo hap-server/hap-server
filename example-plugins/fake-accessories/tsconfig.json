@@ -1,0 +1,15 @@
+{
+    "compilerOptions": {
+        "strict": true,
+        "target": "es6",
+        "experimentalDecorators": true,
+        "module": "commonjs",
+        "declaration": true,
+        "importHelpers": true,
+        "incremental": true,
+        "tsBuildInfoFile": "tsbuildinfo.json",
+        "rootDir": "src",
+        "outDir": "dist",
+        "sourceMap": true
+    }
+}

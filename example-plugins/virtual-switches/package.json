@@ -1,0 +1,12 @@
+{
+    "name": "virtual-switches",
+    "private": true,
+    "keywords": [
+        "hap-server-plugin"
+    ],
+    "main": "dist/index.js",
+    "engines": {
+        "@hap-server/hap-server": "*",
+        "node": "^8.0.0"
+    }
+}

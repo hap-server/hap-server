@@ -251,18 +251,7 @@ gulp.task('build-frontend', function() {
     ]);
 });
 
-gulp.task('build-example-plugins', function() {
-    return pump([
-        gulp.src('example-plugins/src/**/*.js'),
-        sourcemaps.init(),
-        babel(),
-        sourcemaps.write('.', {includeContent: false, destPath: 'example-plugins/dist'}),
-        gulp.src('example-plugins/src/**/*.json'),
-        gulp.dest('example-plugins/dist'),
-    ]);
-});
-
-gulp.task('build', gulp.parallel('build-backend', 'build-frontend', 'build-example-plugins'));
+gulp.task('build', gulp.parallel('build-backend', 'build-frontend'));
 
 gulp.task('watch-backend-no-ts', function() {
     // return pump([
@@ -308,19 +297,7 @@ gulp.task('watch-frontend', function() {
     ]);
 });
 
-gulp.task('watch-example-plugins', function() {
-    return pump([
-        watch('example-plugins/src/**/*.js', {verbose: true}),
-        plumber(),
-        sourcemaps.init(),
-        babel(),
-        sourcemaps.write('.', {includeContent: false, destPath: 'example-plugins/dist'}),
-        watch('example-plugins/src/**/*.json', {verbose: true}),
-        gulp.dest('example-plugins/dist'),
-    ]);
-});
-
-gulp.task('watch', gulp.parallel('watch-backend', 'watch-frontend', 'watch-example-plugins'));
+gulp.task('watch', gulp.parallel('watch-backend', 'watch-frontend'));
 
 const release_minify_config = {
     ext: {
