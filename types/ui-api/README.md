@@ -7,4 +7,4 @@ This package contains TypeScript definitions for the virtual `@hap-server/ui-api
 If your web interface plugin doesn't use TypeScript, you don't need this package. Just declare compatible hap-server
 versions in the engines property of your plugin's `package.json`.
 
-For API documentation see [docs/plugins.md#web-interface-plugins](../../../docs/plugins.md#web-interface-plugins).
+For API documentation see [docs/plugins.md#web-interface-plugins](../../docs/plugins.md#web-interface-plugins).

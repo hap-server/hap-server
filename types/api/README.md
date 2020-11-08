@@ -7,4 +7,4 @@ This package contains TypeScript definitions for the virtual `@hap-server/api` m
 If your plugin doesn't use TypeScript, you don't need this package. Just declare compatible hap-server versions
 in the engines property of your plugin's `package.json`.
 
-For API documentation see [docs/plugins.md](../../../docs/plugins.md).
+For API documentation see [docs/plugins.md](../../docs/plugins.md).
