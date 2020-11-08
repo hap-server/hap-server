@@ -18,8 +18,7 @@ import WebSocket = require('ws');
 import * as http from 'http';
 import * as persist from 'node-persist';
 
-import * as hap from '../hap-nodejs';
-import {Accessory, HAPServer} from '../hap-nodejs';
+import {Accessory, Service, CameraController, HAPServer, Characteristic, Perms} from 'hap-nodejs';
 
 import isEqual = require('lodash.isequal');
 
@@ -31,6 +30,7 @@ import {hapStatus} from './hap-server';
 import {
     PluginAccessory, PluginStandaloneAccessory, PluginAccessoryPlatformAccessory, HomebridgeAccessory,
 } from './accessories';
+import SystemInformation, {SystemInformationData} from './system-information';
 
 import Logger from '../common/logger';
 
@@ -43,7 +43,6 @@ import BinaryMessageType from '../common/types/binary-messages';
 import {AccessoryHap, CharacteristicHap} from '../common/types/hap';
 import {AccessoryType} from '../common/types/storage';
 import {AccessoryStatus} from '../common/types/accessories';
-import SystemInformation, {SystemInformationData} from './system-information';
 
 const randomBytes = util.promisify(crypto.randomBytes);
 const mkdirp = util.promisify(_mkdirp);
@@ -434,8 +433,10 @@ export default class Connection {
         const accessory = this.server.getAccessory(uuid);
         if (!accessory) return null!;
 
-        // @ts-ignore
-        const hap = accessory.toHAP()[0] as AccessoryHap;
+        this.ensureIidsFor(accessory);
+
+        // @ts-expect-error
+        const hap = accessory.internalHAPRepresentation(false)[0] as AccessoryHap;
 
         // Add service subtypes and linked services
         // eslint-disable-next-line guard-for-in
@@ -443,17 +444,55 @@ export default class Connection {
             const service = accessory.services[index];
             const service_hap = hap.services[index];
 
+            // Add the full service UUID to the HAP representation
+            service_hap.type = service.UUID;
+
             service_hap.subtype = service.subtype;
             service_hap.linked_indexes = [];
 
-            for (const linked_service of service.linkedServices as hap.Service[]) {
+            for (const linked_service of service.linkedServices as Service[]) {
                 if (!accessory.services.includes(linked_service)) continue;
 
                 service_hap.linked_indexes.push(accessory.services.indexOf(linked_service));
             }
+
+            // eslint-disable-next-line guard-for-in
+            for (const index in service.characteristics) {
+                const characteristic = service.characteristics[index];
+                const characteristic_hap = service_hap.characteristics[index];
+
+                // Add the full characteristic UUID to the HAP representation
+                characteristic_hap.type = characteristic.UUID;
+
+                if (characteristic.UUID === Characteristic.ProgrammableSwitchEvent.UUID) {
+                    // Special workaround for event only programmable switch event, which must always return null
+                    characteristic_hap.value = null;
+                } else if (!characteristic.props.perms.includes(Perms.PAIRED_READ)) {
+                    characteristic_hap.value = undefined;
+                } else {
+                    characteristic_hap.value = characteristic.value;
+                }
+            }
         }
 
         return hap;
+    }
+
+    private ensureIidsFor(accessory: Accessory) {
+        // Make sure an accessory ID is assigned to pass assertions in Accessory.toHAP
+        if (typeof accessory.aid !== 'number') accessory.aid = 1;
+
+        for (const service of accessory.services) {
+            if (typeof service.iid !== 'number') service.iid = 1;
+
+            for (const characteristic of service.characteristics) {
+                if (typeof characteristic.iid !== 'number') characteristic.iid = 1;
+            }
+        }
+
+        for (const a of accessory.bridgedAccessories) {
+            this.ensureIidsFor(a);
+        }
     }
 
     /**
@@ -703,8 +742,9 @@ export default class Connection {
         const characteristic = this.server.getCharacteristic(accessory_uuid, service_uuid, characteristic_uuid);
         if (!characteristic) return null!;
 
-        // @ts-ignore
-        const hap = characteristic.toHAP() as CharacteristicHap;
+        const hap = characteristic.internalHAPRepresentation() as CharacteristicHap;
+
+        hap.type = characteristic.UUID;
 
         try {
             if (accessory[PluginAccessory.symbol]?.status !== AccessoryStatus.READY) {
@@ -712,7 +752,9 @@ export default class Connection {
                 throw new Error(HAPServer.Status.SERVICE_COMMUNICATION_FAILURE);
             }
 
-            hap.value = await this.server.getCharacteristicValue(characteristic);
+            hap.value = await this.server.getCharacteristicValue(characteristic, {
+                [ConnectionSymbol]: this,
+            });
         } catch (err) {
             hap.status = hapStatus(err);
         }
@@ -841,18 +883,18 @@ export default class Connection {
      * Requests a snapshot image.
      */
     @messagehandler('request-snapshot', data => [data.id, data.request])
-    async requestSnapshot(accessory_uuid: string, request: import('hap-nodejs/lib/Camera').SnapshotRequest) {
+    async requestSnapshot(accessory_uuid: string, request: {height: number; width: number}) {
         await this.permissions.assertCanGetAccessory(accessory_uuid);
 
         const accessory = this.server.getAccessory(accessory_uuid);
         if (!accessory) return this.log.warn('Unknown accessory %s', accessory_uuid);
-        if (!accessory.cameraSource) return this.log.warn('Accessory %s doesn\'t have a camera source', accessory_uuid);
 
-        return await new Promise<Buffer>((rs, rj) => {
-            accessory.cameraSource!.handleSnapshotRequest(request, (err: Error | null, data?: Buffer | null) => {
-                err ? rj(err) : rs(data!);
-            });
-        });
+        // @ts-expect-error
+        const controller: CameraController | null = accessory.activeCameraController ?? null;
+
+        if (!controller) return this.log.warn('Accessory %s doesn\'t have a camera controller', accessory_uuid);
+
+        return controller.handleSnapshotRequest(request.height, request.width, accessory.displayName);
     }
 
     /**
@@ -2242,12 +2284,20 @@ export default class Connection {
         const bridge = this.server.accessories.bridges.find(bridge => bridge.uuid === bridge_uuid);
         if (!bridge) return;
 
-        for (const client_username of Object.keys(bridge.accessory_info.pairedClients)) {
-            bridge.accessory_info.removePairedClient(client_username);
+        for (const pairing_id of Object.keys(bridge.accessory_info.pairedClients)) {
+            delete bridge.accessory_info.pairedClients[pairing_id];
         }
+        bridge.accessory_info.pairedAdminClients = 0;
 
         bridge.accessory_info.save();
-        if (bridge.hasOwnProperty('hap_server')) bridge.hap_server.updateAdvertisement();
+
+        if (bridge.hasOwnProperty('hap_server')) {
+            bridge.hap_server.updateAdvertisement();
+
+            for (const connection of bridge.hap_server.connections) {
+                connection.close();
+            }
+        }
     }
 
     /**
@@ -2263,8 +2313,8 @@ export default class Connection {
 
         const ids = [];
 
-        for (const client_username of Object.keys(bridge.accessory_info.pairedClients)) {
-            ids.push(client_username);
+        for (const pairing_id of Object.keys(bridge.accessory_info.pairedClients)) {
+            ids.push(pairing_id);
         }
 
         return ids;
@@ -2285,13 +2335,14 @@ export default class Connection {
         const bridge = this.server.accessories.bridges.find(bridge => bridge.uuid === bridge_uuid);
         if (!bridge) return null!;
 
-        const public_key = bridge.accessory_info.pairedClients[id];
-        if (!public_key) return null!;
+        const pairing_info = bridge.accessory_info.pairedClients[id];
+        if (!pairing_info) return null!;
 
         return {
             bridge_uuid,
             id,
-            public_key: public_key.toString('hex'),
+            public_key: pairing_info.publicKey.toString('hex'),
+            permissions: pairing_info.permission,
         };
     }
 

@@ -3,7 +3,7 @@ import {AuthenticatedUser} from '../server/plugins';
 import * as ServerEvents from '../events/server';
 import HistoryDatabase, {User as UserData, UserType, Record as RecordData} from './database';
 
-import {Accessory, Service, Characteristic} from '../hap-nodejs';
+import {Accessory, Service, Characteristic} from 'hap-nodejs';
 
 export default class History {
     readonly server: Server;

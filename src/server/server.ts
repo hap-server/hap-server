@@ -18,6 +18,9 @@ import multer = require('multer');
 
 import isEqual = require('lodash.isequal');
 
+import {Accessory, Characteristic} from 'hap-nodejs';
+import {CiaoService} from '@homebridge/ciao';
+
 import Events from '../events';
 import {
     AutomationRunningEvent, SceneTriggerEvent,
@@ -30,7 +33,6 @@ import {HAPIP as HAPIPDiscovery, HAPBLE as HAPBLEDiscovery} from '../accessory-d
 import Connection from './connection';
 import PluginManager, {ServerPlugin, ServerPluginHandler, DiscoveredAccessory} from './plugins';
 import Logger from '../common/logger';
-import {Accessory, Characteristic} from '../hap-nodejs';
 
 import Automations, {Automation} from '../automations';
 
@@ -318,12 +320,14 @@ export default class Server extends Events {
 
                 if (bridge.hap_server.is_advertising) {
                     this.log.debug('Restarting advertisement for bridge %s', bridge.username);
-                    // bridge.hap_server.stopAdvertising();
-                    // @ts-ignore
-                    bridge.hap_server.advertiser._advertisement!.stop();
-                    // @ts-ignore
-                    bridge.hap_server.advertiser._advertisement!.destroy();
-                    bridge.hap_server.advertiser._advertisement = null;
+
+                    // @ts-expect-error
+                    const advertised_service: CiaoService = bridge.hap_server.advertiser.advertisedService;
+
+                    advertised_service.end();
+                    // @ts-expect-error
+                    advertised_service.hostname = hostname;
+
                     bridge.hap_server.startAdvertising();
                 }
             }
@@ -334,12 +338,14 @@ export default class Server extends Events {
                 if (hap_server.is_advertising) {
                     this.log.debug('Restarting advertisement for bridge %s external accessory %s',
                         bridge.username, hap_server.accessory_info.displayName);
-                    // hap_server.stopAdvertising();
-                    // @ts-ignore
-                    hap_server.advertiser._advertisement!.stop();
-                    // @ts-ignore
-                    hap_server.advertiser._advertisement!.destroy();
-                    hap_server.advertiser._advertisement = null;
+
+                    // @ts-expect-error
+                    const advertised_service: CiaoService = bridge.hap_server.advertiser.advertisedService;
+
+                    advertised_service.end();
+                    // @ts-expect-error
+                    advertised_service.hostname = hostname;
+
                     hap_server.startAdvertising();
                 }
             }
@@ -1080,20 +1086,16 @@ export default class Server extends Events {
      *
      * @param {Characteristic|string} characteristic
      * @param {any} [context]
-     * @param {string} [connection_id]
      * @return {Promise<any>}
      */
     getCharacteristicValue(
-        characteristic: Characteristic | string | string[], context?: any, connection_id?: string
+        characteristic: Characteristic | string | string[], context?: any
     ): Promise<any> {
         if (!(characteristic instanceof Characteristic)) {
             characteristic = this.getCharacteristic(characteristic as string | string[])!;
         }
 
-        return new Promise((resolve, reject) => {
-            (characteristic as Characteristic).getValue(
-                (err: Error | null, value: any) => err ? reject(err) : resolve(value), context, connection_id);
-        });
+        return (characteristic as Characteristic).handleGetRequest(undefined, context);
     }
 
     /**
@@ -1102,18 +1104,14 @@ export default class Server extends Events {
      * @param {Characteristic|string} characteristic
      * @param {any} value
      * @param {any} [context]
-     * @param {string} [connection_id]
      * @return {Promise<any>}
      */
     setCharacteristicValue(
-        characteristic: Characteristic | string | string[], value: any, context?: any, connection_id?: string
-    ): Promise<void> {
+        characteristic: Characteristic | string | string[], value: any, context?: any
+    ): Promise<any> {
         if (!(characteristic instanceof Characteristic)) characteristic = this.getCharacteristic(characteristic)!;
 
-        return new Promise((resolve, reject) => {
-            (characteristic as Characteristic).setValue(
-                value, (err?: Error) => err ? reject(err) : resolve(), context, connection_id);
-        });
+        return (characteristic as Characteristic).handleSetRequest(value, undefined, context);
     }
 
     /**

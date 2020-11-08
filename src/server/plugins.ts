@@ -1,7 +1,5 @@
-/// <reference path="../types/homebridge.d.ts" />
-
 import Module = require('module');
-import {promises as fs, statSync} from 'fs';
+import {promises as fs} from 'fs';
 import * as path from 'path';
 import * as util from 'util';
 import * as crypto from 'crypto';
@@ -10,9 +8,7 @@ import {EventEmitter} from 'events';
 import * as semver from 'semver';
 import * as persist from 'node-persist';
 import express = require('express');
-import * as hap from '../hap-nodejs';
-
-import {Plugin as HomebridgePluginManager} from 'homebridge/lib/plugin';
+import * as hap from 'hap-nodejs';
 
 import Events, {Event, EventListener, EventListenerPromise, EventListeners} from '../events';
 import {ServerPluginRegisteredEvent} from '../events/server';
@@ -29,7 +25,7 @@ import Server from './server';
 import Connection from './connection';
 import {AccessoryConfiguration, AccessoryPlatformConfiguration} from '../cli/configuration';
 import * as http from 'http';
-import {Accessory} from '../hap-nodejs';
+import {Accessory} from 'hap-nodejs';
 
 import {events, version as hap_server_version} from '..';
 
@@ -307,18 +303,6 @@ export class PluginManager extends Events {
 
     addPluginPath(path: string) {
         this.plugin_paths.unshift(path);
-
-        try {
-            const stat = statSync(path);
-            // eslint-disable-next-line no-throw-literal
-            if (!stat.isDirectory()) throw {code: 'ENOTDIR'};
-
-            HomebridgePluginManager.addPluginPath(path);
-        } catch (err) {
-            if (err.code !== 'ENOTDIR') throw err;
-
-            log.debug('Not adding "%s" as a plugin path for Homebridge as it\'s not a directory', path);
-        }
     }
 
     loadPlugins() {
@@ -1412,6 +1396,8 @@ export class PluginAPI {
         this.plugin.registerWebInterfacePlugin(handler);
     }
 
+    // eslint-disable-next-line valid-jsdoc
+    /** @deprecated Use {@see PluginAPI.registerWebInterfacePlugin} */
     registerAccessoryUI(handler: WebInterfacePlugin) {
         return this.registerWebInterfacePlugin(handler);
     }

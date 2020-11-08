@@ -10,7 +10,6 @@ import Server from '../server/server';
 import Automations from '.';
 import Scene from './scene';
 import Logger from '../common/logger';
-import {Accessory, Service, Characteristic} from '../hap-nodejs';
 import {AutomationActionConfiguration, AutomationConditionConfiguration} from '../cli/configuration';
 
 export default class AutomationAction extends EventEmitter {

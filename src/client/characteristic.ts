@@ -1,19 +1,13 @@
-/// <reference path="../types/hap-nodejs.d.ts" />
-
 import {TypedEmitter} from 'tiny-typed-emitter';
 import Client from './client';
 
-import {Characteristic as HAPCharacteristic, PredefinedCharacteristic} from 'hap-nodejs/lib/Characteristic';
-import 'hap-nodejs/lib/gen/HomeKitTypes';
+import {Characteristic as HAPCharacteristic, CharacteristicProps} from 'hap-nodejs/dist/lib/Characteristic';
+import 'hap-nodejs/dist/lib/definitions';
 import Service from './service';
 
 import {CharacteristicHap, CharacteristicPerms, CharacteristicFormat} from '../common/types/hap';
 
 export default class Characteristic extends TypedEmitter<CharacteristicEvents> {
-    static Formats: {[key: string]: string};
-    static Units: {[key: string]: string};
-    static Perms: {[key: string]: string};
-
     readonly service: Service;
     readonly uuid: string;
 
@@ -187,8 +181,12 @@ export default class Characteristic extends TypedEmitter<CharacteristicEvents> {
     }
 
     validateValue(value: any) {
-        // hap-nodejs' validateValue tries to coerce the value to a valid value
-        return value === HAPCharacteristic.prototype.validateValue.call({
+        const validClientSuppliedValue:
+        (this: {props: Partial<CharacteristicProps>, value: unknown}, value: unknown) => boolean =
+            // @ts-expect-error
+            HAPCharacteristic.prototype.validClientSuppliedValue;
+
+        return validClientSuppliedValue.call({
             props: {
                 format: this.format,
                 maxLen: this.max_length,
@@ -196,10 +194,10 @@ export default class Characteristic extends TypedEmitter<CharacteristicEvents> {
                 maxValue: this.max_value,
                 minValue: this.min_value,
                 minStep: this.min_step,
+                validValues: this.valid_values,
+                validValueRanges: this.valid_values_range,
             },
             value: this.value,
-            ['valid-values']: this.valid_values,
-            ['valid-values-range']: this.valid_values_range,
         }, value);
     }
 
@@ -315,9 +313,9 @@ export const types: {[name: string]: PredefinedCharacteristic} = {};
 export const type_uuids: {[name: string]: /** UUID */ string} = {};
 export const type_names: {[uuid: string]: /** Name */ string} = {};
 
-Characteristic.Formats = HAPCharacteristic.Formats;
-Characteristic.Units = HAPCharacteristic.Units;
-Characteristic.Perms = HAPCharacteristic.Perms;
+interface PredefinedCharacteristic {
+    new (): Characteristic;
+}
 
 const isPredefinedCharacteristic = (a: any): a is PredefinedCharacteristic =>
     a && a.prototype instanceof HAPCharacteristic;

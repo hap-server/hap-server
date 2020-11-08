@@ -1,6 +1,6 @@
 import {Event} from '..';
 import {Server, PluginAccessory} from '../../server';
-import {Accessory, Service, Characteristic} from '../../hap-nodejs';
+import {Accessory, Service, Characteristic} from 'hap-nodejs';
 import {AccessoryStatus} from '../../common/types/accessories';
 
 export class AddAccessoryEvent extends Event {

@@ -6,7 +6,7 @@ import {promises as fs, statSync} from 'fs';
 import * as process from 'process';
 import * as os from 'os';
 
-import * as hap from '../hap-nodejs';
+import * as hap from 'hap-nodejs';
 
 const DEVELOPMENT = true;
 

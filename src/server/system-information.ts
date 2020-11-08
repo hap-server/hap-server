@@ -211,10 +211,21 @@ export class SystemInformation {
     }
 
     getHomebridgeApiVersion() {
-        const match = require('homebridge/lib/api').API.toString()
-            .match(/\.(\s|\n)*version(\s|\n)*=(\s|\n)*([0-9]+(\.[0-9]+)?)(;|$)/m);
+        try {
+            const match = require('homebridge/lib/api').API.toString()
+                .match(/\.(\s|\n)*version(\s|\n)*=(\s|\n)*([0-9]+(\.[0-9]+)?)(;|$)/m);
 
-        return match ? match[4] : null;
+            if (match) return match[4];
+        } catch (err) {}
+
+        try {
+            const match = require('homebridge/lib/api').HomebridgeAPI.toString()
+                .match(/\.(\s|\n)*version(\s|\n)*=(\s|\n)*([0-9]+(\.[0-9]+)?)(;|$)/m);
+
+            if (match) return match[4];
+        } catch (err) {}
+
+        return null;
     }
 
     getNpmVersion() {

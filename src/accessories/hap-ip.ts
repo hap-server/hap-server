@@ -2,7 +2,7 @@
 
 import Logger from '../common/logger';
 import {AccessoryPlatform} from '../server/accessories';
-import {Accessory, Service, Characteristic} from '../hap-nodejs';
+import {Accessory, Service, Characteristic} from 'hap-nodejs';
 import * as uuid from '../util/uuid';
 
 const HttpClient: typeof import('hap-controller').HttpClient | undefined = (() => {
@@ -356,7 +356,7 @@ export default class HAPIP extends AccessoryPlatform {
             perms: hap_characteristic.perms,
             format: hap_characteristic.format,
             validValues: hap_characteristic['valid-values'],
-            validValuesRange: hap_characteristic['valid-values-range'],
+            validValueRanges: hap_characteristic['valid-values-range'],
             unit: hap_characteristic.unit,
             maxValue: hap_characteristic.maxValue,
             minValue: hap_characteristic.minValue,

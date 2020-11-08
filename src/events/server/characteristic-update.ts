@@ -1,20 +1,17 @@
-/// <reference path="../../types/hap-nodejs.d.ts" />
-
 import {Event} from '..';
 import {Server} from '../../server';
 import Connection, {ConnectionSymbol} from '../../server/connection';
 import Bridge from '../../server/bridge';
-import {Accessory, Service, Characteristic} from '../../hap-nodejs';
-import {Session, EventedHTTPServerConnection} from 'hap-nodejs/lib/util/eventedhttp';
+import {Accessory, Service, Characteristic, AccessoryCharacteristicChange} from 'hap-nodejs';
+import {HAPConnection} from 'hap-nodejs/dist/lib/util/eventedhttp';
 
 export class CharacteristicUpdateEvent extends Event {
     static readonly type = 'characteristic-update';
 
     constructor(
-        server: Server, accessory: Accessory, service: Service, characteristic: Characteristic,
-        value: any, old_value: any, hap_context: any
+        server: Server, accessory: Accessory, change: AccessoryCharacteristicChange
     ) {
-        super(server, accessory, service, characteristic, value, old_value, hap_context);
+        super(server, accessory, change);
     }
 
     get server(): Server {
@@ -25,24 +22,28 @@ export class CharacteristicUpdateEvent extends Event {
         return this.args[1];
     }
 
-    get service(): Service {
-        return this.args[2];
-    }
-
-    get characteristic(): Characteristic {
+    get change(): AccessoryCharacteristicChange {
         return this.args[3];
     }
 
+    get service(): Service {
+        return this.change.service;
+    }
+
+    get characteristic(): Characteristic {
+        return this.change.characteristic;
+    }
+
     get value() {
-        return this.args[4];
+        return this.change.newValue;
     }
 
     get old_value() {
-        return this.args[5];
+        return this.change.oldValue;
     }
 
     get hap_context() {
-        return this.args[6];
+        return this.change.context;
     }
 
     get connection(): Connection | null {
@@ -52,32 +53,19 @@ export class CharacteristicUpdateEvent extends Event {
     }
 
     get hap_bridge(): Bridge | null {
+        if (!this.hap_connection) return null;
+
         for (const bridge of this.server.accessories.bridges) {
             if (!bridge.hasOwnProperty('hap_server')) continue;
+            if (!bridge.hap_server.connections.has(this.hap_connection)) continue;
 
-            for (const connection of bridge.hap_server.server._httpServer._connections) {
-                if (connection._events !== this.hap_context) continue;
-
-                Object.defineProperty(this, 'bridge', {value: bridge});
-                Object.defineProperty(this, 'hap_connection', {value: connection});
-
-                return bridge;
-            }
+            Object.defineProperty(this, 'hap_bridge', {value: bridge});
         }
 
         return null;
     }
 
-    get hap_connection(): EventedHTTPServerConnection | null {
-        if (!this.hap_bridge) return null;
-
-        return this.hap_bridge.hap_server.server._httpServer._connections
-            .find(c => c._events === this.hap_context) || null;
-    }
-
-    get hap_session(): Session | null {
-        if (!this.hap_connection) return null;
-
-        return this.hap_connection._session;
+    get hap_connection(): HAPConnection | null {
+        return this.change.originator ?? null;
     }
 }

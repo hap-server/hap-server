@@ -1,4 +1,3 @@
-/// <reference path="../types/homebridge.d.ts" />
 /// <reference path="../types/xkcd-password.d.ts" />
 
 import * as path from 'path';
@@ -10,10 +9,10 @@ import * as util from 'util';
 import * as net from 'net';
 import * as http from 'http';
 
-import {Plugin as HomebridgePluginManager} from 'homebridge/lib/plugin';
 import {User as HomebridgeUser} from 'homebridge/lib/user';
-import * as HomebridgeLogger from 'homebridge/lib/logger';
-import * as hap from '../hap-nodejs';
+import {Logger as HomebridgeLogger} from 'homebridge/lib/logger';
+import {HAPStorage} from 'hap-nodejs';
+import * as hap from 'hap-nodejs';
 
 import isEqual = require('lodash.isequal');
 
@@ -247,11 +246,10 @@ export async function handler(argv: Arguments) {
     const {config, config_path, data_path} = await getConfig(argv);
 
     const hap_storage_path = path.join(data_path, 'persist');
-    hap.init(hap_storage_path);
+    HAPStorage.setCustomStoragePath(hap_storage_path);
 
     HomebridgeUser.setStoragePath(data_path);
     HomebridgeUser.configPath = () => config_path;
-    HomebridgeUser.config = () => config;
 
     /**
      * Flags.
@@ -291,7 +289,6 @@ export async function handler(argv: Arguments) {
     log.debug('UI storage path:', path.resolve(data_path, 'ui-storage'));
     log.debug('Plugin paths:', PluginManager.plugin_paths);
     log.debug('Plugin storage path:', path.resolve(data_path, 'plugin-storage'));
-    log.debug('Homebridge plugin paths:', HomebridgePluginManager.paths);
     log.debug('Homebridge accessory cache path:', HomebridgeUser.cachedAccessoryPath());
 
     PluginManager.storage_path = path.resolve(data_path, 'plugin-storage');
@@ -440,7 +437,13 @@ export async function handler(argv: Arguments) {
         log.info('Not loading Homebridge as it was disabled on the command line');
     } else if (config.bridge) {
         log.info('Loading Homebridge');
-        server.accessories.loadHomebridge(config.bridge, config.accessories || [], config.platforms || []);
+
+        server.accessories.loadHomebridge({
+            // @ts-ignore
+            bridge: config.bridge,
+            accessories: config.accessories || [],
+            platforms: config.platforms || [],
+        });
 
         // Always publish Homebridge's HAP server as Homebridge cannot be started otherwise
         server.accessories.homebridge!.publish();
@@ -473,7 +476,8 @@ export async function handler(argv: Arguments) {
     await server.loadScenesFromStorage();
 
     if (server.accessories.homebridge) {
-        if (!server.accessories.homebridge.bridge._server?._httpServer._tcpServer.listening) {
+        // @ts-expect-error
+        if (!server.accessories.homebridge.bridge._server?.httpServer.tcpServer.listening) {
             log.info('Waiting for Homebridge to finish loading');
             await new Promise<number>(rs => server.accessories.homebridge!.bridge.once('listening', rs));
         }

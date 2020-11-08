@@ -1,6 +1,4 @@
-/// <reference path="../types/hap-nodejs.d.ts" />
-
-import {TypedEmitter, ListenerSignature} from 'tiny-typed-emitter';
+import {TypedEmitter} from 'tiny-typed-emitter';
 
 import {$set, $delete} from './client';
 import Connection from './connection';
@@ -381,8 +379,12 @@ export class UnavailableService extends Service {
     }
 }
 
-import {Service as HAPService, PredefinedService} from 'hap-nodejs/lib/Service';
-import 'hap-nodejs/lib/gen/HomeKitTypes';
+import {Service as HAPService} from 'hap-nodejs/dist/lib/Service';
+import 'hap-nodejs/dist/lib/definitions';
+
+interface PredefinedService {
+    new (): Service;
+}
 
 export const types: {[key: string]: PredefinedService} = {};
 export const type_uuids: {[name: string]: string} = {};

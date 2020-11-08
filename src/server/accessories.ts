@@ -1,5 +1,3 @@
-/// <reference path="../types/homebridge.d.ts" />
-
 import Server from './server';
 import PluginManager, {
     Plugin,
@@ -20,9 +18,11 @@ import {
 import {AccessoryType} from '../common/types/storage';
 import {AccessoryStatus} from '../common/types/accessories';
 
-import {Accessory, Service, Characteristic} from '../hap-nodejs';
-import * as hap from '../hap-nodejs';
+import {Accessory, Service, Characteristic, AccessoryCharacteristicChange} from 'hap-nodejs';
+import * as hap from 'hap-nodejs';
 import {PlatformAccessory} from 'homebridge/lib/platformAccessory';
+import {HomebridgeConfig} from 'homebridge/lib/server';
+import {HomebridgeAPI, InternalAPIEvent} from 'homebridge/lib/api';
 import * as util from '../util';
 
 export default class AccessoryManager {
@@ -50,10 +50,11 @@ export default class AccessoryManager {
         this.log = server.log.withPrefix('Accessories');
 
         Object.defineProperty(this, 'characteristic_change_handlers', {value: new WeakMap()});
-        Object.defineProperty(this, '_handleCharacteristicUpdate', {value: (a: Accessory, event: any) => {
+        Object.defineProperty(this, '_handleCharacteristicUpdate', {value: (
+            accessory: Accessory, change: hap.AccessoryCharacteristicChange
+        ) => {
             // this.log.info('Updating characteristic', event);
-            this.handleCharacteristicUpdate(event.accessory || a, event.service,
-                event.characteristic, event.newValue, event.oldValue, event.context);
+            this.handleCharacteristicUpdate(accessory, change);
         }});
 
         Object.defineProperty(this, 'configuration_change_handlers', {value: new WeakMap()});
@@ -557,17 +558,12 @@ export default class AccessoryManager {
         }
     }
 
-    loadHomebridge(
-        bridge: HomebridgeBridgeConfiguration, accessories: HomebridgeAccessoryConfiguration[],
-        platforms: HomebridgePlatformConfiguration[]
-    ) {
+    loadHomebridge(config: HomebridgeConfig) {
         if (this.homebridge) return this.homebridge;
 
         // config.bridge, config.accessories and config.platforms are for Homebridge
         // If any of these exist, the user wants to run Homebridge as well
-        (this as any).homebridge = new Homebridge(this.server, this.log.withPrefix('Homebridge'), {
-            bridge, accessories, platforms,
-        });
+        (this as any).homebridge = new Homebridge(this.server, this.log.withPrefix('Homebridge'), config);
 
         this.bridges.push(this.homebridge!);
 
@@ -583,21 +579,23 @@ export default class AccessoryManager {
             this.addAccessory(plugin_accessory);
         }
 
-        for (const platform_accessory of
-            Object.values(this.homebridge!.homebridge._publishedAccessories) as PlatformAccessory[]
-        ) {
+        const publishedExternalAccessories: Map<string, PlatformAccessory> =
+            // @ts-expect-error
+            this.homebridge.homebridge.publishedExternalAccessories;
+
+        for (const [device_id, platform_accessory] of publishedExternalAccessories) {
             const plugin_accessory = new HomebridgeAccessory(this.server, platform_accessory._associatedHAPAccessory!,
                 platform_accessory);
 
             this.addAccessory(plugin_accessory);
         }
 
-        this.homebridge!.homebridge._api
-            .on('registerPlatformAccessories', this._handleRegisterHomebridgePlatformAccessories);
-        this.homebridge!.homebridge._api
-            .on('unregisterPlatformAccessories', this._handleUnregisterHomebridgePlatformAccessories);
-        this.homebridge!.homebridge._api
-            .on('publishExternalAccessories', this._handleRegisterExternalHomebridgeAccessories);
+        // @ts-expect-error
+        const api: HomebridgeAPI = this.homebridge.homebridge.api;
+
+        api.on(InternalAPIEvent.REGISTER_PLATFORM_ACCESSORIES, this._handleRegisterHomebridgePlatformAccessories);
+        api.on(InternalAPIEvent.UNREGISTER_PLATFORM_ACCESSORIES, this._handleUnregisterHomebridgePlatformAccessories);
+        api.on(InternalAPIEvent.PUBLISH_EXTERNAL_ACCESSORIES, this._handleRegisterExternalHomebridgeAccessories);
     }
 
     private handleRegisterHomebridgePlatformAccessories(accessories: PlatformAccessory[]) {
@@ -639,33 +637,30 @@ export default class AccessoryManager {
      * Handle a characteristic update.
      *
      * @param {Accessory} accessory
-     * @param {Service} service
-     * @param {Characteristic} characteristic
-     * @param {*} value
-     * @param {*} old_value
-     * @param {object} context
+     * @param {AccessoryCharacteristicChange} change
      * @return {Promise}
      */
     private async handleCharacteristicUpdate(
-        accessory: Accessory, service: Service, characteristic: Characteristic,
-        value: any, old_value: any, context: any
+        accessory: Accessory, change: AccessoryCharacteristicChange
     ) {
-        this.server.emit(CharacteristicUpdateEvent,
-            this.server, accessory, service, characteristic, value, old_value, context);
+        if (typeof change.characteristic.iid !== 'number') change.characteristic.iid = 1;
 
-        if (this.hasOwnProperty('automations')) {
-            this.server.automations
-                .handleCharacteristicUpdate(accessory, service, characteristic, value, old_value, context);
+        this.server.emit(CharacteristicUpdateEvent, this.server, accessory, change);
+
+        if (this.server.hasOwnProperty('automations')) {
+            this.server.automations.handleCharacteristicUpdate(accessory, change);
         }
 
         this.server.sendBroadcast({
             type: 'update-characteristic',
             accessory_uuid: accessory.UUID,
-            service_id: service.UUID + (service.subtype ? '.' + service.subtype : ''),
-            characteristic_id: characteristic.UUID,
-            details: Object.assign({}, characteristic.toHAP(), {
+            service_id: change.service.UUID + (change.service.subtype ? '.' + change.service.subtype : ''),
+            characteristic_id: change.characteristic.UUID,
+            details: Object.assign({}, change.characteristic.internalHAPRepresentation(), {
+                type: change.characteristic.UUID,
+
                 // Make sure the value is set (for event only characteristics)
-                value,
+                value: change.newValue,
             }),
         });
 
@@ -675,11 +670,10 @@ export default class AccessoryManager {
             if (!bridge.bridge.bridgedAccessories.includes(accessory)) continue;
 
             const aid = bridge.hap_server.getAccessoryID(accessory);
-            const iid = bridge.hap_server.getCharacteristicID(accessory, service, characteristic);
+            const iid = bridge.hap_server.getCharacteristicID(accessory, change.service, change.characteristic);
 
-            bridge.hap_server.server.notifyClients(/* eventName */ `${aid}.${iid}`, /* data */ {
-                characteristics: [{aid, iid, value}],
-            }, /* excludeEvents */ context);
+            // TODO: does this send notifications twice?
+            bridge.hap_server.server.sendEventNotifications(aid, iid, change.newValue, change.originator);
         }
     }
 
@@ -1181,7 +1175,7 @@ export const AccessoryEvents: {
 
 export type AccessoryEvents = typeof AccessoryEvents[keyof typeof AccessoryEvents];
 
-declare module 'hap-nodejs/lib/Accessory' {
+declare module 'hap-nodejs/dist/lib/Accessory' {
     interface Events {
         [AccessoryEvents.DESTROY]: (this: Accessory) => void;
         [AccessoryEvents.RELOAD]: (this: Accessory, config: any) => void;
@@ -1190,6 +1184,17 @@ declare module 'hap-nodejs/lib/Accessory' {
 
     export interface Accessory {
         [PluginAccessory.symbol]?: PluginAccessory;
+
+        on(event: typeof AccessoryEvents.DESTROY, listener: (this: Accessory) => void): this;
+        on(event: typeof AccessoryEvents.RELOAD, listener: (this: Accessory, config: any) => void): this;
+        /** @internal */
+        on(event: typeof AccessoryEvents.STATUS, listener: (this: Accessory, status: AccessoryStatus) => void): this;
+
+        /** @internal */
+        emit(event: typeof AccessoryEvents.DESTROY): boolean;
+        /** @internal */
+        emit(event: typeof AccessoryEvents.RELOAD, config: any): boolean;
+        emit(event: typeof AccessoryEvents.STATUS, status: AccessoryStatus): boolean;
     }
 }
 

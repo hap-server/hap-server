@@ -1,33 +1,68 @@
-/// <reference path="../types/hap-nodejs.d.ts" />
+import * as net from 'net';
 
-import {Accessory, Service, Characteristic} from '../hap-nodejs';
-import {HAPServer} from 'hap-nodejs/lib/HAPServer';
-import {Advertiser} from 'hap-nodejs/lib/Advertiser';
-import {AccessoryInfo} from 'hap-nodejs/lib/model/AccessoryInfo';
-import {IdentifierCache} from 'hap-nodejs/lib/model/IdentifierCache';
-import {Camera as CameraSource} from 'hap-nodejs/lib/Camera';
+import {Accessory, Service, Characteristic, CameraController, CharacteristicValue} from 'hap-nodejs';
+import {Access, Perms} from 'hap-nodejs/dist/lib/Characteristic';
+import {
+    HAPHTTPCode, HAPServer, HAPServerEventTypes, HAPStatus, HAPStatus as _Status, TLVErrorCode,
+} from 'hap-nodejs/dist/lib/HAPServer';
+import {EventedHTTPServer, HAPConnection} from 'hap-nodejs/dist/lib/util/eventedhttp';
+import {Advertiser} from 'hap-nodejs/dist/lib/Advertiser';
+import {AccessoryInfo, PermissionTypes} from 'hap-nodejs/dist/lib/model/AccessoryInfo';
+import {IdentifierCache} from 'hap-nodejs/dist/lib/model/IdentifierCache';
+import {
+    CharacteristicsReadRequest,
+    CharacteristicId,
+    CharacteristicReadData,
+    CharacteristicsReadResponse,
+    CharacteristicsWriteRequest,
+    CharacteristicWrite,
+    CharacteristicWriteData,
+    CharacteristicsWriteResponse,
+    ResourceRequest,
+    ResourceRequestType,
+} from 'hap-nodejs/dist/internal-types';
+import {CiaoService} from '@homebridge/ciao';
 
 import Logger from '../common/logger';
 import {PluginAccessory} from './accessories';
 import {AccessoryStatus} from '../common/types/accessories';
+import {toShortForm} from '../util/uuid';
 
-const GET_TIMEOUT_WARNING_THRESHOLD = 2000;
-const GET_TIMEOUT_WARNING_DISPLAY_THRESHOLD = '2 seconds';
-const SET_TIMEOUT_WARNING_THRESHOLD = 5000;
-const SET_TIMEOUT_WARNING_DISPLAY_THRESHOLD = '5 seconds';
+const READ_TIMEOUT_WARNING_THRESHOLD = 2000;
+const READ_TIMEOUT_WARNING_DISPLAY_THRESHOLD = '2 seconds';
+const READ_TIMEOUT_ERROR_THRESHOLD = 5000;
+const READ_TIMEOUT_ERROR_DISPLAY_THRESHOLD = '5 seconds';
+const WRITE_TIMEOUT_WARNING_THRESHOLD = 5000;
+const WRITE_TIMEOUT_WARNING_DISPLAY_THRESHOLD = '5 seconds';
+const WRITE_TIMEOUT_ERROR_THRESHOLD = 10000;
+const WRITE_TIMEOUT_ERROR_DISPLAY_THRESHOLD = '10 seconds';
 
-export function hapStatus(err: any): number {
+const Status: Record<string, HAPStatus> = {
+    SUCCESS: 0,
+    INSUFFICIENT_PRIVILEGES: -70401,
+    SERVICE_COMMUNICATION_FAILURE: -70402,
+    RESOURCE_BUSY: -70403,
+    READ_ONLY_CHARACTERISTIC: -70404,
+    WRITE_ONLY_CHARACTERISTIC: -70405,
+    NOTIFICATION_NOT_SUPPORTED: -70406,
+    OUT_OF_RESOURCE: -70407,
+    OPERATION_TIMED_OUT: -70408,
+    RESOURCE_DOES_NOT_EXIST: -70409,
+    INVALID_VALUE_IN_REQUEST: -70410,
+    INSUFFICIENT_AUTHORIZATION: -70411,
+};
+
+export function hapStatus(err: any): HAPStatus {
     let value = 0;
 
-    for (const k in HAPServer.Status) {
+    for (const k in Status) {
         if (err.message !== k) continue;
 
-        // @ts-ignore
-        value = HAPServer.Status[k];
+        value = Status[k];
         break;
     }
 
-    if (value === 0) value = HAPServer.Status.SERVICE_COMMUNICATION_FAILURE; // Default if not found or 0
+    if (value === 0) value = Status.SERVICE_COMMUNICATION_FAILURE; // Default if not found or 0
 
     return value;
 }
@@ -43,7 +78,6 @@ export default class Server {
 
     readonly accessory_info: AccessoryInfo;
     readonly identifier_cache: IdentifierCache;
-    readonly camera_source: CameraSource | null;
 
     readonly server: HAPServer;
     readonly advertiser: Advertiser;
@@ -63,11 +97,10 @@ export default class Server {
      * @param {Logger} log
      * @param {AccessoryInfo} accessory_info
      * @param {IdentifierCache} identifier_cache
-     * @param {Camera} camera_source
      */
     constructor(
         bridge: Accessory, config: any, log: Logger,
-        accessory_info: AccessoryInfo, identifier_cache: IdentifierCache, camera_source?: CameraSource | null
+        accessory_info: AccessoryInfo, identifier_cache: IdentifierCache
     ) {
         this.bridge = bridge;
         this.config = config;
@@ -78,7 +111,6 @@ export default class Server {
 
         this.accessory_info = accessory_info;
         this.identifier_cache = identifier_cache;
-        this.camera_source = camera_source || null;
 
         // Create our HAP server which handles all communication between iOS devices and us
         const server = this.server = new HAPServer(this.accessory_info /* , this.relay_server */);
@@ -89,42 +121,53 @@ export default class Server {
             callback(err);
         };
 
-        server.on('listening', (port: number) => this.handleServerListening(port));
-        server.on('identify', (callback: any) =>
-            this.handleIdentify().then(v => callback(null, v), err('Error in identify handler', callback)));
-        server.on('pair', (username: string, public_key: Buffer, callback: Function) =>
-            this.handlePair(username, public_key).then(v => callback(null, v), err('Error in pair handler', callback)));
-        server.on('unpair', (username: string, callback: Function) =>
-            this.handleUnpair(username).then(v => callback(null, v), err('Error in unpair handler', callback)));
-        server.on('accessories', (callback: Function) =>
-            this.handleAccessories().then(v => callback(null, v), err('Error in accessories handler', callback)));
-        server.on('get-characteristics',
-            (data: any, events: any, callback: Function, remote: any, connection_id: any) =>
-                this.handleGetCharacteristics(data, events, remote, connection_id)
-                    .then(v => callback(null, v), err('Error in get characteristics handler', callback)));
-        server.on('set-characteristics',
-            (data: any, events: any, callback: Function, remote: any, connection_id: any) =>
-                this.handleSetCharacteristics(data, events, remote, connection_id)
-                    .then(v => callback(null, v), err('Error in set characteristics handler', callback)));
-        server.on('session-close', (session_id: any, events: any) => this.handleSessionClose(session_id, events));
-
-        if (this.camera_source) {
-            server.on('request-resource', (data: any, callback: Function) =>
-                this.handleResource(data)
-                    .then(v => callback(null, v), err('Error in request resource handler', callback)));
-        }
+        server.on(HAPServerEventTypes.LISTENING, (port, address) => this.handleServerListening(port, address));
+        server.on(HAPServerEventTypes.IDENTIFY, callback =>
+            this.handleIdentify().then(v => callback(null), err('Error in identify handler', callback)));
+        server.on(HAPServerEventTypes.PAIR, (username, client_ltpk, callback) => this.handlePair(username, client_ltpk)
+            .then(v => callback(null), err('Error in pair handler', callback)));
+        server.on(HAPServerEventTypes.ADD_PAIRING, (connection, username, public_key, permissions, callback) =>
+            this.handleAddPairing(connection, username, public_key, permissions)
+                .then(v => callback(0, v), err('Error in add pairing handler', callback)));
+        server.on(HAPServerEventTypes.REMOVE_PAIRING, (connection, username, callback) =>
+            this.handleRemovePairing(connection, username)
+                .then(v => callback(0, v), err('Error in remove pairing handler', callback)));
+        server.on(HAPServerEventTypes.LIST_PAIRINGS, (connection, callback) => this.handleListPairings(connection)
+            .then(v => callback(0, v), err('Error in list pairings handler', callback)));
+        server.on(HAPServerEventTypes.ACCESSORIES, (connection, callback) => this.handleAccessories(connection)
+            .then(v => callback(undefined, v), err('Error in accessories handler', callback)));
+        server.on(HAPServerEventTypes.GET_CHARACTERISTICS, (connection, request, callback) =>
+            this.handleReadCharacteristics(connection, request)
+                .then(v => callback(undefined, v), err('Error in get characteristics handler', callback)));
+        server.on(HAPServerEventTypes.SET_CHARACTERISTICS, (connection, request, callback) =>
+            this.handleWriteCharacteristics(connection, request)
+                .then(v => callback(undefined, v), err('Error in set characteristics handler', callback)));
+        server.on(HAPServerEventTypes.REQUEST_RESOURCE, (data, callback) => this.handleResource(data)
+            .then(v => callback(undefined, v), err('Error in request resource handler', callback)));
+        server.on(HAPServerEventTypes.CONNECTION_CLOSED, connection => this.handleSessionClose(connection));
 
         // Create our Advertiser which broadcasts our presence over mdns
         this.advertiser = new Advertiser(this.accessory_info, this.mdns);
+    }
 
-        // @ts-ignore
-        const publish = this.advertiser._bonjourService.publish;
-        // @ts-ignore
-        this.advertiser._bonjourService.publish = function(this: Advertiser, options: any) {
-            options.probe = false;
-            // eslint-disable-next-line prefer-rest-params
-            return publish.apply(this, arguments);
-        };
+    get http_server(): EventedHTTPServer {
+        // @ts-expect-error
+        return this.server.httpServer;
+    }
+
+    get connections(): Set<HAPConnection> {
+        // @ts-expect-error
+        return this.http_server.connections;
+    }
+
+    get tcp_server(): net.Server {
+        // @ts-expect-error
+        return this.http_server.tcpServer;
+    }
+
+    get ciao_service(): CiaoService {
+        // @ts-expect-error
+        return this.advertiser.advertisedService;
     }
 
     start() {
@@ -221,6 +264,9 @@ export default class Server {
     getAccessoryID(accessory: Accessory): number {
         if (accessory.UUID === this.bridge.UUID) return 1;
 
+        // Make sure an accessory ID is assigned to pass assertions in Accessory.toHAP
+        if (typeof accessory.aid !== 'number') accessory.aid = 1;
+
         return this.identifier_cache.getAID(accessory.UUID);
     }
 
@@ -235,7 +281,9 @@ export default class Server {
         // The Accessory Information service must have a (reserved by IdentifierCache) ID of 1
         if (service.UUID === '0000003E-0000-1000-8000-0026BB765291' && !service.subtype) return 1;
 
-        // @ts-ignore
+        // Make sure a service ID is assigned to pass assertions in Service.toHAP
+        if (typeof service.iid !== 'number') service.iid = 1;
+
         return (accessory._isBridge ? 2000000000 : 0) +
             this.identifier_cache.getIID(accessory.UUID, service.UUID, service.subtype);
     }
@@ -251,19 +299,27 @@ export default class Server {
     getCharacteristicID(
         accessory: Accessory, service: Service, characteristic: Characteristic
     ): number {
+        // Make sure a characteristic ID is assigned to pass assertions in Characteristic.toHAP
+        if (typeof characteristic.iid !== 'number') characteristic.iid = 1;
+
         return this.identifier_cache.getIID(accessory.UUID, service.UUID, service.subtype, characteristic.UUID);
     }
 
     get listening_port(): number | null {
-        const listening = this.server._httpServer._tcpServer.address() as import('net').AddressInfo | null;
+        const listening = this.tcp_server.address() as net.AddressInfo | null;
         return listening && listening.port;
     }
 
     startAdvertising() {
         if (!this.listening_port) throw new Error('Not listening');
-        this.advertiser.startAdvertising(this.listening_port);
-        // @ts-ignore
-        if (this.config.hostname) this.advertiser._advertisement.host = this.config.hostname;
+
+        if (this.config.hostname) {
+            // @ts-expect-error
+            this.ciao_service.hostname = this.config.hostname;
+        }
+
+        this.advertiser.initPort(this.listening_port);
+        this.advertiser.startAdvertising();
     }
 
     updateAdvertisement() {
@@ -271,19 +327,22 @@ export default class Server {
     }
 
     stopAdvertising() {
-        this.advertiser.stopAdvertising();
+        // @ts-expect-error
+        this.advertiser.advertisedService.end();
     }
 
     get is_advertising() {
-        return this.advertiser.isAdvertising();
+        // @ts-expect-error
+        return this.advertiser.advertisedService.serviceState !== 'unannounced';
     }
 
     /**
      * Called when the server starts listening.
      *
      * @param {number} port
+     * @param {string} address
      */
-    handleServerListening(port: number) {
+    handleServerListening(port: number, address: string) {
         this.startAdvertising();
     }
 
@@ -295,15 +354,19 @@ export default class Server {
     unsubscribeAllEventsForAccessory(accessory: Accessory) {
         const aid = this.getAccessoryID(accessory);
 
-        for (const connection of this.server._httpServer._connections) {
-            for (const k of Object.keys(connection._events)) {
-                const match = k.match(/^([0-9]*)\.([0-9]*)$/);
-                if (!match || aid != (match[1] as unknown as number)) continue;
+        for (const connection of this.connections) {
+            for (const key of connection.getRegisteredEvents()) {
+                if (key.indexOf('.') === -1) continue;
 
-                const characteristic = this.getCharacteristicByID(accessory, parseInt(match[2]));
-                if (characteristic) characteristic.unsubscribe();
+                try {
+                    const [aid, iid] = key.split('.').map(n => parseInt(n));
+                    if (aid !== aid) continue;
 
-                delete connection._events[k];
+                    const characteristic = this.getCharacteristicByID(aid, iid);
+                    if (characteristic) characteristic.unsubscribe();
+
+                    connection.disableEventNotifications(aid, iid);
+                } catch (err) {}
             }
         }
     }
@@ -322,27 +385,27 @@ export default class Server {
     }
 
     /**
-     * Handle /pair requests.
+     * Handle /pair-setup requests.
      *
-     * @param {string} username
+     * @param {string} pairing_id
      * @param {string} public_key
      * @return {Promise}
      */
-    async handlePair(username: string, public_key: Buffer) {
+    async handlePair(pairing_id: string, public_key: Buffer) {
         const require_first_pairing = this.require_first_pairing;
         if (!Object.keys(this.accessory_info.pairedClients).length && require_first_pairing &&
-            require_first_pairing !== username) {
+            require_first_pairing !== pairing_id) {
             throw new Error('Client is not allowed to pair with this accessory');
         }
 
         const allowed_pairings = this.allowed_pairings;
-        if (allowed_pairings && !allowed_pairings.includes(username)) {
+        if (allowed_pairings && !allowed_pairings.includes(pairing_id)) {
             throw new Error('Client is not allowed to pair with this accessory');
         }
 
-        this.log.info('Pairing with client %s', username);
+        this.log.info('Pairing with client %s', pairing_id);
 
-        this.accessory_info.addPairedClient(username, public_key);
+        this.accessory_info.addPairedClient(pairing_id, public_key, PermissionTypes.ADMIN);
         this.accessory_info.save();
 
         // Update our advertisement so it can pick up on the paired status of AccessoryInfo
@@ -353,29 +416,95 @@ export default class Server {
     }
 
     /**
-     * Handle /unpair requests.
+     * Handle /pairings add requests.
      *
-     * @param {string} username
+     * @param {HAPConnection} connection
+     * @param {string} pairing_id
+     * @param {Buffer} public_key
+     * @param {number} permissions
      * @return {Promise}
      */
-    async handleUnpair(username: string) {
-        this.log.info('Unpairing with client %s', username);
+    async handleAddPairing(
+        connection: HAPConnection, pairing_id: string, public_key: Buffer, permissions: PermissionTypes
+    ) {
+        if (!this.accessory_info.hasAdminPermissions(connection.username!)) {
+            this.log.warn('Non-admin client with pairing ID %s attempted to add a pairing',
+                connection.username, {pairing_id, public_key, permissions});
+            throw TLVErrorCode.AUTHENTICATION;
+        }
 
-        this.accessory_info.removePairedClient(username);
+        const allowed_pairings = this.allowed_pairings;
+        if (allowed_pairings && !allowed_pairings.includes(pairing_id)) {
+            // throw new Error('Client is not allowed to pair with this accessory');
+            throw TLVErrorCode.UNKNOWN;
+        }
+
+        this.log.info('Pairing with client %s', pairing_id);
+
+        this.accessory_info.addPairedClient(pairing_id, public_key, permissions);
         this.accessory_info.save();
-
-        // Update our advertisement so it can pick up on the paired status of AccessoryInfo
-        this.updateAdvertisement();
 
         // @ts-ignore
         this.bridge.emit('hap-server-update-pairings');
+    }
+
+    /**
+     * Handle /pairings remove requests.
+     *
+     * @param {HAPConnection} connection
+     * @param {string} pairing_id
+     * @return {Promise}
+     */
+    async handleRemovePairing(connection: HAPConnection, pairing_id: string) {
+        if (!this.accessory_info.hasAdminPermissions(connection.username!)) {
+            this.log.warn('Non-admin client with pairing ID %s attempted to remove pairing %s',
+                connection.username, pairing_id);
+            throw TLVErrorCode.AUTHENTICATION;
+        }
+
+        this.log.info('Unpairing with client %s', pairing_id);
+
+        this.accessory_info.removePairedClient(connection, pairing_id);
+        this.accessory_info.save();
+
+        // @ts-ignore
+        this.bridge.emit('hap-server-update-pairings');
+
+        if (!this.accessory_info.paired()) {
+            // Update our advertisement so it can pick up on the paired status of AccessoryInfo
+            this.updateAdvertisement();
+
+            // this.bridge.handleAccessoryUnpairedForControllers();
+            // for (const accessory of this.accessories) {
+            //     accessory.handleAccessoryUnpairedForControllers();
+            // }
+        }
+    }
+
+    /**
+     * Handle /pairings list requests.
+     *
+     * @param {HAPConnection} connection
+     * @return {Promise}
+     */
+    async handleListPairings(connection: HAPConnection) {
+        if (!this.accessory_info.hasAdminPermissions(connection.username!)) {
+            this.log.warn('Non-admin client with pairing ID %s attempted to list pairings', connection.username);
+            throw TLVErrorCode.AUTHENTICATION;
+        }
+
+        this.log.info('Listing pairings');
+
+        return this.accessory_info.listPairings();
     }
 
     /**
      * Handle /accessories requests.
      * Called when an iOS client wishes to know all about our accessory via JSON payload.
+     *
+     * @param {HAPConnection} connection
      */
-    async handleAccessories() {
+    async handleAccessories(connection: HAPConnection) {
         this.log.debug('Getting accessories');
 
         // Build out our JSON payload and call the callback
@@ -393,15 +522,15 @@ export default class Server {
      * @param {object} [options]
      * @return {object}
      */
-    toHAP(options?: any) {
+    toHAP() {
         return {
             // Array of Accessory HAP
             // _handleGetCharacteristics will return SERVICE_COMMUNICATION_FAILURE for cached characteristics
             accessories: [this.bridge].concat(this.accessories)
-                .map(accessory => this.accessoryToHAP(accessory, options,
+                .map(accessory => this.accessoryToHAP(accessory,
                     accessory[PluginAccessory.symbol]?.status !== AccessoryStatus.READY))
                 .concat(this.cached_accessories
-                    .map(accessory => this.accessoryToHAP(accessory, options, true))),
+                    .map(accessory => this.accessoryToHAP(accessory, true))),
         };
     }
 
@@ -409,63 +538,64 @@ export default class Server {
      * Get a HAP JSON representation of an Accessory.
      *
      * @param {Accessory} accessory
-     * @param {object} [options]
      * @param {boolean} [is_unavailable]
      * @return {object}
      */
-    accessoryToHAP(accessory: Accessory, options?: any, is_unavailable = false) {
+    accessoryToHAP(accessory: Accessory, is_unavailable = false) {
         return {
             aid: this.getAccessoryID(accessory),
+
             services: accessory.services.map(service => ({
                 iid: this.getServiceID(accessory, service),
                 type: service.UUID,
-                characteristics: service.characteristics
-                    .map(characteristic => Object.assign(characteristic.toHAP(options), {
-                        iid: this.getCharacteristicID(accessory, service, characteristic),
-                    }, is_unavailable ? {
-                        status: HAPServer.Status.SERVICE_COMMUNICATION_FAILURE,
-                    } : {})),
 
-                // @ts-ignore
+                characteristics: service.characteristics.map(characteristic => {
+                    return {
+                        ...characteristic.internalHAPRepresentation(),
+                        iid: this.getCharacteristicID(accessory, service, characteristic),
+                        ...(is_unavailable ? {
+                            status: HAPStatus.SERVICE_COMMUNICATION_FAILURE,
+                        } : {
+                            value: characteristic.value,
+                        }),
+                    };
+                }),
+
                 primary: service.isPrimaryService,
-                // @ts-ignore
                 hidden: service.isHiddenService,
 
-                // @ts-ignore
                 linked: service.linkedServices.map(linked_service => this.getServiceID(accessory, linked_service)),
             })),
         };
     }
 
     /**
-     * Handle /characteristics requests.
+     * Handle GET /characteristics requests.
      * Called when an iOS client wishes to query the state of one or more characteristics, like "door open?", "light on?", etc.
      *
-     * @param {object[]} data
-     * @param {object} events
-     * @param {object} remote
-     * @param {string} connection_id
-     * @return {Promise<object[]>}
+     * @param {HAPConnection} connection
+     * @param {CharacteristicsReadRequest} request
+     * @return {Promise<CharacteristicsReadResponse>}
      */
-    async handleGetCharacteristics(data: any, events: object, remote: boolean, connection_id: string) {
-        return Promise.all(data.map((data: any) => this.handleGetCharacteristic(data, events, remote, connection_id)));
+    async handleReadCharacteristics(
+        connection: HAPConnection, request: CharacteristicsReadRequest
+    ): Promise<CharacteristicsReadResponse> {
+        return {
+            characteristics: await Promise.all(request.ids.map(ids =>
+                this.handleReadCharacteristic(connection, request, ids))),
+        };
     }
 
-    async handleGetCharacteristic(data: any, events: any, remote: boolean, connection_id: string) {
-        const status_key = remote ? 's' : 'status';
-        const value_key = remote ? 'v' : 'value';
-
-        const {aid, iid, e: include_event} = data;
+    async handleReadCharacteristic(
+        connection: HAPConnection, request: CharacteristicsReadRequest, {aid, iid}: CharacteristicId
+    ): Promise<CharacteristicReadData> {
         const accessory = this.getAccessoryByID(aid, false);
 
         if (!accessory || accessory[PluginAccessory.symbol]?.status !== AccessoryStatus.READY) {
             this.log.debug('Tried to get a characteristic from an unknown/cached accessory with aid %d and iid %d',
                 aid, iid);
 
-            return {
-                aid, iid,
-                [status_key]: HAPServer.Status.SERVICE_COMMUNICATION_FAILURE,
-            };
+            return {aid, iid, status: HAPStatus.SERVICE_COMMUNICATION_FAILURE};
         }
 
         const characteristic = this.getCharacteristicByID(accessory, iid);
@@ -473,170 +603,299 @@ export default class Server {
         if (!characteristic) {
             this.log.warn('Could not find a characteristic with aid %d and iid %d', aid, iid);
 
-            return {
-                aid, iid,
-                [status_key]: HAPServer.Status.SERVICE_COMMUNICATION_FAILURE,
-            };
+            return {aid, iid, status: HAPStatus.SERVICE_COMMUNICATION_FAILURE};
+        }
+
+        if (!characteristic.props.perms.includes(Perms.PAIRED_READ)) {
+            this.log.warn('Tried to read a characteristic which doesn\'t support reading with aid %d and iid %d',
+                aid, iid);
+            return {aid, iid, status: HAPStatus.WRITE_ONLY_CHARACTERISTIC};
+        }
+
+        if (characteristic.props.adminOnlyAccess && characteristic.props.adminOnlyAccess.includes(Access.READ)) {
+            if (!connection.username) {
+                this.log.warn('Unable to verify client reading an admin-only characteristic is an admin ' +
+                    'with aid %d and iid %d, denying access to be safe', aid, iid);
+                return {aid, iid, status: HAPStatus.INSUFFICIENT_PRIVILEGES};
+            } else if (!this.accessory_info.hasAdminPermissions(connection.username)) {
+                this.log.warn('Non-admin user attempted to read an admin-only characteristic with aid %d and iid %d',
+                    aid, iid);
+                return {aid, iid, status: HAPStatus.INSUFFICIENT_PRIVILEGES};
+            }
         }
 
         // Found the Characteristic! Get the value!
         this.log.debug('Getting value for characteristic "%s"', characteristic.displayName);
 
-        // We want to remember "who" made this request, so that we don't send them an event notification
-        // about any changes that occurred as a result of the request. For instance, if after querying
-        // the current value of a characteristic, the value turns out to be different than the previously
-        // cached Characteristic value, an internal 'change' event will be emitted which will cause us to
-        // notify all connected clients about that new value. But this client is about to get the new value
-        // anyway, so we don't want to notify it twice.
-        const context = events;
-
         try {
-            const warning_timeout = setTimeout(() => {
-                this.log.warn('Characteristic "%s" of accessory "%s" too more than %s to respond',
-                    characteristic.displayName, accessory.displayName, GET_TIMEOUT_WARNING_DISPLAY_THRESHOLD);
-            }, GET_TIMEOUT_WARNING_THRESHOLD);
-
-            // Get the value
-            const value = await new Promise((rs, rj) => characteristic.getValue((err: any, value: any) => {
-                err ? rj(err) : rs(value);
-            }, context, connection_id));
-
-            clearTimeout(warning_timeout);
+            const value = await this.readCharacteristicWithTimeout(accessory, characteristic, connection);
 
             this.log.debug('Got characteristic "%s"', characteristic.displayName, value);
 
-            // Compose the response and add it to the list
             return {
-                aid, iid,
-                [value_key]: value,
-                [status_key]: 0,
-                e: include_event ? events[`${aid}.${iid}`] === true : undefined,
+                aid, iid, value: value ?? null,
+
+                ...(request.includeMeta ? {
+                    format: characteristic.props.format,
+                    unit: characteristic.props.unit,
+                    minValue: characteristic.props.minValue,
+                    maxValue: characteristic.props.maxValue,
+                    minStep: characteristic.props.minStep,
+                    maxLen: characteristic.props.maxLen ?? characteristic.props.maxDataLen,
+                } : null),
+
+                ...(request.includePerms ? {
+                    perms: characteristic.props.perms,
+                } : null),
+
+                ...(request.includeType ? {
+                    type: toShortForm(characteristic.UUID),
+                } : null),
+
+                ...(request.includeEvent ? {
+                    ev: connection.hasEventNotifications(aid, iid),
+                }: null),
             };
         } catch (err) {
             this.log.debug('Error getting value for characteristic "%s"', characteristic.displayName, err);
 
-            return {
-                aid, iid,
-                [status_key]: hapStatus(err),
-            };
+            return {aid, iid, status: hapStatus(err)};
         }
     }
 
     /**
-     * Handle /characteristics requests.
+     * Handle POST /characteristics requests.
      * Called when an iOS client wishes to change the state of this accessory - like opening a door, or turning
      * on a light. Or, to subscribe to change events for a particular Characteristic.
      *
-     * @param {object[]} data
-     * @param {object} events
-     * @param {object} remote
-     * @param {string} connection_id
-     * @return {Promise<object[]>}
+     * @param {HAPConnection} connection
+     * @param {CharacteristicsWriteRequest} request
+     * @return {Promise<CharacteristicsWriteResponse>}
      */
-    async handleSetCharacteristics(data: any, events: object, remote: boolean, connection_id: string) {
-        // data is an array of characteristics and values like this:
-        // [ { aid: 1, iid: 8, value: true, ev: true } ]
+    async handleWriteCharacteristics(
+        connection: HAPConnection, request: CharacteristicsWriteRequest
+    ): Promise<CharacteristicsWriteResponse> {
+        this.log.debug('Processing characteristic write', JSON.stringify(request));
 
-        this.log.debug('Processing characteristic set', JSON.stringify(data));
+        if ('pid' in request) {
+            if (connection.timedWritePid === request.pid) {
+                clearTimeout(connection.timedWriteTimeout!);
+                connection.timedWritePid = undefined;
+                connection.timedWriteTimeout = undefined;
 
-        return Promise.all(data.map((data: any) => this.handleSetCharacteristic(data, events, remote, connection_id)));
+                this.log.debug('Acknowledged timed write request with pid %d', request.pid);
+            } else {
+                return {
+                    characteristics: request.characteristics.map(req => {
+                        return {
+                            aid: req.aid, iid: req.iid,
+                            status: HAPStatus.INVALID_VALUE_IN_REQUEST,
+                        };
+                    }),
+                };
+            }
+        }
+
+        return {
+            characteristics: await Promise.all(request.characteristics.map(req =>
+                this.handleWriteCharacteristic(connection, request, req, 'pid' in request))),
+        };
     }
 
-    async handleSetCharacteristic(data: any, events: any, remote: boolean, connection_id: string) {
-        const value = remote ? data.v : data.value;
-        const ev = remote ? data.e : data.ev;
-        const include_value = data.r || false;
-
-        const status_key = remote ? 's' : 'status';
-
-        const {aid, iid} = data;
+    async handleWriteCharacteristic(
+        connection: HAPConnection, request: CharacteristicsWriteRequest, req: CharacteristicWrite, timed_write = false
+    ): Promise<CharacteristicWriteData> {
+        const {aid, iid} = req;
         const accessory = this.getAccessoryByID(aid, false);
 
         if (!accessory || accessory[PluginAccessory.symbol]?.status !== AccessoryStatus.READY) {
             this.log.debug('Tried to get a characteristic from an unknown/cached accessory with aid %d and iid %d',
                 aid, iid);
-
-            return {
-                aid, iid,
-                [status_key]: HAPServer.Status.SERVICE_COMMUNICATION_FAILURE,
-            };
+            return {aid, iid, status: HAPStatus.SERVICE_COMMUNICATION_FAILURE};
         }
 
         const characteristic = this.getCharacteristicByID(accessory, iid);
 
         if (!characteristic) {
             this.log.warn('Could not find a characteristic with aid %d and iid %d', aid, iid);
-
-            return {
-                aid, iid,
-                [status_key]: HAPServer.Status.SERVICE_COMMUNICATION_FAILURE,
-            };
+            return {aid, iid, status: HAPStatus.SERVICE_COMMUNICATION_FAILURE};
         }
 
-        // We want to remember "who" initiated this change, so that we don't send them an event notification
-        // about the change they just made. We do this by leveraging the arbitrary "context" object supported
-        // by Characteristic and passed on to the corresponding 'change' events bubbled up from Characteristic
-        // through Service and Accessory. We'll assign it to the events object since it essentially represents
-        // the connection requesting the change.
-        const context = events;
+        if ('ev' in req) {
+            // Validate event subscription request
 
-        // if "ev" is present, that means we need to register or unregister this client for change events for
-        // this characteristic.
-        if (typeof ev !== 'undefined') {
-            this.log.debug(`${ev ? 'R' : 'Unr'}egistering characteristic "%s"`, characteristic.displayName);
-
-            // Store event registrations in the supplied "events" dict which is associated with the connection making
-            // the request.
-            const event_name = aid + '.' + iid;
-
-            if (ev === true && events[event_name] !== true) {
-                events[event_name] = true; // value is arbitrary, just needs to be non-falsey
-                characteristic.subscribe();
+            if (!characteristic.props.perms.includes(Perms.NOTIFY)) {
+                this.log.warn('Tried to subscribe to events for a characteristic which doesn\'t support events ' +
+                    'with aid %d and iid %d', aid, iid);
+                return {aid, iid, status: HAPStatus.NOTIFICATION_NOT_SUPPORTED};
             }
 
-            if (ev === false && events[event_name] !== undefined) {
-                characteristic.unsubscribe();
-                delete events[event_name]; // unsubscribe by deleting name from dict
+            if (characteristic.props.adminOnlyAccess && characteristic.props.adminOnlyAccess.includes(Access.NOTIFY)) {
+                if (!connection.username) {
+                    this.log.warn('Unable to verify client subscribing to events for an admin-only characteristic ' +
+                        'is an admin with aid %d and iid %d, denying access to be safe', aid, iid);
+                    return {aid, iid, status: HAPStatus.INSUFFICIENT_PRIVILEGES};
+                } else if (!this.accessory_info.hasAdminPermissions(connection.username)) {
+                    this.log.warn('Non-admin user attempted to subscribe to events for an admin-only characteristic ' +
+                        'with aid %d and iid %d', aid, iid);
+                    return {aid, iid, status: HAPStatus.INSUFFICIENT_PRIVILEGES};
+                }
             }
         }
 
-        // Found the characteristic - set the value if there is one
-        if (typeof value !== 'undefined') {
-            this.log.debug('Setting characteristic "%s"', characteristic.displayName, value);
+        if ('value' in req) {
+            // Validate write request
 
+            if (!characteristic.props.perms.includes(Perms.PAIRED_WRITE)) {
+                this.log.warn('Tried to write to a characteristic which doesn\'t support writes with aid %d and iid %d',
+                    aid, iid);
+                return {aid, iid, status: HAPStatus.READ_ONLY_CHARACTERISTIC};
+            }
+
+            if (characteristic.props.adminOnlyAccess && characteristic.props.adminOnlyAccess.includes(Access.WRITE)) {
+                if (!connection.username) {
+                    this.log.warn('Unable to verify client writing to an admin-only characteristic ' +
+                        'is an admin with aid %d and iid %d, denying access to be safe', aid, iid);
+                    return {aid, iid, status: HAPStatus.INSUFFICIENT_PRIVILEGES};
+                } else if (!this.accessory_info.hasAdminPermissions(connection.username)) {
+                    this.log.warn('Non-admin user attempted to write to an admin-only characteristic ' +
+                        'with aid %d and iid %d', aid, iid);
+                    return {aid, iid, status: HAPStatus.INSUFFICIENT_PRIVILEGES};
+                }
+            }
+
+            if (
+                characteristic.props.perms.includes(Perms.ADDITIONAL_AUTHORIZATION) &&
+                characteristic.additionalAuthorizationHandler
+            ) {
+                // if the characteristic "supports additional authorization" but doesn't define a handler for the check
+                // we conclude that the characteristic doesn't want to check the authData (currently) and just allows
+                // access for everybody
+
+                try {
+                    if (!characteristic.additionalAuthorizationHandler(req.authData)) {
+                        return {aid, iid, status: HAPStatus.INSUFFICIENT_AUTHORIZATION};
+                    }
+                } catch (err) {
+                    this.log.error('Error thrown while checking additional authorisation for characteristic ' +
+                        'with aid %d and iid %d', aid, iid, err);
+                    return {aid, iid, status: HAPStatus.INSUFFICIENT_AUTHORIZATION};
+                }
+            }
+
+            if (characteristic.props.perms.includes(Perms.TIMED_WRITE) && !timed_write) {
+                this.log.warn('Tried to write to a characteristic which requires timed writes without using a timed ' +
+                    'write with aid %d and iid %d', aid, iid);
+                return {aid, iid, status: HAPStatus.INVALID_VALUE_IN_REQUEST};
+            }
+        }
+
+        /** Write response */
+        let value: CharacteristicValue | null | undefined = undefined;
+
+        if ('value' in req) {
             try {
-                const warning_timeout = setTimeout(() => {
-                    this.log.warn('Characteristic "%s" of accessory "%s" too more than %s to respond',
-                        characteristic.displayName, accessory.displayName, SET_TIMEOUT_WARNING_DISPLAY_THRESHOLD);
-                }, SET_TIMEOUT_WARNING_THRESHOLD);
+                this.log.debug('Setting characteristic "%s"', characteristic.displayName, req.value);
 
-                // Set the value and wait for success
-                await new Promise((rs, rj) => characteristic.setValue(value, (err?, value?: any) => {
-                    err ? rj(err) : rs(value);
-                }, context, connection_id));
+                const res = await this.writeCharacteristicWithTimeout(
+                    accessory, characteristic, connection, req.value!
+                );
 
-                clearTimeout(warning_timeout);
-
-                return {
-                    aid, iid,
-                    [status_key]: 0,
-                    value: include_value ? characteristic.value : undefined,
-                };
+                // @ts-expect-error
+                if (req.r) value = res ?? null;
             } catch (err) {
-                this.log.debug('Error setting characteristic "%s"', characteristic.displayName, value, err.message);
+                this.log.debug('Error setting value for characteristic "%s"', characteristic.displayName, err);
 
-                return {
-                    aid, iid,
-                    [status_key]: hapStatus(err),
-                };
+                return {aid, iid, status: hapStatus(err)};
             }
         }
 
-        // No value to set, so we're done (success)
+        /** Event subscription response */
+        let ev: boolean | undefined = undefined;
+
+        if ('ev' in req) {
+            // Subscribe to events *after handling the write request* as HAP can't respond with an error writing to the
+            // characteristic and successfully subscribe to/unsubscribe from events
+
+            if (req.ev && !connection.hasEventNotifications(req.aid, req.iid)) {
+                connection.enableEventNotifications(req.aid, req.iid);
+                characteristic.subscribe();
+                ev = true;
+            } else if (!req.ev && connection.hasEventNotifications(req.aid, req.iid)) {
+                characteristic.unsubscribe();
+                connection.disableEventNotifications(req.aid, req.iid);
+                ev = false;
+            } else {
+                this.log.debug('Client attempted to subscribe/unsubscribe for events, but they are already ' +
+                    'subscribed/not subscribed');
+            }
+        }
+
         return {
             aid, iid,
-            [status_key]: 0,
+            value,
+            ev,
         };
+    }
+
+    async readCharacteristicWithTimeout(
+        accessory: Accessory, characteristic: Characteristic, connection: HAPConnection
+    ): Promise<CharacteristicValue | null> {
+        const warning_timeout = setTimeout(() => {
+            this.log.warn('Characteristic "%s" of accessory "%s" took more than %s to respond',
+                characteristic.displayName, accessory.displayName, READ_TIMEOUT_WARNING_DISPLAY_THRESHOLD);
+        }, READ_TIMEOUT_WARNING_THRESHOLD);
+
+        let error_timeout;
+        let error_rs: Function;
+
+        try {
+            return await Promise.race([
+                new Promise<null>((rs, rj) => {
+                    error_rs = rs;
+                    error_timeout = setTimeout(() => {
+                        rj(new Error('Characteristic "' + characteristic.displayName + '" of accessory "' +
+                            accessory.displayName + '" took more than ' + READ_TIMEOUT_ERROR_DISPLAY_THRESHOLD +
+                            ' to respond'));
+                    }, READ_TIMEOUT_ERROR_THRESHOLD);
+                }),
+                characteristic.handleGetRequest(connection),
+            ]);
+        } finally {
+            clearTimeout(warning_timeout);
+            clearTimeout(error_timeout);
+            error_rs!(null);
+        }
+    }
+
+    async writeCharacteristicWithTimeout(
+        accessory: Accessory, characteristic: Characteristic, connection: HAPConnection, value: CharacteristicValue
+    ): Promise<CharacteristicValue | void> {
+        const warning_timeout = setTimeout(() => {
+            this.log.warn('Characteristic "%s" of accessory "%s" took more than %s to respond',
+                characteristic.displayName, accessory.displayName, WRITE_TIMEOUT_WARNING_DISPLAY_THRESHOLD);
+        }, WRITE_TIMEOUT_WARNING_THRESHOLD);
+
+        let error_timeout;
+        let error_rs: Function;
+
+        try {
+            return await Promise.race([
+                new Promise<void>((rs, rj) => {
+                    error_rs = rs;
+                    error_timeout = setTimeout(() => {
+                        rj(new Error('Characteristic "' + characteristic.displayName + '" of accessory "' +
+                            accessory.displayName + '" took more than ' + WRITE_TIMEOUT_ERROR_DISPLAY_THRESHOLD +
+                            ' to respond'));
+                    }, WRITE_TIMEOUT_ERROR_THRESHOLD);
+                }),
+                characteristic.handleSetRequest(value, connection),
+            ]);
+        } finally {
+            clearTimeout(warning_timeout);
+            clearTimeout(error_timeout);
+            error_rs!();
+        }
     }
 
     /**
@@ -646,66 +905,57 @@ export default class Server {
      * @return {Promise}
      */
     async handleResource(data: ResourceRequest) {
-        if (data['resource-type'] === ResourceTypes.IMAGE && this.camera_source && !data.aid) {
-            return await new Promise((rs, rj) => this.camera_source!.handleSnapshotRequest({
-                width: data['image-width'],
-                height: data['image-height'],
-            }, (err: any, data: any) => err ? rj(err) : rs(data)));
+        const accessory = 'aid' in data ? this.getAccessoryByID(data.aid!) : this.bridge;
+
+        if (accessory && data['resource-type'] === ResourceRequestType.IMAGE) {
+            // @ts-expect-error
+            const controller: CameraController | null = accessory.activeCameraController ?? null;
+
+            if (controller) {
+                return controller.handleSnapshotRequest(
+                    data['image-height'], data['image-width'], accessory.displayName
+                );
+            }
         }
 
-        if (data['resource-type'] === ResourceTypes.IMAGE && data.aid) {
-            const accessory = this.getAccessoryByID(data.aid);
-            if (!accessory || !accessory.cameraSource) throw new Error('Resource not found');
-
-            return await new Promise((rs, rj) => accessory.cameraSource!.handleSnapshotRequest({
-                width: data['image-width'],
-                height: data['image-height'],
-            }, (err: any, data: any) => err ? rj(err) : rs(data)));
-        }
-
-        throw new Error('Resource not found');
+        const err = new Error('Resource not found');
+        // @ts-expect-error
+        err.httpCode = HAPHTTPCode.NOT_FOUND;
+        // @ts-expect-error
+        err.status = HAPStatus.RESOURCE_DOES_NOT_EXIST;
+        throw err;
     }
 
     /**
      * Handles session close.
      *
-     * @param {string} session_id
-     * @param {object} events
+     * @param {HAPConnection} connection
      * @return {Promise}
      */
-    async handleSessionClose(session_id: string, events: object) {
-        if (this.camera_source && this.camera_source.handleCloseConnection) {
-            this.camera_source.handleCloseConnection(session_id);
-        }
+    async handleSessionClose(connection: HAPConnection) {
+        // @ts-expect-error
+        const controller: CameraController | null = this.bridge.activeCameraController ?? null;
+        if (controller) controller.handleCloseConnection(connection.sessionID);
 
         for (const accessory of this.accessories) {
-            if (accessory.cameraSource && accessory.cameraSource.handleCloseConnection) {
-                accessory.cameraSource.handleCloseConnection(session_id);
-            }
+            // @ts-expect-error
+            const controller: CameraController | null = accessory.activeCameraController ?? null;
+            if (controller) controller.handleCloseConnection(connection.sessionID);
         }
 
         // this._unsubscribeEvents(events);
 
-        for (const key in events) {
+        for (const key of connection.getRegisteredEvents()) {
             if (key.indexOf('.') === -1) continue;
 
             try {
-                const [aid, iid] = key.split('.');
+                const [aid, iid] = key.split('.').map(n => parseInt(n));
 
-                const characteristic = this.getCharacteristicByID(parseInt(aid), parseInt(iid));
+                const characteristic = this.getCharacteristicByID(aid, iid);
                 if (characteristic) characteristic.unsubscribe();
             } catch (err) {}
         }
+
+        connection.clearRegisteredEvents();
     }
-}
-
-interface ResourceRequest {
-    'aid'?: number;
-    'image-height': number;
-    'image-width': number;
-    'resource-type': ResourceTypes;
-}
-
-export enum ResourceTypes {
-    IMAGE = 'image',
 }

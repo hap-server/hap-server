@@ -1,5 +1,3 @@
-/// <reference path="../../types/hap-nodejs.d.ts" />
-
 import {AccessoryHap, CharacteristicHap} from './hap';
 import {
     AccessoryData, Home, Layout, LayoutSection, Automation, Scene, Bridge, Pairing, Permissions, AccessoryType,
@@ -125,7 +123,10 @@ export type UnsubscribeCharacteristicsResponseMessage = void[];
 export interface RequestSnapshotRequestMessage {
     type: 'request-snapshot';
     id: string;
-    request: import('hap-nodejs/lib/Camera').SnapshotRequest;
+    request: {
+        height: number;
+        width: number;
+    };
 }
 export type RequestSnapshotResponseMessage = Buffer;
 
