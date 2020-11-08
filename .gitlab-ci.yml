@@ -251,6 +251,20 @@ publish-gitlab:
         - cd ../ui-api-types
         - cp ../hap-server/.npmrc .
         - npm --color="always" --registry=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/npm/ publish
+
+        - cd ../..
+
+        - PACKAGE_NAME=`node -e "console.log(JSON.parse(fs.readFileSync('release/hap-server/package.json', 'utf-8')).name)"`
+        - API_TYPES_PACKAGE_NAME=`node -e "console.log(JSON.parse(fs.readFileSync('release/api-types/package.json', 'utf-8')).name)"`
+        - UI_API_TYPES_PACKAGE_NAME=`node -e "console.log(JSON.parse(fs.readFileSync('release/ui-api-types/package.json', 'utf-8')).name)"`
+        - PACKAGE_VERSION=`node -e "console.log(JSON.parse(fs.readFileSync('release/hap-server/package.json', 'utf-8')).version)"`
+
+        # - ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/npm/${PACKAGE_NAME}/-/${PACKAGE_NAME}-${PACKAGE_VERSION}.tgz
+
+        - |
+            curl --header 'Content-Type: application/json' --header "PRIVATE-TOKEN: ${CI_JOB_TOKEN}" \
+            --data '{ "tag_name": "${CI_COMMIT_TAG}", "assets": { "links": [{ "name": "hap-server-release.tgz", "url": "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/npm/${PACKAGE_NAME}/-/${PACKAGE_NAME}-${PACKAGE_VERSION}.tgz", "link_type": "package" }, { "name": "hap-server-api-types-release.tgz", "url": "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/npm/${API_TYPES_PACKAGE_NAME}/-/${API_TYPES_PACKAGE_NAME}-${PACKAGE_VERSION}.tgz", "link_type": "package" }, { "name": "hap-server-ui-api-types-release.tgz", "url": "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/npm/${UI_API_TYPES_PACKAGE_NAME}/-/${UI_API_TYPES_PACKAGE_NAME}-${PACKAGE_VERSION}.tgz", "link_type": "package" }] } }' \
+            --request POST ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/releases
     dependencies:
         - build
     only:
