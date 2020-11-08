@@ -143,7 +143,7 @@ export class PluginManager extends EventEmitter {
     }
 
     // eslint-disable-next-line valid-jsdoc
-    /** @deprecated */
+    /** @deprecated Use {@see PluginManager.loadWebInterfacePlugin} */
     async loadAccessoryUI(ui_plugin: UIPlugin) {
         return this.loadWebInterfacePlugin(ui_plugin);
     }
@@ -169,7 +169,7 @@ export class PluginManager extends EventEmitter {
             request = path.resolve(path.dirname(script), request);
         }
 
-        if (request.match(/^@hap-server\/accessory-ui-api(\/.*)?$/)) {
+        if (request.match(/^@hap-server\/accessory-ui-api(\/|$)/)) {
             console.warn('Using deprecated @hap-server/accessory-ui-api module');
             request = '@hap-server/ui-api' + request.substr(28);
         }
@@ -265,7 +265,7 @@ export class PluginManager extends EventEmitter {
     ) {
         if (script) request = path.resolve(path.dirname(script), request);
 
-        if (request.match(/^@hap-server\/accessory-ui-api(\/.*)?$/)) {
+        if (request.match(/^@hap-server\/accessory-ui-api(\/|$)/)) {
             console.warn('Using deprecated @hap-server/accessory-ui-api module');
             request = '@hap-server/ui-api' + request.substr(28);
         }
@@ -448,7 +448,7 @@ export class PluginAPI {
         Object.defineProperty(this, 'ui_plugin', {value: ui_plugin});
     }
 
-    /** @deprecated */
+    /** @deprecated Use {@see PluginAPI.ui_plugin} */
     get accessory_ui() {
         return this.ui_plugin;
     }
@@ -510,7 +510,7 @@ export class PluginAPI {
     }
 
     // eslint-disable-next-line valid-jsdoc
-    /** @deprecated */
+    /** @deprecated Use {@see PluginAPI.registerServiceTileComponent} */
     registerServiceComponent(type: string, component: Component) {
         this.registerServiceTileComponent(type, component);
     }
@@ -537,7 +537,7 @@ export class PluginAPI {
     }
 
     // eslint-disable-next-line valid-jsdoc
-    /** @deprecated */
+    /** @deprecated Use {@see PluginAPI.registerServiceDetailsComponent} */
     registerAccessoryDetailsComponent(type: string, component: Component) {
         this.registerServiceDetailsComponent(type, component);
     }
@@ -714,7 +714,7 @@ export class PluginAPI {
     }
 
     // eslint-disable-next-line valid-jsdoc
-    /** @deprecated */
+    /** @deprecated Use {@see PluginAPI.registerServiceSettingsComponent} */
     registerAccessorySettingsComponent(type: string, component: Component) {
         this.registerServiceSettingsComponent(type, component);
     }
@@ -927,7 +927,7 @@ export abstract class UserManagementHandler {
             get: () => this.constructor.component});
     }
 
-    /** @deprecated */
+    /** @deprecated Use {@see UserManagementHandler.ui_plugin} */
     get accessory_ui() {
         return this.ui_plugin;
     }

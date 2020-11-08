@@ -36,19 +36,19 @@
         watch: {
             'client.connection'(connection, old_connection) {
                 // eslint-disable-next-line curly
-                if (old_connection) old_connection.disableProxyStdout().then(() => {
+                if (old_connection) {
                     old_connection.removeListener('stdout', this.stdout);
                     old_connection.removeListener('stderr', this.stderr);
-                });
+                    old_connection.disableProxyStdout();
+                }
 
-                if (connection) connection.on('stdout', this.stdout);
-                if (connection) connection.on('stderr', this.stderr);
+                if (connection) {
+                    connection.on('stdout', this.stdout);
+                    connection.on('stderr', this.stderr);
+                }
             },
             async 'client.connection.authenticated_user'(authenticated_user) {
                 if (!this.client.connection) return;
-
-                this.client.connection.on('stdout', this.stdout);
-                this.client.connection.on('stderr', this.stderr);
 
                 await Promise.all([
                     this.loadCommandLineFlags(),
