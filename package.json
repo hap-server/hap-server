@@ -157,7 +157,8 @@
     },
     "scripts": {
         "build": "gulp build",
-        "prepare": "gulp build build-example-plugins",
+        "build-example-plugins": "tsc --project example-plugins/fake-accessories && tsc --project example-plugins/virtual-switches",
+        "prepare": "gulp build && npm run build-example-plugins",
         "test": "exit 0"
     },
     "bin": {
