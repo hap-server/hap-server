@@ -20,6 +20,7 @@ variables:
 retire-js-dependency_scanning:
     cache:
         policy: pull
+    needs: []
     before_script:
         - npm --color="always" install @hap-server/authenticate-pam
 
@@ -89,6 +90,7 @@ build:
             - hap-server-release.tgz
             - hap-server-api-types-release.tgz
             - hap-server-ui-api-types-release.tgz
+    needs: []
     only:
         changes:
             - .gitlab-ci.yml
@@ -96,7 +98,7 @@ build:
             - gulpfile.ts
             - .babelrc
             - src/**/*
-            - example-plugins/src/**/*
+            - example-plugins/**/*
     except:
         variables:
             - $NPM_AUDIT_SCHEDULE_SKIP_BUILD
@@ -303,6 +305,12 @@ publish-next-gitlab:
             - main
         variables:
             - $GITLAB_NPM_PUBLISH_NEXT
+        changes:
+            - .gitlab-ci.yml
+            - package-lock.json
+            - gulpfile.ts
+            - .babelrc
+            - src/**/*
     except:
         - tags
         - schedules
