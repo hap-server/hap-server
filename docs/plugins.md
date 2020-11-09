@@ -2,7 +2,7 @@ Plugins
 ---
 
 hap-server supports all Homebridge plugins, but also has it's own plugin API that allows plugins to use hap-server
-features.
+features. Plugins can support both hap-server and Homebridge.
 
 To make hap-server load a Node.js package as a plugin you need to add the hap-server version it supports to the
 `engines` property and `hap-server-plugin` to the `keywords` property of it's `package.json` file.
@@ -35,29 +35,6 @@ definitions - you don't need to install these if you aren't using TypeScript.
 }
 ```
 
-Plugins can support both hap-server and Homebridge.
-
-hap-server also includes TypeScript definitions for Homebridge plugins. To use these include `@hap-server/api`
-as a development depencency. You can use these even if your plugin only supports Homebridge.
-
-```ts
-import {InitFunction, API, AccessoryInstance, PlatformInstance} from '@hap-server/api/homebridge';
-
-const init: InitFunction = function init(homebridge: API) {
-    homebridge.registerPlatform('plugin', 'platform', Platform);
-};
-
-export default init;
-
-class Platform implements PlatformInstance {
-    constructor(readonly log: Logger, readonly config: any, readonly api: API) {}
-
-    accessories(callback: (accessories: AccessoryInstance[]) => void) {
-        //
-    }
-}
-```
-
 hap-server patches `Module._load` to allow plugins to load a virtual `@hap-server/api` module.
 
 ```js
@@ -83,36 +60,14 @@ export async function init() {
 }
 ```
 
-hap-server adds `get_handler` and `set_handler` helper properties to Characteristics that wrap characteristic get/set
-handlers for async functions.
-
-```js
-lightbulb_service.getCharacteristic(Characteristics.On)
-    .get_handler = async () => {
-        const value = await light.getPowerState();
-        return value;
-    };
-```
-
-You can also use the `getHandler` and `setHandler` methods for chaining.
-
-```js
-lightbulb_service.getCharacteristic(Characteristics.On)
-    .getHandler(async () => {
-        const value = await light.getPowerState();
-        return value;
-    })
-    .setHandler(async on => {
-        await light.setPowerState(on);
-    });
-```
-
-Television accessories should set the `external_groups` property so hap-server knows to publish the
+Television accessories should set the `ExternalAccessoryGroupsSymbol` property so hap-server knows to publish the
 accessory separately. This should be the UUID of any services that require the accessory to be published separately.
 
 ```js
+import {ExternalAccessoryGroupsSymbol} from '@hap-server/api';
+
 const accessory = new Accessory(config.name, config.uuid);
-accessory.external_groups = [Service.Television.UUID];
+accessory[ExternalAccessoryGroupsSymbol] = [Service.Television.UUID];
 
 const tv_service = accessory.addService(Service.Television);
 
@@ -120,16 +75,18 @@ const tv_service = accessory.addService(Service.Television);
 ```
 
 hap-server will only publish accessories separately if there is more than one accessory with that service. If the
-accessory should always be published separately set the `external` property.
+accessory should always be published separately set the `ExternalAccessorySymbol` property.
 
 ```js
+import {ExternalAccessorySymbol} from '@hap-server/api';
+
 const accessory = new Accessory(config.name, config.uuid);
-accessory.external = true;
+accessory[ExternalAccessorySymbol] = true;
 
 // Cameras don't actually need to be published separately anymore
 // Since version 0.11.0 multiple cameras can be published on the same bridge
-const camera = new Camera(/* ... */);
-accessory.configureCameraSource(camera);
+const camera = new CameraController(/* ... */);
+accessory.configureController(camera);
 
 // ...
 ```
@@ -171,11 +128,17 @@ hapserver.registerAccessory('AccessoryType', async config => {
 });
 ```
 
-In future versions plugins should listen to the `reload` and `destroy` events to reload the accessory's configuration
-and disconnect from the accessory if it's removed from the server.
+Plugins should listen to the `reload` and `destroy` events to reload the accessory's configuration and disconnect
+from the accessory if it's removed from the server.
 
 ```js
 import {AccessoryEvents} from '@hap-server/api';
+
+accessory.on(AccessoryEvents.RELOAD, config => {
+    // Handle new configuration data
+    // As the plugin, accessory and uuid properties of the config object are used to identify the accessory, these
+    // will not change
+});
 
 accessory.on(AccessoryEvents.DESTROY, () => {
     // The accessory has already been removed from the server
@@ -183,13 +146,6 @@ accessory.on(AccessoryEvents.DESTROY, () => {
 });
 ```
 
-In future versions plugins should listen to the `reload` event to reload the accessory's configuration.
-
-```js
-accessory.on(AccessoryEvents.RELOAD, config => {
-    // ...
-});
-```
 
 You can report an accessory's status by emitting `status` events. By default this is set to `READY`. Characteristic
 get/set handlers are only called if the status is `READY`, if it isn't the server will respond to requests for that
