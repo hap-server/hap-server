@@ -52,7 +52,7 @@
         "sqlite": "^4.0.15",
         "sqlite3": "^5.0.0",
         "sunrise-sunset-js": "^2.1.2",
-        "systeminformation": "^4.29.1",
+        "systeminformation": "^5.6.4",
         "tiny-typed-emitter": "^2.0.3",
         "tslib": "^1.14.1",
         "userid": "^1.0.0-beta.6",
